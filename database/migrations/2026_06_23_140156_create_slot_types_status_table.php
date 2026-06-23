@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('slot_types_status', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('slot_type_id')->primary()->constrained('slot_types');
+            $table->foreignId('slot_type_id');
 
-            $table->foreignId('status_id')->primary()->constrained('status');
+            $table->foreignId('status_id');
         });
     }
 

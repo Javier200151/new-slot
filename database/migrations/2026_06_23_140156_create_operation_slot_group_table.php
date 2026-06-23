@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('operation_slot_group', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('operation_id')->constrained('operations');
+            $table->foreignId('operation_id');
 
             $table->string('name');
 

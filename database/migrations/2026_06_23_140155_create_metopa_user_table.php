@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('metopa_user', function (Blueprint $table) {
 
-            $table->foreignId('metopa_id')->constrained('metopas');
+            $table->foreignId('metopa_id');
 
-            $table->foreignId('user_id')->constrained('users');
+            $table->foreignId('user_id');
 
             $table->date('assigned_at');
 
@@ -23,9 +23,9 @@ return new class extends Migration
 
             $table->softDeletes();
 
-            $table->foreignId('created_by')->nullable()->constrained('users');
+            $table->foreignId('created_by')->nullable();
 
-            $table->foreignId('updated_by')->nullable()->constrained('users');
+            $table->foreignId('updated_by')->nullable();
 
             $table->primary([
                 'metopa_id',

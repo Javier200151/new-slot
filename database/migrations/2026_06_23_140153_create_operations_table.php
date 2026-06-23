@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('operations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('operation_type_id')->constrained('operations_type');
-            $table->foreignId('operation_status_id')->constrained('operations_type');
-            $table->foreignId('campaign_id')->nullable()->constrained('campaign');
+            $table->foreignId('operation_type_id');
+            $table->foreignId('operation_status_id');
+            $table->foreignId('campaign_id')->nullable();
             $table->dateTime('date');
             $table->string('name');
             $table->string('image')->nullable();
@@ -26,13 +26,13 @@ return new class extends Migration
             $table->boolean('respawn')->default(false);
             $table->boolean('jip')->default(false);
             $table->boolean('persistent')->default(false);
-            $table->foreignId('day_id')->nullable()->constrained('operation_day');
+            $table->foreignId('day_id')->nullable();
             $table->string('pbo')->nullable();
             $table->text('addons')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            $table->foreignId('created_by')->nullable()->constrained('users');
-            $table->foreignId('updated_by')->nullable()->constrained('users');
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
 
         });
     }

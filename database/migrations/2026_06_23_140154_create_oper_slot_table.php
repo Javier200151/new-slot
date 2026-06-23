@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('oper_slot', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('oper_id')->constrained('operations');
+            $table->foreignId('oper_id');
 
-            $table->foreignId('slot_type_id')->constrained('slot_types');
+            $table->foreignId('slot_type_id');
 
-            $table->foreignId('user_id')->nullable()->constrained('users');
+            $table->foreignId('user_id')->nullable();
 
             $table->string('name');
 
@@ -26,9 +26,9 @@ return new class extends Migration
 
             $table->integer('display_order')->default(0);
 
-            $table->foreignId('group_id')->nullable()->constrained('operation_slot_group');
+            $table->foreignId('group_id')->nullable();
 
-            $table->foreignId('externalslot_id')->nullable()->constrained('external_slot');
+            $table->foreignId('externalslot_id')->nullable();
 
             $table->integer('number')->nullable();
 
