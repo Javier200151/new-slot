@@ -17,7 +17,7 @@ return new class extends Migration
 
             $table->foreignId('user_id');
 
-            $table->date('assigned_at');
+            $table->timestamp('assigned_at')->useCurrent();
 
             $table->timestamps();
 

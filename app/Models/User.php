@@ -69,5 +69,17 @@ class User extends Authenticatable implements FilamentUser, HasName
             }
         });
     }
+    public function promo()
+    {
+        return $this->belongsTo(Promo::class);
+    }
+
+    public function metopas()
+    {
+        return $this->belongsToMany(
+            Metopa::class,
+            'metopa_user'
+        );
+    }
 }
 
