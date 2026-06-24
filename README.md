@@ -16,13 +16,7 @@ composer install
 ## 3. Crear archivo `.env`
 
 ```bash
-copy .env.example .env
-```
-
-En Linux/Mac:
-
-```bash
-cp .env.example .env
+copy env.example .env
 ```
 
 ## 4. Generar clave de Laravel
