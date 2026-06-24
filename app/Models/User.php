@@ -76,10 +76,9 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     public function metopas()
     {
-        return $this->belongsToMany(
-            Metopa::class,
-            'metopa_user'
-        );
+        return $this->belongsToMany(Metopa::class, 'metopa_user')
+            ->withPivot('assigned_at')
+            ->withTimestamps();
     }
 }
 

@@ -22,6 +22,8 @@ class Metopa extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'metopa_user');
+        return $this->belongsToMany(User::class, 'metopa_user')
+            ->withPivot('assigned_at')
+            ->withTimestamps();
     }
 }
