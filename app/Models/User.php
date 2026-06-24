@@ -13,6 +13,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
+use App\Models\Status;
 
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName
@@ -54,7 +55,19 @@ class User extends Authenticatable implements FilamentUser, HasName
     }
     public function canAccessPanel(Panel $panel): bool
     {
-        return true;
+        return $this->hasRole('admin');
     }
-
+    public function status()
+    {
+        return $this->belongsTo(Status::class, 'status_id');
+    }
+    protected static function booted(): void
+    {
+        static::created(function ($user) {
+            if (! $user->hasAnyRole(['admin', 'user'])) {
+                $user->assignRole('user');
+            }
+        });
+    }
 }
+
