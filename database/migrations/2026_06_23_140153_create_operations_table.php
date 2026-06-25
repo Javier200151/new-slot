@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('operation_type_id');
             $table->foreignId('operation_status_id');
             $table->foreignId('campaign_id')->nullable();
+            $table->foreignId('platform_id');
             $table->dateTime('date');
             $table->string('name');
             $table->string('image')->nullable();
@@ -25,7 +26,7 @@ return new class extends Migration
             $table->string('ocap_url')->nullable();
             $table->boolean('respawn')->default(false);
             $table->boolean('jip')->default(false);
-            $table->boolean('persistent')->default(false);
+            //$table->boolean('persistent')->default(false);
             $table->foreignId('day_id')->nullable();
             $table->string('pbo')->nullable();
             $table->text('addons')->nullable();

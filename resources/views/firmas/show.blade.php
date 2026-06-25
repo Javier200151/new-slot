@@ -1,14 +1,18 @@
 @php
-    $metopas = $user->metopas;
+    $statusName = $user->status?->name;
+
+    $bannerSrc = $statusName === 'RECLUTA'
+        ? asset('storage/firmas/recluta.png')
+        : asset('storage/firmas/' . $user->nick . '.png');
+
+    $metopas = $statusName === 'RECLUTA'
+        ? collect()
+        : $user->metopas;
 
     $porFila = 7;
-
     $totalMetopas = $metopas->count();
-
     $resto = $totalMetopas % $porFila;
-
     $relleno = $resto === 0 ? 0 : ($porFila - $resto);
-
     $totalMostrar = $totalMetopas + $relleno;
 @endphp
 
@@ -25,85 +29,66 @@
         }
 
         .firma {
-            display: inline-grid;
-            grid-template-columns: auto auto;
-            grid-template-rows: auto auto;
-            align-items: start;
+            display: inline-block;
+            font-size: 0;
+            line-height: 0;
         }
 
-        .promo {
-            grid-column: 1;
-            grid-row: 1;
-            display: block;
-        }
-
-        .banner {
-            grid-column: 2;
-            grid-row: 1;
-            display: block;
-        }
-
-        .metopas {
-            grid-column: 1 / span 2;
-            grid-row: 2;
-
-            display: grid;
-            grid-template-columns: repeat(7, auto);
+        .fila-superior {
+            display: flex;
+            align-items: flex-start;
             gap: 0;
         }
 
+        .promo,
+        .banner,
         .metopas img {
             display: block;
             margin: 0;
             padding: 0;
+            border: 0;
+        }
+
+        .metopas {
+            display: grid;
+            grid-template-columns: repeat(7, auto);
+            gap: 0;
+        }
+        .metopas a {
+            display: block;
+            margin: 0;
+            padding: 0;
+            border: 0;
         }
     </style>
 </head>
 <body>
 
-<div class="firma">
+@if($statusName !== 'USUARIO')
+    <div class="firma">
 
-    @if($user->promo)
-        <img
-            class="promo"
-            src="{{ asset('storage/' . $user->promo->image) }}"
-            alt="Promo"
-        >
-    @endif
-
-    @if($user->firma)
-        <img
-            class="banner"
-            src="{{ asset('storage/' . $user->firma) }}"
-            alt="{{ $user->nick }}"
-        >
-    @endif
-
-    <div class="metopas">
-
-        @for($i = 0; $i < $totalMostrar; $i++)
-
-            @if($i < $totalMetopas)
-
-                <img
-                    src="{{ asset('storage/' . $metopas[$i]->image) }}"
-                    alt="{{ $metopas[$i]->name }}"
-                >
-
-            @else
-
-                <img
-                    src="{{ asset('images/metopa_vacia.jpg') }}"
-                    alt="Vacía"
-                >
-
+        <div class="fila-superior">
+            @if($user->promo)
+                <img class="promo" src="{{ asset('storage/' . $user->promo->image) }}" alt="Promo">
             @endif
 
-        @endfor
+            <img class="banner" src="{{ $bannerSrc }}" alt="{{ $user->nick }}">
+        </div>
+
+        <div class="metopas">
+            @for($i = 0; $i < $totalMostrar; $i++)
+                @if($i < $totalMetopas)
+                    <a href="{{ route('metopas.show',$metopas[$i]) }}" target="_blank">
+                        <img src="{{ asset('storage/'.$metopas[$i]->image) }}">
+                    </a>
+                @else
+                    <img src="{{ asset('images/metopa_vacia.jpg') }}" alt="Vacía">
+                @endif
+            @endfor
+        </div>
 
     </div>
-
-</div>
+@endif
 
 </body>
 </html>

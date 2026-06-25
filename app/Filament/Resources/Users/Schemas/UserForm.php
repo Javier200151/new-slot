@@ -7,6 +7,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\FileUpload;
+use App\Models\Status;
 
 class UserForm
 {
@@ -23,30 +24,38 @@ class UserForm
                 TextInput::make('password')
                     ->password()
                     ->required(),
-                Select::make('promo_id')
+                TextInput::make('promo_id')
                     ->label('Promoción')
-                    ->relationship('promo', 'id')
-                    ->searchable()
-                    ->preload(),
+                    ->numeric()
+                    ->helperText('Introduce el número de promoción. Si no existe, se generará automáticamente.')
+                    ->disabled(function ($get) {
+                        $reclutaId = Status::where('name', 'RECLUTA')->value('id');
+
+                        return (int) $get('status_id') === (int) $reclutaId;
+                    })
+                    ->dehydrated(true),
                 TextInput::make('tagname'),
                 Select::make('status_id')
                     ->label('Estado')
                     ->relationship('status', 'name')
                     ->required()
-                    ->searchable()
-                    ->preload(),
+                    ->live()
+                    ->afterStateUpdated(function ($state, $set) {
+                        $reclutaId = Status::where('name', 'RECLUTA')->value('id');
+
+                        if ((int) $state === (int) $reclutaId) {
+                            $set('promo_id', 1);
+                        }
+                    }),
                 Select::make('roles')
                     ->label('Rol')
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
                     ->required(),
-                FileUpload::make('firma')
-                    ->label('Firma')
-                    ->image()
-                    ->disk('public')
-                    ->directory('firmas')
-                    ->visibility('public'),
+                TextInput::make('firma')
+                    ->disabled()
+                    ->default(fn ($record) => $record?->getSignatureUrl()),
                 TextInput::make('arma_uid'),
                 TextInput::make('discord_id'),
                 TextInput::make('steam_id'),
@@ -57,7 +66,12 @@ class UserForm
                     ->relationship('metopas', 'name')
                     ->multiple()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->disabled(function ($get) {
+                        $reclutaId = Status::where('name', 'RECLUTA')->value('id');
+
+                        return (int) $get('status_id') === (int) $reclutaId;
+                    }),
                 //TextInput::make('created_by')
                 //    ->numeric(),
                 //TextInput::make('updated_by')

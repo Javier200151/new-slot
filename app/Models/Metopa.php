@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class Metopa extends Model
 {
@@ -25,5 +26,24 @@ class Metopa extends Model
         return $this->belongsToMany(User::class, 'metopa_user')
             ->withPivot('assigned_at')
             ->withTimestamps();
+    }
+    protected static function booted(): void
+    {
+        static::creating(function ($metopa) {
+            if (Auth::check()) {
+                $metopa->created_by = Auth::id();
+                $metopa->updated_by = Auth::id();
+            }
+        });
+
+        static::updating(function ($metopa) {
+            if (Auth::check()) {
+                $metopa->updated_by = Auth::id();
+            }
+        });
+    }
+    public function getRouteKeyName(): string
+    {
+        return 'name';
     }
 }

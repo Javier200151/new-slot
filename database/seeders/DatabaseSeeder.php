@@ -11,7 +11,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             StatusSeeder::class,
             RolesSeeder::class,
+            PromoSeeder::class,
             AdminSeeder::class,
+            PlatformSeeder::class,
         ]);
     }
 }

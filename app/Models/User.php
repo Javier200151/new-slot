@@ -3,29 +3,23 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\SignatureBannerGenerator;
 use Database\Factories\UserFactory;
-//use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Models\Contracts\HasName;
-use Filament\Panel;
-use App\Models\Status;
+use App\Services\PromoImageGenerator;
 
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles;
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
 
     protected $fillable = [
         'nick',
@@ -49,29 +43,89 @@ class User extends Authenticatable implements FilamentUser, HasName
             'password' => 'hashed',
         ];
     }
+
     public function getFilamentName(): string
     {
         return $this->nick ?? $this->email;
     }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasRole('admin');
     }
-    public function status()
-    {
-        return $this->belongsTo(Status::class, 'status_id');
-    }
+
     protected static function booted(): void
     {
         static::created(function ($user) {
             if (! $user->hasAnyRole(['admin', 'user'])) {
                 $user->assignRole('user');
             }
+
+            $user->applySignatureRules();
+        });
+
+        static::updated(function ($user) {
+            if ($user->wasChanged('status_id') || $user->wasChanged('nick')) {
+                $user->applySignatureRules();
+            }
+        });
+        static::saving(function ($user) {
+            if ($user->promo_id && (int) $user->promo_id !== 1) {
+                app(PromoImageGenerator::class)->ensure((int) $user->promo_id);
+            }
         });
     }
+
+    public function applySignatureRules(): void
+    {
+        $statusName = $this->status?->name;
+
+        if ($statusName === 'USUARIO') {
+            $this->forceFill([
+                'firma' => null,
+            ])->saveQuietly();
+
+            return;
+        }
+
+        if ($statusName === 'RECLUTA') {
+            $source = resource_path('images/signatures/recluta_banner.png');
+            $target = storage_path('app/public/firmas/recluta.png');
+
+            if (! file_exists(dirname($target))) {
+                mkdir(dirname($target), 0775, true);
+            }
+
+            if (file_exists($source) && ! file_exists($target)) {
+                copy($source, $target);
+            }
+
+            $this->forceFill([
+                'promo_id' => 1,
+                'firma' => $this->getSignatureUrl(),
+            ])->saveQuietly();
+
+            return;
+        }
+
+        if ($this->promo_id == 1) {
+            $this->forceFill([
+                'promo_id' => null,
+            ])->saveQuietly();
+        }
+        
+
+        app(SignatureBannerGenerator::class)->generate($this);
+    }
+
+    public function status()
+    {
+        return $this->belongsTo(Status::class, 'status_id');
+    }
+
     public function promo()
     {
-        return $this->belongsTo(Promo::class);
+        return $this->belongsTo(Promo::class, 'promo_id');
     }
 
     public function metopas()
@@ -80,5 +134,10 @@ class User extends Authenticatable implements FilamentUser, HasName
             ->withPivot('assigned_at')
             ->withTimestamps();
     }
+    public function getSignatureUrl(): string
+    {
+        return route('firmas.show', [
+            'nick' => strtolower($this->nick),
+        ]);
+    }
 }
-

@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('campaign', function (Blueprint $table) {
+        Schema::create('platforms', function (Blueprint $table) {
             $table->id();
+
             $table->string('name');
-            $table->boolean('persistent')->default(true);
-            $table->longText('description')->nullable();
+            $table->string('image')->nullable();
         });
     }
 
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('campaign');
+        Schema::dropIfExists('platforms');
     }
 };

@@ -44,6 +44,10 @@ return new class extends Migration
                 ->references('id')
                 ->on('campaign');
 
+            $table->foreign('platform_id')
+                ->references('id')
+                ->on('platforms');
+
             $table->foreign('day_id')
                 ->references('id')
                 ->on('operation_day');
