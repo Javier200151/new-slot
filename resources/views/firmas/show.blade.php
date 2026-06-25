@@ -23,15 +23,22 @@
     <title>Firma {{ $user->nick }}</title>
 
     <style>
+        html,
         body {
             margin: 0;
-            background: white;
+            padding: 0;
+            background: transparent;
+            width: max-content;
+            height: max-content;
+            overflow: hidden;
         }
 
         .firma {
             display: inline-block;
             font-size: 0;
             line-height: 0;
+            margin: 0;
+            padding: 0;
         }
 
         .fila-superior {
