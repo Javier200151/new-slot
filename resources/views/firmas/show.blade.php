@@ -21,10 +21,12 @@
     $escalaMovil = 0.55;
 
     $anchoFirma = 620;
-    $altoFilaSuperior = 100;
-    $altoFilaMetopa = 20;
+    $altoFilaSuperior = 110;
+    $altoFilaMetopa = 32;
 
-    $altoFirma = $altoFilaSuperior + ($filasMetopas * $altoFilaMetopa);
+    $margenExtra = 20;
+
+    $altoFirma = $altoFilaSuperior + ($filasMetopas * $altoFilaMetopa) + $margenExtra;
 
     $anchoMovil = (int) ceil($anchoFirma * $escalaMovil);
     $altoMovil = (int) ceil($altoFirma * $escalaMovil);
