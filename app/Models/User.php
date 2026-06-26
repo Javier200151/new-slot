@@ -132,12 +132,18 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return $this->belongsToMany(Metopa::class, 'metopa_user')
             ->withPivot('assigned_at')
-            ->withTimestamps();
+            ->withTimestamps()
+            ->orderByPivot('assigned_at', 'asc');
     }
     public function getSignatureUrl(): string
     {
         return route('firmas.show', [
             'nick' => strtolower($this->nick),
         ]);
+    }
+    public function userMetopas()
+    {
+        return $this->hasMany(MetopaUser::class, 'user_id', 'id')
+            ->orderBy('assigned_at', 'asc');
     }
 }
