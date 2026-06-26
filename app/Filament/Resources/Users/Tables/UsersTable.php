@@ -20,14 +20,31 @@ class UsersTable
                     ->label('Email address')
                     ->searchable(),
                 TextColumn::make('promo_id')
+                    ->label('Promoción')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->alignCenter(),
                 TextColumn::make('tagname')
                     ->searchable(),
                 TextColumn::make('status.name')
                     ->label('Estado')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'ACTIVO' => 'success',
+                        'BAJA' => 'warning',
+                        'CESADO' => 'warning',
+                        'RECLUTA' => 'info',
+                        'RESERVA' => 'info',
+                        'USUARIO' => 'info',
+                        default => 'gray',
+                    })
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('roles.name')
+                    ->label('Rol')
+                    ->badge()
+                    ->separator(',')
+                    ->searchable(),    
                 TextColumn::make('firma')
                     ->searchable(),
                 TextColumn::make('arma_uid')
@@ -51,12 +68,14 @@ class UsersTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_by')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('updated_by')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('createdby.nick')
+                    ->label('Creado por')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('updatedBy.nick')
+                    ->label('Actualizado por')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 //

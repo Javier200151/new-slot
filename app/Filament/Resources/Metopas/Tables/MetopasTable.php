@@ -36,12 +36,14 @@ class MetopasTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_by')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('updated_by')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('createdby.nick')
+                    ->label('Creado por')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('updatedBy.nick')
+                    ->label('Actualizado por')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 TrashedFilter::make(),

@@ -146,4 +146,15 @@ class User extends Authenticatable implements FilamentUser, HasName
         return $this->hasMany(MetopaUser::class, 'user_id', 'id')
             ->orderBy('assigned_at', 'asc');
     }
+    
+    // Para que en las listas podamos mostrar el nombre de usuario
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
 }

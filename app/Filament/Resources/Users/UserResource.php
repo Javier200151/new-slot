@@ -14,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use App\Filament\Resources\Users\RelationManagers\UserMetopasRelationManager;
+use UnitEnum;
 
 class UserResource extends Resource
 {
@@ -22,10 +23,13 @@ class UserResource extends Resource
     protected static ?string $pluralModelLabel = 'Miembros';
 
     protected static ?string $navigationLabel = 'Miembros';
-
+    
     protected static ?string $model = User::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::User;//OutlinedRectangleStack;
+
+    protected static string | UnitEnum | null $navigationGroup = 'Usuarios';
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'nick';
 
@@ -53,6 +57,12 @@ class UserResource extends Resource
             'create' => CreateUser::route('/create'),
             'edit' => EditUser::route('/{record}/edit'),
         ];
+    }
+
+    //Con esto, ponemos el número de registros junto al elemento de navegación
+    public static function getNavigationBadge(): ?string
+    {
+    return static::getModel()::count();
     }
     
 }

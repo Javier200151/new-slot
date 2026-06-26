@@ -46,4 +46,15 @@ class Metopa extends Model
     {
         return 'name';
     }
+
+    // Para que en las listas podamos mostrar el nombre de usuario
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
 }
