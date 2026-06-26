@@ -14,6 +14,20 @@
     $resto = $totalMetopas % $porFila;
     $relleno = $resto === 0 ? 0 : ($porFila - $resto);
     $totalMostrar = $totalMetopas + $relleno;
+    $filasMetopas = $totalMostrar > 0
+        ? (int) ceil($totalMostrar / $porFila)
+        : 0;
+
+    $escalaMovil = 0.55;
+
+    $anchoFirma = 620;
+    $altoFilaSuperior = 100;
+    $altoFilaMetopa = 20;
+
+    $altoFirma = $altoFilaSuperior + ($filasMetopas * $altoFilaMetopa);
+
+    $anchoMovil = (int) ceil($anchoFirma * $escalaMovil);
+    $altoMovil = (int) ceil($altoFirma * $escalaMovil);
 @endphp
 
 <!DOCTYPE html>
@@ -43,12 +57,13 @@
 
         @media (max-width: 700px) {
             .firma {
-                transform: scale(0.55);
+                transform: scale({{ $escalaMovil }});
             }
 
+            html,
             body {
-                width: 341px;
-                height: 69px;
+                width: {{ $anchoMovil }}px;
+                height: {{ $altoMovil }}px;
             }
         }
 
