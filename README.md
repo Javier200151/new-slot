@@ -119,6 +119,10 @@ Password: password
 
 La aplicación incluye varios comandos Artisan para importar datos de forma masiva desde archivos JSON o desde carpetas del servidor.
 
+Para ejecutar comandos desde la VM hay que entrar primero al bash del docker:
+```
+docker exec -it web-php-1 bash
+```
 ---
 
 ## 1. Importar metopas
