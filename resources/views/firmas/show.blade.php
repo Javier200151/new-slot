@@ -20,6 +20,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Firma {{ $user->nick }}</title>
 
     <style>
@@ -27,10 +28,8 @@
         body {
             margin: 0;
             padding: 0;
-            background: transparent;
-            width: max-content;
-            height: max-content;
             overflow: hidden;
+            background: transparent;
         }
 
         .firma {
@@ -39,6 +38,18 @@
             line-height: 0;
             margin: 0;
             padding: 0;
+            transform-origin: top left;
+        }
+
+        @media (max-width: 700px) {
+            .firma {
+                transform: scale(0.55);
+            }
+
+            body {
+                width: 341px;
+                height: 69px;
+            }
         }
 
         .fila-superior {
