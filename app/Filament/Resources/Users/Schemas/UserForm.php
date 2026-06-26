@@ -61,17 +61,7 @@ class UserForm
                 TextInput::make('steam_id'),
                 DatePicker::make('member_at'),
 
-                Select::make('metopas')
-                    ->label('Metopas')
-                    ->relationship('metopas', 'name')
-                    ->multiple()
-                    ->searchable()
-                    ->preload()
-                    ->disabled(function ($get) {
-                        $reclutaId = Status::where('name', 'RECLUTA')->value('id');
-
-                        return (int) $get('status_id') === (int) $reclutaId;
-                    }),
+                
                 //TextInput::make('created_by')
                 //    ->numeric(),
                 //TextInput::make('updated_by')
