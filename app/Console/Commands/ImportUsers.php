@@ -34,6 +34,10 @@ class ImportUsers extends Command
             return self::FAILURE;
         }
 
+        /*
+         * Primera pasada:
+         * Crear o actualizar usuarios sin asignar tutor.
+         */
         foreach ($users as $data) {
             if (empty($data['nick'])) {
                 $this->warn('Usuario omitido: falta nick.');
@@ -41,7 +45,6 @@ class ImportUsers extends Command
             }
 
             $email = $data['email'] ?? strtolower($data['nick']) . '@newslot.local';
-
             $promoId = $data['promo_id'] ?? null;
 
             if (! empty($promoId) && (int) $promoId !== 1) {
@@ -59,7 +62,7 @@ class ImportUsers extends Command
                     'promo_id' => $promoId,
                     'status_id' => $data['status_id'] ?? null,
                     'birth_at' => $birthAt,
-                    'tutor_id' => $data['tutor_id'] ?? null,
+                    'tutor_id' => null,
                     'tagname' => $data['tagname'] ?? null,
                     'arma_uid' => $data['arma_uid'] ?? null,
                     'discord_id' => $data['discord_id'] ?? null,
@@ -72,9 +75,61 @@ class ImportUsers extends Command
                 $user->assignRole('user');
             }
 
-            $user->applySignatureRules();
+            $this->info("✔ Usuario importado: {$user->nick}");
+        }
 
-            $this->info("✔ {$user->nick}");
+        /*
+         * Segunda pasada:
+         * Asignar tutores por nick.
+         */
+        foreach ($users as $data) {
+            if (empty($data['nick'])) {
+                continue;
+            }
+
+            $user = User::where('nick', $data['nick'])->first();
+
+            if (! $user) {
+                continue;
+            }
+
+            $tutorNick = $data['tutor'] ?? null;
+
+            if (empty($tutorNick)) {
+                $user->forceFill([
+                    'tutor_id' => null,
+                ])->saveQuietly();
+
+                continue;
+            }
+
+            $tutor = User::where('nick', $tutorNick)->first();
+
+            if (! $tutor) {
+                $this->warn("Tutor no encontrado para {$user->nick}: {$tutorNick}");
+                continue;
+            }
+
+            $user->forceFill([
+                'tutor_id' => $tutor->id,
+            ])->saveQuietly();
+
+            $this->info("↳ Tutor asignado a {$user->nick}: {$tutor->nick}");
+        }
+
+        /*
+         * Aplicar reglas de firma al final.
+         */
+        foreach ($users as $data) {
+            if (empty($data['nick'])) {
+                continue;
+            }
+
+            $user = User::where('nick', $data['nick'])->first();
+
+            if ($user) {
+                $user->applySignatureRules();
+            }
         }
 
         $this->newLine();

@@ -44,7 +44,7 @@ class UserForm
                         $reclutaId = Status::where('name', 'RECLUTA')->value('id');
 
                         if ((int) $state === (int) $reclutaId) {
-                            $set('promo_id', 1);
+                            $set('promo_id', null);
                         }
                     }),
                 DatePicker::make('birth_at')
@@ -58,7 +58,7 @@ class UserForm
                     ->searchable()
                     ->preload()
                     ->nullable(),
-                    
+
                 Select::make('roles')
                     ->label('Rol')
                     ->relationship('roles', 'name')
