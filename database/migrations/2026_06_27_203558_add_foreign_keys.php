@@ -28,6 +28,10 @@ return new class extends Migration
             $table->foreign('updated_by')
                 ->references('id')
                 ->on('users');
+
+            $table->foreign('tutor_id')
+                ->references('id')
+                ->on('users');
         });
 
         Schema::table('operations', function (Blueprint $table) {

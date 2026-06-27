@@ -36,6 +36,10 @@ return new class extends Migration
 
             $table->date('member_at')->nullable();
 
+            $table->date('birth_at')->nullable();
+
+            $table->foreignId('tutor_id')->nullable();
+
             $table->timestamps();
 
             $table->softDeletes();

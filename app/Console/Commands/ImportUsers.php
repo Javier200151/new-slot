@@ -4,13 +4,14 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Services\PromoImageGenerator;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 
 class ImportUsers extends Command
 {
-    protected $signature = 'users:import 
+    protected $signature = 'users:import
                             {file : Ruta del JSON}
                             {--password=NewSlot123 : Contraseña inicial para todos los usuarios}';
 
@@ -41,22 +42,29 @@ class ImportUsers extends Command
 
             $email = $data['email'] ?? strtolower($data['nick']) . '@newslot.local';
 
-            if (! empty($data['promo_id']) && (int) $data['promo_id'] !== 1) {
-                app(PromoImageGenerator::class)->ensure((int) $data['promo_id']);
+            $promoId = $data['promo_id'] ?? null;
+
+            if (! empty($promoId) && (int) $promoId !== 1) {
+                app(PromoImageGenerator::class)->ensure((int) $promoId);
             }
+
+            $birthAt = $this->parseDate($data['birth_at'] ?? null);
+            $memberAt = $this->parseDate($data['member_at'] ?? null);
 
             $user = User::updateOrCreate(
                 ['nick' => $data['nick']],
                 [
                     'email' => $email,
                     'password' => Hash::make($password),
-                    'promo_id' => $data['promo_id'] ?? null,
+                    'promo_id' => $promoId,
                     'status_id' => $data['status_id'] ?? null,
+                    'birth_at' => $birthAt,
+                    'tutor_id' => $data['tutor_id'] ?? null,
                     'tagname' => $data['tagname'] ?? null,
                     'arma_uid' => $data['arma_uid'] ?? null,
                     'discord_id' => $data['discord_id'] ?? null,
                     'steam_id' => $data['steam_id'] ?? null,
-                    'member_at' => $data['member_at'] ?? null,
+                    'member_at' => $memberAt,
                 ]
             );
 
@@ -73,5 +81,14 @@ class ImportUsers extends Command
         $this->info('Importación de usuarios terminada.');
 
         return self::SUCCESS;
+    }
+
+    private function parseDate(?string $date): ?string
+    {
+        if (empty($date)) {
+            return null;
+        }
+
+        return Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
     }
 }
