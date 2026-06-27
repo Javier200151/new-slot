@@ -88,7 +88,7 @@ class User extends Authenticatable implements FilamentUser, HasName
             }
         });
         static::saving(function ($user) {
-            if ($user->promo_id && (int) $user->promo_id !== 1) {
+            if ($user->promo_id) {
                 app(PromoImageGenerator::class)->ensure((int) $user->promo_id);
             }
         });
@@ -107,19 +107,8 @@ class User extends Authenticatable implements FilamentUser, HasName
         }
 
         if ($statusName === 'RECLUTA') {
-            $source = resource_path('images/signatures/recluta_banner.png');
-            $target = storage_path('app/public/firmas/recluta.png');
-
-            if (! file_exists(dirname($target))) {
-                mkdir(dirname($target), 0775, true);
-            }
-
-            if (file_exists($source) && ! file_exists($target)) {
-                copy($source, $target);
-            }
-
             $this->forceFill([
-                'promo_id' => 1,
+                'promo_id' => null,
                 'firma' => $this->getSignatureUrl(),
             ])->saveQuietly();
 

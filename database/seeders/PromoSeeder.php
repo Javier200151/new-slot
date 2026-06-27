@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Promo;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 
@@ -20,12 +19,5 @@ class PromoSeeder extends Seeder
         if (File::exists($source) && ! File::exists($target)) {
             File::copy($source, $target);
         }
-
-        Promo::firstOrCreate(
-            ['id' => 1],
-            [
-                'image' => 'promos/recluta.png',
-            ]
-        );
     }
 }
