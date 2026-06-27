@@ -67,6 +67,15 @@ class UsersTable
                 //    ->dateTime()
                 //    ->sortable()
                 //    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('birth_at')
+                    ->label('Nacimiento')
+                    ->date('d/m/Y')
+                    ->sortable(),
+
+                TextColumn::make('tutor.nick')
+                    ->label('Tutor')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

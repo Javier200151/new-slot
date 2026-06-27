@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Metopa;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
@@ -30,7 +31,6 @@ class ImportUserMetopas extends Command
         }
 
         foreach ($json as $registro) {
-
             $user = User::where('nick', $registro['nombre'])->first();
 
             if (! $user) {
@@ -38,23 +38,40 @@ class ImportUserMetopas extends Command
                 continue;
             }
 
-            $metopas = [];
+            $syncData = [];
+            $lastAssignedAt = now();
 
-            foreach ($registro['metopas'] as $nombreMetopa) {
+            foreach ($registro['metopas'] as $item) {
+                $nombreMetopa = $item[0] ?? null;
+                $fecha = $item[1] ?? null;
 
-                $metopa = Metopa::where('name', $nombreMetopa)->first();
+                if (! $nombreMetopa) {
+                    continue;
+                }
+
+                $metopa = Metopa::where('name', mb_strtoupper($nombreMetopa))->first();
 
                 if (! $metopa) {
                     $this->warn("Metopa no encontrada: {$nombreMetopa}");
                     continue;
                 }
 
-                $metopas[] = $metopa->id;
+                if (! empty($fecha)) {
+                    $assignedAt = Carbon::createFromFormat('d/m/Y H:i:s', $fecha);
+                } else {
+                    $assignedAt = $lastAssignedAt->copy()->addSecond();
+                }
+
+                $lastAssignedAt = $assignedAt->copy();
+
+                $syncData[$metopa->id] = [
+                    'assigned_at' => $assignedAt->format('Y-m-d H:i:s'),
+                ];
             }
 
-            $user->metopas()->sync($metopas);
+            $user->metopas()->sync($syncData);
 
-            $this->info("✔ {$user->nick} (" . count($metopas) . " metopas)");
+            $this->info("✔ {$user->nick} (" . count($syncData) . " metopas)");
         }
 
         $this->newLine();

@@ -36,7 +36,7 @@ class ImportMetopas extends Command
             $nombre = pathinfo($filename, PATHINFO_FILENAME);
             $nombre = preg_replace('/_ribbon$/i', '', $nombre);
             $nombre = str_replace('_', ' ', $nombre);
-            $nombre = ucwords(strtolower($nombre));
+            $nombre = mb_strtoupper($nombre);
 
             if (! File::exists($largeImage)) {
                 $this->warn("Falta la imagen grande: metopas_large/{$filename}");

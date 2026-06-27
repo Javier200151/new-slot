@@ -33,6 +33,8 @@ class User extends Authenticatable implements FilamentUser, HasName
         'arma_uid',
         'discord_id',
         'steam_id',
+        'birth_at',
+        'tutor_id',
         'member_at',
         'created_by',
         'updated_by',
@@ -42,6 +44,8 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return [
             'password' => 'hashed',
+            'birth_at' => 'date',
+            'member_at' => 'date',
         ];
     }
 
@@ -159,6 +163,14 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return $this->hasMany(MetopaUser::class, 'user_id', 'id')
             ->orderBy('assigned_at', 'asc');
+    }
+    public function pupils()
+    {
+        return $this->hasMany(User::class, 'tutor_id');
+    }
+    public function tutor()
+    {
+        return $this->belongsTo(User::class, 'tutor_id');
     }
     
     // Para que en las listas podamos mostrar el nombre de usuario
