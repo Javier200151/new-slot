@@ -14,6 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use App\Services\PromoImageGenerator;
+use Illuminate\Support\Facades\Auth;
 
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName
@@ -56,6 +57,19 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     protected static function booted(): void
     {
+        static::creating(function ($user) {
+            if (Auth::check()) {
+                $user->created_by = Auth::id();
+                $user->updated_by = Auth::id();
+            }
+        });
+
+        static::updating(function ($user) {
+            if (Auth::check()) {
+                $user->updated_by = Auth::id();
+            }
+        });
+
         static::created(function ($user) {
             if (! $user->hasAnyRole(['admin', 'user'])) {
                 $user->assignRole('user');
@@ -145,5 +159,16 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return $this->hasMany(MetopaUser::class, 'user_id', 'id')
             ->orderBy('assigned_at', 'asc');
+    }
+    
+    // Para que en las listas podamos mostrar el nombre de usuario
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }
