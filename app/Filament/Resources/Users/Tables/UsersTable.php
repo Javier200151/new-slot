@@ -7,6 +7,9 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\Filter;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Filters\SelectFilter;
 
 class UsersTable
 {
@@ -56,14 +59,14 @@ class UsersTable
                 TextColumn::make('member_at')
                     ->date()
                     ->sortable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                //TextColumn::make('created_at')
+                //    ->dateTime()
+                //    ->sortable()
+                //    ->toggleable(isToggledHiddenByDefault: true),
+                //TextColumn::make('updated_at')
+                //    ->dateTime()
+                //    ->sortable()
+                //    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
@@ -71,14 +74,29 @@ class UsersTable
                 TextColumn::make('createdby.nick')
                     ->label('Creado por')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updatedBy.nick')
                     ->label('Actualizado por')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
+            //Filtros en listado
             ->filters([
-                //
+                Filter::make('Miembros activos')
+                    ->query(fn (Builder $query) => $query->whereHas('status', fn ($query) => $query->where('name', 'ACTIVO'))),
+                
+                //Busca las opciones disponibles y las muestra para selección
+                SelectFilter::make('Estado')
+                    ->multiple()                 
+                    ->attribute('status_id') 
+                    ->relationship('status', 'name'),       
+                SelectFilter::make('Rol')
+                    ->multiple()                 
+                    ->attribute('roles_id') 
+                    ->relationship('roles', 'name'),           
+                    
             ])
             ->recordActions([
                 EditAction::make(),

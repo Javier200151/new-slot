@@ -59,7 +59,9 @@ class UserForm
                 TextInput::make('arma_uid'),
                 TextInput::make('discord_id'),
                 TextInput::make('steam_id'),
-                DatePicker::make('member_at'),
+                DatePicker::make('member_at')
+                    ->label('Miembro desde')
+                    ->helperText('Fecha en la que el recluta pasó a ser miembro.'),
 
                 
                 //TextInput::make('created_by')
