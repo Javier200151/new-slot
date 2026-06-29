@@ -266,6 +266,161 @@ php artisan metopas:users storage/app/imports/metopas_usuarios.json --sync
 - Sincroniza las metopas del usuario con las indicadas en el JSON.
 - Si una metopa no existe, muestra un aviso y continúa con el resto de la importación.
 
+
+# Restaurar un backup de la base de datos (Docker)
+
+## 1. Comprobar que el backup es válido
+
+Verifica que el fichero no contenga la línea `Enter password:` al principio:
+
+```bash
+head -n 5 /opt/backups/new-slot/new_slot_YYYY-MM-DD_HH-MM-SS.sql
+```
+
+Debe comenzar con algo similar a:
+
+```sql
+-- MySQL dump 10.13
+--
+-- Host: localhost
+```
+
+Si aparece la línea:
+
+```text
+Enter password:
+```
+
+elimínala ejecutando:
+
+```bash
+sed -i '/^Enter password:/d' /opt/backups/new-slot/new_slot_YYYY-MM-DD_HH-MM-SS.sql
+```
+
+---
+
+## 2. Copiar el backup al contenedor MySQL
+
+```bash
+docker cp /opt/backups/new-slot/new_slot_YYYY-MM-DD_HH-MM-SS.sql new_slot_mysql:/tmp/backup.sql
+```
+
+---
+
+## 3. Acceder al contenedor MySQL
+
+```bash
+docker exec -it new_slot_mysql bash
+```
+
+---
+
+## 4. Restaurar el backup
+
+Ejecutar:
+
+```bash
+mysql -u new_slot -p new_slot < /tmp/backup.sql
+```
+
+Introducir la contraseña del usuario `new_slot` cuando sea solicitada.
+
+Si se utiliza el usuario `root`:
+
+```bash
+mysql -u root -p new_slot < /tmp/backup.sql
+```
+
+Introducir la contraseña del usuario `root`.
+
+---
+
+## 5. Salir del contenedor
+
+```bash
+exit
+```
+
+---
+
+# Alternativa - Restaurar desde cero (opcional)
+
+Si se desea eliminar completamente la base de datos antes de restaurar:
+
+```bash
+docker exec -it web-php-1 php artisan migrate:fresh
+```
+
+Una vez finalice correctamente, seguir los pasos anteriores para restaurar el backup.
+
+---
+
+# Verificación
+
+Comprobar que las tablas existen:
+
+```bash
+docker exec -it new_slot_mysql mysql -u new_slot -p
+```
+
+Dentro de MySQL:
+
+```sql
+USE new_slot;
+SHOW TABLES;
+SELECT COUNT(*) FROM users;
+```
+
+Salir:
+
+```sql
+EXIT;
+```
+
+---
+
+# Errores comunes
+
+### ERROR 1064 cerca de "Enter password"
+
+El fichero SQL contiene la línea:
+
+```text
+Enter password:
+```
+
+Eliminarla con:
+
+```bash
+sed -i '/^Enter password:/d' /tmp/backup.sql
+```
+
+o directamente sobre el backup original:
+
+```bash
+sed -i '/^Enter password:/d' /opt/backups/new-slot/new_slot_YYYY-MM-DD_HH-MM-SS.sql
+```
+
+---
+
+### ERROR 1045 Access denied
+
+Verificar:
+
+* Usuario (`new_slot` o `root`).
+* Contraseña.
+* Que la base de datos `new_slot` exista.
+
+---
+
+### Comprobar las credenciales configuradas en el contenedor
+
+```bash
+docker exec -it new_slot_mysql env | grep MYSQL
+```
+
+
+
 ## Estado actual del proyecto
 
 El proyecto ya tiene funcionando:
