@@ -232,7 +232,7 @@ storage/app/imports/metopas_usuarios.json
 ### Ejecutar
 
 ```bash
-php artisan metopas:users storage/app/imports/metopas_usuarios.json
+php artisan metopas:users storage/app/imports/metopas_usuarios.json --sync
 ```
 
 ### Ejemplo de JSON
