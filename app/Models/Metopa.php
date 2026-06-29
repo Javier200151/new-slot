@@ -15,10 +15,12 @@ class Metopa extends Model
     protected $table = 'metopas';
 
     protected $fillable = [
-        'name',
         'description',
-        'image',
         'image_large',
+        'despag1',
+        'despag2',
+        'group',
+        'imgback',
         'created_by',
         'updated_by',
     ];
