@@ -10,13 +10,16 @@ use Illuminate\Support\Facades\File;
 
 class ImportUserMetopas extends Command
 {
-    protected $signature = 'metopas:users {file}';
+    protected $signature = 'metopas:users 
+                            {file : Ruta del JSON}
+                            {--sync : Sincroniza exactamente las metopas del JSON}';
 
     protected $description = 'Importa las metopas de los usuarios desde un JSON';
 
     public function handle(): int
     {
         $file = base_path($this->argument('file'));
+        $sync = (bool) $this->option('sync');
 
         if (! File::exists($file)) {
             $this->error("No existe el archivo: {$file}");
@@ -31,17 +34,17 @@ class ImportUserMetopas extends Command
         }
 
         foreach ($json as $registro) {
-            $user = User::where('nick', $registro['nombre'])->first();
+            $user = User::where('nick', $registro['nombre'] ?? null)->first();
 
             if (! $user) {
-                $this->warn("Usuario no encontrado: {$registro['nombre']}");
+                $this->warn("Usuario no encontrado: " . ($registro['nombre'] ?? 'SIN NOMBRE'));
                 continue;
             }
 
             $syncData = [];
             $lastAssignedAt = now();
 
-            foreach ($registro['metopas'] as $item) {
+            foreach (($registro['metopas'] ?? []) as $item) {
                 $nombreMetopa = $item[0] ?? null;
                 $fecha = $item[1] ?? null;
 
@@ -52,7 +55,7 @@ class ImportUserMetopas extends Command
                 $metopa = Metopa::where('name', mb_strtoupper($nombreMetopa))->first();
 
                 if (! $metopa) {
-                    $this->warn("Metopa no encontrada: {$nombreMetopa}");
+                    $this->warn("Metopa no encontrada para {$user->nick}: {$nombreMetopa}");
                     continue;
                 }
 
@@ -69,13 +72,26 @@ class ImportUserMetopas extends Command
                 ];
             }
 
-            $user->metopas()->sync($syncData);
+            if ($sync) {
+                $user->metopas()->sync($syncData);
+            } else {
+                foreach ($syncData as $metopaId => $pivotData) {
+                    $user->metopas()->syncWithoutDetaching([
+                        $metopaId => $pivotData,
+                    ]);
+                }
+            }
 
-            $this->info("✔ {$user->nick} (" . count($syncData) . " metopas)");
+            $this->info("✔ {$user->nick} (" . count($syncData) . " metopas procesadas)");
         }
 
         $this->newLine();
-        $this->info('Importación terminada correctamente.');
+
+        $this->info(
+            $sync
+                ? 'Importación terminada correctamente en modo SYNC.'
+                : 'Importación terminada correctamente sin eliminar metopas existentes.'
+        );
 
         return self::SUCCESS;
     }
