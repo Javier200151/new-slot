@@ -22,6 +22,8 @@ return new class extends Migration
 
             $table->string('image_large')->nullable();
 
+            $table->string('imgback')->nullable();
+
             $table->timestamps();
 
             $table->softDeletes();

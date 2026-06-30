@@ -7,7 +7,7 @@ use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\DetachAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -34,8 +34,8 @@ class UsersRelationManager extends RelationManager
 
                 TextColumn::make('pivot.assigned_at')
                     ->label('Fecha de asignación')
-                    ->sortable()
-                    ->dateTime('d/m/Y'),
+                    ->dateTime('d/m/Y H:i:s')
+                    ->sortable(),
             ])
             ->headerActions([
                 Action::make('assignUsers')
@@ -53,8 +53,11 @@ class UsersRelationManager extends RelationManager
                             )
                             ->required(),
 
-                        DatePicker::make('assigned_at')
-                            ->label('Fecha de asignación')
+                        DateTimePicker::make('assigned_at')
+                            ->label('Fecha y hora de asignación')
+                            ->displayFormat('d/m/Y H:i')
+                            ->seconds(false)
+                            ->default(now())
                             ->required(),
                     ])
                     ->action(function (array $data): void {
@@ -75,8 +78,10 @@ class UsersRelationManager extends RelationManager
                 EditAction::make()
                     ->label('Editar fecha')
                     ->form([
-                        DatePicker::make('assigned_at')
-                            ->label('Fecha de asignación')
+                        DateTimePicker::make('assigned_at')
+                            ->label('Fecha y hora de asignación')
+                            ->displayFormat('d/m/Y H:i')
+                            ->seconds(false)
                             ->required(),
                     ])
                     ->using(function ($record, array $data) {
