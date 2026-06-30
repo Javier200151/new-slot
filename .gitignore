@@ -29,14 +29,12 @@ Thumbs.db
 docker-compose.yml
 Dockerfile
 Caddyfile
-
 docker-compose.override.yml
 .env.local
 .env.production.env
 docker-compose.yml
 Dockerfile
 Caddyfile
-
 docker-compose.override.yml
 .env.local
 .env.production
