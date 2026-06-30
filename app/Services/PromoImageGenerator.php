@@ -39,28 +39,28 @@ class PromoImageGenerator
         $text = (string) $promoId;
 
         $fontSize = 22.78;
-        $offsetX = 15;
-        $offsetY = 30;
-
         $color = imagecolorallocate($image, 255, 255, 255);
 
-        $box = imagettfbbox($fontSize, 0, $fontPath, $text);
+        $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
 
-        $textWidth = abs($box[4] - $box[0]);
-        $textHeight = abs($box[5] - $box[1]);
+        $textWidth = abs($bbox[2] - $bbox[0]);
 
         $imageWidth = imagesx($image);
         $imageHeight = imagesy($image);
 
-        $x = (int) (($imageWidth - $textWidth) / 2) + $offsetX;
-        $y = (int) (($imageHeight + $textHeight) / 2) + $offsetY;
+        // Ajuste para colocar el número en la esquina inferior derecha
+        $marginRight = 12;
+        $marginBottom = 8;
+
+        $x = $imageWidth - $textWidth - $marginRight;
+        $y = $imageHeight - $marginBottom;
 
         imagettftext(
             $image,
             $fontSize,
             0,
-            $x,
-            $y,
+            (int) round($x),
+            (int) round($y),
             $color,
             $fontPath,
             $text
@@ -74,6 +74,7 @@ class PromoImageGenerator
         }
 
         imagepng($image, $outputPath);
+        imagedestroy($image);
 
         return Promo::updateOrCreate(
             ['id' => $promoId],

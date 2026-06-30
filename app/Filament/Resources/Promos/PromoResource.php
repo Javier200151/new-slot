@@ -13,12 +13,16 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class PromoResource extends Resource
 {
     protected static ?string $model = Promo::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::BuildingLibrary; //OutlinedRectangleStack;
+
+    protected static string | UnitEnum | null $navigationGroup = 'Usuarios'; //Grupo
+    protected static ?int $navigationSort = 3; // Orden en el grupo
 
     protected static ?string $recordTitleAttribute = 'id';
 

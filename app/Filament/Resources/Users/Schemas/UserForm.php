@@ -44,9 +44,21 @@ class UserForm
                         $reclutaId = Status::where('name', 'RECLUTA')->value('id');
 
                         if ((int) $state === (int) $reclutaId) {
-                            $set('promo_id', 1);
+                            $set('promo_id', null);
                         }
                     }),
+                DatePicker::make('birth_at')
+                    ->label('Fecha de nacimiento')
+                    ->displayFormat('d/m/Y')
+                    ->native(false),
+
+                Select::make('tutor_id')
+                    ->label('Tutor')
+                    ->relationship('tutor', 'nick')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
+
                 Select::make('roles')
                     ->label('Rol')
                     ->relationship('roles', 'name')
@@ -59,7 +71,9 @@ class UserForm
                 TextInput::make('arma_uid'),
                 TextInput::make('discord_id'),
                 TextInput::make('steam_id'),
-                DatePicker::make('member_at'),
+                DatePicker::make('member_at')
+                    ->label('Miembro desde')
+                    ->helperText('Fecha en la que el recluta pasó a ser miembro.'),
 
                 
                 //TextInput::make('created_by')

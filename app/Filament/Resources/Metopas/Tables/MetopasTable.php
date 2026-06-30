@@ -24,6 +24,13 @@ class MetopasTable
                     ->searchable(),
                 ImageColumn::make('image'),
                 ImageColumn::make('image_large'),
+                TextColumn::make('despag1')
+                    ->searchable(),
+                TextColumn::make('despag2')
+                    ->searchable(),
+                TextColumn::make('metopa_group')
+                    ->searchable(),
+                ImageColumn::make('imgback'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -36,12 +43,14 @@ class MetopasTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_by')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('updated_by')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('createdby.nick')
+                    ->label('Creado por')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('updatedBy.nick')
+                    ->label('Actualizado por')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 TrashedFilter::make(),

@@ -38,6 +38,27 @@ class MetopaForm
                     ->directory('metopas/large')
                     ->visibility('public')
                     ->nullable(),
+                    TextInput::make('metopa_group')
+                    ->label('Grupo')
+                    ->maxLength(255),
+
+                Textarea::make('despag1')
+                    ->label('Descripción página 1')
+                    ->rows(5)
+                    ->columnSpanFull(),
+
+                Textarea::make('despag2')
+                    ->label('Descripción página 2')
+                    ->rows(5)
+                    ->columnSpanFull(),
+
+                FileUpload::make('imgback')
+                    ->label('Imagen de fondo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('metopas/backgrounds')
+                    ->visibility('public')
+                    ->imageEditor(),
             ]);
     }
 }

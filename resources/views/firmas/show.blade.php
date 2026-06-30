@@ -5,6 +5,10 @@
         ? asset('storage/firmas/recluta.png')
         : asset('storage/firmas/' . $user->nick . '.png');
 
+    $promoSrc = $statusName === 'RECLUTA'
+        ? asset('storage/promos/recluta.png')
+        : ($user->promo ? asset('storage/' . $user->promo->image) : null);
+            
     $metopas = $statusName === 'RECLUTA'
         ? collect()
         : $user->metopas;
@@ -103,8 +107,8 @@
     <div class="firma">
 
         <div class="fila-superior">
-            @if($user->promo)
-                <img class="promo" src="{{ asset('storage/' . $user->promo->image) }}" alt="Promo">
+            @if($promoSrc)
+                <img class="promo" src="{{ $promoSrc }}" alt="Promo">
             @endif
 
             <img class="banner" src="{{ $bannerSrc }}" alt="{{ $user->nick }}">

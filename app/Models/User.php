@@ -14,12 +14,15 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use App\Services\PromoImageGenerator;
+use Illuminate\Support\Facades\Auth;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, LogsActivity;
 
     protected $fillable = [
         'nick',
@@ -32,6 +35,8 @@ class User extends Authenticatable implements FilamentUser, HasName
         'arma_uid',
         'discord_id',
         'steam_id',
+        'birth_at',
+        'tutor_id',
         'member_at',
         'created_by',
         'updated_by',
@@ -41,6 +46,8 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return [
             'password' => 'hashed',
+            'birth_at' => 'date',
+            'member_at' => 'date',
         ];
     }
 
@@ -56,6 +63,19 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     protected static function booted(): void
     {
+        static::creating(function ($user) {
+            if (Auth::check()) {
+                $user->created_by = Auth::id();
+                $user->updated_by = Auth::id();
+            }
+        });
+
+        static::updating(function ($user) {
+            if (Auth::check()) {
+                $user->updated_by = Auth::id();
+            }
+        });
+
         static::created(function ($user) {
             if (! $user->hasAnyRole(['admin', 'user'])) {
                 $user->assignRole('user');
@@ -70,7 +90,7 @@ class User extends Authenticatable implements FilamentUser, HasName
             }
         });
         static::saving(function ($user) {
-            if ($user->promo_id && (int) $user->promo_id !== 1) {
+            if ($user->promo_id) {
                 app(PromoImageGenerator::class)->ensure((int) $user->promo_id);
             }
         });
@@ -89,19 +109,8 @@ class User extends Authenticatable implements FilamentUser, HasName
         }
 
         if ($statusName === 'RECLUTA') {
-            $source = resource_path('images/signatures/recluta_banner.png');
-            $target = storage_path('app/public/firmas/recluta.png');
-
-            if (! file_exists(dirname($target))) {
-                mkdir(dirname($target), 0775, true);
-            }
-
-            if (file_exists($source) && ! file_exists($target)) {
-                copy($source, $target);
-            }
-
             $this->forceFill([
-                'promo_id' => 1,
+                'promo_id' => null,
                 'firma' => $this->getSignatureUrl(),
             ])->saveQuietly();
 
@@ -145,5 +154,32 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return $this->hasMany(MetopaUser::class, 'user_id', 'id')
             ->orderBy('assigned_at', 'asc');
+    }
+    public function pupils()
+    {
+        return $this->hasMany(User::class, 'tutor_id');
+    }
+    public function tutor()
+    {
+        return $this->belongsTo(User::class, 'tutor_id');
+    }
+    
+    // Para que en las listas podamos mostrar el nombre de usuario
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnlyDirty()
+            ->logAll();
     }
 }
