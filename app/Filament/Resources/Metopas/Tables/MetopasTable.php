@@ -22,8 +22,15 @@ class MetopasTable
                     ->searchable(),
                 TextColumn::make('description')
                     ->searchable(),
-                ImageColumn::make('image'),
-                ImageColumn::make('image_large'),
+                ImageColumn::make('image')
+                    ->label('Imagen')
+                    ->getStateUsing(fn ($record) => $record->metopa?->image
+                        ? asset('storage/' . $record->metopa->image)
+                        : null
+                    )
+                    ->size(40),
+                //ImageColumn::make('image_large'),
+                    
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

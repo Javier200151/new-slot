@@ -34,6 +34,7 @@ class UsersRelationManager extends RelationManager
 
                 TextColumn::make('pivot.assigned_at')
                     ->label('Fecha de asignación')
+                    ->sortable()
                     ->dateTime('d/m/Y'),
             ])
             ->headerActions([
