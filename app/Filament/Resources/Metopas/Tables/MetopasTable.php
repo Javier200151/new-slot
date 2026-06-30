@@ -24,6 +24,13 @@ class MetopasTable
                     ->searchable(),
                 ImageColumn::make('image'),
                 ImageColumn::make('image_large'),
+                TextColumn::make('despag1')
+                    ->searchable(),
+                TextColumn::make('despag2')
+                    ->searchable(),
+                TextColumn::make('metopa_group')
+                    ->searchable(),
+                ImageColumn::make('imgback'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
