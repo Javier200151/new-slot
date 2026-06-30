@@ -22,12 +22,6 @@ return new class extends Migration
 
             $table->string('image_large')->nullable();
 
-            $table->string('despag1')->nullable();
-
-            $table->string('despag2')->nullable();
-
-            $table->string('metopa_group')->nullable();
-
             $table->string('imgback')->nullable();
 
             $table->timestamps();
