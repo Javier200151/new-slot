@@ -26,7 +26,7 @@ return new class extends Migration
 
             $table->string('despag2')->nullable();
 
-            $table->string('group')->nullable();
+            $table->string('metopa_group')->nullable();
 
             $table->string('imgback')->nullable();
 

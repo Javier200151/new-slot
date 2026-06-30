@@ -38,7 +38,7 @@ class MetopaForm
                     ->directory('metopas/large')
                     ->visibility('public')
                     ->nullable(),
-                    TextInput::make('Grupo')
+                    TextInput::make('metopa_group')
                     ->label('Grupo')
                     ->maxLength(255),
 
