@@ -18,7 +18,7 @@ return new class extends Migration
             }
 
             if (! Schema::hasColumn('metopas', 'metopa_group')) {
-                $table->string('group')->nullable()->after('despag2');
+                $table->string('metopa_group')->nullable()->after('despag2');
             }
 
             if (! Schema::hasColumn('metopas', 'imgback')) {
