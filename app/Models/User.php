@@ -56,9 +56,9 @@ class User extends Authenticatable implements FilamentUser, HasName
         return $this->nick ?? $this->email;
     }
 
-    public function canAccessPanel(Panel $panel): bool
+    public function canAccessPanel(\Filament\Panel $panel): bool
     {
-        return $this->hasRole('admin');
+        return $this->hasRole('admin') || $this->can('filament.access');
     }
 
     protected static function booted(): void
