@@ -18,9 +18,13 @@ use Filament\Tables\Table;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use UnitEnum;
 
 class RoleResource extends Resource
 {
+    protected static string | UnitEnum | null $navigationGroup = 'Usuarios';
+    protected static ?int $navigationSort = 4;
+
     protected static ?string $model = Role::class;
 
     protected static string | BackedEnum | null $navigationIcon = 'heroicon-o-shield-check';
