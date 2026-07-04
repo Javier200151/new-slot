@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('platform_id')
                 ->nullable()
                 ->constrained('platforms')
-                >nullOnDelete();
+                ->nullOnDelete();
             $table->timestamps();
         });
     }
