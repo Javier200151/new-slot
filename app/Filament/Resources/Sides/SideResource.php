@@ -13,14 +13,25 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class SideResource extends Resource
 {
+    protected static string | UnitEnum | null $navigationGroup = 'Configuración';
+
+    protected static ?int $navigationSort = 7;
+
     protected static ?string $model = Side::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'Bando';
+    protected static ?string $recordTitleAttribute = 'name';
+
+    protected static ?string $modelLabel = 'Bando';
+
+    protected static ?string $pluralModelLabel = 'Bandos';
+
+    protected static ?string $navigationLabel = 'Bandos';
 
     public static function form(Schema $schema): Schema
     {

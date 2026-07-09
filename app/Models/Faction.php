@@ -17,4 +17,9 @@ class Faction extends Model
     {
         return $this->belongsTo(Side::class);
     }
+
+    public function armies()
+    {
+        return $this->hasMany(Army::class);
+    }
 }
