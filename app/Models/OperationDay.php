@@ -4,11 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class platforms extends Model
+class OperationDay extends Model
 {
+    protected $table = 'operation_day';
+
     public $timestamps = false;
+
     protected $fillable = [
-    'name',
-    'image',
+        'name',
+
     ];
 }

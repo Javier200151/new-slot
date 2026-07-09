@@ -7,7 +7,7 @@ use App\Filament\Resources\Platforms\Pages\EditPlatforms;
 use App\Filament\Resources\Platforms\Pages\ListPlatforms;
 use App\Filament\Resources\Platforms\Schemas\PlatformsForm;
 use App\Filament\Resources\Platforms\Tables\PlatformsTable;
-use App\Models\Platforms;
+use App\Models\Platform;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,12 +18,15 @@ class PlatformsResource extends Resource
 {
     protected static string | UnitEnum | null $navigationGroup = 'Configuración';
     protected static ?int $navigationSort = 1;
-    protected static ?string $model = Platforms::class;
+    protected static ?string $model = Platform::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'Plataforma';
-     protected static ?string $pluralModelLabel = 'Plataformas';
+    protected static ?string $recordTitleAttribute = 'name';
+
+    protected static ?string $modelLabel = 'Plataforma';
+
+    protected static ?string $pluralModelLabel = 'Plataformas';
 
     protected static ?string $navigationLabel = 'Plataformas';
 

@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Platform extends Model
+class OperationStatus extends Model
 {
+    protected $table = 'operation_status';
+
     public $timestamps = false;
 
     protected $fillable = [
         'name',
-        'image',
+        'description',
     ];
 }

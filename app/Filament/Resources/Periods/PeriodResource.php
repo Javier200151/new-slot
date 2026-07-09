@@ -17,7 +17,7 @@ use UnitEnum;
 
 class PeriodResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Operativos';
+    protected static string | UnitEnum | null $navigationGroup = 'Configuración';
     protected static ?int $navigationSort = 2;
 
     protected static ?string $model = Period::class;
