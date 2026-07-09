@@ -87,7 +87,20 @@ class OperationsTable
 
                 TextColumn::make('day_or_night')
                     ->label('Día/noche')
-                    ->badge(),
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'day' => 'Día',
+                        'night' => 'Noche',
+                        'both' => 'Ambos',
+                        'ambos' => 'Ambos',
+                        default => 'Sin indicar',
+                    })
+                    ->color(fn (?string $state): string => match ($state) {
+                        'day' => 'warning',
+                        'night' => 'info',
+                        'both', 'ambos' => 'gray',
+                        default => 'gray',
+                    }),
 
                 TextColumn::make('pbo')
                     ->label('PBO')

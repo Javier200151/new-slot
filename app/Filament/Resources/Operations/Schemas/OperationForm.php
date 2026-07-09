@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Operations\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -49,7 +50,7 @@ class OperationForm
                     ->directory('operations')
                     ->visibility('public')
                     ->image(),
-                Textarea::make('description')
+                RichEditor::make('description')
                     ->label('Descripción')
                     ->columnSpanFull(),
                 Textarea::make('radio')
@@ -121,6 +122,7 @@ class OperationForm
                     ->options([
                         'day' => 'Día',
                         'night' => 'Noche',
+                        'both' => 'Ambos',
                     ]),
             ]);
     }
