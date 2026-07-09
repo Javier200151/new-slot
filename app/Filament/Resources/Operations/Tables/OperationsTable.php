@@ -10,6 +10,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
@@ -43,8 +44,8 @@ class OperationsTable
                     ->label('Nombre')
                     ->searchable(),
 
-                ImageColumn::make('image')
-                    ->label('Imagen'),
+                //ImageColumn::make('image')
+                //    ->label('Imagen'),
 
                 TextColumn::make('map.name')
                     ->label('Mapa')
@@ -130,7 +131,37 @@ class OperationsTable
                     ->sortable(),
             ])
             ->filters([
-                TrashedFilter::make(),
+                SelectFilter::make('operation_type_id')
+                    ->label('Tipo')
+                    ->multiple()
+                    ->relationship('operationType', 'name'),
+
+                SelectFilter::make('operation_status_id')
+                    ->label('Estado')
+                    ->multiple()
+                    ->relationship('operationStatus', 'name'),
+
+                SelectFilter::make('map_id')
+                    ->label('Mapa')
+                    ->multiple()
+                    ->relationship('map', 'name'),
+
+                SelectFilter::make('period_id')
+                    ->label('Periodo')
+                    ->multiple()
+                    ->relationship('period', 'name'),
+
+                SelectFilter::make('day_id')
+                    ->label('Día')
+                    ->multiple()
+                    ->relationship('day', 'name'),
+
+                SelectFilter::make('editor_id')
+                    ->label('Editor')
+                    ->multiple()
+                    ->relationship('editor', 'nick'),
+
+                //TrashedFilter::make(),
             ])
             ->recordActions([
                 EditAction::make(),
