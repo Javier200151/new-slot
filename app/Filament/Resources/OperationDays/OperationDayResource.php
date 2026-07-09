@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\OperationDays;
 
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\OperationDays\Pages\CreateOperationDay;
 use App\Filament\Resources\OperationDays\Pages\EditOperationDay;
 use App\Filament\Resources\OperationDays\Pages\ListOperationDays;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class OperationDayResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Configuración';
+    protected static ?string $cluster = Configuration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
     protected static ?int $navigationSort = 5;
     protected static ?string $model = OperationDay::class;
 

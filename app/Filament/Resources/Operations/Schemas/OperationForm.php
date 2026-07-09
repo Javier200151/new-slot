@@ -37,13 +37,6 @@ class OperationForm
                     ->preload()
                     ->nullable(),
 
-                Select::make('platform_id')
-                    ->label('Plataforma')
-                    ->relationship('platform', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
-
                 DateTimePicker::make('date')
                     ->label('Fecha')
                     ->required(),
@@ -62,12 +55,14 @@ class OperationForm
                 Textarea::make('radio')
                     ->label('Radio')
                     ->columnSpanFull(),
+
+                Textarea::make('orbat')
+                    ->label('ORBAT')
+                    ->columnSpanFull(),
+
                 Toggle::make('ocap')
                     ->label('OCAP')
                     ->required(),
-                TextInput::make('ocap_url')
-                    ->label('URL OCAP')
-                    ->url(),
                 Toggle::make('respawn')
                     ->label('Respawn')
                     ->required(),
@@ -106,9 +101,10 @@ class OperationForm
                     ->preload()
                     ->nullable(),
 
-                Select::make('faction_id')
-                    ->label('Facción')
-                    ->relationship('faction', 'name')
+                Select::make('enemyFactions')
+                    ->label('Facciones enemigas')
+                    ->relationship('enemyFactions', 'name')
+                    ->multiple()
                     ->searchable()
                     ->preload()
                     ->nullable(),
@@ -120,17 +116,12 @@ class OperationForm
                     ->preload()
                     ->nullable(),
 
-                TextInput::make('duration_minutes')
-                    ->label('Duración en minutos')
-                    ->numeric(),
                 Select::make('day_or_night')
                     ->label('Día o noche')
                     ->options([
                         'day' => 'Día',
                         'night' => 'Noche',
                     ]),
-                TextInput::make('side')
-                    ->label('Bando'),
             ]);
     }
 }

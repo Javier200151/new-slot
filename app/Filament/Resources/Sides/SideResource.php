@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Sides;
 
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\Sides\Pages\CreateSide;
 use App\Filament\Resources\Sides\Pages\EditSide;
 use App\Filament\Resources\Sides\Pages\ListSides;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class SideResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Configuración';
+    protected static ?string $cluster = Configuration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
 
     protected static ?int $navigationSort = 7;
 

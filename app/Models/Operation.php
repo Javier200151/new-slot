@@ -18,14 +18,13 @@ class Operation extends Model
         'operation_type_id',
         'operation_status_id',
         'campaign_id',
-        'platform_id',
         'date',
         'name',
         'image',
         'description',
         'radio',
+        'orbat',
         'ocap',
-        'ocap_url',
         'respawn',
         'jip',
         'day_id',
@@ -35,11 +34,8 @@ class Operation extends Model
         'updated_by',
         'map_id',
         'period_id',
-        'faction_id',
         'editor_id',
-        'duration_minutes',
         'day_or_night',
-        'side',
     ];
 
     protected function casts(): array
@@ -49,7 +45,6 @@ class Operation extends Model
             'ocap' => 'boolean',
             'respawn' => 'boolean',
             'jip' => 'boolean',
-            'duration_minutes' => 'integer',
         ];
     }
 
@@ -84,11 +79,6 @@ class Operation extends Model
         return $this->belongsTo(Campaign::class, 'campaign_id');
     }
 
-    public function platform()
-    {
-        return $this->belongsTo(Platform::class, 'platform_id');
-    }
-
     public function day()
     {
         return $this->belongsTo(OperationDay::class, 'day_id');
@@ -104,9 +94,14 @@ class Operation extends Model
         return $this->belongsTo(Period::class, 'period_id');
     }
 
-    public function faction()
+    public function enemyFactions()
     {
-        return $this->belongsTo(Faction::class, 'faction_id');
+        return $this->belongsToMany(
+            Faction::class,
+            'enemy_faction_operation',
+            'operation_id',
+            'faction_id'
+        );
     }
 
     public function editor()

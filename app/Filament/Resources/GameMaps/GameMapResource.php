@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\GameMaps;
 
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\GameMaps\Pages\CreateGameMap;
 use App\Filament\Resources\GameMaps\Pages\EditGameMap;
 use App\Filament\Resources\GameMaps\Pages\ListGameMaps;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class GameMapResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Operativos';
+    protected static ?string $cluster = Configuration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
     protected static ?int $navigationSort = 4;
 
     protected static ?string $modelLabel = 'Mapa';

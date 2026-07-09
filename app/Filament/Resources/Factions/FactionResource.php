@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Factions;
 
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\Factions\Pages\CreateFaction;
 use App\Filament\Resources\Factions\Pages\EditFaction;
 use App\Filament\Resources\Factions\Pages\ListFactions;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class FactionResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Operativos';
+    protected static ?string $cluster = Configuration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
     protected static ?int $navigationSort = 3;
 
     protected static ?string $model = Faction::class;

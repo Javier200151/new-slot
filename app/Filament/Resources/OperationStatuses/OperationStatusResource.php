@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\OperationStatuses;
 
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\OperationStatuses\Pages\CreateOperationStatus;
 use App\Filament\Resources\OperationStatuses\Pages\EditOperationStatus;
 use App\Filament\Resources\OperationStatuses\Pages\ListOperationStatuses;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class OperationStatusResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Configuración';
+    protected static ?string $cluster = Configuration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
     protected static ?int $navigationSort = 3;
     protected static ?string $model = OperationStatus::class;
 

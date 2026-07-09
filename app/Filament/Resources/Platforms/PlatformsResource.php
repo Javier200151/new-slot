@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Platforms;
 
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\Platforms\Pages\CreatePlatforms;
 use App\Filament\Resources\Platforms\Pages\EditPlatforms;
 use App\Filament\Resources\Platforms\Pages\ListPlatforms;
@@ -16,7 +17,9 @@ use Filament\Tables\Table;
 use UnitEnum;
 class PlatformsResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Configuración';
+    protected static ?string $cluster = Configuration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
     protected static ?int $navigationSort = 1;
     protected static ?string $model = Platform::class;
 

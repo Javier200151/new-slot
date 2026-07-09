@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Armies;
 
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\Armies\Pages\CreateArmy;
 use App\Filament\Resources\Armies\Pages\EditArmy;
 use App\Filament\Resources\Armies\Pages\ListArmies;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class ArmyResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Configuración';
+    protected static ?string $cluster = Configuration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
 
     protected static ?int $navigationSort = 6;
 

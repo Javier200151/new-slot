@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Periods;
 
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\Periods\Pages\CreatePeriod;
 use App\Filament\Resources\Periods\Pages\EditPeriod;
 use App\Filament\Resources\Periods\Pages\ListPeriods;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class PeriodResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Configuración';
+    protected static ?string $cluster = Configuration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
     protected static ?int $navigationSort = 2;
 
     protected static ?string $model = Period::class;

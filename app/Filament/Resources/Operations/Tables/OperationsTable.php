@@ -19,37 +19,80 @@ class OperationsTable
     {
         return $table
             ->columns([
-                TextColumn::make('operation_type_id')
-                    ->numeric()
+                TextColumn::make('operationType.name')
+                    ->label('Tipo')
+                    ->searchable()
                     ->sortable(),
-                TextColumn::make('operation_status_id')
-                    ->numeric()
+
+                TextColumn::make('operationStatus.name')
+                    ->label('Estado')
+                    ->searchable()
                     ->sortable(),
-                TextColumn::make('campaign_id')
-                    ->numeric()
+
+                TextColumn::make('campaign.name')
+                    ->label('Campaña')
+                    ->searchable()
                     ->sortable(),
-                TextColumn::make('platform_id')
-                    ->numeric()
-                    ->sortable(),
+
                 TextColumn::make('date')
+                    ->label('Fecha')
                     ->dateTime()
                     ->sortable(),
+
                 TextColumn::make('name')
+                    ->label('Nombre')
                     ->searchable(),
-                ImageColumn::make('image'),
-                IconColumn::make('ocap')
-                    ->boolean(),
-                TextColumn::make('ocap_url')
-                    ->searchable(),
-                IconColumn::make('respawn')
-                    ->boolean(),
-                IconColumn::make('jip')
-                    ->boolean(),
-                TextColumn::make('day_id')
-                    ->numeric()
+
+                ImageColumn::make('image')
+                    ->label('Imagen'),
+
+                TextColumn::make('map.name')
+                    ->label('Mapa')
+                    ->searchable()
                     ->sortable(),
+
+                TextColumn::make('enemyFactions.name')
+                    ->label('Facciones enemigas')
+                    ->listWithLineBreaks()
+                    ->bulleted()
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('period.name')
+                    ->label('Periodo')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('day.name')
+                    ->label('Día')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('editor.nick')
+                    ->label('Editor')
+                    ->searchable()
+                    ->sortable(),
+
+                IconColumn::make('ocap')
+                    ->label('OCAP')
+                    ->boolean(),
+
+                IconColumn::make('respawn')
+                    ->label('Respawn')
+                    ->boolean(),
+
+                IconColumn::make('jip')
+                    ->label('JIP')
+                    ->boolean(),
+
+                TextColumn::make('day_or_night')
+                    ->label('Día/noche')
+                    ->badge(),
+
                 TextColumn::make('pbo')
+                    ->label('PBO')
                     ->searchable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -62,31 +105,16 @@ class OperationsTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_by')
-                    ->numeric()
+
+                TextColumn::make('createdBy.nick')
+                    ->label('Creado por')
+                    ->searchable()
                     ->sortable(),
-                TextColumn::make('updated_by')
-                    ->numeric()
+
+                TextColumn::make('updatedBy.nick')
+                    ->label('Actualizado por')
+                    ->searchable()
                     ->sortable(),
-                TextColumn::make('map_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('period_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('faction_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('editor_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('duration_minutes')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('day_or_night')
-                    ->badge(),
-                TextColumn::make('side')
-                    ->searchable(),
             ])
             ->filters([
                 TrashedFilter::make(),

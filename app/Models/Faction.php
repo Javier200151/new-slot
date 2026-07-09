@@ -22,4 +22,14 @@ class Faction extends Model
     {
         return $this->hasMany(Army::class);
     }
+
+    public function enemyOperations()
+    {
+        return $this->belongsToMany(
+            Operation::class,
+            'enemy_faction_operation',
+            'faction_id',
+            'operation_id'
+        );
+    }
 }
