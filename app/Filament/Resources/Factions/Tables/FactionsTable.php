@@ -15,10 +15,20 @@ class FactionsTable
     {
         return $table
             ->columns([
+                TextColumn::make('side.name')
+                    ->label('Bando')
+                    ->searchable()
+                    ->sortable(),
+
                 TextColumn::make('name')
+                    ->label('Nombre')
                     ->searchable(),
-                ImageColumn::make('image'),
+
+                ImageColumn::make('image')
+                    ->label('Imagen'),
+
                 TextColumn::make('description')
+                    ->label('Descripción')
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()

@@ -24,7 +24,10 @@ class FactionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'Facciones';
+    protected static ?string $recordTitleAttribute = 'name';
+
+    protected static ?string $modelLabel = 'Facción';
+
     protected static ?string $pluralModelLabel = 'Facciones';
 
     protected static ?string $navigationLabel = 'Facciones';
