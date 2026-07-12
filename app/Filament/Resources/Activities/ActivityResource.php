@@ -12,9 +12,13 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use App\Filament\Resources\Activities\Pages\EditActivity;
+use UnitEnum;
 
 class ActivityResource extends Resource
 {
+    protected static string | UnitEnum | null $navigationGroup = 'Sistema';
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $model = Activity::class;
 
     public static function canCreate(): bool
