@@ -32,6 +32,7 @@ class Operation extends Model
         'addons',
         'created_by',
         'updated_by',
+        'platform_id',
         'map_id',
         'period_id',
         'editor_id',
@@ -82,6 +83,11 @@ class Operation extends Model
     public function day()
     {
         return $this->belongsTo(OperationDay::class, 'day_id');
+    }
+
+    public function platform()
+    {
+        return $this->belongsTo(Platform::class, 'platform_id');
     }
 
     public function map()
