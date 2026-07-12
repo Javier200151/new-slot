@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Operations\Schemas;
 
+use App\Models\GameMap;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -10,6 +11,8 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class OperationForm
@@ -43,6 +46,15 @@ class OperationForm
                     ->searchable()
                     ->preload()
                     ->nullable(),
+
+                Select::make('platform_id')
+                    ->label('Plataforma')
+                    ->relationship('platform', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set) => $set('map_id', null))
+                    ->required(),
 
                 
                 
@@ -100,10 +112,16 @@ class OperationForm
 
                 Select::make('map_id')
                     ->label('Mapa')
-                    ->relationship('map', 'name')
+                    ->options(fn (Get $get): array => GameMap::query()
+                        ->where('platform_id', $get('platform_id'))
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
                     ->searchable()
                     ->preload()
-                    ->nullable(),
+                    ->disabled(fn (Get $get): bool => blank($get('platform_id')))
+                    ->nullable()
+                    ->required(),
 
                 Select::make('period_id')
                     ->label('Periodo')

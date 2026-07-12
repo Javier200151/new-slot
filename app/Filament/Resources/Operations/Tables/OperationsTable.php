@@ -35,6 +35,11 @@ class OperationsTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('platform.name')
+                    ->label('Plataforma')
+                    ->searchable()
+                    ->sortable(),
+
                 TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable(),
@@ -146,6 +151,11 @@ class OperationsTable
                     ->label('Estado')
                     ->multiple()
                     ->relationship('operationStatus', 'name'),
+
+                SelectFilter::make('platform_id')
+                    ->label('Plataforma')
+                    ->multiple()
+                    ->relationship('platform', 'name'),
 
                 SelectFilter::make('map_id')
                     ->label('Mapa')
