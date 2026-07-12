@@ -35,11 +35,6 @@ class OperationsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('date')
-                    ->label('Fecha')
-                    ->dateTime()
-                    ->sortable(),
-
                 TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable(),
@@ -102,6 +97,17 @@ class OperationsTable
                         'both', 'ambos' => 'gray',
                         default => 'gray',
                     }),
+
+                TextColumn::make('orbat')
+                    ->label('ORBAT')
+                    ->formatStateUsing(function (?array $state): string {
+                        $groups = $state['groups'] ?? [];
+                        $slots = collect($groups)->sum(fn (array $group): int => count($group['slots'] ?? []));
+
+                        return count($groups) . ' grupos / ' . $slots . ' slots';
+                    })
+                    ->badge()
+                    ->color('gray'),
 
                 TextColumn::make('pbo')
                     ->label('PBO')

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -18,7 +19,6 @@ class Operation extends Model
         'operation_type_id',
         'operation_status_id',
         'campaign_id',
-        'date',
         'name',
         'image',
         'description',
@@ -41,10 +41,10 @@ class Operation extends Model
     protected function casts(): array
     {
         return [
-            'date' => 'datetime',
             'ocap' => 'boolean',
             'respawn' => 'boolean',
             'jip' => 'boolean',
+            'orbat' => 'array',
         ];
     }
 
@@ -117,6 +117,71 @@ class Operation extends Model
     public function updatedBy()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function getOrbatSummaryHtml(): HtmlString
+    {
+        $groups = $this->orbat['groups'] ?? [];
+
+        if (blank($groups)) {
+            return new HtmlString('<div class="text-sm text-gray-500 dark:text-gray-400">Esta operación todavía no tiene ORBAT.</div>');
+        }
+
+        $armyNames = Army::query()
+            ->whereIn('id', collect($groups)->pluck('army_id')->filter()->unique())
+            ->pluck('name', 'id');
+
+        $slotTypeNames = SlotType::query()
+            ->whereIn(
+                'id',
+                collect($groups)
+                    ->flatMap(fn (array $group): array => $group['slots'] ?? [])
+                    ->pluck('slot_type_id')
+                    ->filter()
+                    ->unique()
+            )
+            ->pluck('name', 'id');
+
+        $html = '<div class="space-y-4">';
+
+        foreach ($groups as $group) {
+            $groupName = e($group['name'] ?? 'Grupo sin nombre');
+            $armyName = e($armyNames[(int) ($group['army_id'] ?? 0)] ?? 'Sin ejército');
+            $visibility = ($group['visible'] ?? false) ? 'Visible' : 'Oculto';
+            $slots = $group['slots'] ?? [];
+
+            $html .= '<section style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">';
+            $html .= '<table style="border-collapse: collapse;">';
+            $html .= '<tbody>';
+            $html .= '<tr>';
+            $html .= "<td style=\"font-weight: 600; padding-right: 2rem; padding-bottom: 0.5rem;\">{$groupName}</td>";
+            $html .= "<td style=\"font-weight: 600; padding-right: 2rem; padding-bottom: 0.5rem;\">{$armyName}</td>";
+            //$html .= "<td style=\"font-weight: 600; padding-bottom: 0.5rem;\">{$visibility}</td>";
+            $html .= '</tr>';
+
+            if (blank($slots)) {
+                $html .= '<tr><td colspan="3" style="color: #6b7280; font-size: 0.875rem;">Sin slots.</td></tr>';
+            } else {
+                foreach ($slots as $slot) {
+                    $slotName = e($slot['name'] ?? 'Slot sin nombre');
+                    $slotTypeName = e($slotTypeNames[(int) ($slot['slot_type_id'] ?? 0)] ?? 'Sin tipo');
+
+                    $html .= '<tr>';
+                    $html .= "<td style=\"padding-right: 2rem; padding-bottom: 0.25rem;\">{$slotName}</td>";
+                    $html .= "<td style=\"padding-right: 2rem; padding-bottom: 0.25rem;\">{$slotTypeName}</td>";
+                    $html .= '<td></td>';
+                    $html .= '</tr>';
+                }
+            }
+
+            $html .= '</tbody>';
+            $html .= '</table>';
+            $html .= '</section>';
+        }
+
+        $html .= '</div>';
+
+        return new HtmlString($html);
     }
 
     public function getActivitylogOptions(): LogOptions

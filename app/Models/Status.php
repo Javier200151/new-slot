@@ -24,6 +24,21 @@ class Status extends Model
         return $this->hasMany(User::class, 'status_id');
     }
 
+    public function slotTypeStatuses()
+    {
+        return $this->hasMany(SlotTypeStatus::class, 'status_id');
+    }
+
+    public function slotTypes()
+    {
+        return $this->belongsToMany(
+            SlotType::class,
+            'slot_types_status',
+            'status_id',
+            'slot_type_id'
+        );
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

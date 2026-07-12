@@ -2,13 +2,14 @@
 
 namespace App\Filament\Resources\Operations\Schemas;
 
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Html;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class OperationForm
@@ -17,6 +18,11 @@ class OperationForm
     {
         return $schema
             ->components([
+
+                TextInput::make('name')
+                    ->label('Nombre')
+                    ->required(),
+
                 Select::make('operation_type_id')
                     ->label('Tipo')
                     ->relationship('operationType', 'name')
@@ -38,29 +44,20 @@ class OperationForm
                     ->preload()
                     ->nullable(),
 
-                DateTimePicker::make('date')
-                    ->label('Fecha')
-                    ->required(),
-                TextInput::make('name')
-                    ->label('Nombre')
-                    ->required(),
+                
+                
                 FileUpload::make('image')
                     ->label('Imagen')
                     ->disk('public')
                     ->directory('operations')
                     ->visibility('public')
                     ->image(),
-                RichEditor::make('description')
-                    ->label('Descripción')
-                    ->columnSpanFull(),
-                Textarea::make('radio')
-                    ->label('Radio')
-                    ->columnSpanFull(),
-
-                Textarea::make('orbat')
-                    ->label('ORBAT')
-                    ->columnSpanFull(),
-
+                Select::make('day_id')
+                    ->label('Día')
+                    ->relationship('day', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
                 Toggle::make('ocap')
                     ->label('OCAP')
                     ->required(),
@@ -70,19 +67,32 @@ class OperationForm
                 Toggle::make('jip')
                     ->label('JIP')
                     ->required(),
+     
 
-                Select::make('day_id')
-                    ->label('Día')
-                    ->relationship('day', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->nullable(),
+                RichEditor::make('description')
+                    ->label('Descripción')
+                    ->columnSpanFull(),
 
-                TextInput::make('pbo')
-                    ->label('PBO'),
+                Section::make('ORBAT actual')
+                    ->schema([
+                        Html::make(fn ($record) => $record?->getOrbatSummaryHtml()),
+                    ])
+                    ->hidden(fn ($record): bool => blank($record?->orbat['groups'] ?? []))
+                    ->columnSpanFull(),
+
+                Textarea::make('radio')
+                    ->label('Radio')
+                    ->columnSpanFull(),    
                 Textarea::make('addons')
                     ->label('Addons')
                     ->columnSpanFull(),
+                
+
+                
+
+                TextInput::make('pbo')
+                    ->label('PBO'),
+                
                 //TextInput::make('created_by')
                  //   ->numeric(),
                 //TextInput::make('updated_by')
