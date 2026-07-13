@@ -3,18 +3,27 @@
 namespace App\Filament\Resources\Operations\Pages;
 
 use App\Filament\Resources\Operations\OperationResource;
+use App\Models\Addon;
+use App\Models\AddonPreset;
 use App\Models\Army;
 use App\Models\SlotType;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
 
 class EditOperation extends EditRecord
@@ -24,6 +33,94 @@ class EditOperation extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('editDescription')
+                ->label('Editar descripción')
+                ->modalHeading('Editor de descripción')
+                ->modalSubmitActionLabel('Guardar descripción')
+                ->modalWidth('7xl')
+                ->fillForm(function (): array {
+                    $description = $this->record->description ?? [];
+                    $sections = $description['sections'] ?? [];
+
+                    if (blank($sections) && filled($description['content'] ?? null)) {
+                        $sections = [
+                            [
+                                'title' => 'Descripción',
+                                'content' => $description['content'],
+                                'images' => [],
+                            ],
+                        ];
+                    }
+
+                    return ['sections' => $sections];
+                })
+                ->form([
+                    Repeater::make('sections')
+                        ->label('Secciones')
+                        ->schema([
+                            TextInput::make('title')
+                                ->label('Título')
+                                ->required()
+                                ->maxLength(255),
+
+                            RichEditor::make('content')
+                                ->label('Contenido')
+                                ->columnSpanFull(),
+
+                            Repeater::make('images')
+                                ->label('Imágenes externas')
+                                ->schema([
+                                    TextInput::make('url')
+                                        ->label('URL')
+                                        ->url()
+                                        ->required()
+                                        ->maxLength(2048),
+
+                                    TextInput::make('caption')
+                                        ->label('Pie de imagen')
+                                        ->maxLength(255),
+                                ])
+                                ->columns(2)
+                                ->itemLabel(fn (array $state): ?string => $state['caption'] ?? $state['url'] ?? null)
+                                ->default([])
+                                ->addActionLabel('Añadir imagen')
+                                ->collapsible()
+                                ->columnSpanFull(),
+                        ])
+                        ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                        ->reorderableWithButtons()
+                        ->collapsible()
+                        ->default([])
+                        ->addActionLabel('Añadir sección')
+                        ->columnSpanFull(),
+                ])
+                ->action(function (array $data): void {
+                    $sections = collect($data['sections'] ?? [])
+                        ->map(function (array $section): array {
+                            $images = collect($section['images'] ?? [])
+                                ->filter(fn (array $image): bool => filled($image['url'] ?? null))
+                                ->map(fn (array $image): array => [
+                                    'url' => $image['url'] ?? '',
+                                    'caption' => $image['caption'] ?? '',
+                                ])
+                                ->values()
+                                ->all();
+
+                            return [
+                                'title' => $section['title'] ?? '',
+                                'content' => $section['content'] ?? '',
+                                'images' => $images,
+                            ];
+                        })
+                        ->values()
+                        ->all();
+
+                    $this->record->forceFill([
+                        'description' => ['sections' => $sections],
+                    ])->save();
+                }),
+
+
             Action::make('editOrbat')
                 ->label('Editar ORBAT')
                 ->modalHeading('Editor de ORBAT')
@@ -115,9 +212,218 @@ class EditOperation extends EditRecord
                     ])->save();
                 }),
 
+            Action::make('editAddons')
+                ->label('Editar addons')
+                ->modalHeading('Editor de addons')
+                ->modalSubmitActionLabel('Guardar addons')
+                ->modalWidth('3xl')
+                ->fillForm(fn (): array => [
+                    'addon_ids' => $this->record->addons['addon_ids'] ?? [],
+                    'addon_preset_id' => null,
+                    'addons_text' => '',
+                ])
+                ->form([
+                    Select::make('addon_preset_id')
+                        ->label('Preset de addons')
+                        ->options(fn (): array => AddonPreset::query()
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all())
+                        ->searchable()
+                        ->preload()
+                        ->dehydrated(false),
+
+                    Textarea::make('addons_text')
+                        ->label('Listado de addons')
+                        ->helperText('Pega aquí el listado en texto plano, un addon por línea.')
+                        ->rows(3)
+                        ->dehydrated(false)
+                        ->columnSpanFull(),
+
+                    Actions::make([
+                        Action::make('applyAddonPreset')
+                            ->label('Aplicar preset')
+                            ->action(function (Get $get, Set $set): void {
+                                $presetId = $get('addon_preset_id');
+
+                                if (blank($presetId)) {
+                                    return;
+                                }
+
+                                $preset = AddonPreset::query()->find($presetId);
+
+                                $presetAddonIds = $preset
+                                    ? $preset->addons()
+                                        ->pluck('addons.id')
+                                        ->map(fn (int $id): string => (string) $id)
+                                        ->all()
+                                    : [];
+
+                                $set('addon_ids', collect($get('addon_ids') ?? [])
+                                    ->merge($presetAddonIds)
+                                    ->unique()
+                                    ->values()
+                                    ->all());
+                            }),
+
+                        Action::make('selectMandatoryAddons')
+                            ->label('Seleccionar obligatorios')
+                            ->action(function (Get $get, Set $set): void {
+                                $mandatoryAddonIds = Addon::query()
+                                    ->where('mandatory', true)
+                                    ->pluck('id')
+                                    ->map(fn (int $id): string => (string) $id)
+                                    ->all();
+
+                                $set('addon_ids', collect($get('addon_ids') ?? [])
+                                    ->merge($mandatoryAddonIds)
+                                    ->unique()
+                                    ->values()
+                                    ->all());
+                            }),
+
+                        Action::make('importAddonsHtml')
+                            ->label('Importar listado')
+                            ->action(function (Get $get, Set $set): void {
+                                $addonNames = static::extractAddonNamesFromText($get('addons_text'));
+
+                                if (blank($addonNames)) {
+                                    Notification::make()
+                                        ->title('No se han encontrado addons en el listado.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $addonIds = Addon::query()
+                                    ->whereIn('name', $addonNames)
+                                    ->pluck('id')
+                                    ->all();
+
+                                // De momento no creamos automáticamente addons que no existan.
+                                // Si más adelante queremos recuperarlo, esta era la lógica:
+                                // $addonIds = collect($addonNames)
+                                //     ->map(fn (string $name): int => Addon::query()
+                                //         ->firstOrCreate(['name' => $name], [
+                                //             'description' => null,
+                                //             'mandatory' => false,
+                                //         ])
+                                //         ->id)
+                                //     ->all();
+
+                                $set('addon_ids', collect($get('addon_ids') ?? [])
+                                    ->merge($addonIds)
+                                    ->map(fn ($addonId): string => (string) $addonId)
+                                    ->unique()
+                                    ->values()
+                                    ->all());
+
+                                Notification::make()
+                                    ->title(count($addonIds) . ' addons importados.')
+                                    ->success()
+                                    ->send();
+                            }),
+
+                        Action::make('downloadAddonsHtml')
+                            ->label('Descargar HTML')
+                            ->action(function (Get $get) {
+                                $addonIds = collect($get('addon_ids') ?? [])
+                                    ->map(fn ($addonId): int => (int) $addonId)
+                                    ->filter()
+                                    ->values()
+                                    ->all();
+
+                                $filename = Str::slug($this->record->name ?: 'operacion') . '-addons.html';
+
+                                return response()->streamDownload(
+                                    fn () => print static::buildAddonsHtml($addonIds),
+                                    $filename,
+                                    ['Content-Type' => 'text/html; charset=UTF-8']
+                                );
+                            }),
+
+                        
+                    ]),
+
+                    CheckboxList::make('addon_ids')
+                        ->label('Addons')
+                        ->options(fn (): array => Addon::query()
+                            ->orderBy('mandatory', 'desc')
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all())
+                        ->descriptions(fn (): array => Addon::query()
+                            ->orderBy('mandatory', 'desc')
+                            ->orderBy('name')
+                            ->get()
+                            ->mapWithKeys(fn (Addon $addon): array => [
+                                $addon->id => trim(($addon->mandatory ? 'Obligatorio. ' : 'Opcional. ') . ($addon->description ?? '')),
+                            ])
+                            ->all())
+                        ->bulkToggleable()
+                        ->searchable()
+                        ->columns(2)
+                        ->columnSpanFull(),
+                ])
+                ->action(function (array $data): void {
+                    $addonIds = collect($data['addon_ids'] ?? [])
+                        ->map(fn ($addonId): int => (int) $addonId)
+                        ->filter()
+                        ->values()
+                        ->all();
+
+                    $this->record->forceFill([
+                        'addons' => ['addon_ids' => $addonIds],
+                    ])->save();
+                }),
+
+            
+
             DeleteAction::make(),
             ForceDeleteAction::make(),
             RestoreAction::make(),
         ];
+    }
+
+    protected static function buildAddonsHtml(array $addonIds): string
+    {
+        $addons = Addon::query()
+            ->whereIn('id', $addonIds)
+            ->orderBy('mandatory', 'desc')
+            ->orderBy('name')
+            ->get();
+
+        $rows = $addons
+            ->map(function (Addon $addon): string {
+                $name = htmlspecialchars($addon->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+                return <<<HTML
+  <tr data-type="ModContainer">
+    <td data-type="DisplayName">{$name}</td>
+  </tr>
+HTML;
+            })
+            ->implode("\n");
+
+        return <<<HTML
+<html><head></head><body><table>
+  <tbody>{$rows}
+</tbody></table></body></html>
+HTML;
+    }
+
+    protected static function extractAddonNamesFromText(?string $text): array
+    {
+        if (blank($text)) {
+            return [];
+        }
+
+        return collect(preg_split('/\R/', $text))
+            ->map(fn (string $name): string => trim($name))
+            ->filter()
+            ->unique(fn (string $name): string => mb_strtolower($name))
+            ->values()
+            ->all();
     }
 }

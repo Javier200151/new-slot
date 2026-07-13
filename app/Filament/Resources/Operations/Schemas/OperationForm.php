@@ -4,11 +4,10 @@ namespace App\Filament\Resources\Operations\Schemas;
 
 use App\Models\GameMap;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -79,36 +78,6 @@ class OperationForm
                 Toggle::make('jip')
                     ->label('JIP')
                     ->required(),
-     
-
-                RichEditor::make('description')
-                    ->label('Descripción')
-                    ->columnSpanFull(),
-
-                Section::make('ORBAT actual')
-                    ->schema([
-                        Html::make(fn ($record) => $record?->getOrbatSummaryHtml()),
-                    ])
-                    ->hidden(fn ($record): bool => blank($record?->orbat['groups'] ?? []))
-                    ->columnSpanFull(),
-
-                Textarea::make('radio')
-                    ->label('Radio')
-                    ->columnSpanFull(),    
-                Textarea::make('addons')
-                    ->label('Addons')
-                    ->columnSpanFull(),
-                
-
-                
-
-                TextInput::make('pbo')
-                    ->label('PBO'),
-                
-                //TextInput::make('created_by')
-                 //   ->numeric(),
-                //TextInput::make('updated_by')
-                //    ->numeric(),
 
                 Select::make('map_id')
                     ->label('Mapa')
@@ -120,8 +89,7 @@ class OperationForm
                     ->searchable()
                     ->preload()
                     ->disabled(fn (Get $get): bool => blank($get('platform_id')))
-                    ->nullable()
-                    ->required(),
+                    ->nullable(),
 
                 Select::make('period_id')
                     ->label('Periodo')
@@ -152,6 +120,48 @@ class OperationForm
                         'night' => 'Noche',
                         'both' => 'Ambos',
                     ]),
+                TextInput::make('pbo')
+                    ->label('PBO'),                                        
+     
+
+                Section::make('Descripción')
+                    ->schema([
+                        Html::make(fn ($record) => $record?->getDescriptionSummaryHtml()),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('ORBAT')
+                    ->schema([
+                        Html::make(fn ($record) => $record?->getOrbatSummaryHtml()),
+                    ])
+                    //->hidden(fn ($record): bool => blank($record?->orbat['groups'] ?? []))
+                    ->columnSpanFull(),
+
+                Section::make('Radio')
+                    ->schema([
+                        TextEntry::make('radio.content')
+                            ->label('')
+                            ->placeholder('Pendiente de configurar'),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('Addons')
+                    ->schema([
+                        Html::make(fn ($record) => $record?->getAddonsSummaryHtml()),
+                    ])
+                    ->columnSpanFull(),
+                
+
+                
+
+
+                
+                //TextInput::make('created_by')
+                 //   ->numeric(),
+                //TextInput::make('updated_by')
+                //    ->numeric(),
+
+
             ]);
     }
 }

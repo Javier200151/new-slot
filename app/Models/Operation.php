@@ -45,7 +45,10 @@ class Operation extends Model
             'ocap' => 'boolean',
             'respawn' => 'boolean',
             'jip' => 'boolean',
+            'description' => 'array',
+            'radio' => 'array',
             'orbat' => 'array',
+            'addons' => 'array',
         ];
     }
 
@@ -186,6 +189,116 @@ class Operation extends Model
         }
 
         $html .= '</div>';
+
+        return new HtmlString($html);
+    }
+
+    public function getDescriptionSummaryHtml(): HtmlString
+    {
+        $sections = $this->description['sections'] ?? [];
+
+        if (blank($sections) && filled($this->description['content'] ?? null)) {
+            $sections = [
+                [
+                    'title' => 'Descripción',
+                    'content' => $this->description['content'],
+                    'images' => [],
+                ],
+            ];
+        }
+
+        if (blank($sections)) {
+            return new HtmlString('<div style="color: #6b7280; font-size: 0.875rem;">Esta operación todavía no tiene descripción.</div>');
+        }
+
+        $html = '<div style="display: grid; gap: 1rem;">';
+
+        foreach ($sections as $section) {
+            $title = e($section['title'] ?? 'Sección sin título');
+            $content = $section['content'] ?? '';
+            $images = $section['images'] ?? [];
+
+            $html .= '<section style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">';
+            $html .= "<h3 style=\"font-size: 1.125rem; font-weight: 700; margin: 0 0 0.75rem;\">{$title}</h3>";
+
+            if (filled($content)) {
+                $html .= "<div style=\"margin-bottom: 1rem;\">{$content}</div>";
+            }
+
+            if (filled($images)) {
+                $html .= '<div style="display: grid; gap: 0.75rem;">';
+
+                foreach ($images as $image) {
+                    $url = e($image['url'] ?? '');
+                    $caption = e($image['caption'] ?? '');
+
+                    if (blank($url)) {
+                        continue;
+                    }
+
+                    $html .= '<figure style="margin: 0;">';
+                    $html .= "<img src=\"{$url}\" alt=\"{$caption}\" style=\"max-width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;\">";
+
+                    if (filled($caption)) {
+                        $html .= "<figcaption style=\"color: #6b7280; font-size: 0.875rem; margin-top: 0.25rem;\">{$caption}</figcaption>";
+                    }
+
+                    $html .= '</figure>';
+                }
+
+                $html .= '</div>';
+            }
+
+            $html .= '</section>';
+        }
+
+        $html .= '</div>';
+
+        return new HtmlString($html);
+    }
+
+    public function getAddonsSummaryHtml(): HtmlString
+    {
+        $addonIds = $this->addons['addon_ids'] ?? [];
+
+        if (blank($addonIds) && filled($this->addons['content'] ?? null)) {
+            return new HtmlString(e($this->addons['content']));
+        }
+
+        if (blank($addonIds)) {
+            return new HtmlString('<div style="color: #6b7280; font-size: 0.875rem;">Esta operación todavía no tiene addons.</div>');
+        }
+
+        $addons = Addon::query()
+            ->whereIn('id', $addonIds)
+            ->orderBy('mandatory', 'desc')
+            ->orderBy('name')
+            ->get();
+
+        if ($addons->isEmpty()) {
+            return new HtmlString('<div style="color: #6b7280; font-size: 0.875rem;">Los addons seleccionados ya no existen.</div>');
+        }
+
+        $html = '<ul style="display: grid; gap: 0.5rem; list-style: none; margin: 0; padding: 0;">';
+
+        foreach ($addons as $addon) {
+            $name = e($addon->name);
+            $description = e($addon->description ?? '');
+            $mandatory = $addon->mandatory
+                ? '<span style="background: #fee2e2; border-radius: 9999px; color: #991b1b; font-size: 0.75rem; padding: 0.125rem 0.5rem;">Obligatorio</span>'
+                : '<span style="background: #e5e7eb; border-radius: 9999px; color: #374151; font-size: 0.75rem; padding: 0.125rem 0.5rem;">Opcional</span>';
+
+            $html .= '<li style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.75rem;">';
+            $html .= "<div style=\"align-items: center; display: flex; gap: 0.5rem; justify-content: space-between;\"><strong>{$name}</strong>{$mandatory}</div>";
+
+            if (filled($description)) {
+                $html .= "<div style=\"color: #6b7280; font-size: 0.875rem; margin-top: 0.25rem;\">{$description}</div>";
+            }
+
+            $html .= '</li>';
+        }
+
+        $html .= '</ul>';
 
         return new HtmlString($html);
     }
