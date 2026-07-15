@@ -16,6 +16,8 @@ use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\RichEditor\EditorCommand;
+use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -66,6 +68,45 @@ class EditOperation extends EditRecord
 
                             RichEditor::make('content')
                                 ->label('Contenido')
+                                ->tools([
+                                    RichEditorTool::make('insertImageUrl')
+                                        ->label('Imagen por URL')
+                                        ->action()
+                                        ->icon('heroicon-o-photo'),
+                                ])
+                                ->enableToolbarButtons([
+                                    'insertImageUrl',
+                                ])
+                                ->registerActions([
+                                    Action::make('insertImageUrl')
+                                        ->label('Insertar imagen por URL')
+                                        ->modalHeading('Insertar imagen por URL')
+                                        ->form([
+                                            TextInput::make('url')
+                                                ->label('URL')
+                                                ->url()
+                                                ->required()
+                                                ->maxLength(2048),
+
+                                            TextInput::make('alt')
+                                                ->label('Texto alternativo')
+                                                ->maxLength(1000),
+                                        ])
+                                        ->action(function (array $arguments, array $data, RichEditor $component): void {
+                                            $component->runCommands(
+                                                [
+                                                    EditorCommand::make('insertContent', arguments: [[
+                                                        'type' => 'image',
+                                                        'attrs' => [
+                                                            'alt' => $data['alt'] ?? null,
+                                                            'src' => $data['url'],
+                                                        ],
+                                                    ]]),
+                                                ],
+                                                editorSelection: $arguments['editorSelection'] ?? null,
+                                            );
+                                        }),
+                                ])
                                 ->columnSpanFull(),
 
                             Repeater::make('images')
@@ -151,6 +192,7 @@ class EditOperation extends EditRecord
 
                             Toggle::make('visible')
                                 ->label('Visible')
+                                ->inline(false)
                                 ->default(true),
 
                             Repeater::make('slots')
@@ -160,11 +202,6 @@ class EditOperation extends EditRecord
                                     Hidden::make('slot_key')
                                         ->default(fn (): string => (string) Str::ulid()),
 
-                                    TextInput::make('name')
-                                        ->label('Nombre')
-                                        ->required()
-                                        ->maxLength(255),
-
                                     Select::make('slot_type_id')
                                         ->label('Tipo de slot')
                                         ->options(fn (): array => SlotType::query()
@@ -172,31 +209,60 @@ class EditOperation extends EditRecord
                                             ->pluck('name', 'id')
                                             ->all())
                                         ->searchable()
+                                        ->live()
+                                        ->afterStateUpdated(function ($state, Set $set): void {
+                                            $slotType = SlotType::query()->find($state);
+
+                                            $set('name', $slotType->name );
+                                        })
                                         ->required(),
+
+                                    TextInput::make('name')
+                                        ->label('Nombre')
+                                        ->required()
+                                        ->maxLength(255),
+
+                                    
                                 ])
                                 ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                                 ->reorderableWithButtons()
                                 ->collapsible()
+                                ->cloneable()
                                 ->default([])
                                 ->addActionLabel('Añadir slot')
                                 ->columnSpanFull(),
                         ])
                         ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                         ->reorderableWithButtons()
+                        ->cloneable()
                         ->collapsible()
                         ->default([])
                         ->addActionLabel('Añadir grupo')
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
+                    $usedSlotKeys = [];
+
                     $groups = collect($data['groups'] ?? [])
-                        ->map(function (array $group): array {
+                        ->map(function (array $group) use (&$usedSlotKeys): array {
                             $slots = collect($group['slots'] ?? [])
-                                ->map(fn (array $slot): array => [
-                                    'slot_key' => $slot['slot_key'] ?: (string) Str::ulid(),
-                                    'name' => $slot['name'] ?? '',
-                                    'slot_type_id' => isset($slot['slot_type_id']) ? (int) $slot['slot_type_id'] : null,
-                                ])
+                                ->map(function (array $slot) use (&$usedSlotKeys): array {
+                                    $slotKey = $slot['slot_key'] ?? null;
+
+                                    if (blank($slotKey) || in_array($slotKey, $usedSlotKeys, true)) {
+                                        do {
+                                            $slotKey = (string) Str::ulid();
+                                        } while (in_array($slotKey, $usedSlotKeys, true));
+                                    }
+
+                                    $usedSlotKeys[] = $slotKey;
+
+                                    return [
+                                        'slot_key' => $slotKey,
+                                        'name' => $slot['name'] ?? '',
+                                        'slot_type_id' => isset($slot['slot_type_id']) ? (int) $slot['slot_type_id'] : null,
+                                    ];
+                                })
                                 ->values()
                                 ->all();
 
@@ -263,16 +329,7 @@ class EditOperation extends EditRecord
                                 $set('networks', $networks);
                             }),
 
-                        Action::make('addAirRadioNetwork')
-                            ->label('Aire')
-                            ->action(fn (Get $get, Set $set) => $set(
-                                'networks',
-                                collect($get('networks') ?? [])
-                                    ->push(static::blankRadioNetwork('Aire'))
-                                    ->values()
-                                    ->all()
-                            )),
-
+                        
                         Action::make('addVehiclesRadioNetwork')
                             ->label('Vehículos')
                             ->action(fn (Get $get, Set $set) => $set(
@@ -292,6 +349,15 @@ class EditOperation extends EditRecord
                                     ->values()
                                     ->all()
                             )),
+                        Action::make('addAirRadioNetwork')
+                            ->label('Aire')
+                            ->action(fn (Get $get, Set $set) => $set(
+                                'networks',
+                                collect($get('networks') ?? [])
+                                    ->push(static::blankRadioNetwork('Aire'))
+                                    ->values()
+                                    ->all()
+                            )),    
                     ]),
 
                     Repeater::make('networks')
@@ -348,17 +414,19 @@ class EditOperation extends EditRecord
 
                             Textarea::make('notes')
                                 ->label('Notas')
-                                ->rows(2)
-                                ->columnSpanFull(),
+                                ->rows(1),
+                                //->columnSpanFull(),
 
                             Toggle::make('visible')
                                 ->label('Visible')
+                                ->inline(false)
                                 ->default(true),
                         ])
                         ->columns(3)
                         ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                         ->reorderableWithButtons()
                         ->collapsible()
+                        ->cloneable()
                         ->default([])
                         ->addActionLabel('Añadir red')
                         ->columnSpanFull(),

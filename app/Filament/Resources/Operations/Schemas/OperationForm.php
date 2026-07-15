@@ -54,7 +54,12 @@ class OperationForm
                     ->afterStateUpdated(fn (Set $set) => $set('map_id', null))
                     ->required(),
 
-                
+                Select::make('day_id')
+                    ->label('Día')
+                    ->relationship('day', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
                 
                 FileUpload::make('image')
                     ->label('Imagen')
@@ -62,21 +67,32 @@ class OperationForm
                     ->directory('operations')
                     ->visibility('public')
                     ->image(),
-                Select::make('day_id')
-                    ->label('Día')
-                    ->relationship('day', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->nullable(),
-                Toggle::make('ocap')
-                    ->label('OCAP')
-                    ->required(),
-                Toggle::make('respawn')
-                    ->label('Respawn')
-                    ->required(),
-                Toggle::make('jip')
-                    ->label('JIP')
-                    ->required(),
+                
+
+                Section::make('Opciones')
+                    ->inlineLabel(false)
+                    ->columns(3)
+                    ->schema([
+                        Toggle::make('ocap')
+                            ->inline(false)
+                            ->label('OCAP'),
+                        Toggle::make('respawn')
+                            ->inline(false)
+                            ->label('Respawn'),
+                        Toggle::make('jip')
+                            ->inline(false)
+                            ->label('JIP'),
+                    ]),
+
+                // Toggle::make('ocap')
+                //     ->label('OCAP')
+                //     ->required(),
+                // Toggle::make('respawn')
+                //     ->label('Respawn')
+                //     ->required(),
+                // Toggle::make('jip')
+                //     ->label('JIP')
+                //     ->required(),
 
                 Select::make('map_id')
                     ->label('Mapa')
