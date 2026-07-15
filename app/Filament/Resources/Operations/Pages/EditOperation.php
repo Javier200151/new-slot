@@ -6,6 +6,7 @@ use App\Filament\Resources\Operations\OperationResource;
 use App\Models\Addon;
 use App\Models\AddonPreset;
 use App\Models\Army;
+use App\Models\RadioModel;
 use App\Models\SlotType;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -120,6 +121,8 @@ class EditOperation extends EditRecord
                     ])->save();
                 }),
 
+            
+
 
             Action::make('editOrbat')
                 ->label('Editar ORBAT')
@@ -211,6 +214,188 @@ class EditOperation extends EditRecord
                         'orbat' => ['groups' => $groups],
                     ])->save();
                 }),
+
+            Action::make('editRadio')
+                ->label('Editar radios')
+                ->modalHeading('Editor de radios')
+                ->modalSubmitActionLabel('Guardar radios')
+                ->modalWidth('7xl')
+                ->fillForm(function (): array {
+                    $radio = $this->record->radio ?? [];
+                    $networks = $radio['networks'] ?? [];
+
+                    if (blank($networks) && filled($radio['content'] ?? null)) {
+                        $networks = [
+                            [
+                                'name' => 'Radio',
+                                'radio_model_id' => null,
+                                'radio_model_name' => null,
+                                'configuration' => [
+                                    'channel' => null,
+                                    'block' => null,
+                                    'frequency' => null,
+                                ],
+                                'notes' => $radio['content'],
+                                'visible' => true,
+                            ],
+                        ];
+                    }
+
+                    return ['networks' => $networks];
+                })
+                ->form([
+                    Actions::make([
+                        Action::make('loadOrbatRadioNetworks')
+                            ->label('Cargar ORBAT')
+                            ->action(function (Get $get, Set $set): void {
+                                $orbatGroups = $this->record->orbat['groups'] ?? [];
+
+                                $networks = collect($get('networks') ?? [])
+                                    ->merge(
+                                        collect($orbatGroups)
+                                            ->pluck('name')
+                                            ->filter()
+                                            ->map(fn (string $name): array => static::blankRadioNetwork($name))
+                                    )
+                                    ->values()
+                                    ->all();
+
+                                $set('networks', $networks);
+                            }),
+
+                        Action::make('addAirRadioNetwork')
+                            ->label('Aire')
+                            ->action(fn (Get $get, Set $set) => $set(
+                                'networks',
+                                collect($get('networks') ?? [])
+                                    ->push(static::blankRadioNetwork('Aire'))
+                                    ->values()
+                                    ->all()
+                            )),
+
+                        Action::make('addVehiclesRadioNetwork')
+                            ->label('Vehículos')
+                            ->action(fn (Get $get, Set $set) => $set(
+                                'networks',
+                                collect($get('networks') ?? [])
+                                    ->push(static::blankRadioNetwork('Vehículos'))
+                                    ->values()
+                                    ->all()
+                            )),
+
+                        Action::make('addGlobalRadioNetwork')
+                            ->label('Global')
+                            ->action(fn (Get $get, Set $set) => $set(
+                                'networks',
+                                collect($get('networks') ?? [])
+                                    ->push(static::blankRadioNetwork('Global'))
+                                    ->values()
+                                    ->all()
+                            )),
+                    ]),
+
+                    Repeater::make('networks')
+                        ->label('Redes de radio')
+                        ->schema([
+                            TextInput::make('name')
+                                ->label('Nombre')
+                                ->required()
+                                ->maxLength(255),
+
+                            Select::make('radio_model_id')
+                                ->label('Modelo de radio')
+                                ->options(fn (): array => RadioModel::query()
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id')
+                                    ->all())
+                                ->searchable()
+                                ->preload()
+                                ->live()
+                                ->afterStateUpdated(function ($state, Set $set): void {
+                                    $radioModel = RadioModel::query()->find($state);
+
+                                    $set('radio_model_name', $radioModel?->name);
+                                    $set('configuration.channel', null);
+                                    $set('configuration.block', null);
+                                    $set('configuration.frequency', null);
+                                })
+                                ->required(),
+
+                            Hidden::make('radio_model_name'),
+
+                            TextInput::make('configuration.channel')
+                                ->label('Canal')
+                                ->numeric()
+                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
+                                    ->whereKey($get('radio_model_id'))
+                                    ->value('channel')),
+
+                            TextInput::make('configuration.block')
+                                ->label('Bloque')
+                                ->numeric()
+                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
+                                    ->whereKey($get('radio_model_id'))
+                                    ->value('block')),
+
+                            TextInput::make('configuration.frequency')
+                                ->label('Frecuencia')
+                                ->numeric()
+                                ->step('0.001')
+                                ->suffix('MHz')
+                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
+                                    ->whereKey($get('radio_model_id'))
+                                    ->value('frequency')),
+
+                            Textarea::make('notes')
+                                ->label('Notas')
+                                ->rows(2)
+                                ->columnSpanFull(),
+
+                            Toggle::make('visible')
+                                ->label('Visible')
+                                ->default(true),
+                        ])
+                        ->columns(3)
+                        ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
+                        ->reorderableWithButtons()
+                        ->collapsible()
+                        ->default([])
+                        ->addActionLabel('Añadir red')
+                        ->columnSpanFull(),
+                ])
+                ->action(function (array $data): void {
+                    $networks = collect($data['networks'] ?? [])
+                        ->map(function (array $network): array {
+                            $radioModel = isset($network['radio_model_id'])
+                                ? RadioModel::query()->find($network['radio_model_id'])
+                                : null;
+
+                            return [
+                                'name' => $network['name'] ?? '',
+                                'radio_model_id' => isset($network['radio_model_id']) ? (int) $network['radio_model_id'] : null,
+                                'radio_model_name' => $radioModel?->name ?? $network['radio_model_name'] ?? null,
+                                'configuration' => [
+                                    'channel' => filled($network['configuration']['channel'] ?? null)
+                                        ? (int) $network['configuration']['channel']
+                                        : null,
+                                    'block' => filled($network['configuration']['block'] ?? null)
+                                        ? (int) $network['configuration']['block']
+                                        : null,
+                                    'frequency' => filled($network['configuration']['frequency'] ?? null)
+                                        ? (float) $network['configuration']['frequency']
+                                        : null,
+                                ],
+                                'notes' => $network['notes'] ?? null,
+                                'visible' => (bool) ($network['visible'] ?? true),
+                            ];
+                        })
+                        ->values()
+                        ->all();
+
+                    $this->record->forceFill([
+                        'radio' => ['networks' => $networks],
+                    ])->save();
+                }),    
 
             Action::make('editAddons')
                 ->label('Editar addons')
@@ -425,5 +610,21 @@ HTML;
             ->unique(fn (string $name): string => mb_strtolower($name))
             ->values()
             ->all();
+    }
+
+    protected static function blankRadioNetwork(string $name): array
+    {
+        return [
+            'name' => $name,
+            'radio_model_id' => null,
+            'radio_model_name' => null,
+            'configuration' => [
+                'channel' => null,
+                'block' => null,
+                'frequency' => null,
+            ],
+            'notes' => null,
+            'visible' => true,
+        ];
     }
 }

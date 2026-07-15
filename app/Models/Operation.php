@@ -303,6 +303,67 @@ class Operation extends Model
         return new HtmlString($html);
     }
 
+    public function getRadioSummaryHtml(): HtmlString
+    {
+        $networks = $this->radio['networks'] ?? [];
+
+        if (blank($networks) && filled($this->radio['content'] ?? null)) {
+            return new HtmlString(e($this->radio['content']));
+        }
+
+        if (blank($networks)) {
+            return new HtmlString('<div style="color: #6b7280; font-size: 0.875rem;">Esta operación todavía no tiene radios.</div>');
+        }
+
+        $html = '<table style="border-collapse: collapse; width: 100%;">';
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Red</th>';
+        $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Radio</th>';
+        $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Configuración</th>';
+        $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Notas</th>';
+        $html .= '</tr>';
+        $html .= '</thead><tbody>';
+
+        foreach ($networks as $network) {
+            $name = e($network['name'] ?? 'Red sin nombre');
+            $radioModel = e($network['radio_model_name'] ?? 'Sin radio');
+            $notes = e($network['notes'] ?? '');
+            $visible = array_key_exists('visible', $network) && ! $network['visible']
+                ? '<div style="color: #6b7280; font-size: 0.75rem;">Oculta</div>'
+                : '';
+
+            $configuration = collect($network['configuration'] ?? [])
+                ->filter(fn ($value): bool => filled($value))
+                ->map(function ($value, string $key): string {
+                    $label = match ($key) {
+                        'channel' => 'Canal',
+                        'block' => 'Bloque',
+                        'frequency' => 'Frecuencia',
+                        default => ucfirst($key),
+                    };
+
+                    if ($key === 'frequency') {
+                        $value .= ' MHz';
+                    }
+
+                    return e("{$label}: {$value}");
+                })
+                ->implode('<br>');
+
+            $html .= '<tr>';
+            $html .= "<td style=\"border-bottom: 1px solid #f3f4f6; padding: 0.5rem;\"><strong>{$name}</strong>{$visible}</td>";
+            $html .= "<td style=\"border-bottom: 1px solid #f3f4f6; padding: 0.5rem;\">{$radioModel}</td>";
+            $html .= "<td style=\"border-bottom: 1px solid #f3f4f6; padding: 0.5rem;\">{$configuration}</td>";
+            $html .= "<td style=\"border-bottom: 1px solid #f3f4f6; padding: 0.5rem;\">{$notes}</td>";
+            $html .= '</tr>';
+        }
+
+        $html .= '</tbody></table>';
+
+        return new HtmlString($html);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

@@ -7,7 +7,6 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -139,9 +138,7 @@ class OperationForm
 
                 Section::make('Radio')
                     ->schema([
-                        TextEntry::make('radio.content')
-                            ->label('')
-                            ->placeholder('Pendiente de configurar'),
+                        Html::make(fn ($record) => $record?->getRadioSummaryHtml()),
                     ])
                     ->columnSpanFull(),
 
