@@ -20,46 +20,47 @@ class MetopasTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('description')
-                    ->searchable(),
-
                 ImageColumn::make('image')
                     ->label('Imagen')
                     ->getStateUsing(fn ($record) => $record->metopa?->image
                         ? asset('storage/' . $record->metopa->image)
                         : null
                     )
-                    ->size(40),
-                //ImageColumn::make('image_large'),               
-                ImageColumn::make('image_large'),
-                TextColumn::make('despag1')
+                    ->size(40),    
+                TextColumn::make('description')
                     ->searchable(),
-                TextColumn::make('despag2')
-                    ->searchable(),
-                TextColumn::make('metopa_group')
-                    ->searchable(),
-                ImageColumn::make('imgback'),
 
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('createdby.nick')
-                    ->label('Creado por')
-                    ->sortable()
-                    ->searchable(),
-                TextColumn::make('updatedBy.nick')
-                    ->label('Actualizado por')
-                    ->sortable()
-                    ->searchable(),
+                
+                             
+                // ImageColumn::make('image_large'),
+                // TextColumn::make('despag1')
+                //     ->searchable(),
+                // TextColumn::make('despag2')
+                //     ->searchable(),
+                 TextColumn::make('metopa_group')
+                     ->searchable(),
+                // ImageColumn::make('imgback'),
+
+                // TextColumn::make('created_at')
+                //     ->dateTime()
+                //     ->sortable()
+                //     ->toggleable(isToggledHiddenByDefault: true),
+                // TextColumn::make('updated_at')
+                //     ->dateTime()
+                //     ->sortable()
+                //     ->toggleable(isToggledHiddenByDefault: true),
+                // TextColumn::make('deleted_at')
+                //     ->dateTime()
+                //     ->sortable()
+                //     ->toggleable(isToggledHiddenByDefault: true),
+                // TextColumn::make('createdby.nick')
+                //     ->label('Creado por')
+                //     ->sortable()
+                //     ->searchable(),
+                // TextColumn::make('updatedBy.nick')
+                //     ->label('Actualizado por')
+                //     ->sortable()
+                //     ->searchable(),
             ])
             ->filters([
                 TrashedFilter::make(),

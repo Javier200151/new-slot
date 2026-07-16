@@ -45,10 +45,16 @@ class MetopaForm
 
                 RichEditor::make('despag1')
                     ->label('Descripción página 1')
+                    ->disableToolbarButtons([
+                        'attachFiles',
+                    ])
                     ->columnSpanFull(),
 
                 RichEditor::make('despag2')
                     ->label('Descripción página 2')
+                    ->disableToolbarButtons([
+                        'attachFiles',
+                    ])
                     ->columnSpanFull(),
 
                 FileUpload::make('imgback')

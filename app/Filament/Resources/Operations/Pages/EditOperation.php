@@ -50,7 +50,6 @@ class EditOperation extends EditRecord
                             [
                                 'title' => 'Descripción',
                                 'content' => $description['content'],
-                                'images' => [],
                             ],
                         ];
                     }
@@ -68,6 +67,9 @@ class EditOperation extends EditRecord
 
                             RichEditor::make('content')
                                 ->label('Contenido')
+                                ->disableToolbarButtons([
+                                    'attachFiles',
+                                ])
                                 ->tools([
                                     RichEditorTool::make('insertImageUrl')
                                         ->label('Imagen por URL')
@@ -109,25 +111,6 @@ class EditOperation extends EditRecord
                                 ])
                                 ->columnSpanFull(),
 
-                            Repeater::make('images')
-                                ->label('Imágenes externas')
-                                ->schema([
-                                    TextInput::make('url')
-                                        ->label('URL')
-                                        ->url()
-                                        ->required()
-                                        ->maxLength(2048),
-
-                                    TextInput::make('caption')
-                                        ->label('Pie de imagen')
-                                        ->maxLength(255),
-                                ])
-                                ->columns(2)
-                                ->itemLabel(fn (array $state): ?string => $state['caption'] ?? $state['url'] ?? null)
-                                ->default([])
-                                ->addActionLabel('Añadir imagen')
-                                ->collapsible()
-                                ->columnSpanFull(),
                         ])
                         ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                         ->reorderableWithButtons()
@@ -138,22 +121,10 @@ class EditOperation extends EditRecord
                 ])
                 ->action(function (array $data): void {
                     $sections = collect($data['sections'] ?? [])
-                        ->map(function (array $section): array {
-                            $images = collect($section['images'] ?? [])
-                                ->filter(fn (array $image): bool => filled($image['url'] ?? null))
-                                ->map(fn (array $image): array => [
-                                    'url' => $image['url'] ?? '',
-                                    'caption' => $image['caption'] ?? '',
-                                ])
-                                ->values()
-                                ->all();
-
-                            return [
+                        ->map(fn (array $section): array => [
                                 'title' => $section['title'] ?? '',
                                 'content' => $section['content'] ?? '',
-                                'images' => $images,
-                            ];
-                        })
+                            ])
                         ->values()
                         ->all();
 

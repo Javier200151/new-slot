@@ -202,7 +202,6 @@ class Operation extends Model
                 [
                     'title' => 'Descripción',
                     'content' => $this->description['content'],
-                    'images' => [],
                 ],
             ];
         }
@@ -216,37 +215,12 @@ class Operation extends Model
         foreach ($sections as $section) {
             $title = e($section['title'] ?? 'Sección sin título');
             $content = $section['content'] ?? '';
-            $images = $section['images'] ?? [];
 
             $html .= '<section style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">';
             $html .= "<h3 style=\"font-size: 1.125rem; font-weight: 700; margin: 0 0 0.75rem;\">{$title}</h3>";
 
             if (filled($content)) {
                 $html .= "<div style=\"margin-bottom: 1rem;\">{$content}</div>";
-            }
-
-            if (filled($images)) {
-                $html .= '<div style="display: grid; gap: 0.75rem;">';
-
-                foreach ($images as $image) {
-                    $url = e($image['url'] ?? '');
-                    $caption = e($image['caption'] ?? '');
-
-                    if (blank($url)) {
-                        continue;
-                    }
-
-                    $html .= '<figure style="margin: 0;">';
-                    $html .= "<img src=\"{$url}\" alt=\"{$caption}\" style=\"max-width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;\">";
-
-                    if (filled($caption)) {
-                        $html .= "<figcaption style=\"color: #6b7280; font-size: 0.875rem; margin-top: 0.25rem;\">{$caption}</figcaption>";
-                    }
-
-                    $html .= '</figure>';
-                }
-
-                $html .= '</div>';
             }
 
             $html .= '</section>';
