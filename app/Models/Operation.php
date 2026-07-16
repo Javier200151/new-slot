@@ -128,6 +128,11 @@ class Operation extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    public function events()
+    {
+        return $this->hasMany(Event::class);
+    }
+
     public function getOrbatSummaryHtml(): HtmlString
     {
         $groups = $this->orbat['groups'] ?? [];

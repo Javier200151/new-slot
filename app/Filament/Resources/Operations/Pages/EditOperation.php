@@ -147,6 +147,11 @@ class EditOperation extends EditRecord
                         ->label('Grupos')
                         ->columns(3)
                         ->schema([
+                            Toggle::make('visible')
+                                ->label('Visible')
+                                ->inline(false)
+                                ->default(true),
+
                             TextInput::make('name')
                                 ->label('Nombre')
                                 ->required()
@@ -161,14 +166,9 @@ class EditOperation extends EditRecord
                                 ->searchable()
                                 ->required(),
 
-                            Toggle::make('visible')
-                                ->label('Visible')
-                                ->inline(false)
-                                ->default(true),
-
                             Repeater::make('slots')
                                 ->label('Slots')
-                                ->columns(2)
+                                ->columns(3)
                                 ->schema([
                                     Hidden::make('slot_key')
                                         ->default(fn (): string => (string) Str::ulid()),
@@ -193,6 +193,10 @@ class EditOperation extends EditRecord
                                         ->required()
                                         ->maxLength(255),
 
+                                    Toggle::make('visible')
+                                        ->label('Visible')
+                                        ->inline(false)
+                                        ->default(true),
                                     
                                 ])
                                 ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
@@ -232,6 +236,7 @@ class EditOperation extends EditRecord
                                         'slot_key' => $slotKey,
                                         'name' => $slot['name'] ?? '',
                                         'slot_type_id' => isset($slot['slot_type_id']) ? (int) $slot['slot_type_id'] : null,
+                                        'visible' => (bool) ($slot['visible'] ?? true),
                                     ];
                                 })
                                 ->values()
@@ -602,12 +607,58 @@ class EditOperation extends EditRecord
                     ])->save();
                 }),
 
-            
+
+
+            Action::make('duplicateOperation')
+                ->label('Duplicar')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Duplicar operativo')
+                ->modalDescription('Se creará una copia del operativo actual sin duplicar sus eventos.')
+                ->action(function (): void {
+                    $duplicate = $this->record->replicate();
+
+                    $duplicate->name = trim($this->record->name . ' (copia)');
+                    $duplicate->orbat = static::regenerateOrbatSlotKeys($this->record->orbat ?? []);
+                    $duplicate->save();
+
+                    $duplicate->enemyFactions()->sync(
+                        $this->record->enemyFactions()->pluck('factions.id')->all()
+                    );
+
+                    Notification::make()
+                        ->title('Operativo duplicado.')
+                        ->success()
+                        ->send();
+
+                    $this->redirect(OperationResource::getUrl('edit', ['record' => $duplicate]));
+                }),
 
             DeleteAction::make(),
             ForceDeleteAction::make(),
             RestoreAction::make(),
         ];
+    }
+
+    protected static function regenerateOrbatSlotKeys(array $orbat): array
+    {
+        $orbat['groups'] = collect($orbat['groups'] ?? [])
+            ->map(function (array $group): array {
+                $group['slots'] = collect($group['slots'] ?? [])
+                    ->map(function (array $slot): array {
+                        $slot['slot_key'] = (string) Str::ulid();
+
+                        return $slot;
+                    })
+                    ->values()
+                    ->all();
+
+                return $group;
+            })
+            ->values()
+            ->all();
+
+        return $orbat;
     }
 
     protected static function buildAddonsHtml(array $addonIds): string
