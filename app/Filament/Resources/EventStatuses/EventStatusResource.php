@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EventStatuses;
 
+use App\Filament\Clusters\EventConfiguration;
 use App\Filament\Resources\EventStatuses\Pages\CreateEventStatus;
 use App\Filament\Resources\EventStatuses\Pages\EditEventStatus;
 use App\Filament\Resources\EventStatuses\Pages\ListEventStatuses;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class EventStatusResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Eventos';
+    protected static ?string $cluster = EventConfiguration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
 
     protected static ?int $navigationSort = 3;
 

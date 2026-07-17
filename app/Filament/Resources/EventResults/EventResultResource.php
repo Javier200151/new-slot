@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EventResults;
 
+use App\Filament\Clusters\EventConfiguration;
 use App\Filament\Resources\EventResults\Pages\CreateEventResult;
 use App\Filament\Resources\EventResults\Pages\EditEventResult;
 use App\Filament\Resources\EventResults\Pages\ListEventResults;
@@ -17,7 +18,9 @@ use UnitEnum;
 
 class EventResultResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Eventos';
+    protected static ?string $cluster = EventConfiguration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
 
     protected static ?int $navigationSort = 4;
 
