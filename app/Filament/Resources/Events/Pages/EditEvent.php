@@ -14,6 +14,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 class EditEvent extends EditRecord
 {
@@ -39,6 +41,19 @@ class EditEvent extends EditRecord
                             Toggle::make('visible')
                                 ->label('Visible')
                                 ->inline(false)
+                                ->live()
+                                ->afterStateUpdated(function ($state, Get $get, Set $set): void {
+                                    $slots = collect($get('slots') ?? [])
+                                        ->map(function (array $slot) use ($state): array {
+                                            $slot['visible'] = (bool) $state;
+
+                                            return $slot;
+                                        })
+                                        ->values()
+                                        ->all();
+
+                                    $set('slots', $slots);
+                                })
                                 ->default(true),
 
                             TextInput::make('name')

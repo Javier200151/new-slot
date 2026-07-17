@@ -150,6 +150,19 @@ class EditOperation extends EditRecord
                             Toggle::make('visible')
                                 ->label('Visible')
                                 ->inline(false)
+                                ->live()
+                                ->afterStateUpdated(function ($state, Get $get, Set $set): void {
+                                    $slots = collect($get('slots') ?? [])
+                                        ->map(function (array $slot) use ($state): array {
+                                            $slot['visible'] = (bool) $state;
+
+                                            return $slot;
+                                        })
+                                        ->values()
+                                        ->all();
+
+                                    $set('slots', $slots);
+                                })
                                 ->default(true),
 
                             TextInput::make('name')
