@@ -17,6 +17,7 @@ class Event extends Model
         'duration',
         'orbat',
         'event_status_id',
+        'event_result_id',
         'ocap_url',
         'created_by',
         'updated_by',
@@ -55,6 +56,11 @@ class Event extends Model
     public function eventStatus()
     {
         return $this->belongsTo(EventStatus::class, 'event_status_id');
+    }
+
+    public function eventResult()
+    {
+        return $this->belongsTo(EventResult::class, 'event_result_id');
     }
 
     public function createdBy()

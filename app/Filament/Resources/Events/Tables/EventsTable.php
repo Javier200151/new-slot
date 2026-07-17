@@ -28,6 +28,12 @@ class EventsTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('eventResult.name')
+                    ->label('Resultado')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('date')
                     ->label('Fecha')
                     ->dateTime('d/m/Y H:i')
@@ -92,6 +98,11 @@ class EventsTable
                     ->label('Estado')
                     ->multiple()
                     ->relationship('eventStatus', 'name'),
+
+                SelectFilter::make('event_result_id')
+                    ->label('Resultado')
+                    ->multiple()
+                    ->relationship('eventResult', 'name'),
 
                 TrashedFilter::make(),
             ])

@@ -29,6 +29,13 @@ class EventForm
                     ->preload()
                     ->required(),
 
+                Select::make('event_result_id')
+                    ->label('Resultado')
+                    ->relationship('eventResult', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
+
                 DateTimePicker::make('date')
                     ->label('Fecha')
                     ->seconds(false)

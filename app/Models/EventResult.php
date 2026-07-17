@@ -4,16 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class EventStatus extends Model
+class EventResult extends Model
 {
-    protected $table = 'event_status';
-
     protected $fillable = [
         'name',
     ];
 
     public function events()
     {
-        return $this->hasMany(Event::class, 'event_status_id');
+        return $this->hasMany(Event::class);
     }
 }
