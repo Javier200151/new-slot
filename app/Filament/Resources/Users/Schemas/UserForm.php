@@ -25,7 +25,8 @@ class UserForm
                     ->required(),
                 TextInput::make('password')
                     ->password()
-                    ->required(),
+                    ->required()
+                    ->revealable(),
                 TextInput::make('promo_id')
                     ->label('Promoción')
                     ->numeric()
