@@ -24,4 +24,21 @@ class SqaGroup extends Model
             'display_order' => 'integer',
         ];
     }
+
+    public function sqaGroupUsers()
+    {
+        return $this->hasMany(SqaGroupUser::class);
+    }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'sqa_group_users')
+            ->withPivot([
+                'main',
+                'updated_by',
+                'deleted_at',
+            ])
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
+    }
 }

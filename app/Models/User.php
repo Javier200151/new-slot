@@ -157,6 +157,24 @@ class User extends Authenticatable implements FilamentUser, HasName
         return $this->hasMany(MetopaUser::class, 'user_id', 'id')
             ->orderBy('assigned_at', 'asc');
     }
+
+    public function sqaGroupUsers()
+    {
+        return $this->hasMany(SqaGroupUser::class);
+    }
+
+    public function sqaGroups()
+    {
+        return $this->belongsToMany(SqaGroup::class, 'sqa_group_users')
+            ->withPivot([
+                'main',
+                'updated_by',
+                'deleted_at',
+            ])
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
+    }
+
     public function pupils()
     {
         return $this->hasMany(User::class, 'tutor_id');

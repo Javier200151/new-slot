@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SqaGroups;
 use App\Filament\Resources\SqaGroups\Pages\CreateSqaGroup;
 use App\Filament\Resources\SqaGroups\Pages\EditSqaGroup;
 use App\Filament\Resources\SqaGroups\Pages\ListSqaGroups;
+use App\Filament\Resources\SqaGroups\RelationManagers\SqaGroupUsersRelationManager;
 use App\Filament\Resources\SqaGroups\Schemas\SqaGroupForm;
 use App\Filament\Resources\SqaGroups\Tables\SqaGroupsTable;
 use App\Models\SqaGroup;
@@ -48,7 +49,7 @@ class SqaGroupResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            SqaGroupUsersRelationManager::class,
         ];
     }
 
