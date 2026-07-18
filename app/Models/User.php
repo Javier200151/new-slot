@@ -175,6 +175,11 @@ class User extends Authenticatable implements FilamentUser, HasName
             ->wherePivotNull('deleted_at');
     }
 
+    public function eventComments()
+    {
+        return $this->hasMany(EventComment::class);
+    }
+
     public function pupils()
     {
         return $this->hasMany(User::class, 'tutor_id');

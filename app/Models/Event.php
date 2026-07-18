@@ -76,6 +76,11 @@ class Event extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    public function comments()
+    {
+        return $this->hasMany(EventComment::class);
+    }
+
     public function getOrbatSummaryHtml(): HtmlString
     {
         $groups = $this->orbat['groups'] ?? [];
