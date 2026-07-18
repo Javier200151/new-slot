@@ -31,6 +31,14 @@ class EventsTable
 
                 TextColumn::make('eventStatus.name')
                     ->label('Estado')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'ACTIVO' => 'success',
+                        'CANCELADO' => 'warning',
+                        'FINALIZADO' => 'info',
+                        'BORRADOR' => 'gray',
+                        default => 'gray',
+                    })
                     ->searchable()
                     ->sortable(),
 
@@ -39,8 +47,21 @@ class EventsTable
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
 
+                TextColumn::make('end_date')
+                    ->label('Fecha fin')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('eventResult.name')
                     ->label('Resultado')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'EXITO' => 'success',
+                        'FRACASO' => 'warning',
+                        'EXITO PARCIAL' => 'info',
+                        default => 'gray',
+                    })
                     ->searchable()
                     ->sortable()
                     ->toggleable(),

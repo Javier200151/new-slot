@@ -8,8 +8,10 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Carbon;
 
 class EventForm
 {
@@ -45,6 +47,8 @@ class EventForm
                 DateTimePicker::make('date')
                     ->label('Fecha')
                     ->seconds(false)
+                    ->live()
+                    ->afterStateUpdated(fn (Get $get, Set $set): null => static::updateDuration($get, $set))
                     ->required(),
 
                 Select::make('event_result_id')
@@ -52,7 +56,19 @@ class EventForm
                     ->relationship('eventResult', 'name')
                     ->searchable()
                     ->preload()
-                    ->nullable(),    
+                    ->nullable(),   
+
+                DateTimePicker::make('end_date')
+                    ->label('Fecha fin')
+                    ->seconds(false)
+                    ->live()
+                    ->afterStateUpdated(fn (Get $get, Set $set): null => static::updateDuration($get, $set))
+                    ->nullable(),
+
+                TextInput::make('ocap_url')
+                    ->label('URL OCAP')
+                    ->url()
+                    ->maxLength(255), 
 
                 TextInput::make('duration')
                     ->label('Duración')
@@ -61,10 +77,7 @@ class EventForm
                     ->suffix('min')
                     ->nullable(),
 
-                TextInput::make('ocap_url')
-                    ->label('URL OCAP')
-                    ->url()
-                    ->maxLength(255),
+                
 
                 Section::make('ORBAT')
                     ->schema([
@@ -73,5 +86,21 @@ class EventForm
                     ->hidden(fn ($record): bool => blank($record?->orbat['groups'] ?? []))
                     ->columnSpanFull(),
             ]);
+    }
+
+    protected static function updateDuration(Get $get, Set $set): null
+    {
+        $startDate = $get('date');
+        $endDate = $get('end_date');
+
+        if (blank($startDate) || blank($endDate)) {
+            return null;
+        }
+
+        $minutes = Carbon::parse($startDate)->diffInMinutes(Carbon::parse($endDate), false);
+
+        $set('duration', max(0, (int) $minutes));
+
+        return null;
     }
 }

@@ -27,6 +27,14 @@ class OperationsTable
 
                 TextColumn::make('operationStatus.name')
                     ->label('Estado')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'ACTIVO' => 'success',
+                        'ARCHIVADO' => 'warning',
+                        'FINALIZADO' => 'info',
+                        'BORRADOR' => 'gray',
+                        default => 'gray',
+                    })
                     ->searchable()
                     ->sortable(),
 

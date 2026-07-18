@@ -15,6 +15,7 @@ class Event extends Model
         'operation_id',
         'name',
         'date',
+        'end_date',
         'duration',
         'orbat',
         'event_status_id',
@@ -28,6 +29,7 @@ class Event extends Model
     {
         return [
             'date' => 'datetime',
+            'end_date' => 'datetime',
             'duration' => 'integer',
             'orbat' => 'array',
         ];
