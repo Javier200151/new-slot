@@ -22,11 +22,11 @@ class MetopasTable
                     ->searchable(),
                 ImageColumn::make('image')
                     ->label('Imagen')
-                    ->getStateUsing(fn ($record) => $record->metopa?->image
-                        ? asset('storage/' . $record->metopa->image)
-                        : null
-                    )
-                    ->size(40),    
+                    ->state(fn ($record): ?string => $record->image
+                        ? url('storage/' . $record->image)
+                        : null)
+                    ->imageWidth(86)  
+                    ->imageHeight(25),  
                 TextColumn::make('description')
                     ->searchable(),
 
@@ -37,8 +37,10 @@ class MetopasTable
                 //     ->searchable(),
                 // TextColumn::make('despag2')
                 //     ->searchable(),
-                 TextColumn::make('metopa_group')
-                     ->searchable(),
+                TextColumn::make('sqaGroup.name')
+                    ->label('Grupo SQA')
+                    ->searchable()
+                    ->sortable(),
                 // ImageColumn::make('imgback'),
 
                 // TextColumn::make('created_at')

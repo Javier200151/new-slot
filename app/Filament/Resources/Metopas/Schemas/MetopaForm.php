@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Metopas\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -41,9 +42,13 @@ class MetopaForm
                     ->visibility('public')
                     ->preserveFilenames()
                     ->nullable(),
-                    TextInput::make('metopa_group')
-                    ->label('Grupo')
-                    ->maxLength(255),
+
+                Select::make('sqa_group_id')
+                    ->label('Grupo SQA')
+                    ->relationship('sqaGroup', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
 
                 RichEditor::make('despag1')
                     ->label('Descripción página 1')
