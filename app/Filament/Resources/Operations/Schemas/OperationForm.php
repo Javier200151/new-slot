@@ -66,6 +66,7 @@ class OperationForm
                     ->disk('public')
                     ->directory('operations')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->image(),
                 
 

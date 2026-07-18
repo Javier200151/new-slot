@@ -30,6 +30,7 @@ class GameMapForm
                     ->disk('public')
                     ->directory('maps')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->nullable(),
 
                 Select::make('platform_id')

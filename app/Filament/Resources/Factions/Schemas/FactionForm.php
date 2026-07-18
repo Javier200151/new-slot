@@ -28,6 +28,7 @@ class FactionForm
                     ->disk('public')
                     ->directory('factions')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->image(),
                 TextInput::make('description')
                     ->label('Descripción'),

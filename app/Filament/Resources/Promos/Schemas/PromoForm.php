@@ -22,7 +22,8 @@ class PromoForm
                     ->image()
                     ->disk('public')
                     ->directory('promos')
-                    ->visibility('public'),
+                    ->visibility('public')
+                    ->preserveFilenames(),
             ]);
     }
 }

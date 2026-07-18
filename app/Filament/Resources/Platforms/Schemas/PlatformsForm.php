@@ -15,6 +15,7 @@ class PlatformsForm
                 TextInput::make('name')
                     ->required(),
                 FileUpload::make('image')
+                    ->preserveFilenames()
                     ->image(),
             ]);
     }

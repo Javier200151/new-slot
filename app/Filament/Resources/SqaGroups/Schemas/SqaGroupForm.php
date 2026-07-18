@@ -33,6 +33,7 @@ class SqaGroupForm
                     ->disk('public')
                     ->directory('sqa-groups')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->columnSpanFull(),
             ]);
     }

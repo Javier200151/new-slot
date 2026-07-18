@@ -30,6 +30,7 @@ class MetopaForm
                     ->disk('public')
                     ->directory('metopas')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->required(),
 
                 FileUpload::make('image_large')
@@ -38,6 +39,7 @@ class MetopaForm
                     ->disk('public')
                     ->directory('metopas/large')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->nullable(),
                     TextInput::make('metopa_group')
                     ->label('Grupo')
@@ -63,6 +65,7 @@ class MetopaForm
                     ->disk('public')
                     ->directory('metopas/backgrounds')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->imageEditor(),
             ]);
     }
