@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SqaGroups\Schemas;
 
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -21,6 +22,14 @@ class SqaGroupForm
                 TextInput::make('large_name')
                     ->label('Nombre largo')
                     ->maxLength(255),
+
+                ColorPicker::make('color')
+                    ->label('Color'),
+
+                TextInput::make('display_order')
+                    ->label('Orden')
+                    ->numeric()
+                    ->minValue(0),
 
                 Textarea::make('description')
                     ->label('Descripción')

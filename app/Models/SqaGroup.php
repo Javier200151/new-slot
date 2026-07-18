@@ -14,5 +14,14 @@ class SqaGroup extends Model
         'large_name',
         'description',
         'image',
+        'color',
+        'display_order',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'display_order' => 'integer',
+        ];
+    }
 }

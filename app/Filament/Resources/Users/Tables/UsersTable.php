@@ -18,23 +18,16 @@ class UsersTable
     {
         return $table
             ->columns([
-                ImageColumn::make('image')
-                    ->label('Imagen')
-                    ->circular()
-                    ->toggleable(),
+                // ImageColumn::make('image')
+                //     ->label('Imagen')
+                //     ->circular()
+                //     ->toggleable(),
 
                 TextColumn::make('nick')
                     ->searchable(),
-                TextColumn::make('email')
-                    ->label('Email address')
-                    ->searchable(),
-                TextColumn::make('promo_id')
-                    ->label('Promoción')
-                    ->numeric()
-                    ->sortable()
-                    ->alignCenter(),
-                TextColumn::make('tagname')
-                    ->searchable(),
+                
+                // TextColumn::make('tagname')
+                //     ->searchable(),
                 TextColumn::make('status.name')
                     ->label('Estado')
                     ->badge()
@@ -53,7 +46,15 @@ class UsersTable
                     ->label('Rol')
                     ->badge()
                     ->separator(',')
-                    ->searchable(),    
+                    ->searchable(),
+                TextColumn::make('email')
+                    ->label('Email address')
+                    ->searchable(),
+                TextColumn::make('promo_id')
+                    ->label('Promoción')
+                    ->numeric()
+                    ->sortable()
+                    ->alignCenter(),        
                 TextColumn::make('firma')
                     ->searchable(),
                 // TextColumn::make('quote')

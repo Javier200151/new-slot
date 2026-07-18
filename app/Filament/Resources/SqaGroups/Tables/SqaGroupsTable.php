@@ -7,7 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -32,6 +32,14 @@ class SqaGroupsTable
                     ->searchable()
                     ->sortable(),
 
+                ColorColumn::make('color')
+                    ->label('Color'),
+
+                TextColumn::make('display_order')
+                    ->label('Orden')
+                    ->numeric()
+                    ->sortable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -47,7 +55,7 @@ class SqaGroupsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('name')
+            ->defaultSort('display_order')
             ->filters([
                 TrashedFilter::make(),
             ])
