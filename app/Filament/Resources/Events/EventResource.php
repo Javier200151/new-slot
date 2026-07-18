@@ -27,7 +27,7 @@ class EventResource extends Resource
 
     protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
-    protected static ?string $recordTitleAttribute = 'operation.name';
+    protected static ?string $recordTitleAttribute = 'name';
 
     protected static ?string $modelLabel = 'Evento';
 

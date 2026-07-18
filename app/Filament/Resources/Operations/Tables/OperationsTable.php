@@ -105,8 +105,8 @@ class OperationsTable
 
                 TextColumn::make('orbat')
                     ->label('ORBAT')
-                    ->formatStateUsing(function (?array $state): string {
-                        $groups = $state['groups'] ?? [];
+                    ->state(function ($record): string {
+                        $groups = $record->orbat['groups'] ?? [];
                         $slots = collect($groups)->sum(fn (array $group): int => count($group['slots'] ?? []));
 
                         return count($groups) . ' grupos / ' . $slots . ' slots';

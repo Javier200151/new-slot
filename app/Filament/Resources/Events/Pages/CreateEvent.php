@@ -12,9 +12,10 @@ class CreateEvent extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['orbat'] = Operation::query()
-            ->find($data['operation_id'])
-            ?->orbat;
+        $operation = Operation::query()->find($data['operation_id']);
+
+        $data['name'] = $data['name'] ?? $operation?->name;
+        $data['orbat'] = $operation?->orbat;
 
         return $data;
     }

@@ -18,14 +18,25 @@ class EventsTable
     {
         return $table
             ->columns([
+                TextColumn::make('name')
+                    ->label('Nombre')
+                    ->searchable()
+                    ->sortable(),
+
                 TextColumn::make('operation.name')
                     ->label('Operativo')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('eventStatus.name')
                     ->label('Estado')
                     ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('date')
+                    ->label('Fecha')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
 
                 TextColumn::make('eventResult.name')
@@ -34,11 +45,6 @@ class EventsTable
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('date')
-                    ->label('Fecha')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
-
                 TextColumn::make('duration')
                     ->label('Duración')
                     ->suffix(' min')
@@ -46,8 +52,8 @@ class EventsTable
 
                 TextColumn::make('orbat')
                     ->label('ORBAT')
-                    ->formatStateUsing(function (?array $state): string {
-                        $groups = $state['groups'] ?? [];
+                    ->state(function ($record): string {
+                        $groups = $record->orbat['groups'] ?? [];
                         $slots = collect($groups)->sum(fn (array $group): int => count($group['slots'] ?? []));
 
                         return count($groups) . ' grupos / ' . $slots . ' slots';
