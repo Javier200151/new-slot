@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
@@ -17,6 +18,11 @@ class UsersTable
     {
         return $table
             ->columns([
+                ImageColumn::make('image')
+                    ->label('Imagen')
+                    ->circular()
+                    ->toggleable(),
+
                 TextColumn::make('nick')
                     ->searchable(),
                 TextColumn::make('email')
@@ -50,6 +56,11 @@ class UsersTable
                     ->searchable(),    
                 TextColumn::make('firma')
                     ->searchable(),
+                // TextColumn::make('quote')
+                //     ->label('Cita')
+                //     ->limit(50)
+                //     ->searchable()
+                //     ->toggleable(),
                 TextColumn::make('arma_uid')
                     ->searchable(),
                 TextColumn::make('discord_id')

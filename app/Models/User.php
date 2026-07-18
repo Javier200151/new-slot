@@ -32,6 +32,8 @@ class User extends Authenticatable implements FilamentUser, HasName
         'tagname',
         'status_id',
         'firma',
+        'quote',
+        'image',
         'arma_uid',
         'discord_id',
         'steam_id',

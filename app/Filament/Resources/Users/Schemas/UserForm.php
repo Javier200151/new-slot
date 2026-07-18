@@ -3,11 +3,13 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\FileUpload;
 use App\Models\Status;
+use Filament\Forms\Components\RichEditor;
 
 class UserForm
 {
@@ -68,6 +70,24 @@ class UserForm
                 TextInput::make('firma')
                     ->disabled()
                     ->default(fn ($record) => $record?->getSignatureUrl()),
+
+                RichEditor::make('quote')
+                    ->label('Cita')
+                    ->disableToolbarButtons([
+                        'attachFiles',
+                    ])    
+                    ->columnSpanFull(),
+
+
+                FileUpload::make('image')
+                    ->label('Imagen')
+                    ->image()
+                    ->disk('public')
+                    ->directory('users')
+                    ->visibility('public')
+                    ->preserveFilenames()
+                    ->columnSpanFull(),
+
                 TextInput::make('arma_uid'),
                 TextInput::make('discord_id'),
                 TextInput::make('steam_id'),
