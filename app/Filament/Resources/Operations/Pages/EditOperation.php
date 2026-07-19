@@ -496,6 +496,7 @@ class EditOperation extends EditRecord
 
                                 $presetAddonIds = $preset
                                     ? $preset->addons()
+                                        ->where('active', true)
                                         ->pluck('addons.id')
                                         ->map(fn (int $id): string => (string) $id)
                                         ->all()
@@ -512,6 +513,7 @@ class EditOperation extends EditRecord
                             ->label('Seleccionar obligatorios')
                             ->action(function (Get $get, Set $set): void {
                                 $mandatoryAddonIds = Addon::query()
+                                    ->where('active', true)
                                     ->where('mandatory', true)
                                     ->pluck('id')
                                     ->map(fn (int $id): string => (string) $id)
@@ -539,6 +541,7 @@ class EditOperation extends EditRecord
                                 }
 
                                 $addonIds = Addon::query()
+                                    ->where('active', true)
                                     ->whereIn('name', $addonNames)
                                     ->pluck('id')
                                     ->all();
@@ -591,16 +594,18 @@ class EditOperation extends EditRecord
                     CheckboxList::make('addon_ids')
                         ->label('Addons')
                         ->options(fn (): array => Addon::query()
+                            ->where('active', true)
                             ->orderBy('mandatory', 'desc')
                             ->orderBy('name')
                             ->pluck('name', 'id')
                             ->all())
                         ->descriptions(fn (): array => Addon::query()
+                            ->where('active', true)
                             ->orderBy('mandatory', 'desc')
                             ->orderBy('name')
                             ->get()
                             ->mapWithKeys(fn (Addon $addon): array => [
-                                $addon->id => trim(($addon->mandatory ? 'Obligatorio. ' : 'Opcional. ') . ($addon->description ?? '')),
+                                $addon->id => trim(($addon->mandatory ? 'Obligatorio. ' : 'Opcional. ') ),
                             ])
                             ->all())
                         ->bulkToggleable()

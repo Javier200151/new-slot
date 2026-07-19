@@ -10,12 +10,14 @@ class Addon extends Model
         'name',
         'description',
         'mandatory',
+        'active',
     ];
 
     protected function casts(): array
     {
         return [
             'mandatory' => 'boolean',
+            'active' => 'boolean',
         ];
     }
 

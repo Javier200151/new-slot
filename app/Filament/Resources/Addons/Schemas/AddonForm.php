@@ -26,6 +26,11 @@ class AddonForm
                     ->label('Obligatorio')
                     ->default(false)
                     ->required(),
+
+                Toggle::make('active')
+                    ->label('Activo')
+                    ->default(true)
+                    ->required(),
             ]);
     }
 }

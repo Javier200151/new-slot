@@ -20,15 +20,22 @@ class AddonsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('description')
-                    ->label('Descripción')
-                    ->limit(80)
-                    ->searchable(),
+                
 
                 IconColumn::make('mandatory')
                     ->label('Obligatorio')
                     ->boolean()
                     ->sortable(),
+
+                IconColumn::make('active')
+                    ->label('Activo')
+                    ->boolean()
+                    ->sortable(),
+
+                TextColumn::make('description')
+                    ->label('Descripción')
+                    ->limit(80)
+                    ->searchable(),    
 
                 TextColumn::make('created_at')
                     ->dateTime()
