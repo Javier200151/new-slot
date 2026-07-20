@@ -68,7 +68,10 @@ class EventForm
                 TextInput::make('ocap_url')
                     ->label('URL OCAP')
                     ->url()
-                    ->maxLength(255), 
+                    ->maxLength(255)
+                    ->visible(fn (Get $get): bool => (bool) Operation::query()
+                        ->whereKey($get('operation_id'))
+                        ->value('ocap')),
 
                 TextInput::make('duration')
                     ->label('Duración')

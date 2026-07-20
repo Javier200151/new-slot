@@ -146,6 +146,12 @@ class User extends Authenticatable implements FilamentUser, HasName
             ->withTimestamps()
             ->orderByPivot('assigned_at', 'asc');
     }
+
+    public function streamer()
+    {
+        return $this->hasOne(Streamer::class);
+    }
+
     public function getSignatureUrl(): string
     {
         return route('firmas.show', [
