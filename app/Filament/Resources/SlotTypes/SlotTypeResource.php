@@ -27,7 +27,7 @@ class SlotTypeResource extends Resource
 
     protected static ?string $model = SlotType::class;
 
-    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedCodeBracketSquare;
 
     protected static ?string $recordTitleAttribute = 'name';
 

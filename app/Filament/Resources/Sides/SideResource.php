@@ -22,7 +22,7 @@ class SideResource extends Resource
 
     protected static string | UnitEnum | null $navigationGroup = null;
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $model = Side::class;
 

@@ -26,7 +26,7 @@ class MetopaResource extends Resource
 
     protected static ?string $model = Metopa::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::Trophy; //OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrophy; //OutlinedRectangleStack;
 
     protected static string | UnitEnum | null $navigationGroup = 'Usuarios'; //Grupo
     protected static ?int $navigationSort = 2; // Orden en el grupo

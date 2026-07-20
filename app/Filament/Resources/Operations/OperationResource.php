@@ -23,7 +23,7 @@ class OperationResource extends Resource
     protected static ?int $navigationSort = 1;
     protected static ?string $model = Operation::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboard;
 
     protected static ?string $recordTitleAttribute = 'Operativo';
     protected static ?string $pluralModelLabel = 'Operativos';

@@ -25,7 +25,7 @@ class StreamerResource extends Resource
 
     protected static ?string $model = Streamer::class;
 
-    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedVideoCamera;
+    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedUserCircle;
 
     protected static ?string $recordTitleAttribute = 'twich_channel';
 
