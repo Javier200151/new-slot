@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
 use App\Models\Status;
 use Filament\Forms\Components\RichEditor;
+use Illuminate\Validation\Rule;
 
 class UserForm
 {
@@ -76,8 +77,9 @@ class UserForm
                     ->label('Cita')
                     ->disableToolbarButtons([
                         'attachFiles',
-                    ])    
-                    ->columnSpanFull(),
+                    ]) 
+                    ->maxLength(255),   
+                    //->columnSpanFull(),
 
 
                 FileUpload::make('image')
@@ -87,7 +89,14 @@ class UserForm
                     ->directory('users')
                     ->visibility('public')
                     ->preserveFilenames()
-                    ->columnSpanFull(),
+                    //->columnSpanFull()
+                    ->rule(
+                        Rule::dimensions()
+                            ->minWidth(100)
+                            ->minHeight(100)
+                            ->maxWidth(150)
+                            ->maxHeight(150)
+                    ),
 
                 TextInput::make('arma_uid'),
                 TextInput::make('discord_id'),
