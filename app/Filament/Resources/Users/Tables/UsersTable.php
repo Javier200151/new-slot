@@ -47,14 +47,25 @@ class UsersTable
                     ->badge()
                     ->separator(',')
                     ->searchable(),
-                TextColumn::make('email')
-                    ->label('Email address')
-                    ->searchable(),
                 TextColumn::make('promo_id')
                     ->label('Promoción')
                     ->numeric()
                     ->sortable()
-                    ->alignCenter(),        
+                    ->alignCenter(),   
+                ImageColumn::make('image')
+                    ->label('Imagen')
+                    ->state(fn ($record): ?string => $record->image
+                        ? url('storage/' . $record->image)
+                        : null)
+                    ->imageWidth(50)  
+                    ->imageHeight(50)
+                    ->extraImgAttributes([
+                        'style' => 'object-fit: contain;',
+                    ]),       
+                TextColumn::make('email')
+                    ->label('Email address')
+                    ->searchable(),
+                      
                 TextColumn::make('firma')
                     ->searchable(),
                 // TextColumn::make('quote')
