@@ -13,7 +13,8 @@ class DatabaseSeeder extends Seeder
             RolesSeeder::class,
             PromoSeeder::class,
             AdminSeeder::class,
-            //PlatformSeeder::class,
+            PlatformSeeder::class,
+            PermissionsSeeder::Class,
         ]);
     }
 }

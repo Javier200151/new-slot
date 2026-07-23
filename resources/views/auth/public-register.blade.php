@@ -5,6 +5,7 @@
 
     <label>Nick</label>
     <input type="text" name="nick" value="{{ old('nick') }}">
+    <small>Entre 3 y 30 caracteres. Se permiten letras, números, guiones, guiones bajos y puntos. El punto no puede aparecer al principio, al final ni repetirse.</small>
     @error('nick') <p>{{ $message }}</p> @enderror
 
     <br>
