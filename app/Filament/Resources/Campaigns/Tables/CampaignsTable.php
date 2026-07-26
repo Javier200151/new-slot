@@ -25,10 +25,10 @@ class CampaignsTable
                     ->boolean()
                     ->sortable(),
 
-                TextColumn::make('description')
-                    ->label('Descripción')
-                    ->limit(50)
-                    ->searchable(),
+                // TextColumn::make('description')
+                //     ->label('Descripción')
+                //     ->limit(50)
+                //     ->searchable(),
             ])
             ->filters([
                 //

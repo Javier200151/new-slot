@@ -21,7 +21,7 @@ class PeriodResource extends Resource
     protected static ?string $cluster = Configuration::class;
 
     protected static string | UnitEnum | null $navigationGroup = null;
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $model = Period::class;
 

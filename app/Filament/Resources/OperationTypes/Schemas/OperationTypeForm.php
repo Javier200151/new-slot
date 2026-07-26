@@ -5,6 +5,7 @@ namespace App\Filament\Resources\OperationTypes\Schemas;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
+use Filament\Forms\Components\ColorPicker;
 
 class OperationTypeForm
 {
@@ -16,7 +17,7 @@ class OperationTypeForm
                     ->required(),
                 Toggle::make('oficial')
                     ->required(),
-                TextInput::make('color'),
+                ColorPicker::make('color'),
             ]);
     }
 }

@@ -21,7 +21,7 @@ class Metopa extends Model
         'image_large',
         'despag1',
         'despag2',
-        'metopa_group',
+        'sqa_group_id',
         'imgback',
         'created_by',
         'updated_by',
@@ -33,6 +33,12 @@ class Metopa extends Model
             ->withPivot('assigned_at')
             ->withTimestamps();
     }
+
+    public function sqaGroup()
+    {
+        return $this->belongsTo(SqaGroup::class, 'sqa_group_id');
+    }
+
     protected static function booted(): void
     {
         static::creating(function ($metopa) {

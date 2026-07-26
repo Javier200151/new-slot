@@ -32,7 +32,7 @@ class RolePolicy
 
     public function delete(User $user, Role $role): bool
     {
-        if (in_array($role->name, ['Super Admin', 'Administrador'])) {
+        if (in_array($role->name, ['Admin', 'Administrador'])) {
             return false;
         }
 

@@ -15,6 +15,7 @@ class SideForm
                 TextInput::make('name')
                     ->required(),
                 FileUpload::make('image')
+                    ->preserveFilenames()
                     ->image(),
                 TextInput::make('description'),
             ]);

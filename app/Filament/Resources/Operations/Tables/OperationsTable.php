@@ -27,6 +27,14 @@ class OperationsTable
 
                 TextColumn::make('operationStatus.name')
                     ->label('Estado')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'ACTIVO' => 'success',
+                        'ARCHIVADO' => 'warning',
+                        'FINALIZADO' => 'info',
+                        'BORRADOR' => 'gray',
+                        default => 'gray',
+                    })
                     ->searchable()
                     ->sortable(),
 
@@ -105,8 +113,8 @@ class OperationsTable
 
                 TextColumn::make('orbat')
                     ->label('ORBAT')
-                    ->formatStateUsing(function (?array $state): string {
-                        $groups = $state['groups'] ?? [];
+                    ->state(function ($record): string {
+                        $groups = $record->orbat['groups'] ?? [];
                         $slots = collect($groups)->sum(fn (array $group): int => count($group['slots'] ?? []));
 
                         return count($groups) . ' grupos / ' . $slots . ' slots';

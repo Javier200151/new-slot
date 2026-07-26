@@ -21,10 +21,10 @@ class OperationDayResource extends Resource
     protected static ?string $cluster = Configuration::class;
 
     protected static string | UnitEnum | null $navigationGroup = null;
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 7;
     protected static ?string $model = OperationDay::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDateRange;
 
     protected static ?string $recordTitleAttribute = 'Día operativo';
     

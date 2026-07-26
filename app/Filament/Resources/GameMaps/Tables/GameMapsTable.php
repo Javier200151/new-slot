@@ -33,6 +33,13 @@ class GameMapsTable
                     ->limit(50)
                     ->searchable(),
 
+                TextColumn::make('url')
+                    ->label('URL')
+                    ->url(fn ($state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->limit(50)
+                    ->toggleable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

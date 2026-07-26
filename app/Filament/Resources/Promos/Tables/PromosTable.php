@@ -15,7 +15,18 @@ class PromosTable
     {
         return $table
             ->columns([
-                ImageColumn::make('image'),
+                TextColumn::make('id')
+                    ->label('Promoción'),
+                ImageColumn::make('image')
+                    ->label('Imagen')
+                    ->state(fn ($record): ?string => $record->image
+                        ? url('storage/' . $record->image)
+                        : null)
+                    ->imageWidth(50)  
+                    ->imageHeight(50)
+                    ->extraImgAttributes([
+                        'style' => 'object-fit: contain;',
+                    ]),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

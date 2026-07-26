@@ -13,7 +13,6 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use App\Filament\Resources\Users\RelationManagers\UserMetopasRelationManager;
 use UnitEnum;
 
 class UserResource extends Resource
@@ -26,7 +25,7 @@ class UserResource extends Resource
     
     protected static ?string $model = User::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::User;//OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUser;//OutlinedRectangleStack;
 
     protected static string | UnitEnum | null $navigationGroup = 'Usuarios';
     protected static ?int $navigationSort = 1;
@@ -47,6 +46,7 @@ class UserResource extends Resource
     {
         return [
             RelationManagers\UserMetopasRelationManager::class,
+            RelationManagers\UserSqaGroupsRelationManager::class,
         ];
     }
 

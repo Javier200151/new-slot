@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Metopas\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -30,6 +31,7 @@ class MetopaForm
                     ->disk('public')
                     ->directory('metopas')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->required(),
 
                 FileUpload::make('image_large')
@@ -38,17 +40,28 @@ class MetopaForm
                     ->disk('public')
                     ->directory('metopas/large')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->nullable(),
-                    TextInput::make('metopa_group')
-                    ->label('Grupo')
-                    ->maxLength(255),
+
+                Select::make('sqa_group_id')
+                    ->label('Grupo SQA')
+                    ->relationship('sqaGroup', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
 
                 RichEditor::make('despag1')
                     ->label('Descripción página 1')
+                    ->disableToolbarButtons([
+                        'attachFiles',
+                    ])
                     ->columnSpanFull(),
 
                 RichEditor::make('despag2')
                     ->label('Descripción página 2')
+                    ->disableToolbarButtons([
+                        'attachFiles',
+                    ])
                     ->columnSpanFull(),
 
                 FileUpload::make('imgback')
@@ -57,6 +70,7 @@ class MetopaForm
                     ->disk('public')
                     ->directory('metopas/backgrounds')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->imageEditor(),
             ]);
     }
