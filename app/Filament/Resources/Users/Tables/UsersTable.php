@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
@@ -17,18 +18,16 @@ class UsersTable
     {
         return $table
             ->columns([
+                // ImageColumn::make('image')
+                //     ->label('Imagen')
+                //     ->circular()
+                //     ->toggleable(),
+
                 TextColumn::make('nick')
                     ->searchable(),
-                TextColumn::make('email')
-                    ->label('Email address')
-                    ->searchable(),
-                TextColumn::make('promo_id')
-                    ->label('Promoción')
-                    ->numeric()
-                    ->sortable()
-                    ->alignCenter(),
-                TextColumn::make('tagname')
-                    ->searchable(),
+                
+                // TextColumn::make('tagname')
+                //     ->searchable(),
                 TextColumn::make('status.name')
                     ->label('Estado')
                     ->badge()
@@ -47,9 +46,33 @@ class UsersTable
                     ->label('Rol')
                     ->badge()
                     ->separator(',')
-                    ->searchable(),    
+                    ->searchable(),
+                TextColumn::make('promo_id')
+                    ->label('Promoción')
+                    ->numeric()
+                    ->sortable()
+                    ->alignCenter(),   
+                ImageColumn::make('image')
+                    ->label('Imagen')
+                    ->state(fn ($record): ?string => $record->image
+                        ? url('storage/' . $record->image)
+                        : null)
+                    ->imageWidth(50)  
+                    ->imageHeight(50)
+                    ->extraImgAttributes([
+                        'style' => 'object-fit: contain;',
+                    ]),       
+                TextColumn::make('email')
+                    ->label('Email address')
+                    ->searchable(),
+                      
                 TextColumn::make('firma')
                     ->searchable(),
+                // TextColumn::make('quote')
+                //     ->label('Cita')
+                //     ->limit(50)
+                //     ->searchable()
+                //     ->toggleable(),
                 TextColumn::make('arma_uid')
                     ->searchable(),
                 TextColumn::make('discord_id')

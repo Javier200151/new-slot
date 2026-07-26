@@ -21,7 +21,7 @@ class OperationStatusResource extends Resource
     protected static ?string $cluster = Configuration::class;
 
     protected static string | UnitEnum | null $navigationGroup = null;
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 8;
     protected static ?string $model = OperationStatus::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

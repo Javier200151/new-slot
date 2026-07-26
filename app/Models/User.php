@@ -10,6 +10,7 @@ use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -22,7 +23,7 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 class User extends Authenticatable implements FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles, LogsActivity;
+    use HasFactory, Notifiable, HasRoles, LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'nick',
@@ -32,6 +33,8 @@ class User extends Authenticatable implements FilamentUser, HasName
         'tagname',
         'status_id',
         'firma',
+        'quote',
+        'image',
         'arma_uid',
         'discord_id',
         'steam_id',
@@ -144,6 +147,12 @@ class User extends Authenticatable implements FilamentUser, HasName
             ->withTimestamps()
             ->orderByPivot('assigned_at', 'asc');
     }
+
+    public function streamer()
+    {
+        return $this->hasOne(Streamer::class);
+    }
+
     public function getSignatureUrl(): string
     {
         return route('firmas.show', [
@@ -155,6 +164,29 @@ class User extends Authenticatable implements FilamentUser, HasName
         return $this->hasMany(MetopaUser::class, 'user_id', 'id')
             ->orderBy('assigned_at', 'asc');
     }
+
+    public function sqaGroupUsers()
+    {
+        return $this->hasMany(SqaGroupUser::class);
+    }
+
+    public function sqaGroups()
+    {
+        return $this->belongsToMany(SqaGroup::class, 'sqa_group_users')
+            ->withPivot([
+                'main',
+                'updated_by',
+                'deleted_at',
+            ])
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
+    }
+
+    public function eventComments()
+    {
+        return $this->hasMany(EventComment::class);
+    }
+
     public function pupils()
     {
         return $this->hasMany(User::class, 'tutor_id');

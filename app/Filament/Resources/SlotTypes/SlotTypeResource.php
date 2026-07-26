@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SlotTypes;
 
+use App\Filament\Clusters\EventConfiguration;
 use App\Filament\Resources\SlotTypes\Pages\CreateSlotType;
 use App\Filament\Resources\SlotTypes\Pages\EditSlotType;
 use App\Filament\Resources\SlotTypes\Pages\ListSlotTypes;
@@ -18,13 +19,15 @@ use UnitEnum;
 
 class SlotTypeResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Eventos';
+    protected static ?string $cluster = EventConfiguration::class;
+
+    protected static string | UnitEnum | null $navigationGroup = null;
 
     protected static ?int $navigationSort = 1;
 
     protected static ?string $model = SlotType::class;
 
-    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedCodeBracketSquare;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -20,7 +20,7 @@ class PlatformsResource extends Resource
     protected static ?string $cluster = Configuration::class;
 
     protected static string | UnitEnum | null $navigationGroup = null;
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 9;
     protected static ?string $model = Platform::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

@@ -12,6 +12,7 @@ class GameMap extends Model
         'name',
         'description',
         'image',
+        'url',
         'platform_id',
     ];
 

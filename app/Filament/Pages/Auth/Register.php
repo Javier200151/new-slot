@@ -2,10 +2,11 @@
 
 namespace App\Filament\Pages\Auth;
 
+use App\Models\Status;
+use App\Rules\NotReservedUsername;
 use Filament\Auth\Pages\Register as BaseRegister;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
-use App\Models\Status;
 
 class Register extends BaseRegister
 {
@@ -16,6 +17,20 @@ class Register extends BaseRegister
                 TextInput::make('nick')
                     ->label('Nick')
                     ->required()
+                    ->minLength(3)
+                    ->maxLength(30)
+                    ->rules([
+                        'regex:/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/',
+                        new NotReservedUsername(),
+                    ])
+                    ->validationMessages([
+                        'required' => 'El nick es obligatorio.',
+                        'min' => 'El nick debe tener al menos 3 caracteres.',
+                        'max' => 'El nick no puede tener más de 30 caracteres.',
+                        'regex' => 'El nick solo puede contener letras sin tildes, números, guiones (-), guiones bajos (_) y puntos (.). No puede comenzar ni terminar con un punto, ni contener puntos consecutivos.',
+                        'unique' => 'Este nick ya está en uso.',
+                    ])
+                    ->helperText('Entre 3 y 30 caracteres. Se permiten letras, números, guiones, guiones bajos y puntos.')
                     ->unique('users', 'nick'),
 
                 TextInput::make('email')

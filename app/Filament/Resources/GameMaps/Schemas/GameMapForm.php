@@ -19,6 +19,13 @@ class GameMapForm
                     ->required()
                     ->maxLength(255),
 
+                Select::make('platform_id')
+                    ->label('Plataforma')
+                    ->relationship('platform', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
+
                 Textarea::make('description')
                     ->label('Descripción')
                     ->nullable()
@@ -30,14 +37,16 @@ class GameMapForm
                     ->disk('public')
                     ->directory('maps')
                     ->visibility('public')
+                    ->preserveFilenames()
                     ->nullable(),
 
-                Select::make('platform_id')
-                    ->label('Plataforma')
-                    ->relationship('platform', 'name')
-                    ->searchable()
-                    ->preload()
+                TextInput::make('url')
+                    ->label('URL')
+                    ->url()
+                    ->maxLength(255)
                     ->nullable(),
+
+                
             ]);
     }
 }

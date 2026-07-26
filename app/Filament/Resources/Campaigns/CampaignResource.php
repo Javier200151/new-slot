@@ -28,7 +28,7 @@ class CampaignResource extends Resource
 
     protected static ?string $model = Campaign::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -56,5 +56,9 @@ class CampaignResource extends Resource
             'create' => CreateCampaign::route('/create'),
             'edit' => EditCampaign::route('/{record}/edit'),
         ];
+    }
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::count();
     }
 }
