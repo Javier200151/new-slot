@@ -90,10 +90,10 @@ class RoleResource extends Resource
         return [
             'users' => 'Usuarios',
             'metopas' => 'Metopas',
+            'user-metopas' => 'Asignación de Metopas',
             'promos' => 'Promos',
             'statuses' => 'Estados',
             'roles' => 'Roles',
-            'permissions' => 'Permisos',
         ];
     }
 
@@ -142,7 +142,7 @@ class RoleResource extends Resource
 
         foreach (self::permissionResources() as $resource => $label) {
             $components[] = CheckboxList::make("permissions_{$resource}")
-                ->label("Gestión de {$label}")
+                ->label("Permisos de {$label}")
                 ->options(self::permissionActions())
                 ->columns(4)
                 ->bulkToggleable();

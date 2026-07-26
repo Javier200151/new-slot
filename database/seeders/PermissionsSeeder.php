@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class PermissionsSeeder extends Seeder
@@ -17,11 +17,11 @@ class PermissionsSeeder extends Seeder
 
         $resources = [
             'metopas',
+            'user-metopas',
             'users',
             'promos',
             'statuses',
             'roles',
-            'permissions',
         ];
 
         $actions = [
@@ -51,7 +51,9 @@ class PermissionsSeeder extends Seeder
         ]);
 
         $adminRole->syncPermissions(
-            Permission::where('guard_name', $guard)->get()
+            Permission::query()
+                ->where('guard_name', $guard)
+                ->get()
         );
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
