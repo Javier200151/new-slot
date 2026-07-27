@@ -23,6 +23,17 @@ class UserMetopa extends Model
         'updated_by',
     ];
 
+    public function getKey(): mixed
+    {
+        $userId = $this->getAttribute('user_id');
+        $metopaId = $this->getAttribute('metopa_id');
+
+        if ($userId === null || $metopaId === null) {
+            return parent::getKey();
+        }
+
+        return "{$userId}-{$metopaId}";
+    }
     protected function casts(): array
     {
         return [
@@ -35,12 +46,12 @@ class UserMetopa extends Model
     {
         return $this->belongsTo(User::class);
     }
-
+/*
     public function getKey(): string
     {
         return $this->metopa_id . '-' . $this->user_id;
     }
-
+*/
     public function getRouteKeyName(): string
     {
         return 'user_id';
@@ -60,7 +71,7 @@ class UserMetopa extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
-    
+
     protected function setKeysForSaveQuery($query): Builder
     {
         return $query
