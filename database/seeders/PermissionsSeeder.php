@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\PermissionCatalog;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -11,38 +12,16 @@ class PermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->forgetCachedPermissions();
 
-        $guard = 'web';
+        $guard = PermissionCatalog::guard();
 
-        $resources = [
-            'metopas',
-            'user-metopas',
-            'users',
-            'promos',
-            'statuses',
-            'roles',
-        ];
-
-        $actions = [
-            'view',
-            'create',
-            'update',
-            'delete',
-        ];
-
-        Permission::firstOrCreate([
-            'name' => 'filament.access',
-            'guard_name' => $guard,
-        ]);
-
-        foreach ($resources as $resource) {
-            foreach ($actions as $action) {
-                Permission::firstOrCreate([
-                    'name' => "{$resource}.{$action}",
-                    'guard_name' => $guard,
-                ]);
-            }
+        foreach (PermissionCatalog::permissionNames() as $permissionName) {
+            Permission::firstOrCreate([
+                'name' => $permissionName,
+                'guard_name' => $guard,
+            ]);
         }
 
         $adminRole = Role::firstOrCreate([
@@ -53,9 +32,10 @@ class PermissionsSeeder extends Seeder
         $adminRole->syncPermissions(
             Permission::query()
                 ->where('guard_name', $guard)
-                ->get()
+                ->pluck('name')
+                ->all()
         );
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $registrar->forgetCachedPermissions();
     }
 }

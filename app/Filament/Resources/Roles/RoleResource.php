@@ -19,6 +19,11 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use UnitEnum;
+use App\Support\PermissionCatalog;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Tables\Columns\IconColumn;
 
 class RoleResource extends Resource
 {
@@ -38,37 +43,120 @@ class RoleResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema
-            ->components(array_merge([
-                TextInput::make('name')
-                    ->label('Nombre del rol')
-                    ->required()
-                    ->unique(ignoreRecord: true),
+            ->components([
+                Section::make('Datos del rol')
+                    ->schema([
+                        TextInput::make('name')
+                            ->label('Nombre del rol')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->disabled(
+                                fn (?Role $record): bool =>
+                                    $record?->name === 'admin'
+                            ),
 
-                TextInput::make('guard_name')
-                    ->default('web')
-                    ->required()
-                    ->hidden(),
+                        TextInput::make('guard_name')
+                            ->default('web')
+                            ->required()
+                            ->hidden(),
 
-                Toggle::make('can_access_filament')
-                    ->label('Puede acceder al panel Filament')
-                    ->helperText('Si está activado, los usuarios con este rol podrán entrar al panel.'),
-            ], self::permissionCheckboxes()));
+                        Toggle::make('can_access_filament')
+                            ->label('Puede acceder al panel Filament')
+                            ->helperText(
+                                'Los usuarios con este rol podrán entrar al panel.'
+                            ),
+                    ])
+                    ->columns(2),
+
+                self::permissionTabs(),
+            ]);
     }
+    public static function permissionTabs(): Tabs
+    {
+        $tabs = [];
 
+        foreach (PermissionCatalog::groups() as $group) {
+            $checkboxes = [];
+
+            foreach ($group['resources'] ?? [] as $resource => $definition) {
+                $checkboxes[] = CheckboxList::make(
+                    PermissionCatalog::fieldName($resource)
+                )
+                    ->label($definition['label'] ?? $resource)
+                    ->options(
+                        PermissionCatalog::actionOptionsFor($resource)
+                    )
+                    ->columns(4)
+                    ->bulkToggleable();
+            }
+
+            $tabs[] = Tab::make($group['label'])
+                ->icon($group['icon'] ?? null)
+                ->schema($checkboxes)
+                ->columns(2);
+        }
+
+        return Tabs::make('Permisos')
+            ->tabs($tabs)
+            ->persistTab()
+            ->id('role-permission-tabs')
+            ->columnSpanFull();
+    }
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 TextColumn::make('name')
                     ->label('Rol')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
 
-                TextColumn::make('permission_summary')
+                IconColumn::make('filament_access')
+                    ->label('Acceso a Filament')
+                    ->boolean()
+                    ->state(function (Role $record): bool {
+                        $record->loadMissing('permissions');
+
+                        return $record->name === 'admin'
+                            || $record->permissions
+                                ->contains('name', 'filament.access');
+                    }),
+
+                TextColumn::make('permission_total')
                     ->label('Permisos')
                     ->badge()
-                    ->state(fn (Role $record): array => array_keys(self::permissionResources()))
-                    ->formatStateUsing(fn (string $state): string => self::permissionResources()[$state] ?? $state)
-                    ->color(fn (string $state, Role $record): string => self::getPermissionBadgeColor($record, $state)),
+                    ->state(function (Role $record): string {
+                        $record->loadMissing('permissions');
+
+                        $knownPermissions = PermissionCatalog::permissionNames();
+
+                        $granted = $record->permissions
+                            ->pluck('name')
+                            ->intersect($knownPermissions)
+                            ->count();
+
+                        return "{$granted} / ".count($knownPermissions);
+                    })
+                    ->color(function (Role $record): string {
+                        $record->loadMissing('permissions');
+
+                        $knownPermissions = PermissionCatalog::permissionNames();
+
+                        $granted = $record->permissions
+                            ->pluck('name')
+                            ->intersect($knownPermissions)
+                            ->count();
+
+                        if ($granted === 0) {
+                            return 'danger';
+                        }
+
+                        if ($granted === count($knownPermissions)) {
+                            return 'success';
+                        }
+
+                        return 'warning';
+                    }),
             ])
             ->actions([
                 EditAction::make(),
@@ -87,55 +175,63 @@ class RoleResource extends Resource
 
     public static function permissionResources(): array
     {
-        return [
-            'users' => 'Usuarios',
-            'metopas' => 'Metopas',
-            'user-metopas' => 'Asignación de Metopas',
-            'promos' => 'Promos',
-            'statuses' => 'Estados',
-            'roles' => 'Roles',
-        ];
+        $result = [];
+
+        foreach (PermissionCatalog::resources() as $resource => $definition) {
+            $result[$resource] = $definition['label'];
+        }
+
+        return $result;
     }
 
     public static function permissionActions(): array
     {
-        return [
-            'view' => 'Ver',
-            'create' => 'Crear',
-            'update' => 'Modificar',
-            'delete' => 'Eliminar',
-        ];
+        return PermissionCatalog::actions();
     }
-    public static function getPermissionBadgeColor(Role $role, string $resource): string
+
+    public static function permissionFieldNames(): array
     {
+        return array_map(
+            fn (string $resource): string =>
+                PermissionCatalog::fieldName($resource),
+            array_keys(PermissionCatalog::resources())
+        );
+    }
+    public static function getPermissionBadgeColor(
+        Role $role,
+        string $resource
+    ): string {
         $role->loadMissing('permissions');
 
-        $actions = array_keys(self::permissionActions());
+        $actions = PermissionCatalog::actionsFor($resource);
 
         $permissionNames = $role->permissions
             ->pluck('name')
-            ->toArray();
-
-        $totalActions = count($actions);
+            ->all();
 
         $grantedActions = 0;
 
         foreach ($actions as $action) {
-            if (in_array("{$resource}.{$action}", $permissionNames, true)) {
+            if (in_array(
+                "{$resource}.{$action}",
+                $permissionNames,
+                true
+            )) {
                 $grantedActions++;
             }
         }
 
         if ($grantedActions === 0) {
-            return 'danger'; // rojo
+            return 'danger';
         }
 
-        if ($grantedActions === $totalActions) {
-            return 'success'; // verde
+        if ($grantedActions === count($actions)) {
+            return 'success';
         }
 
-        return 'warning'; // naranja
+        return 'warning';
     }
+
     public static function permissionCheckboxes(): array
     {
         $components = [];
@@ -149,14 +245,6 @@ class RoleResource extends Resource
         }
 
         return $components;
-    }
-
-    public static function permissionFieldNames(): array
-    {
-        return array_map(
-            fn (string $resource): string => "permissions_{$resource}",
-            array_keys(self::permissionResources())
-        );
     }
 
     public static function removePermissionFieldsFromData(array $data): array
@@ -183,10 +271,13 @@ class RoleResource extends Resource
                 || in_array('filament.access', $permissionNames, true),
         ];
 
-        foreach (self::permissionResources() as $resource => $label) {
+        foreach (
+            PermissionCatalog::resources()
+            as $resource => $definition
+        ) {
             $selectedActions = [];
 
-            foreach (array_keys(self::permissionActions()) as $action) {
+            foreach ($definition['actions'] as $action) {
                 $permissionName = "{$resource}.{$action}";
 
                 if (in_array($permissionName, $permissionNames, true)) {
@@ -194,7 +285,9 @@ class RoleResource extends Resource
                 }
             }
 
-            $state["permissions_{$resource}"] = $selectedActions;
+            $state[
+                PermissionCatalog::fieldName($resource)
+            ] = $selectedActions;
         }
 
         return $state;
@@ -224,12 +317,19 @@ class RoleResource extends Resource
             $permissionNames[] = 'filament.access';
         }
 
-        foreach (self::permissionResources() as $resource => $label) {
-            $field = "permissions_{$resource}";
-            $actions = $data[$field] ?? [];
+        foreach (
+            PermissionCatalog::resources()
+            as $resource => $definition
+        ) {
+            $field = PermissionCatalog::fieldName($resource);
+            $selectedActions = $data[$field] ?? [];
 
-            foreach ($actions as $action) {
-                if (! array_key_exists($action, self::permissionActions())) {
+            foreach ($selectedActions as $action) {
+                if (! in_array(
+                    $action,
+                    $definition['actions'],
+                    true
+                )) {
                     continue;
                 }
 
@@ -244,22 +344,20 @@ class RoleResource extends Resource
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 
-    public static function ensureKnownPermissionsExist(string $guard = 'web'): void
-    {
-        Permission::firstOrCreate([
-            'name' => 'filament.access',
-            'guard_name' => $guard,
-        ]);
-
-        foreach (self::permissionResources() as $resource => $label) {
-            foreach (array_keys(self::permissionActions()) as $action) {
-                Permission::firstOrCreate([
-                    'name' => "{$resource}.{$action}",
-                    'guard_name' => $guard,
-                ]);
-            }
+    public static function ensureKnownPermissionsExist(
+        string $guard = 'web'
+    ): void {
+        foreach (
+            PermissionCatalog::permissionNames()
+            as $permissionName
+        ) {
+            Permission::firstOrCreate([
+                'name' => $permissionName,
+                'guard_name' => $guard,
+            ]);
         }
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        app(PermissionRegistrar::class)
+            ->forgetCachedPermissions();
     }
 }

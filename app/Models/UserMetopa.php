@@ -60,12 +60,7 @@ class UserMetopa extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
-
-    /**
-     * Eloquent no soporta claves primarias compuestas.
-     * Este método garantiza que update() y delete() utilicen
-     * siempre metopa_id + user_id.
-     */
+    
     protected function setKeysForSaveQuery($query): Builder
     {
         return $query
