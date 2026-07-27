@@ -59,7 +59,6 @@ class UserResource extends Resource
         ];
     }
 
-    //Con esto, ponemos el número de registros junto al elemento de navegación
     public static function getNavigationBadge(): ?string
     {
     return static::getModel()::count();
