@@ -9,10 +9,7 @@ class RolePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('roles.view')
-            || $user->can('roles.create')
-            || $user->can('roles.update')
-            || $user->can('roles.delete');
+        return $user->can('roles.view');
     }
 
     public function view(User $user, Role $role): bool
@@ -32,7 +29,7 @@ class RolePolicy
 
     public function delete(User $user, Role $role): bool
     {
-        if (in_array($role->name, ['Admin', 'Administrador'])) {
+        if ($role->name === 'admin') {
             return false;
         }
 
@@ -41,6 +38,6 @@ class RolePolicy
 
     public function deleteAny(User $user): bool
     {
-        return $user->can('roles.delete');
+        return false;
     }
 }

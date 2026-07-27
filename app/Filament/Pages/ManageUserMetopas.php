@@ -8,11 +8,15 @@ use App\Models\UserMetopa;
 use App\Services\UserMetopaAssignmentService;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -20,13 +24,11 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use LogicException;
 use UnitEnum;
-use Filament\Actions\Concerns\InteractsWithActions;
-use Filament\Actions\Contracts\HasActions;
-use Filament\Schemas\Concerns\InteractsWithSchemas;
-use Filament\Schemas\Contracts\HasSchemas;
 
 class ManageUserMetopas extends Page implements
     HasActions,
@@ -40,11 +42,14 @@ class ManageUserMetopas extends Page implements
     protected static string|BackedEnum|null $navigationIcon =
         Heroicon::OutlinedTrophy;
 
-    protected static ?string $navigationLabel = 'Gestión de metopas';
+    protected static ?string $navigationLabel =
+        'Gestión de metopas';
 
-    protected static ?string $title = 'Gestión de metopas';
+    protected static ?string $title =
+        'Gestión de metopas';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Usuarios';
+    protected static string|UnitEnum|null $navigationGroup =
+        'Usuarios';
 
     protected static ?int $navigationSort = 3;
 
@@ -53,7 +58,52 @@ class ManageUserMetopas extends Page implements
 
     public static function canAccess(): bool
     {
-        return Auth::user()?->can('user-metopas.view') ?? false;
+        return Auth::user()?->can(
+            'user-metopas.view'
+        ) ?? false;
+    }
+
+    public function getTableRecordKey(
+        Model|array $record
+    ): string {
+        if (! $record instanceof UserMetopa) {
+            throw new LogicException(
+                'Se esperaba una instancia de UserMetopa.'
+            );
+        }
+
+        return (string) $record->getKey();
+    }
+
+
+    protected function resolveTableRecord(
+        ?string $key
+    ): Model|array|null {
+        if (
+            blank($key)
+            || ! preg_match(
+                '/^(\d+)-(\d+)$/',
+                $key,
+                $matches
+            )
+        ) {
+            return null;
+        }
+
+        $userId = (int) $matches[1];
+        $metopaId = (int) $matches[2];
+
+        return UserMetopa::query()
+            ->with([
+                'user',
+                'metopa',
+                'metopa.sqaGroup',
+                'createdBy',
+                'updatedBy',
+            ])
+            ->where('user_id', $userId)
+            ->where('metopa_id', $metopaId)
+            ->first();
     }
 
     public function table(Table $table): Table
@@ -87,7 +137,7 @@ class ManageUserMetopas extends Page implements
                             $record->metopa?->image
                                 ? url(
                                     'storage/'
-                                    . $record->metopa->image
+                                    .$record->metopa->image
                                 )
                                 : null
                     )
@@ -145,6 +195,7 @@ class ManageUserMetopas extends Page implements
                     ->searchable()
                     ->preload(),
             ])
+            ->defaultSort('assigned_at', 'desc')
             ->defaultKeySort(false)
             ->headerActions([
                 $this->assignMetopasAction(),
@@ -162,7 +213,9 @@ class ManageUserMetopas extends Page implements
             ->icon('heroicon-o-trophy')
             ->visible(
                 fn (): bool =>
-                    Auth::user()?->can('user-metopas.create') ?? false
+                    Auth::user()?->can(
+                        'user-metopas.create'
+                    ) ?? false
             )
             ->form([
                 Select::make('user_ids')
@@ -198,37 +251,65 @@ class ManageUserMetopas extends Page implements
 
                 Checkbox::make('update_existing')
                     ->label(
-                        'Actualizar también la fecha de las asignaciones existentes'
+                        'Actualizar también la fecha de las '
+                        .'asignaciones existentes'
                     ),
             ])
-            ->modalHeading('Asignar metopas a usuarios')
+            ->modalHeading(
+                'Asignar metopas a usuarios'
+            )
             ->modalSubmitActionLabel('Asignar')
             ->action(function (
                 array $data,
                 UserMetopaAssignmentService $service,
             ): void {
-                abort_unless(
-                    Auth::user()?->can('user-metopas.create'),
-                    403
+                Gate::authorize(
+                    'user-metopas.create'
                 );
+
+                $updateExisting = (bool) (
+                    $data['update_existing'] ?? false
+                );
+
+
+                if ($updateExisting) {
+                    Gate::authorize(
+                        'user-metopas.update'
+                    );
+                }
 
                 $results = $this->emptyResults();
 
                 foreach ($data['user_ids'] as $userId) {
-                    foreach ($data['metopa_ids'] as $metopaId) {
+                    foreach (
+                        $data['metopa_ids']
+                        as $metopaId
+                    ) {
                         $result = $service->assign(
                             userId: (int) $userId,
                             metopaId: (int) $metopaId,
-                            assignedAt: $data['assigned_at'],
+                            assignedAt:
+                                $data['assigned_at'],
                             updateExisting:
-                                (bool) ($data['update_existing'] ?? false),
+                                $updateExisting,
                         );
 
-                        $results[$result]++;
+                        if (
+                            array_key_exists(
+                                $result,
+                                $results
+                            )
+                        ) {
+                            $results[$result]++;
+                        }
                     }
                 }
 
-                $this->sendAssignmentNotification($results);
+                $this->resetTable();
+
+                $this->sendAssignmentNotification(
+                    $results
+                );
             });
     }
 
@@ -245,33 +326,44 @@ class ManageUserMetopas extends Page implements
             )
             ->fillForm(
                 fn (UserMetopa $record): array => [
-                    'assigned_at' => $record->assigned_at,
+                    'assigned_at' =>
+                        $record->assigned_at,
                 ]
             )
             ->form([
                 DateTimePicker::make('assigned_at')
-                    ->label('Fecha y hora de asignación')
+                    ->label(
+                        'Fecha y hora de asignación'
+                    )
                     ->displayFormat('d/m/Y H:i')
                     ->seconds(false)
                     ->required(),
             ])
+            ->modalHeading(
+                'Editar fecha de asignación'
+            )
+            ->modalSubmitActionLabel(
+                'Guardar fecha'
+            )
             ->action(function (
                 UserMetopa $record,
                 array $data,
                 UserMetopaAssignmentService $service,
             ): void {
-                abort_unless(
-                    Auth::user()?->can(
-                        'user-metopas.update'
-                    ),
-                    403
+                Gate::authorize(
+                    'user-metopas.update'
                 );
 
                 $service->updateAssignedAt(
-                    userId: (int) $record->user_id,
-                    metopaId: (int) $record->metopa_id,
-                    assignedAt: $data['assigned_at'],
+                    userId:
+                        (int) $record->user_id,
+                    metopaId:
+                        (int) $record->metopa_id,
+                    assignedAt:
+                        $data['assigned_at'],
                 );
+
+                $this->resetTable();
 
                 Notification::make()
                     ->title('Fecha actualizada')
@@ -287,11 +379,15 @@ class ManageUserMetopas extends Page implements
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->modalHeading('Quitar metopa del usuario')
-            ->modalDescription(
-                'La asignación se eliminará de forma reversible. '
-                . 'Si se vuelve a asignar, se restaurará automáticamente.'
+            ->modalHeading(
+                'Quitar metopa del usuario'
             )
+            ->modalDescription(
+                'La asignación se eliminará de forma '
+                .'reversible. Si se vuelve a asignar, '
+                .'se restaurará automáticamente.'
+            )
+            ->modalSubmitActionLabel('Quitar')
             ->visible(
                 fn (): bool =>
                     Auth::user()?->can(
@@ -302,17 +398,18 @@ class ManageUserMetopas extends Page implements
                 UserMetopa $record,
                 UserMetopaAssignmentService $service,
             ): void {
-                abort_unless(
-                    Auth::user()?->can(
-                        'user-metopas.delete'
-                    ),
-                    403
+                Gate::authorize(
+                    'user-metopas.delete'
                 );
 
                 $service->delete(
-                    userId: (int) $record->user_id,
-                    metopaId: (int) $record->metopa_id,
+                    userId:
+                        (int) $record->user_id,
+                    metopaId:
+                        (int) $record->metopa_id,
                 );
+
+                $this->resetTable();
 
                 Notification::make()
                     ->title('Asignación eliminada')
@@ -332,20 +429,23 @@ class ManageUserMetopas extends Page implements
     }
 
     private function sendAssignmentNotification(
-        array $results,
+        array $results
     ): void {
         $lines = [];
 
         if ($results['created'] > 0) {
-            $lines[] = "{$results['created']} creadas";
+            $lines[] =
+                "{$results['created']} creadas";
         }
 
         if ($results['restored'] > 0) {
-            $lines[] = "{$results['restored']} restauradas";
+            $lines[] =
+                "{$results['restored']} restauradas";
         }
 
         if ($results['updated'] > 0) {
-            $lines[] = "{$results['updated']} actualizadas";
+            $lines[] =
+                "{$results['updated']} actualizadas";
         }
 
         if ($results['already_exists'] > 0) {
@@ -355,7 +455,11 @@ class ManageUserMetopas extends Page implements
 
         Notification::make()
             ->title('Asignaciones procesadas')
-            ->body(implode(' · ', $lines))
+            ->body(
+                $lines !== []
+                    ? implode(' · ', $lines)
+                    : 'No se realizaron cambios.'
+            )
             ->success()
             ->send();
     }

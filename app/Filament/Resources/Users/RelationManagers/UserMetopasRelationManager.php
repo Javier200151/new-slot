@@ -2,17 +2,11 @@
 
 namespace App\Filament\Resources\Users\RelationManagers;
 
-use App\Models\Metopa;
-use Filament\Actions\CreateAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\EditAction;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class UserMetopasRelationManager extends RelationManager
 {
@@ -20,23 +14,15 @@ class UserMetopasRelationManager extends RelationManager
 
     protected static ?string $title = 'Metopas';
 
-    public function form(Schema $schema): Schema
+    public static function canViewForRecord(
+        Model $ownerRecord,
+        string $pageClass
+    ): bool {
+        return true;
+    }
+    public function isReadOnly(): bool
     {
-        return $schema
-            ->components([
-                Select::make('metopa_id')
-                    ->label('Metopa')
-                    ->options(Metopa::query()->orderBy('name')->pluck('name', 'id'))
-                    ->searchable()
-                    ->preload()
-                    ->required(),
-
-                DateTimePicker::make('assigned_at')
-                    ->label('Fecha de asignación')
-                    ->seconds(false)
-                    ->default(now())
-                    ->required(),
-            ]);
+        return true;
     }
 
     public function table(Table $table): Table
@@ -46,9 +32,13 @@ class UserMetopasRelationManager extends RelationManager
             ->columns([
                 ImageColumn::make('metopa_image')
                     ->label('Imagen')
-                    ->getStateUsing(fn ($record) => $record->metopa?->image
-                        ? asset('storage/' . $record->metopa->image)
-                        : null
+                    ->getStateUsing(
+                        fn ($record): ?string =>
+                            $record->metopa?->image
+                                ? asset(
+                                    'storage/'.$record->metopa->image
+                                )
+                                : null
                     )
                     ->size(40),
 
@@ -63,16 +53,7 @@ class UserMetopasRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->defaultSort('assigned_at', 'asc')
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Añadir metopa'),
-            ])
-            ->recordActions([
-                EditAction::make()
-                    ->label('Editar fecha'),
-
-                DeleteAction::make()
-                    ->label('Quitar'),
-            ]);
+            ->headerActions([])
+            ->recordActions([]);
     }
 }
