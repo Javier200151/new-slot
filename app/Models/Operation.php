@@ -141,8 +141,8 @@ class Operation extends Model
             return new HtmlString('<div class="text-sm text-gray-500 dark:text-gray-400">Esta operación todavía no tiene ORBAT.</div>');
         }
 
-        $armyNames = Army::query()
-            ->whereIn('id', collect($groups)->pluck('army_id')->filter()->unique())
+        $factionNames = Faction::query()
+            ->whereIn('id', collect($groups)->pluck('faction_id')->filter()->unique())
             ->pluck('name', 'id');
 
         $slotTypeNames = SlotType::query()
@@ -160,7 +160,7 @@ class Operation extends Model
 
         foreach ($groups as $group) {
             $groupName = e($group['name'] ?? 'Grupo sin nombre');
-            $armyName = e($armyNames[(int) ($group['army_id'] ?? 0)] ?? 'Sin ejército');
+            $factionName = e($factionNames[(int) ($group['faction_id'] ?? 0)] ?? 'Sin facción');
             $visibility = ($group['visible'] ?? false) ? 'Visible' : 'Oculto';
             $slots = $group['slots'] ?? [];
 
@@ -169,7 +169,7 @@ class Operation extends Model
             $html .= '<tbody>';
             $html .= '<tr>';
             $html .= "<td style=\"font-weight: 600; padding-right: 2rem; padding-bottom: 0.5rem;\">{$groupName}</td>";
-            $html .= "<td style=\"font-weight: 600; padding-right: 2rem; padding-bottom: 0.5rem;\">{$armyName}</td>";
+            $html .= "<td style=\"font-weight: 600; padding-right: 2rem; padding-bottom: 0.5rem;\">{$factionName}</td>";
             //$html .= "<td style=\"font-weight: 600; padding-bottom: 0.5rem;\">{$visibility}</td>";
             $html .= '</tr>';
 
