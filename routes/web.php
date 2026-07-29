@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Controllers\PublicRegisterController;
-use Illuminate\Support\Facades\Route;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicLoginController;
+use App\Http\Controllers\PublicRegisterController;
 use App\Models\Metopa;
+use App\Models\User;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,10 +22,6 @@ Route::get('/', function () {
 |--------------------------------------------------------------------------
 | Registro público
 |--------------------------------------------------------------------------
-|
-| La ruta GET ya no muestra una página independiente.
-| Redirige al inicio indicando que debe abrirse el modal de registro.
-|
 */
 
 Route::get('/register', function () {
@@ -34,17 +30,15 @@ Route::get('/register', function () {
     ]);
 })->name('public.register');
 
-Route::post('/register', [PublicRegisterController::class, 'store'])
-    ->name('public.register.store');
+Route::post(
+    '/register',
+    [PublicRegisterController::class, 'store'],
+)->name('public.register.store');
 
 /*
 |--------------------------------------------------------------------------
-| Inicio de sesión público
+| Inicio de sesión
 |--------------------------------------------------------------------------
-|
-| La ruta GET redirige al inicio y abre el modal de login.
-| La ruta POST continúa usando el controlador actual.
-|
 */
 
 Route::get('/login', function () {
@@ -53,11 +47,72 @@ Route::get('/login', function () {
     ]);
 })->name('login');
 
-Route::post('/login', [PublicLoginController::class, 'login'])
-    ->name('public.login');
+Route::post(
+    '/login',
+    [PublicLoginController::class, 'login'],
+)->name('public.login');
 
-Route::post('/logout', [PublicLoginController::class, 'logout'])
-    ->name('logout');
+Route::post(
+    '/logout',
+    [PublicLoginController::class, 'logout'],
+)->name('logout');
+
+/*
+|--------------------------------------------------------------------------
+| Perfil y verificación de correo
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function (): void {
+    Route::get(
+        '/perfil',
+        [ProfileController::class, 'show'],
+    )->name('profile.show');
+
+    Route::patch(
+        '/perfil',
+        [ProfileController::class, 'update'],
+    )->name('profile.update');
+
+    Route::put(
+        '/perfil/password',
+        [ProfileController::class, 'updatePassword'],
+    )->name('profile.password.update');
+
+    Route::delete(
+        '/perfil/image',
+        [ProfileController::class, 'deleteImage'],
+    )->name('profile.image.delete');
+
+    Route::get('/email/verify', function () {
+        return redirect()
+            ->route('profile.show')
+            ->with(
+                'warning',
+                'Debes verificar tu correo electrónico.',
+            );
+    })->name('verification.notice');
+
+    Route::get(
+        '/email/verify/{id}/{hash}',
+        function (EmailVerificationRequest $request) {
+            $request->fulfill();
+
+            return redirect()
+                ->route('profile.show')
+                ->with('status', 'email-verified');
+        },
+    )
+        ->middleware('signed')
+        ->name('verification.verify');
+
+    Route::post(
+        '/email/verification-notification',
+        [ProfileController::class, 'sendVerification'],
+    )
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -76,11 +131,12 @@ Route::get('/metopas/{metopa}', function (Metopa $metopa) {
 */
 
 Route::get('/firmas/{nick}.html', function ($nick) {
-
     $user = User::where('nick', $nick)
-        ->with(['promo', 'metopas'])
+        ->with([
+            'promo',
+            'metopas',
+        ])
         ->firstOrFail();
 
     return view('firmas.show', compact('user'));
-
 })->name('firmas.show');
