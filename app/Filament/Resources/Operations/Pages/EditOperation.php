@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Operations\Pages;
 use App\Filament\Resources\Operations\OperationResource;
 use App\Models\Addon;
 use App\Models\AddonPreset;
-use App\Models\Army;
+use App\Models\Faction;
 use App\Models\RadioModel;
 use App\Models\SlotType;
 use Filament\Actions\Action;
@@ -170,9 +170,9 @@ class EditOperation extends EditRecord
                                 ->required()
                                 ->maxLength(255),
 
-                            Select::make('army_id')
-                                ->label('Ejército')
-                                ->options(fn (): array => Army::query()
+                            Select::make('faction_id')
+                                ->label('Facción')
+                                ->options(fn (): array => Faction::query()
                                     ->orderBy('name')
                                     ->pluck('name', 'id')
                                     ->all())
@@ -257,7 +257,7 @@ class EditOperation extends EditRecord
 
                             return [
                                 'name' => $group['name'] ?? '',
-                                'army_id' => isset($group['army_id']) ? (int) $group['army_id'] : null,
+                                'faction_id' => isset($group['faction_id']) ? (int) $group['faction_id'] : null,
                                 'visible' => (bool) ($group['visible'] ?? false),
                                 'slots' => $slots,
                             ];

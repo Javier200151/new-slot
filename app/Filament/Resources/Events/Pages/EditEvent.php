@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Events\Pages;
 
 use App\Filament\Resources\Events\EventResource;
-use App\Models\Army;
+use App\Models\Faction;
 use App\Models\SlotType;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -61,8 +61,8 @@ class EditEvent extends EditRecord
                                 ->disabled()
                                 ->dehydrated(false),
 
-                            TextInput::make('army_name')
-                                ->label('Ejército')
+                            TextInput::make('faction_name')
+                                ->label('Facción')
                                 ->disabled()
                                 ->dehydrated(false),
 
@@ -148,8 +148,8 @@ class EditEvent extends EditRecord
     {
         $groups = $orbat['groups'] ?? [];
 
-        $armyNames = Army::query()
-            ->whereIn('id', collect($groups)->pluck('army_id')->filter()->unique())
+        $factionNames = Faction::query()
+            ->whereIn('id', collect($groups)->pluck('faction_id')->filter()->unique())
             ->pluck('name', 'id');
 
         $slotTypeNames = SlotType::query()
@@ -168,7 +168,7 @@ class EditEvent extends EditRecord
                 ->map(fn (array $group): array => [
                     'visible' => (bool) ($group['visible'] ?? true),
                     'name' => $group['name'] ?? '',
-                    'army_name' => $armyNames[(int) ($group['army_id'] ?? 0)] ?? 'Sin ejército',
+                    'faction_name' => $factionNames[(int) ($group['faction_id'] ?? 0)] ?? 'Sin facción',
                     'slots' => collect($group['slots'] ?? [])
                         ->map(fn (array $slot): array => [
                             'visible' => (bool) ($slot['visible'] ?? true),

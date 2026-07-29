@@ -73,8 +73,6 @@ class UsersTable
                 //     ->limit(50)
                 //     ->searchable()
                 //     ->toggleable(),
-                TextColumn::make('arma_uid')
-                    ->searchable(),
                 TextColumn::make('discord_id')
                     ->searchable(),
                 TextColumn::make('steam_id')

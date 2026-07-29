@@ -7,12 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 class Army extends Model
 {
     protected $fillable = [
+        'country_id',
         'name',
-        'faction_id',
+        'description',
+        'image',
     ];
 
-    public function faction()
+    public function country()
     {
-        return $this->belongsTo(Faction::class);
+        return $this->belongsTo(Country::class);
+    }
+
+    public function factions()
+    {
+        return $this->hasMany(Faction::class);
     }
 }
