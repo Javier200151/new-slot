@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Rules\NotReservedUsername;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Auth\Events\Registered;
 
 class PublicRegisterController extends Controller
 {
@@ -50,6 +51,7 @@ class PublicRegisterController extends Controller
         ]);
 
         $user->assignRole('user');
+        event(new Registered($user));
         Auth::login($user);
 
         return redirect('/')->with('success', 'Usuario registrado correctamente.');

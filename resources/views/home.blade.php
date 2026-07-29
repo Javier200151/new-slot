@@ -6,29 +6,46 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ config('app.name', 'New Slot') }} - Squad ALPHA</title>
-    <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Squad ALPHA, comunidad de simulación militar centrada en el realismo, la disciplina y el trabajo en equipo."
+    >
+
+    <title>
+        {{ config('app.name', 'New Slot') }} - Squad ALPHA
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ asset('css/landing.css') }}"
+    >
 </head>
+
 <body
     class="landing-body"
     data-open-auth-modal="{{ $authModal }}"
 >
     <header class="landing-header">
         <div class="container nav-wrapper">
-            <div class="brand">
-                <div class="brand-mark">SA</div>
-                <div class="brand-text">
-                    <span class="brand-title">Squad <strong>ALPHA</strong></span>
-                    <span class="brand-subtitle">Comunidad de simulación militar</span>
-                </div>
-            </div>
 
-            <nav class="landing-nav">
+            <a href="#inicio" class="brand brand--image" aria-label="Squad ALPHA">
+                <img
+                    src="{{ asset('images/sqa-header-logo.png') }}"
+                    alt="Squad Alpha"
+                    class="brand-logo-image"
+                >
+            </a>
+
+            <nav class="landing-nav" aria-label="Navegación principal">
                 <a href="#inicio">Inicio</a>
-                <a href="#comunidad">Comunidad</a>
-                <a href="#ventajas">Ventajas</a>
-                <a href="#unete">Únete</a>
+                <a href="#comunidad">Quiénes somos</a>
+                <a href="#normativa">Normativa</a>
             </nav>
 
             <div class="nav-actions">
@@ -49,6 +66,13 @@
                         Crear cuenta
                     </a>
                 @else
+                    <a
+                        href="{{ route('profile.show') }}"
+                        class="btn btn-outline"
+                    >
+                        Mi perfil
+                    </a>
+
                     @if(auth()->user()->hasRole('admin'))
                         <a
                             href="{{ url('/admin') }}"
@@ -61,6 +85,7 @@
                     <form
                         method="POST"
                         action="{{ route('logout') }}"
+                        class="logout-form"
                     >
                         @csrf
 
@@ -73,156 +98,323 @@
                     </form>
                 @endguest
             </div>
+
         </div>
     </header>
 
     <main>
-        <section id="inicio" class="hero-section">
-            <div class="hero-overlay"></div>
 
-            <div class="container hero-content">
-                <div class="hero-text">
-                    <span class="eyebrow">Squad ALPHA · Simulación militar</span>
-                    <h1>
-                        Vive operaciones organizadas,
-                        tácticas y realistas en una
-                        comunidad seria.
-                    </h1>
-                    <p>
-                        Únete a una comunidad de simulación militar centrada en el trabajo en equipo,
-                        la organización y la experiencia inmersiva dentro de <strong>Arma</strong>.
-                    </p>
+        {{-- PORTADA --}}
+        <section id="inicio" class="minimal-hero">
 
-                    <div class="hero-actions">
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="btn btn-primary btn-lg">
-                                Alístate
-                            </a>
-                        @endif
+            <div class="hero-grid" aria-hidden="true"></div>
 
-                        @if (Route::has('login'))
-                            <a href="{{ route('login') }}" class="btn btn-outline btn-lg">
-                                Acceder
-                            </a>
-                        @endif
-                    </div>
+            <div class="container minimal-hero__content">
 
-                    <div class="hero-stats">
-                        <div class="stat-card">
-                            <strong>Operaciones</strong>
-                            <span>Sesiones organizadas y estructuradas</span>
-                        </div>
-                        <div class="stat-card">
-                            <strong>Comunidad</strong>
-                            <span>Miembros con roles, grupos y progresión</span>
-                        </div>
-                        <div class="stat-card">
-                            <strong>Disciplina</strong>
-                            <span>Coordinación, táctica y trabajo en equipo</span>
-                        </div>
+                <div class="hero-emblem" aria-hidden="true">
+
+                    <div class="hero-emblem__logo">
+                        <img
+                            src="{{ asset('images/sqa-shield-white.png') }}"
+                            alt="Escudo Squad Alpha"
+                        >
                     </div>
                 </div>
+
+                <span class="hero-kicker">
+                    Comunidad de simulación militar
+                </span>
+
+                <h1 class="hero-title hero-title--recruitment">
+                    <span class="hero-title__line hero-title__line--primary">ALÍSTATE</span>
+                    <span class="hero-title__line hero-title__line--secondary">A SQUAD ALPHA</span>
+                </h1>
+
+                <p class="hero-motto">
+                    Realismo
+                    <span></span>
+                    Disciplina
+                    <span></span>
+                    Equipo
+                </p>
+
+                <p class="hero-description">
+                    Da el paso y entra en una comunidad de simulación militar
+                    centrada en el realismo, la disciplina y el trabajo en equipo.
+                </p>
+
+                <div class="hero-actions">
+                    @guest
+                        <a
+                            href="{{ route('public.register') }}"
+                            class="btn btn-primary btn-hero"
+                            data-open-modal="register-modal"
+                        >
+                            Alístate
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    @else
+                        <div class="member-status">
+                            <span class="member-status__indicator"></span>
+
+                            Sesión iniciada como
+
+                            <strong>
+                                {{ auth()->user()->nick }}
+                            </strong>
+                        </div>
+                    @endguest
+                </div>
+
+                <a href="#comunidad" class="scroll-indicator">
+                    <span>Conoce Squad ALPHA</span>
+                    <span class="scroll-indicator__line"></span>
+                </a>
+
             </div>
         </section>
 
-        <section id="comunidad" class="section dark-section">
-            <div class="container section-grid">
-                <div>
-                    <span class="section-tag">Quiénes somos</span>
-                    <h2>Una comunidad preparada para operar en equipo</h2>
-                    <p class="section-text">
-                        Squad ALPHA es una comunidad orientada a la simulación militar,
-                        donde la organización, el compañerismo y la experiencia táctica
-                        son la base de cada operación.
-                    </p>
-                    <p class="section-text">
-                        Aquí no solo entras a jugar: entras a formar parte de una estructura,
-                        con eventos, grupos, metopas, operaciones y una progresión clara.
-                    </p>
-                </div>
-
-                <div class="info-panel">
-                    <div class="info-box">
-                        <span class="info-number">01</span>
-                        <h3>Realismo organizado</h3>
-                        <p>Operaciones estructuradas, roles definidos y experiencia inmersiva.</p>
-                    </div>
-                    <div class="info-box">
-                        <span class="info-number">02</span>
-                        <h3>Comunidad activa</h3>
-                        <p>Participa en eventos, mejora tu perfil y colabora con tu escuadra.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="ventajas" class="section">
+        {{-- QUIÉNES SOMOS --}}
+        <section id="comunidad" class="about-section">
             <div class="container">
-                <div class="section-heading">
-                    <span class="section-tag">Qué ofrece la plataforma</span>
-                    <h2>Un espacio moderno para la gestión de la comunidad</h2>
-                    <p>
-                        Este portal será el punto de acceso para centralizar miembros,
-                        operaciones, streams, metopas, promos y más.
-                    </p>
-                </div>
 
-                <div class="feature-grid">
-                    <article class="feature-card">
-                        <div class="feature-icon">🎖️</div>
-                        <h3>Gestión de miembros</h3>
-                        <p>Perfiles organizados, estados, promos, roles y seguimiento de actividad.</p>
-                    </article>
+                <header class="section-header">
+                    <span class="section-index">01</span>
 
-                    <article class="feature-card">
-                        <div class="feature-icon">🪖</div>
-                        <h3>Operaciones</h3>
-                        <p>Planificación y control de eventos, campañas, días de operación y estados.</p>
-                    </article>
+                    <div>
+                        <span class="section-label">Quiénes somos</span>
 
-                    <article class="feature-card">
-                        <div class="feature-icon">🏅</div>
-                        <h3>Metopas y progresión</h3>
-                        <p>Visualiza logros, asignaciones y reconocimiento dentro de la comunidad.</p>
-                    </article>
+                        <h2>
+                            Mucho más que entrar a jugar.
+                        </h2>
+                    </div>
+                </header>
 
-                    <article class="feature-card">
-                        <div class="feature-icon">📡</div>
-                        <h3>Streams y comunidad</h3>
-                        <p>Espacio para streamers, visibilidad del contenido y presencia pública.</p>
-                    </article>
+                <div class="about-layout">
+
+                    <div class="about-statement">
+                        <p>
+                            Somos una comunidad de simulación militar construida
+                            alrededor del trabajo en equipo.
+                        </p>
+                    </div>
+
+                    <div class="about-content">
+                        <p>
+                            Squad ALPHA reúne a personas que comparten una misma forma
+                            de entender la simulación: organización, responsabilidad,
+                            comunicación y respeto por el resto de miembros.
+                        </p>
+
+                        <p>
+                            Cada integrante forma parte de una estructura común.
+                            El objetivo no es competir individualmente, sino aprender,
+                            mejorar y disfrutar de una experiencia coordinada junto al equipo.
+                        </p>
+
+                        <div class="principles">
+
+                            <article class="principle">
+                                <span class="principle__number">01</span>
+
+                                <div>
+                                    <h3>Realismo</h3>
+                                    <p>
+                                        Buscamos una experiencia inmersiva, organizada
+                                        y coherente.
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="principle">
+                                <span class="principle__number">02</span>
+
+                                <div>
+                                    <h3>Disciplina</h3>
+                                    <p>
+                                        La preparación y el respeto por la estructura
+                                        hacen posible el trabajo conjunto.
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="principle">
+                                <span class="principle__number">03</span>
+
+                                <div>
+                                    <h3>Compañerismo</h3>
+                                    <p>
+                                        Ningún miembro está por encima del equipo
+                                        ni de la comunidad.
+                                    </p>
+                                </div>
+                            </article>
+
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </section>
 
-        <section id="unete" class="section cta-section">
-            <div class="container cta-box">
-                <div>
-                    <span class="section-tag">Da el siguiente paso</span>
-                    <h2>Prepárate para formar parte de Squad ALPHA</h2>
-                    <p>
-                        Crea tu cuenta para acceder a la plataforma y empezar tu recorrido dentro de la comunidad.
-                    </p>
-                </div>
+        {{-- NORMATIVA --}}
+        <section id="normativa" class="rules-section">
+            <div class="container">
 
-                <div class="cta-actions">
-                    @if (Route::has('register'))
-                        <a href="{{ route('register') }}" class="btn btn-primary btn-lg">Crear cuenta</a>
-                    @endif
+                <div class="rules-panel">
 
-                    @if (Route::has('login'))
-                        <a href="{{ route('login') }}" class="btn btn-outline btn-lg">Iniciar sesión</a>
-                    @endif
+                    <div class="rules-introduction">
+                        <span class="section-index">02</span>
+                        <span class="section-label">Normativa</span>
+
+                        <h2>
+                            Una comunidad sólida necesita unas reglas claras.
+                        </h2>
+
+                        <p>
+                            Nuestra normativa establece las bases de convivencia,
+                            participación y comportamiento que todos los miembros
+                            deben conocer y respetar.
+                        </p>
+
+                        <p class="rules-note">
+                            El registro en la plataforma implica el compromiso de
+                            conocer y aceptar estas normas.
+                        </p>
+                    </div>
+
+                    <div class="rules-list">
+
+                        <article class="rule">
+                            <span>01</span>
+
+                            <div>
+                                <h3>Respeto y convivencia</h3>
+
+                                <p>
+                                    Se espera un trato correcto y respetuoso hacia
+                                    cualquier miembro de la comunidad.
+                                </p>
+                            </div>
+                        </article>
+
+                        <article class="rule">
+                            <span>02</span>
+
+                            <div>
+                                <h3>Compromiso</h3>
+
+                                <p>
+                                    La participación requiere responsabilidad,
+                                    puntualidad y comunicación con el grupo.
+                                </p>
+                            </div>
+                        </article>
+
+                        <article class="rule">
+                            <span>03</span>
+
+                            <div>
+                                <h3>Trabajo en equipo</h3>
+
+                                <p>
+                                    Las decisiones individuales nunca deben perjudicar
+                                    al funcionamiento del conjunto.
+                                </p>
+                            </div>
+                        </article>
+
+                        <article class="rule">
+                            <span>04</span>
+
+                            <div>
+                                <h3>Juego limpio</h3>
+
+                                <p>
+                                    No se toleran comportamientos que dañen la experiencia,
+                                    la confianza o el ambiente de la comunidad.
+                                </p>
+                            </div>
+                        </article>
+
+                    </div>
+
                 </div>
             </div>
         </section>
+
+        {{-- ALISTAMIENTO --}}
+        <section id="alistamiento" class="join-section">
+            <div class="container join-content">
+
+                <div class="join-emblem" aria-hidden="true">
+                    SA
+                </div>
+
+                <span class="section-label">
+                    Da el primer paso
+                </span>
+
+                <h2>
+                    Tu lugar en Squad ALPHA comienza aquí.
+                </h2>
+
+                <p>
+                    Crea tu cuenta y comienza el proceso para formar parte
+                    de nuestra comunidad.
+                </p>
+
+                @guest
+                    <a
+                        href="{{ route('public.register') }}"
+                        class="btn btn-primary btn-hero"
+                        data-open-modal="register-modal"
+                    >
+                        Alístate
+                        <span aria-hidden="true">→</span>
+                    </a>
+                @else
+                    <div class="member-status">
+                        <span class="member-status__indicator"></span>
+
+                        Ya formas parte de la plataforma
+                    </div>
+                @endguest
+
+            </div>
+        </section>
+
     </main>
-@include('partials.auth-modals')
 
-<script
-    src="{{ asset('js/landing.js') }}"
-    defer
-></script>
+    <footer class="landing-footer">
+        <div class="container footer-content">
+
+            <div class="footer-brand">
+                <span class="footer-brand__mark">SA</span>
+
+                <span>
+                    <strong>Squad ALPHA</strong>
+                    <small>Comunidad de simulación militar</small>
+                </span>
+            </div>
+
+            <p>
+                Realismo · Disciplina · Equipo
+            </p>
+
+            <a href="#inicio">
+                Volver arriba ↑
+            </a>
+
+        </div>
+    </footer>
+
+    @include('partials.auth-modals')
+
+    <script
+        src="{{ asset('js/landing.js') }}"
+        defer
+    ></script>
 
 </body>
 </html>
