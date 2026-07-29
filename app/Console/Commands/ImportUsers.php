@@ -64,7 +64,6 @@ class ImportUsers extends Command
                     'birth_at' => $birthAt,
                     'tutor_id' => null,
                     'tagname' => $data['tagname'] ?? null,
-                    'arma_uid' => $data['arma_uid'] ?? null,
                     'discord_id' => $data['discord_id'] ?? null,
                     'steam_id' => $data['steam_id'] ?? null,
                     'member_at' => $memberAt,
