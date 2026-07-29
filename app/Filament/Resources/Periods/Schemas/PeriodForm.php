@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Periods\Schemas;
 
+
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Filament\Forms\Components\FileUpload;
 
 class PeriodForm
 {
@@ -13,7 +15,14 @@ class PeriodForm
             ->components([
                 TextInput::make('name')
                     ->required(),
-                TextInput::make('ico'),
+    
+                FileUpload::make('ico')
+                    ->label('Imagen')
+                    ->image()
+                    ->disk('public')
+                    ->directory('periods')
+                    ->visibility('public')
+                    ->preserveFilenames(),
                 TextInput::make('description'),
             ]);
     }
