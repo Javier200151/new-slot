@@ -25,7 +25,11 @@ class CountriesTable
                     ->state(fn ($record): ?string => $record->image
                         ? url('storage/' . $record->image)
                         : null)
-                    ->size(40),
+                    ->imageWidth(50)  
+                    ->imageHeight(50)
+                    ->extraImgAttributes([
+                        'style' => 'object-fit: contain;',
+                    ]),
 
                 TextColumn::make('created_at')
                     ->label('Creado')

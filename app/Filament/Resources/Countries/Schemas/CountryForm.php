@@ -22,7 +22,8 @@ class CountryForm
                     ->image()
                     ->disk('public')
                     ->directory('countries')
-                    ->visibility('public'),
+                    ->visibility('public')
+                    ->preserveFilenames(),
             ]);
     }
 }
