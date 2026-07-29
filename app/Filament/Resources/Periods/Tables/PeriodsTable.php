@@ -19,8 +19,8 @@ class PeriodsTable
                     ->searchable(),
                 ImageColumn::make('ico')
                     ->label('Imagen')
-                    ->state(fn ($record): ?string => $record->image
-                        ? url('storage/' . $record->image)
+                    ->state(fn ($record): ?string => $record->ico
+                        ? url('storage/' . $record->ico)
                         : null)
                     ->size(40),    
                 TextColumn::make('description')

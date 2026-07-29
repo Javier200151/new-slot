@@ -26,7 +26,11 @@ class ArmiesTable
                     ->sortable(),
 
                 ImageColumn::make('image')
-                    ->label('Imagen'),
+                    ->label('Imagen')
+                    ->state(fn ($record): ?string => $record->image
+                        ? url('storage/' . $record->image)
+                        : null)
+                    ->size(40),
 
                 TextColumn::make('description')
                     ->label('Descripción')
