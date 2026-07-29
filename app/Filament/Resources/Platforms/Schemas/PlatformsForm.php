@@ -15,8 +15,11 @@ class PlatformsForm
                 TextInput::make('name')
                     ->required(),
                 FileUpload::make('image')
-                    ->preserveFilenames()
-                    ->image(),
+                    ->image()
+                    ->disk('public')
+                    ->directory('platforms')
+                    ->visibility('public')
+                    ->preserveFilenames(),
             ]);
     }
 }

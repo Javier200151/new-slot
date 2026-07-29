@@ -21,7 +21,15 @@ class CountriesTable
                     ->sortable(),
 
                 ImageColumn::make('image')
-                    ->label('Imagen'),
+                    ->label('Imagen')
+                    ->state(fn ($record): ?string => $record->image
+                        ? url('storage/' . $record->image)
+                        : null)
+                    ->imageWidth(50)  
+                    ->imageHeight(50)
+                    ->extraImgAttributes([
+                        'style' => 'object-fit: contain;',
+                    ]),
 
                 TextColumn::make('created_at')
                     ->label('Creado')

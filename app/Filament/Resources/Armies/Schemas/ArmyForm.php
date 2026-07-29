@@ -34,7 +34,8 @@ class ArmyForm
                     ->image()
                     ->disk('public')
                     ->directory('armies')
-                    ->visibility('public'),
+                    ->visibility('public')
+                    ->preserveFilenames(),
             ]);
     }
 }
