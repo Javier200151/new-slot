@@ -94,8 +94,8 @@ class Event extends Model
             return new HtmlString('<div style="color: #6b7280; font-size: 0.875rem;">Este evento todavía no tiene ORBAT.</div>');
         }
 
-        $armyNames = Army::query()
-            ->whereIn('id', collect($groups)->pluck('army_id')->filter()->unique())
+        $factionNames = Faction::query()
+            ->whereIn('id', collect($groups)->pluck('faction_id')->filter()->unique())
             ->pluck('name', 'id');
 
         $slotTypeNames = SlotType::query()
@@ -113,7 +113,7 @@ class Event extends Model
 
         foreach ($groups as $group) {
             $groupName = e($group['name'] ?? 'Grupo sin nombre');
-            $armyName = e($armyNames[(int) ($group['army_id'] ?? 0)] ?? 'Sin ejército');
+            $factionName = e($factionNames[(int) ($group['faction_id'] ?? 0)] ?? 'Sin facción');
             $groupVisibility = ($group['visible'] ?? false) ? 'Visible' : 'Oculto';
             $slots = $group['slots'] ?? [];
 
@@ -122,7 +122,7 @@ class Event extends Model
             $html .= '<tbody>';
             $html .= '<tr>';
             $html .= "<td style=\"font-weight: 600; padding-right: 2rem; padding-bottom: 0.5rem;\">{$groupName}</td>";
-            $html .= "<td style=\"font-weight: 600; padding-right: 2rem; padding-bottom: 0.5rem;\">{$armyName}</td>";
+            $html .= "<td style=\"font-weight: 600; padding-right: 2rem; padding-bottom: 0.5rem;\">{$factionName}</td>";
             $html .= "<td style=\"font-weight: 600; padding-bottom: 0.5rem;\">{$groupVisibility}</td>";
             $html .= '</tr>';
 

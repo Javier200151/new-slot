@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Factions\Schemas;
 
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -13,25 +12,23 @@ class FactionForm
     {
         return $schema
             ->components([
+                Select::make('army_id')
+                    ->label('Ejército')
+                    ->relationship('army', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+
                 Select::make('side_id')
                     ->label('Bando')
                     ->relationship('side', 'name')
                     ->searchable()
                     ->preload()
-                    ->nullable(),
+                    ->required(),
 
                 TextInput::make('name')
                     ->label('Nombre')
                     ->required(),
-                FileUpload::make('image')
-                    ->label('Imagen')
-                    ->disk('public')
-                    ->directory('factions')
-                    ->visibility('public')
-                    ->preserveFilenames()
-                    ->image(),
-                TextInput::make('description')
-                    ->label('Descripción'),
             ]);
     }
 }

@@ -113,7 +113,6 @@ class UserForm
                             ->maxHeight(150)
                     ),
 
-                TextInput::make('arma_uid'),
                 TextInput::make('discord_id'),
                 TextInput::make('steam_id'),
                 DatePicker::make('member_at')

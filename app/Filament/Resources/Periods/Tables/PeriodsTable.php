@@ -7,6 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\ImageColumn;
 
 class PeriodsTable
 {
@@ -16,8 +17,12 @@ class PeriodsTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('ico')
-                    ->searchable(),
+                ImageColumn::make('ico')
+                    ->label('Imagen')
+                    ->state(fn ($record): ?string => $record->image
+                        ? url('storage/' . $record->image)
+                        : null)
+                    ->size(40),    
                 TextColumn::make('description')
                     ->searchable(),
                 TextColumn::make('created_at')
