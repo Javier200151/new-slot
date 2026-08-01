@@ -46,6 +46,7 @@
                 <a href="#inicio">Inicio</a>
                 <a href="#comunidad">Quiénes somos</a>
                 <a href="#normativa">Normativa</a>
+                <a href="{{ route('metopas.index') }}">Metopas</a>
             </nav>
 
             <div class="nav-actions">

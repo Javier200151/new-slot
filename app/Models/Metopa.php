@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Metopa extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use LogsActivity, SoftDeletes;
 
     protected $table = 'metopas';
 
@@ -31,6 +31,7 @@ class Metopa extends Model
     {
         return $this->belongsToMany(User::class, 'metopa_user')
             ->withPivot('assigned_at')
+            ->wherePivotNull('deleted_at')
             ->withTimestamps();
     }
 
@@ -54,6 +55,7 @@ class Metopa extends Model
             }
         });
     }
+
     public function getRouteKeyName(): string
     {
         return 'name';
