@@ -84,7 +84,9 @@
                                         </span>
 
                                         <span class="metopa-awardees__member">
-                                            <strong>{{ $user->nick }}</strong>
+                                            <strong @style(['--member-group-color: ' . ($user->mainSqaGroup?->color ?? '') => filled($user->mainSqaGroup?->color)])>
+                                                {{ $user->nick }}
+                                            </strong>
                                             <span>{{ $user->status->name }}</span>
                                         </span>
 

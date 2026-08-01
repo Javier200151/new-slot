@@ -41,7 +41,10 @@ class MetopaController extends Controller
             'users' => fn ($query) => $query
                 ->whereHas('status', fn (Builder $query): Builder => $query
                     ->whereIn('name', ['ACTIVO', 'RESERVA']))
-                ->with('status:id,name')
+                ->with([
+                    'status:id,name',
+                    'mainSqaGroup',
+                ])
                 ->orderBy('metopa_user.assigned_at', 'asc')
                 ->orderBy('users.nick', 'asc'),
         ]);

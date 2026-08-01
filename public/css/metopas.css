@@ -534,7 +534,7 @@
 }
 
 .metopa-awardees__member strong {
-    color: #fff;
+    color: var(--member-group-color, #fff);
     font-size: 0.93rem;
 }
 

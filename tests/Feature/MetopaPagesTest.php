@@ -55,12 +55,17 @@ class MetopaPagesTest extends TestCase
 
         $firstAwardee = new User(['nick' => 'Alpha']);
         $firstAwardee->setRelation('status', new Status(['name' => 'ACTIVO']));
+        $firstAwardee->setRelation('mainSqaGroup', new SqaGroup([
+            'name' => 'GIA',
+            'color' => '#ff9900',
+        ]));
         $firstAwardee->setRelation('pivot', new Pivot([
             'assigned_at' => '2025-01-10 12:00:00',
         ]));
 
         $secondAwardee = new User(['nick' => 'Bravo']);
         $secondAwardee->setRelation('status', new Status(['name' => 'RESERVA']));
+        $secondAwardee->setRelation('mainSqaGroup', null);
         $secondAwardee->setRelation('pivot', new Pivot([
             'assigned_at' => '2025-03-20 12:00:00',
         ]));
@@ -81,6 +86,7 @@ class MetopaPagesTest extends TestCase
             ->assertSee('Mostrar miembros galardonados')
             ->assertSee('Alpha')
             ->assertSee('ACTIVO')
+            ->assertSee('--member-group-color: #ff9900', escape: false)
             ->assertSee('Concedida el 10/01/2025')
             ->assertSee('Bravo')
             ->assertSee('RESERVA')
