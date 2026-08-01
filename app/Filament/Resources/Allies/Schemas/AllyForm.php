@@ -25,6 +25,12 @@ class AllyForm
                     ->visibility('public')
                     ->preserveFilenames()
                     ->columnSpanFull(),
+
+                TextInput::make('url')
+                    ->label('URL')
+                    ->url()
+                    ->maxLength(2048)
+                    ->placeholder('https://ejemplo.com'),
             ]);
     }
 }
