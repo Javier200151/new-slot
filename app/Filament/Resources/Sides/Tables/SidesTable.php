@@ -17,7 +17,15 @@ class SidesTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                ImageColumn::make('image'),
+                ImageColumn::make('image')
+                    ->state(fn ($record): ?string => $record->image
+                        ? url('storage/' . $record->image)
+                        : null)
+                    ->imageWidth(50)  
+                    ->imageHeight(50)
+                    ->extraImgAttributes([
+                        'style' => 'object-fit: contain;',
+                    ]),
                 TextColumn::make('description')
                     ->searchable(),
             ])
