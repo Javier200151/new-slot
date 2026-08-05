@@ -47,11 +47,11 @@
 
 .metopas-index-hero {
     position: relative;
-    min-height: 430px;
+    min-height: 350px;
     display: grid;
     align-items: end;
     overflow: hidden;
-    padding: 110px 0 76px;
+    padding: 90px 0 76px;
     border-bottom: 1px solid var(--border);
     background:
         linear-gradient(90deg, rgba(245, 158, 11, 0.06) 1px, transparent 1px),
@@ -601,9 +601,31 @@
         padding-top: 0;
     }
 
+    .metopas-index-body .nav-wrapper {
+        padding-block: 9px;
+    }
+
+    .metopas-index-body .brand-logo-image {
+        height: 40px;
+    }
+
     .metopas-index-hero {
-        min-height: 380px;
-        padding: 75px 0 55px;
+        min-height: 240px;
+        padding: 42px 0 34px;
+    }
+
+    .metopas-index-hero h1 {
+        font-size: clamp(3rem, 15vw, 4.2rem);
+    }
+
+    .metopas-index-hero p {
+        margin-top: 18px;
+        font-size: 0.94rem;
+        line-height: 1.65;
+    }
+
+    .metopas-catalogue {
+        padding: 38px 0 80px;
     }
 
     .metopas-section-heading {

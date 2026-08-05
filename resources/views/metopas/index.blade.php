@@ -4,6 +4,8 @@
 
 @section('meta-description', 'Consulta las metopas y reconocimientos de Squad ALPHA.')
 
+@section('body-class', 'metopas-index-body')
+
 @section('content')
     <section class="metopas-index-hero">
         <div class="container metopas-index-hero__content">
