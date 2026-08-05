@@ -59,7 +59,7 @@
                 <nav class="landing-nav" aria-label="Navegación principal">
                     <a href="#inicio">Inicio</a>
                     <a href="#comunidad">Quiénes somos</a>
-                    <a href="#normativa">Normativa</a>
+                    <a href="{{ route('pages.show', 'normativa') }}">Normativa</a>
                     <a href="{{ route('metopas.index') }}">Metopas</a>
                 </nav>
 

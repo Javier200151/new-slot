@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MetopaController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicLoginController;
 use App\Http\Controllers\PublicRegisterController;
@@ -142,3 +143,16 @@ Route::get('/firmas/{nick}.html', function ($nick) {
 
     return view('firmas.show', compact('user'));
 })->name('firmas.show');
+
+/*
+|--------------------------------------------------------------------------
+| Páginas públicas
+|--------------------------------------------------------------------------
+|
+| Esta ruta debe permanecer al final para no interferir con las rutas
+| específicas de la aplicación.
+|
+*/
+
+Route::get('/{page:slug}', [PageController::class, 'show'])
+    ->name('pages.show');

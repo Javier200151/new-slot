@@ -9,6 +9,7 @@
 
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
     <link rel="stylesheet" href="{{ asset('css/metopas.css') }}">
+    @stack('styles')
 </head>
 
 <body class="landing-body metopas-body @yield('body-class')">
@@ -41,8 +42,18 @@
                 <nav class="landing-nav" aria-label="Navegación principal">
                     <a href="{{ route('home') }}">Inicio</a>
                     <a href="{{ route('home') }}#comunidad">Quiénes somos</a>
-                    <a href="{{ route('home') }}#normativa">Normativa</a>
-                    <a href="{{ route('metopas.index') }}" class="is-active">Metopas</a>
+                    <a
+                        href="{{ route('pages.show', 'normativa') }}"
+                        @class(['is-active' => request()->routeIs('pages.show') && request()->route('page')?->slug === 'normativa'])
+                    >
+                        Normativa
+                    </a>
+                    <a
+                        href="{{ route('metopas.index') }}"
+                        @class(['is-active' => request()->routeIs('metopas.*')])
+                    >
+                        Metopas
+                    </a>
                 </nav>
 
                 <div class="nav-actions">
@@ -95,9 +106,15 @@
 
             <p>Realismo · Disciplina · Equipo</p>
 
-            <a href="{{ route('metopas.index') }}">
-                Ver todas las metopas
-            </a>
+            @if(request()->routeIs('metopas.*'))
+                <a href="{{ route('metopas.index') }}">
+                    Ver todas las metopas
+                </a>
+            @else
+                <a href="{{ route('home') }}">
+                    Volver al inicio
+                </a>
+            @endif
         </div>
     </footer>
 
