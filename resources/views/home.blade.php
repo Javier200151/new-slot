@@ -42,62 +42,77 @@
                 >
             </a>
 
-            <nav class="landing-nav" aria-label="Navegación principal">
-                <a href="#inicio">Inicio</a>
-                <a href="#comunidad">Quiénes somos</a>
-                <a href="#normativa">Normativa</a>
-                <a href="{{ route('metopas.index') }}">Metopas</a>
-            </nav>
+            <button
+                type="button"
+                class="nav-toggle"
+                aria-label="Mostrar menú"
+                aria-controls="public-navigation"
+                aria-expanded="false"
+                data-nav-toggle
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
 
-            <div class="nav-actions">
-                @guest
-                    <a
-                        href="{{ route('login') }}"
-                        class="btn btn-outline"
-                        data-open-modal="login-modal"
-                    >
-                        Iniciar sesión
-                    </a>
+            <div id="public-navigation" class="nav-menu" data-nav-menu>
+                <nav class="landing-nav" aria-label="Navegación principal">
+                    <a href="#inicio">Inicio</a>
+                    <a href="#comunidad">Quiénes somos</a>
+                    <a href="#normativa">Normativa</a>
+                    <a href="{{ route('metopas.index') }}">Metopas</a>
+                </nav>
 
-                    <a
-                        href="{{ route('public.register') }}"
-                        class="btn btn-primary"
-                        data-open-modal="register-modal"
-                    >
-                        Crear cuenta
-                    </a>
-                @else
-                    <a
-                        href="{{ route('profile.show') }}"
-                        class="btn btn-outline"
-                    >
-                        Mi perfil
-                    </a>
-
-                    @if(auth()->user()->hasRole('admin'))
+                <div class="nav-actions">
+                    @guest
                         <a
-                            href="{{ url('/admin') }}"
+                            href="{{ route('login') }}"
+                            class="btn btn-outline"
+                            data-open-modal="login-modal"
+                        >
+                            Iniciar sesión
+                        </a>
+
+                        <a
+                            href="{{ route('public.register') }}"
+                            class="btn btn-primary"
+                            data-open-modal="register-modal"
+                        >
+                            Crear cuenta
+                        </a>
+                    @else
+                        <a
+                            href="{{ route('profile.show') }}"
                             class="btn btn-outline"
                         >
-                            Panel de administración
+                            Mi perfil
                         </a>
-                    @endif
 
-                    <form
-                        method="POST"
-                        action="{{ route('logout') }}"
-                        class="logout-form"
-                    >
-                        @csrf
+                        @if(auth()->user()->hasRole('admin'))
+                            <a
+                                href="{{ url('/admin') }}"
+                                class="btn btn-outline"
+                            >
+                                Administración
+                            </a>
+                        @endif
 
-                        <button
-                            type="submit"
-                            class="btn btn-primary"
+                        <form
+                            method="POST"
+                            action="{{ route('logout') }}"
+                            class="logout-form"
                         >
-                            Cerrar sesión
-                        </button>
-                    </form>
-                @endguest
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    @endguest
+                </div>
             </div>
 
         </div>

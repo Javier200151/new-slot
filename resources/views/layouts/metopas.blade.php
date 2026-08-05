@@ -24,41 +24,56 @@
                 >
             </a>
 
-            <nav class="landing-nav" aria-label="Navegación principal">
-                <a href="{{ route('home') }}">Inicio</a>
-                <a href="{{ route('home') }}#comunidad">Quiénes somos</a>
-                <a href="{{ route('home') }}#normativa">Normativa</a>
-                <a href="{{ route('metopas.index') }}" class="is-active">Metopas</a>
-            </nav>
+            <button
+                type="button"
+                class="nav-toggle"
+                aria-label="Mostrar menú"
+                aria-controls="public-navigation"
+                aria-expanded="false"
+                data-nav-toggle
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
 
-            <div class="nav-actions">
-                @guest
-                    <a href="{{ route('login') }}" class="btn btn-outline">
-                        Iniciar sesión
-                    </a>
+            <div id="public-navigation" class="nav-menu" data-nav-menu>
+                <nav class="landing-nav" aria-label="Navegación principal">
+                    <a href="{{ route('home') }}">Inicio</a>
+                    <a href="{{ route('home') }}#comunidad">Quiénes somos</a>
+                    <a href="{{ route('home') }}#normativa">Normativa</a>
+                    <a href="{{ route('metopas.index') }}" class="is-active">Metopas</a>
+                </nav>
 
-                    <a href="{{ route('public.register') }}" class="btn btn-primary">
-                        Crear cuenta
-                    </a>
-                @else
-                    <a href="{{ route('profile.show') }}" class="btn btn-outline">
-                        Mi perfil
-                    </a>
-
-                    @if(auth()->user()->hasRole('admin'))
-                        <a href="{{ url('/admin') }}" class="btn btn-outline">
-                            Administración
+                <div class="nav-actions">
+                    @guest
+                        <a href="{{ route('login') }}" class="btn btn-outline">
+                            Iniciar sesión
                         </a>
-                    @endif
 
-                    <form method="POST" action="{{ route('logout') }}" class="logout-form">
-                        @csrf
+                        <a href="{{ route('public.register') }}" class="btn btn-primary">
+                            Crear cuenta
+                        </a>
+                    @else
+                        <a href="{{ route('profile.show') }}" class="btn btn-outline">
+                            Mi perfil
+                        </a>
 
-                        <button type="submit" class="btn btn-primary">
-                            Cerrar sesión
-                        </button>
-                    </form>
-                @endguest
+                        @if(auth()->user()->hasRole('admin'))
+                            <a href="{{ url('/admin') }}" class="btn btn-outline">
+                                Administración
+                            </a>
+                        @endif
+
+                        <form method="POST" action="{{ route('logout') }}" class="logout-form">
+                            @csrf
+
+                            <button type="submit" class="btn btn-primary">
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    @endguest
+                </div>
             </div>
         </div>
     </header>
@@ -85,5 +100,7 @@
             </a>
         </div>
     </footer>
+
+    <script src="{{ asset('js/landing.js') }}" defer></script>
 </body>
 </html>

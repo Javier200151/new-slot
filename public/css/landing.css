@@ -216,11 +216,58 @@ form {
     transform: scaleX(1);
 }
 
+.nav-menu {
+    display: contents;
+}
+
+.nav-toggle {
+    width: 40px;
+    height: 36px;
+    display: none;
+    place-items: center;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid var(--border-orange);
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.04);
+    cursor: pointer;
+}
+
+.nav-toggle span {
+    width: 18px;
+    height: 2px;
+    display: block;
+    border-radius: 999px;
+    background: var(--primary-light);
+    transition:
+        transform 180ms ease,
+        opacity 180ms ease;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+}
+
 .nav-actions {
     display: flex;
     align-items: center;
     gap: 11px;
     flex-shrink: 0;
+}
+
+.nav-actions .btn {
+    min-height: 36px;
+    padding: 8px 13px;
+    border-radius: 8px;
+    font-size: 0.78rem;
 }
 
 .logout-form {
@@ -1220,8 +1267,65 @@ input:focus-visible {
 ========================================================= */
 
 @media (max-width: 1000px) {
-    .landing-nav {
+    .nav-wrapper {
+        position: relative;
+    }
+
+    .nav-toggle {
+        display: grid;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+
+    .nav-menu {
+        position: absolute;
+        top: calc(100% + 1px);
+        right: 0;
+        left: 0;
         display: none;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-top: 2px solid var(--primary);
+        border-radius: 0 0 12px 12px;
+        background: rgba(5, 7, 10, 0.98);
+        box-shadow: 0 22px 45px rgba(0, 0, 0, 0.42);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+    }
+
+    .nav-menu.is-open {
+        display: grid;
+    }
+
+    .landing-nav {
+        display: grid;
+        gap: 0;
+    }
+
+    .landing-nav a {
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .landing-nav a::after {
+        display: none;
+    }
+
+    .nav-menu .nav-actions {
+        width: 100%;
+        gap: 8px;
+        flex-wrap: nowrap;
+    }
+
+    .nav-menu .nav-actions .btn,
+    .nav-menu .logout-form {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .nav-menu .logout-form .btn {
+        width: 100%;
     }
 
     .about-layout,
@@ -1264,11 +1368,12 @@ input:focus-visible {
     }
 
     .brand {
-        width: 100%;
+        width: auto;
     }
 
     .nav-actions {
         width: 100%;
+        flex-wrap: wrap;
     }
 
     .nav-actions .btn,
@@ -1367,7 +1472,12 @@ input:focus-visible {
 
     .nav-actions {
         align-items: stretch;
-        flex-direction: column;
+        flex-direction: row;
+    }
+
+    .nav-menu .nav-actions .btn {
+        padding-inline: 8px;
+        font-size: 0.7rem;
     }
 
     .hero-title {
