@@ -4,8 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class Event extends Model
 {
@@ -84,6 +84,18 @@ class Event extends Model
     public function streams()
     {
         return $this->hasMany(Stream::class);
+    }
+
+    public function slots()
+    {
+        return $this->hasMany(EventSlot::class);
+    }
+
+    public function getOrbatSlotsCount(): int
+    {
+        return collect($this->orbat['groups'] ?? [])->sum(
+            fn (array $group): int => count($group['slots'] ?? []),
+        );
     }
 
     public function getOrbatSummaryHtml(): HtmlString

@@ -49,6 +49,12 @@
                         Normativa
                     </a>
                     <a
+                        href="{{ route('events.index') }}"
+                        @class(['is-active' => request()->routeIs('events.*')])
+                    >
+                        Eventos
+                    </a>
+                    <a
                         href="{{ route('metopas.index') }}"
                         @class(['is-active' => request()->routeIs('metopas.*')])
                     >
@@ -93,30 +99,15 @@
         @yield('content')
     </main>
 
-    <footer class="landing-footer metopas-footer">
-        <div class="container footer-content">
-            <div class="footer-brand">
-                <span class="footer-brand__mark">SA</span>
-
-                <span>
-                    <strong>Squad ALPHA</strong>
-                    <small>Comunidad de simulación militar</small>
-                </span>
-            </div>
-
-            <p>Realismo · Disciplina · Equipo</p>
-
-            @if(request()->routeIs('metopas.*'))
-                <a href="{{ route('metopas.index') }}">
-                    Ver todas las metopas
-                </a>
-            @else
-                <a href="{{ route('home') }}">
-                    Volver al inicio
-                </a>
-            @endif
-        </div>
-    </footer>
+    @include('partials.public-footer', [
+        'footerClass' => 'metopas-footer',
+        'footerLinkUrl' => request()->routeIs('metopas.*')
+            ? route('metopas.index')
+            : route('home'),
+        'footerLinkLabel' => request()->routeIs('metopas.*')
+            ? 'Ver todas las metopas'
+            : 'Volver al inicio',
+    ])
 
     <script src="{{ asset('js/landing.js') }}" defer></script>
 </body>

@@ -28,7 +28,9 @@ class PublicPageTest extends TestCase
             ->assertSee('Normativa')
             ->assertSee('<h2>Respeto y convivencia</h2>', escape: false)
             ->assertSee(route('pages.show', 'normativa'), escape: false)
-            ->assertSee('css/pages.css', escape: false);
+            ->assertSee('css/pages.css', escape: false)
+            ->assertSee('Grupo de Simulación Táctica en Arma 3 y Arma Reforger')
+            ->assertSee('Volver al inicio');
     }
 
     public function test_a_published_page_is_accessible_directly_by_its_slug(): void
@@ -65,6 +67,8 @@ class PublicPageTest extends TestCase
         $this->assertSame('filament.admin.pages.dashboard', $routes->match(Request::create('/admin'))->getName());
         $this->assertSame('login', $routes->match(Request::create('/login'))->getName());
         $this->assertSame('metopas.index', $routes->match(Request::create('/metopas'))->getName());
+        $this->assertSame('events.index', $routes->match(Request::create('/eventos'))->getName());
+        $this->assertSame('campaigns.show', $routes->match(Request::create('/campanas/1'))->getName());
         $this->assertSame('pages.show', $routes->match(Request::create('/prueba'))->getName());
     }
 }

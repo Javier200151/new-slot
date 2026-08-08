@@ -3,6 +3,8 @@
 use App\Http\Controllers\MetopaController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicCampaignController;
+use App\Http\Controllers\PublicEventController;
 use App\Http\Controllers\PublicLoginController;
 use App\Http\Controllers\PublicRegisterController;
 use App\Models\User;
@@ -126,6 +128,21 @@ Route::get('/metopas', [MetopaController::class, 'index'])
 
 Route::get('/metopas/{metopa}', [MetopaController::class, 'show'])
     ->name('metopas.show');
+
+/*
+|--------------------------------------------------------------------------
+| Eventos públicos
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/eventos', [PublicEventController::class, 'index'])
+    ->name('events.index');
+
+Route::get('/eventos/{event}', [PublicEventController::class, 'show'])
+    ->name('events.show');
+
+Route::get('/campanas/{campaign}', [PublicCampaignController::class, 'show'])
+    ->name('campaigns.show');
 
 /*
 |--------------------------------------------------------------------------

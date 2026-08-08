@@ -78,6 +78,18 @@ form {
     margin: 0;
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    padding: 0;
+    margin: -1px;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
 ::selection {
     color: #111;
     background: var(--primary);
@@ -996,7 +1008,6 @@ form {
     font-size: 0.69rem;
 }
 
-.footer-content > p,
 .footer-content > a {
     color: var(--text-muted);
     font-size: 0.74rem;
@@ -1004,6 +1015,53 @@ form {
 
 .footer-content > a:hover {
     color: var(--primary);
+}
+
+.footer-social {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+}
+
+.footer-social a {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    transition:
+        transform 180ms ease,
+        color 180ms ease,
+        border-color 180ms ease,
+        background 180ms ease;
+}
+
+.footer-social a:hover {
+    color: var(--primary-light);
+    border-color: var(--border-orange);
+    background: rgba(245, 158, 11, 0.07);
+    transform: translateY(-2px);
+}
+
+.footer-social svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+}
+
+.footer-social a[aria-label*="Instagram"] svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+}
+
+.footer-social .footer-social__fill {
+    fill: currentColor;
+    stroke: none;
 }
 
 /* =========================================================

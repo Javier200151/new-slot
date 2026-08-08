@@ -60,6 +60,7 @@
                     <a href="#inicio">Inicio</a>
                     <a href="#comunidad">Quiénes somos</a>
                     <a href="{{ route('pages.show', 'normativa') }}">Normativa</a>
+                    <a href="{{ route('events.index') }}">Eventos</a>
                     <a href="{{ route('metopas.index') }}">Metopas</a>
                 </nav>
 
@@ -402,28 +403,10 @@
 
     </main>
 
-    <footer class="landing-footer">
-        <div class="container footer-content">
-
-            <div class="footer-brand">
-                <span class="footer-brand__mark">SA</span>
-
-                <span>
-                    <strong>Squad ALPHA</strong>
-                    <small>Comunidad de simulación militar</small>
-                </span>
-            </div>
-
-            <p>
-                Realismo · Disciplina · Equipo
-            </p>
-
-            <a href="#inicio">
-                Volver arriba ↑
-            </a>
-
-        </div>
-    </footer>
+    @include('partials.public-footer', [
+        'footerLinkUrl' => '#inicio',
+        'footerLinkLabel' => 'Volver arriba ↑',
+    ])
 
     @include('partials.auth-modals')
 

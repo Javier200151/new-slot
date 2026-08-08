@@ -20,6 +20,12 @@ class ExampleTest extends TestCase
             ->assertSee('aria-controls="public-navigation"', escape: false)
             ->assertSee('data-nav-menu', escape: false)
             ->assertSee('Iniciar sesión')
-            ->assertSee('Crear cuenta');
+            ->assertSee('Crear cuenta')
+            ->assertSee('Grupo de Simulación Táctica en Arma 3 y Arma Reforger')
+            ->assertSee('Squad ALPHA en X')
+            ->assertSee('Squad ALPHA en Instagram')
+            ->assertSee('Squad ALPHA en YouTube')
+            ->assertSee('Servidor de Discord de Squad ALPHA')
+            ->assertSee('Volver arriba ↑');
     }
 }

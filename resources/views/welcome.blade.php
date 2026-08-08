@@ -10,7 +10,7 @@
     <header class="landing-header">
         <div class="container nav-wrapper">
             <div class="brand">
-                <div class="brand-mark">SA</div>
+                <div class="brand-mark">SQA</div>
                 <div class="brand-text">
                     <span class="brand-title">Squad <strong>ALPHA</strong></span>
                     <span class="brand-subtitle">Comunidad de simulación militar</span>
