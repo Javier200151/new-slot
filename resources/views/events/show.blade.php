@@ -53,6 +53,8 @@
                     @if($event->name && $event->name !== $operation->name)
                         <p class="event-detail__operation-name">{{ $operation->name }}</p>
                     @endif
+
+
                 </div>
 
                 @if($operation->image)
@@ -64,11 +66,11 @@
 
             <section class="event-detail__facts" aria-label="Datos del evento y del operativo">
                 @foreach([
-                    ['Tipo', $operation->operationType?->name],
-                    ['Estado del evento', $event->eventStatus?->name],
-                    ['Periodo', $operation->period?->name],
+                    // ['Tipo', $operation->operationType?->name],
+                    // ['Estado del evento', $event->eventStatus?->name],
                     ['Plataforma', $operation->platform?->name],
-                    ['Mapa', $operation->map?->name],                  
+                    ['Periodo', $operation->period?->name],
+                    ['Mapa', $operation->map?->name],
                     ['Ambientación', $dayOrNight],
                     ['Duración', $event->duration ? $event->duration . ' min' : null],
                     ['Resultado', $event->eventResult?->name],
@@ -77,9 +79,16 @@
                     @if(filled($value))
                         <div>
                             <dt>{{ $label }}</dt>
-                            <dd>{{ $value }}</dd>
+                            <dd>
+                                @if($label === 'Mapa' && $operation->map)
+                                    <a href="{{ route('maps.show', $operation->map) }}">{{ $value }}</a>
+                                @else
+                                    {{ $value }}
+                                @endif
+                            </dd>
                         </div>
                     @endif
+
                 @endforeach
 
                 @if($operation->campaign)
@@ -98,7 +107,7 @@
 
             @if($operation->enemyFactions->isNotEmpty())
                 <section class="event-detail__section">
-                    <header><span>Inteligencia</span><h2>Facciones enemigas</h2></header>
+                    <header><span>Facciones enemigas</span></header>
                     <div class="event-detail__tags">
                         @foreach($operation->enemyFactions as $faction)
                             <span>
@@ -181,7 +190,7 @@
                             <tbody>
                                 @foreach($radioNetworks as $network)
                                     <tr>
-                                        <td>{{ $network['name'] ?? 'Sin nombre' }}</td>
+                                        <td><strong>{{ $network['name'] ?? 'Sin nombre' }}</strong></td>
                                         <td>{{ $network['radio_model_name'] ?? '—' }}</td>
                                         <td>
                                             @foreach(($network['configuration'] ?? []) as $key => $value)
@@ -209,7 +218,7 @@
                             <tbody>
                                 @foreach($addons as $addon)
                                     <tr>
-                                        <td><strong>{{ $addon->name }}</strong></td>
+                                        <td>{{ $addon->name }}</td>
                                         {{-- <td>{{ $addon->mandatory ? 'Obligatorio' : 'Opcional' }}</td>
                                         <td>{{ $addon->description ?: '—' }}</td> --}}
                                     </tr>

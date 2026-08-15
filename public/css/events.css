@@ -264,6 +264,17 @@
     color: #fff;
 }
 
+.event-card__fact-link {
+    color: var(--event-color, var(--primary-light));
+    font-weight: 750;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.event-card__fact-link:hover {
+    color: #fff;
+}
+
 .events-list {
     display: grid;
     gap: 16px;

@@ -13,7 +13,7 @@
 @section('content')
     <section class="events-hero">
         <div class="container">
-            <span class="events-kicker">Agenda operativa</span>
+            {{-- <span class="events-kicker">Agenda operativa</span> --}}
             <h1>Eventos</h1>
             <p>Consulta los próximos operativos y el histórico de eventos finalizados.</p>
         </div>

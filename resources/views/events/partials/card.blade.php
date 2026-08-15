@@ -90,7 +90,11 @@
             @if($operation?->map)
                 <div>
                     <dt>Mapa</dt>
-                    <dd>{{ $operation->map->name }}</dd>
+                    <dd>
+                        <a href="{{ route('maps.show', $operation->map) }}" class="event-card__fact-link">
+                            {{ $operation->map->name }}
+                        </a>
+                    </dd>
                 </div>
             @endif
 

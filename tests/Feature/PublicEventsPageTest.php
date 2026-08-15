@@ -46,6 +46,16 @@ class PublicEventsPageTest extends TestCase
             $table->string('image')->nullable();
         });
 
+        Schema::create('maps', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('description')->nullable();
+            $table->string('image')->nullable();
+            $table->string('url')->nullable();
+            $table->foreignId('platform_id')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('operation_day', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
@@ -180,6 +190,17 @@ class PublicEventsPageTest extends TestCase
             ['id' => 1, 'name' => 'Arma 3', 'image' => 'platforms/arma-3.png'],
         ]);
 
+        DB::table('maps')->insert([
+            'id' => 1,
+            'name' => 'Altis',
+            'description' => 'Isla mediterránea con amplias zonas urbanas y rurales.',
+            'image' => 'maps/altis.jpg',
+            'url' => 'https://example.com/maps/altis',
+            'platform_id' => 1,
+            'created_at' => '2026-08-01 10:00:00',
+            'updated_at' => '2026-08-01 10:00:00',
+        ]);
+
         DB::table('campaign')->insert([
             [
                 'id' => 1,
@@ -195,6 +216,7 @@ class PublicEventsPageTest extends TestCase
                 'operation_status_id' => 1,
                 'period_id' => 1,
                 'platform_id' => 1,
+                'map_id' => 1,
                 'campaign_id' => null,
                 'name' => 'Operación Alpha',
                 'created_at' => '2026-08-01 10:00:00',
@@ -206,6 +228,7 @@ class PublicEventsPageTest extends TestCase
                 'operation_status_id' => 1,
                 'period_id' => 1,
                 'platform_id' => 1,
+                'map_id' => null,
                 'campaign_id' => 1,
                 'name' => 'Operación Bravo',
                 'created_at' => '2026-08-01 10:00:00',
@@ -217,6 +240,7 @@ class PublicEventsPageTest extends TestCase
                 'operation_status_id' => 1,
                 'period_id' => 1,
                 'platform_id' => 1,
+                'map_id' => null,
                 'campaign_id' => 1,
                 'name' => 'Operación sin evento',
                 'created_at' => '2026-08-01 10:00:00',
@@ -301,6 +325,7 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('Campaña Centinela')
             ->assertSee(route('campaigns.show', 1), escape: false)
             ->assertSee(route('events.show', 1), escape: false)
+            ->assertSee(route('maps.show', 1), escape: false)
             ->assertSee('2 / 4')
             ->assertSee('Lunes 10/08/26 21:00H')
             ->assertSee('Jueves 20/08/26 20:00H')
@@ -455,6 +480,8 @@ class PublicEventsPageTest extends TestCase
             ->assertOk()
             ->assertSee('Evento activo')
             ->assertSee('Operación Alpha')
+            ->assertSee('Altis')
+            ->assertSee(route('maps.show', 1), escape: false)
             ->assertSee('Briefing visible del operativo.')
             ->assertSee('Mando')
             ->assertDontSee('Red secreta')
@@ -481,5 +508,18 @@ class PublicEventsPageTest extends TestCase
     public function test_draft_event_page_is_not_public(): void
     {
         $this->get('/eventos/3')->assertNotFound();
+    }
+
+    public function test_map_page_shows_all_available_map_data(): void
+    {
+        $this->get('/mapas/1')
+            ->assertOk()
+            ->assertSee('Altis')
+            ->assertSee('Arma 3')
+            ->assertSee('Isla mediterránea con amplias zonas urbanas y rurales.')
+            ->assertSee('storage/maps/altis.jpg', escape: false)
+            ->assertSee('https://example.com/maps/altis', escape: false)
+            ->assertSee('target="_blank"', escape: false)
+            ->assertSee('rel="noopener noreferrer"', escape: false);
     }
 }

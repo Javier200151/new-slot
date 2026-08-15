@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicCampaignController;
 use App\Http\Controllers\PublicEventController;
 use App\Http\Controllers\PublicLoginController;
+use App\Http\Controllers\PublicMapController;
 use App\Http\Controllers\PublicRegisterController;
 use App\Models\User;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -140,6 +141,9 @@ Route::get('/eventos', [PublicEventController::class, 'index'])
 
 Route::get('/eventos/{event}', [PublicEventController::class, 'show'])
     ->name('events.show');
+
+Route::get('/mapas/{map}', [PublicMapController::class, 'show'])
+    ->name('maps.show');
 
 Route::get('/campanas/{campaign}', [PublicCampaignController::class, 'show'])
     ->name('campaigns.show');
