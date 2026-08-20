@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -64,6 +65,37 @@ class PublicEventsPageTest extends TestCase
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
             $table->string('nick');
+            $table->foreignId('status_id')->nullable();
+            $table->softDeletes();
+        });
+
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('guard_name');
+        });
+
+        Schema::create('model_has_roles', function (Blueprint $table): void {
+            $table->foreignId('role_id');
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+        });
+
+        Schema::create('sqa_groups', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('color')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('sqa_group_users', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('sqa_group_id');
+            $table->foreignId('user_id');
+            $table->boolean('main')->default(false);
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
             $table->softDeletes();
         });
 
@@ -92,6 +124,18 @@ class PublicEventsPageTest extends TestCase
         Schema::create('slot_types', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
+        });
+
+        Schema::create('status', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->softDeletes();
+        });
+
+        Schema::create('slot_types_status', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('slot_type_id');
+            $table->foreignId('status_id');
         });
 
         Schema::create('addons', function (Blueprint $table): void {
@@ -161,6 +205,31 @@ class PublicEventsPageTest extends TestCase
             $table->foreignId('slot_type_id')->nullable();
             $table->string('slot_group')->nullable();
             $table->foreignId('faction_id')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
+            $table->unique(['event_id', 'slot_key']);
+        });
+
+        Schema::create('event_slot_history', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_slot_id')->nullable();
+            $table->foreignId('event_id')->nullable();
+            $table->foreignId('ally_id')->nullable();
+            $table->foreignId('user_id')->nullable();
+            $table->string('action');
+            $table->string('from_slot_key')->nullable();
+            $table->string('from_slot_name')->nullable();
+            $table->foreignId('from_slot_type_id')->nullable();
+            $table->string('from_slot_group')->nullable();
+            $table->foreignId('from_army_id')->nullable();
+            $table->string('to_slot_key')->nullable();
+            $table->string('to_slot_name')->nullable();
+            $table->foreignId('to_slot_type_id')->nullable();
+            $table->string('to_slot_group')->nullable();
+            $table->foreignId('to_army_id')->nullable();
+            $table->foreignId('changed_by_user_id')->nullable();
+            $table->timestamp('created_at')->nullable();
         });
 
         DB::table('event_status')->insert([
@@ -348,6 +417,30 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('1 evento encontrado');
     }
 
+    public function test_event_list_date_range_can_span_multiple_calendar_months(): void
+    {
+        DB::table('events')->insert([
+            'id' => 4,
+            'operation_id' => 1,
+            'event_status_id' => 1,
+            'event_result_id' => null,
+            'name' => 'Evento de septiembre',
+            'date' => '2026-09-05 21:30:00',
+            'duration' => 120,
+            'orbat' => null,
+            'created_at' => '2026-08-01 10:00:00',
+            'updated_at' => '2026-08-01 10:00:00',
+        ]);
+
+        $this->get('/eventos?month=8&year=2026&date_from=2026-08-20&date_to=2026-09-10')
+            ->assertOk()
+            ->assertSee('Agosto 2026')
+            ->assertSee('Evento finalizado')
+            ->assertSee('Evento de septiembre')
+            ->assertSee('2 eventos encontrados')
+            ->assertSeeInOrder(['id="evento-4"', 'id="evento-2"'], escape: false);
+    }
+
     public function test_campaign_page_shows_only_active_or_finished_associated_events(): void
     {
         $response = $this->get('/campanas/1');
@@ -476,10 +569,27 @@ class PublicEventsPageTest extends TestCase
                 'faction_id' => 1,
             ]);
 
+        DB::table('users')->where('id', 10)->update([
+            'deleted_at' => '2026-08-09 12:00:00',
+        ]);
+        DB::table('sqa_groups')->insert([
+            'id' => 1,
+            'name' => 'Grupo GIA',
+            'color' => '#22c55e',
+            'created_at' => '2026-08-01 10:00:00',
+            'updated_at' => '2026-08-01 10:00:00',
+        ]);
+        DB::table('sqa_group_users')->insert([
+            'sqa_group_id' => 1,
+            'user_id' => 10,
+            'main' => true,
+            'created_at' => '2026-08-01 10:00:00',
+            'updated_at' => '2026-08-01 10:00:00',
+        ]);
+
         $this->get('/eventos/1')
             ->assertOk()
             ->assertSee('Evento activo')
-            ->assertSee('Operación Alpha')
             ->assertSee('Altis')
             ->assertSee(route('maps.show', 1), escape: false)
             ->assertSee('Briefing visible del operativo.')
@@ -489,6 +599,19 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('US Army')
             ->assertSee('Alpha 1')
             ->assertSee('Alfa Uno')
+            ->assertSee('class="event-orbat__occupant-user"', escape: false)
+            ->assertSee('--member-group-color: #22c55e', escape: false)
+            ->assertSee('aria-label="Secciones del evento"', escape: false)
+            ->assertSee('href="#briefing"', escape: false)
+            ->assertSee('href="#orbat"', escape: false)
+            ->assertSee('href="#comunicaciones"', escape: false)
+            ->assertSee('href="#addons"', escape: false)
+            ->assertSee('id="datos-evento"', escape: false)
+            ->assertSee('id="briefing"', escape: false)
+            ->assertSee('id="orbat"', escape: false)
+            ->assertSee('id="movimientos"', escape: false)
+            ->assertSee('id="comunicaciones"', escape: false)
+            ->assertSee('id="addons"', escape: false)
             ->assertDontSee('Alpha oculto')
             ->assertDontSee('Grupo secreto')
             ->assertDontSee('Slot secreto')
@@ -501,6 +624,10 @@ class PublicEventsPageTest extends TestCase
 
         $this->assertStringContainsString(
             ".event-orbat__slots {\n    display: grid;\n    grid-template-columns: 1fr;",
+            file_get_contents(public_path('css/events.css')),
+        );
+        $this->assertStringContainsString(
+            ".event-orbat {\n    display: grid;\n    grid-template-columns: repeat(2, minmax(0, 1fr));",
             file_get_contents(public_path('css/events.css')),
         );
     }
@@ -521,5 +648,172 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('https://example.com/maps/altis', escape: false)
             ->assertSee('target="_blank"', escape: false)
             ->assertSee('rel="noopener noreferrer"', escape: false);
+    }
+
+    public function test_eligible_user_can_register_and_move_between_visible_slots(): void
+    {
+        $this->seedSlotRegistrationConfiguration();
+        DB::table('users')->insert([
+            ['id' => 11, 'nick' => 'Bravo Uno', 'status_id' => 1],
+            ['id' => 12, 'nick' => 'Bravo Dos', 'status_id' => 1],
+        ]);
+
+        $user = User::query()->findOrFail(11);
+
+        $this->actingAs($user)
+            ->get('/eventos/1')
+            ->assertOk()
+            ->assertSee('Apuntarme')
+            ->assertSee(route('events.slots.register', [1, 'slot-alpha']), escape: false);
+
+        $this->post('/eventos/1/slots/slot-alpha')
+            ->assertRedirect('/eventos/1')
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseHas('event_slots', [
+            'event_id' => 1,
+            'slot_key' => 'slot-alpha',
+            'user_id' => 11,
+            'name' => 'Alpha 1',
+            'slot_type_id' => 1,
+            'slot_group' => 'Alpha',
+            'faction_id' => 1,
+        ]);
+        $this->assertDatabaseHas('event_slot_history', [
+            'event_id' => 1,
+            'user_id' => 11,
+            'action' => 'assigned',
+            'from_slot_key' => null,
+            'to_slot_key' => 'slot-alpha',
+            'changed_by_user_id' => 11,
+        ]);
+
+        $this->post('/eventos/1/slots/slot-medic')
+            ->assertRedirect('/eventos/1')
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseMissing('event_slots', [
+            'event_id' => 1,
+            'slot_key' => 'slot-alpha',
+            'user_id' => 11,
+        ]);
+        $this->assertDatabaseHas('event_slots', [
+            'event_id' => 1,
+            'slot_key' => 'slot-medic',
+            'user_id' => 11,
+        ]);
+        $this->assertDatabaseHas('event_slot_history', [
+            'event_id' => 1,
+            'user_id' => 11,
+            'action' => 'moved',
+            'from_slot_key' => 'slot-alpha',
+            'to_slot_key' => 'slot-medic',
+            'changed_by_user_id' => 11,
+        ]);
+        $this->assertSame(
+            1,
+            DB::table('event_slots')->where('event_id', 1)->where('user_id', 11)->count(),
+        );
+
+        $this->actingAs(User::query()->findOrFail(12))
+            ->post('/eventos/1/slots/slot-medic')
+            ->assertSessionHasErrors('slot');
+
+        $this->actingAs($user)
+            ->get('/eventos/1')
+            ->assertOk()
+            ->assertSee('Desapuntarme')
+            ->assertSee(route('events.slots.unregister', [1, 'slot-medic']), escape: false);
+
+        $this->delete('/eventos/1/slots/slot-medic')
+            ->assertRedirect('/eventos/1')
+            ->assertSessionHas('status', 'Te has desapuntado correctamente.');
+
+        $this->assertDatabaseMissing('event_slots', [
+            'event_id' => 1,
+            'slot_key' => 'slot-medic',
+            'user_id' => 11,
+        ]);
+        $this->assertDatabaseHas('event_slot_history', [
+            'event_id' => 1,
+            'user_id' => 11,
+            'action' => 'unassigned',
+            'from_slot_key' => 'slot-medic',
+            'to_slot_key' => null,
+            'changed_by_user_id' => 11,
+        ]);
+        $this->assertDatabaseCount('event_slot_history', 3);
+
+        auth()->logout();
+
+        $this->get('/eventos/1')
+            ->assertOk()
+            ->assertSee('Movimientos de slots')
+            ->assertSee('Bravo Uno')
+            ->assertSee('se apuntó a')
+            ->assertSee('se movió de')
+            ->assertSee('se desapuntó de')
+            ->assertSeeInOrder(['Alpha · Alpha 1', 'Alpha · Médico']);
+    }
+
+    public function test_user_cannot_register_for_disallowed_or_hidden_slot(): void
+    {
+        $this->seedSlotRegistrationConfiguration();
+        DB::table('status')->insert(['id' => 2, 'name' => 'RECLUTA']);
+        DB::table('users')->insert(['id' => 13, 'nick' => 'Recluta Uno', 'status_id' => 2]);
+
+        $this->actingAs(User::query()->findOrFail(13))
+            ->post('/eventos/1/slots/slot-alpha')
+            ->assertSessionHasErrors('slot');
+
+        $this->post('/eventos/1/slots/slot-hidden')
+            ->assertSessionHasErrors('slot');
+
+        DB::table('users')->where('id', 13)->update(['status_id' => 1]);
+        DB::table('events')->where('id', 1)->update(['event_status_id' => 2]);
+
+        $this->post('/eventos/1/slots/slot-alpha')
+            ->assertSessionHasErrors('slot');
+
+        $this->assertDatabaseMissing('event_slots', [
+            'event_id' => 1,
+            'user_id' => 13,
+        ]);
+        $this->assertDatabaseCount('event_slot_history', 0);
+    }
+
+    private function seedSlotRegistrationConfiguration(): void
+    {
+        DB::table('status')->insert(['id' => 1, 'name' => 'MIEMBRO']);
+        DB::table('slot_types')->insert([
+            ['id' => 1, 'name' => 'Líder'],
+            ['id' => 2, 'name' => 'Médico'],
+        ]);
+        DB::table('slot_types_status')->insert([
+            ['slot_type_id' => 1, 'status_id' => 1],
+            ['slot_type_id' => 2, 'status_id' => 1],
+        ]);
+        DB::table('armies')->insert(['id' => 1, 'name' => 'OTAN']);
+        DB::table('sides')->insert(['id' => 1, 'name' => 'BLUFOR']);
+        DB::table('factions')->insert([
+            'id' => 1,
+            'army_id' => 1,
+            'side_id' => 1,
+            'name' => 'US Army',
+        ]);
+        DB::table('events')->where('id', 1)->update([
+            'orbat' => json_encode([
+                'groups' => [[
+                    'name' => 'Alpha',
+                    'faction_id' => 1,
+                    'visible' => true,
+                    'slots' => [
+                        ['slot_key' => 'slot-alpha', 'name' => 'Alpha 1', 'slot_type_id' => 1, 'visible' => true],
+                        ['slot_key' => 'slot-medic', 'name' => 'Médico', 'slot_type_id' => 2, 'visible' => true],
+                        ['slot_key' => 'slot-hidden', 'name' => 'Slot oculto', 'slot_type_id' => 1, 'visible' => false],
+                    ],
+                ]],
+            ]),
+        ]);
     }
 }

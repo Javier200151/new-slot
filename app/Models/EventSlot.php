@@ -43,7 +43,7 @@ class EventSlot extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public function ally()
@@ -69,5 +69,10 @@ class EventSlot extends Model
     public function updatedBy()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function history()
+    {
+        return $this->hasMany(EventSlotHistory::class);
     }
 }

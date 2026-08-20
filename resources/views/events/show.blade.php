@@ -38,6 +38,14 @@
                 <span>{{ $event->name ?: $operation->name }}</span>
             </nav>
 
+            @if(session('status'))
+                <div class="event-detail__notice is-success" role="status">{{ session('status') }}</div>
+            @endif
+
+            @error('slot')
+                <div class="event-detail__notice is-error" role="alert">{{ $message }}</div>
+            @enderror
+
             <header class="event-detail__hero">
                 <div class="event-detail__hero-copy">
                     <div class="event-detail__eyebrow">
@@ -50,9 +58,24 @@
                     <h1>{{ $event->name ?: $operation->name }}</h1>
                     <time datetime="{{ $event->date->toIso8601String() }}">{{ $formattedEventDate }}</time>
 
-                    @if($event->name && $event->name !== $operation->name)
+                    <nav class="event-detail__section-nav" aria-label="Secciones del evento">
+                        {{-- <a href="#datos-evento">Datos</a> --}}
+                        @if($descriptionSections->isNotEmpty())
+                            <a href="#briefing">Briefing</a>
+                        @endif
+                        <a href="#orbat">ORBAT</a>
+                        {{-- <a href="#movimientos">Movimientos</a> --}}
+                        @if($radioNetworks->isNotEmpty())
+                            <a href="#comunicaciones">Comunicaciones</a>
+                        @endif
+                        @if($addons->isNotEmpty())
+                            <a href="#addons">Addons</a>
+                        @endif
+                    </nav>
+
+                    {{-- @if($event->name && $event->name !== $operation->name)
                         <p class="event-detail__operation-name">{{ $operation->name }}</p>
-                    @endif
+                    @endif --}}
 
 
                 </div>
@@ -64,7 +87,7 @@
                 @endif
             </header>
 
-            <section class="event-detail__facts" aria-label="Datos del evento y del operativo">
+            <section id="datos-evento" class="event-detail__facts" aria-label="Datos del evento y del operativo">
                 @foreach([
                     // ['Tipo', $operation->operationType?->name],
                     // ['Estado del evento', $event->eventStatus?->name],
@@ -105,7 +128,7 @@
                 <span @class(['is-enabled' => $operation->jip])>JIP</span>
             </section>
 
-            @if($operation->enemyFactions->isNotEmpty())
+            {{-- @if($operation->enemyFactions->isNotEmpty())
                 <section class="event-detail__section">
                     <header><span>Facciones enemigas</span></header>
                     <div class="event-detail__tags">
@@ -122,10 +145,10 @@
                         @endforeach
                     </div>
                 </section>
-            @endif
+            @endif --}}
 
             @if($descriptionSections->isNotEmpty())
-                <section class="event-detail__section">
+                <section id="briefing" class="event-detail__section">
                     <header><span>Briefing</span></header>
                     <div class="event-detail__descriptions">
                         @foreach($descriptionSections as $section)
@@ -138,7 +161,7 @@
                 </section>
             @endif
 
-            <section class="event-detail__section event-detail__orbat" aria-labelledby="event-orbat-title">
+            <section id="orbat" class="event-detail__section event-detail__orbat" aria-labelledby="event-orbat-title">
                 <header><span id="event-orbat-title">ORBAT</span></header>
 
                 @if($visibleOrbatGroups->isEmpty())
@@ -163,14 +186,60 @@
                                     <div class="event-orbat__slots">
                                         @foreach($group['slots'] as $slot)
                                             @php($assignment = $slot['assignment'])
-                                            <div @class(['event-orbat__slot', 'is-occupied' => $assignment?->user_id || $assignment?->ally_id])>
-                                                <div>
+                                            @php($occupantName = $assignment?->user?->nick ?? $assignment?->ally?->name)
+                                            <div @class([
+                                                'event-orbat__slot',
+                                                'is-occupied' => $slot['is_occupied'],
+                                                'is-owned' => $slot['is_owned_by_user'],
+                                            ])>
+                                                <div class="event-orbat__slot-info">
                                                     <strong>{{ $slot['name'] ?? 'Slot sin nombre' }}</strong>
-                                                    {{-- <span>{{ $slot['slot_type']?->name ?? 'Sin tipo' }}</span> --}}
+                                                    <span>{{ $slot['slot_type']?->name ?? 'Sin tipo' }}</span>
                                                 </div>
-                                                <span class="event-orbat__occupant">
-                                                    {{ $assignment?->user?->nick ?? $assignment?->ally?->name ?? 'Libre' }}
-                                                </span>
+
+                                                <div class="event-orbat__slot-action">
+                                                    @if($assignment?->user)
+                                                        <strong
+                                                            class="event-orbat__occupant-user"
+                                                            @style([
+                                                                '--member-group-color: ' . ($assignment->user->mainSqaGroup?->color ?? '') => filled($assignment->user->mainSqaGroup?->color),
+                                                            ])
+                                                        >
+                                                            {{ $assignment->user->nick }}
+                                                        </strong>
+                                                    @else
+                                                        <span class="event-orbat__occupant">
+                                                            {{ $slot['is_occupied'] ? ($occupantName ?? 'Usuario asignado') : 'Libre' }}
+                                                        </span>
+                                                    @endif
+
+                                                    @if($slot['is_owned_by_user'])
+                                                        @if($event->eventStatus?->name === 'ACTIVO')
+                                                            <form method="POST" action="{{ route('events.slots.unregister', [$event, $slot['slot_key']]) }}">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="event-orbat__unregister-button">
+                                                                    Desapuntarme
+                                                                </button>
+                                                            </form>
+                                                        @else
+                                                            <span class="event-orbat__own-slot">Tu slot</span>
+                                                        @endif
+                                                    @elseif($slot['can_register'])
+                                                        <form method="POST" action="{{ route('events.slots.register', [$event, $slot['slot_key']]) }}">
+                                                            @csrf
+                                                            <button type="submit" class="event-orbat__register-button">
+                                                                {{ $slot['will_move_user'] ? 'Cambiarme aquí' : 'Apuntarme' }}
+                                                            </button>
+                                                        </form>
+                                                    @elseif(! $slot['is_occupied'] && $event->eventStatus?->name === 'ACTIVO')
+                                                        @guest
+                                                            <a href="{{ route('login') }}" class="event-orbat__login-link">Inicia sesión para apuntarte</a>
+                                                        @else
+                                                            <span class="event-orbat__unavailable">No disponible para tu estado</span>
+                                                        @endguest
+                                                    @endif
+                                                </div>
                                             </div>
                                         @endforeach
                                     </div>
@@ -181,8 +250,60 @@
                 @endif
             </section>
 
+            <details id="movimientos" class="event-slot-history">
+                <summary>
+                    <span>Movimientos de slots</span>
+                    <strong>{{ $slotHistory->count() }}</strong>
+                </summary>
+
+                <div class="event-slot-history__content">
+                    @if($slotHistory->isEmpty())
+                        <p>Todavía no se ha registrado ningún movimiento.</p>
+                    @else
+                        <ol>
+                            @foreach($slotHistory as $movement)
+                                @php($memberName = $movement->user?->nick ?? $movement->ally?->name ?? 'Usuario eliminado')
+                                <li>
+                                    <div class="event-slot-history__movement">
+                                        <strong>{{ $memberName }}</strong>
+
+                                        @if($movement->action === 'moved')
+                                            <span>
+                                                se movió de
+                                                <b>{{ $movement->from_slot_group }} · {{ $movement->from_slot_name }}</b>
+                                                a
+                                                <b>{{ $movement->to_slot_group }} · {{ $movement->to_slot_name }}</b>
+                                            </span>
+                                        @elseif($movement->action === 'unassigned')
+                                            <span>
+                                                se desapuntó de
+                                                <b>{{ $movement->from_slot_group }} · {{ $movement->from_slot_name }}</b>
+                                            </span>
+                                        @else
+                                            <span>
+                                                se apuntó a
+                                                <b>{{ $movement->to_slot_group }} · {{ $movement->to_slot_name }}</b>
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <div class="event-slot-history__meta">
+                                        @if($movement->changedBy)
+                                            <span>Gestionado por {{ $movement->changedBy->nick }}</span>
+                                        @endif
+                                        <time datetime="{{ $movement->created_at?->toIso8601String() }}">
+                                            {{ $movement->created_at?->format('d/m/Y H:i') }}
+                                        </time>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ol>
+                    @endif
+                </div>
+            </details>
+
             @if($radioNetworks->isNotEmpty())
-                <section class="event-detail__section">
+                <section id="comunicaciones" class="event-detail__section">
                     <header><span>Comunicaciones</span></header>
                     <div class="event-detail__table-wrap">
                         <table class="event-detail__table">
@@ -209,7 +330,7 @@
             @endif
 
             @if($addons->isNotEmpty())
-                <section class="event-detail__section">
+                <section id="addons" class="event-detail__section">
                     <header><span>Addons</span></header>
                     <div class="event-detail__table-wrap">
                         <table class="event-detail__table event-detail__addons-table">

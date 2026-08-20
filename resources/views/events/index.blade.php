@@ -133,7 +133,7 @@
         <div class="container">
             <header class="events-list-header">
                 <div>
-                    <span>Eventos del mes</span>
+                    <span>Listado de eventos</span>
                     <h2 id="events-list-title">{{ $listedEvents->count() }} {{ $listedEvents->count() === 1 ? 'evento encontrado' : 'eventos encontrados' }}</h2>
                 </div>
 

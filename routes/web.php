@@ -142,6 +142,14 @@ Route::get('/eventos', [PublicEventController::class, 'index'])
 Route::get('/eventos/{event}', [PublicEventController::class, 'show'])
     ->name('events.show');
 
+Route::post('/eventos/{event}/slots/{slotKey}', [PublicEventController::class, 'registerSlot'])
+    ->middleware('auth')
+    ->name('events.slots.register');
+
+Route::delete('/eventos/{event}/slots/{slotKey}', [PublicEventController::class, 'unregisterSlot'])
+    ->middleware('auth')
+    ->name('events.slots.unregister');
+
 Route::get('/mapas/{map}', [PublicMapController::class, 'show'])
     ->name('maps.show');
 
