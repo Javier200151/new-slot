@@ -25,11 +25,34 @@ class PermissionCatalog
 
         foreach (self::groups() as $groupKey => $group) {
             foreach ($group['resources'] ?? [] as $resource => $definition) {
+
+                $actionOptions = self::normalizeActionOptions(
+                    $definition['actions'] ?? null
+                );
+
                 $resources[$resource] = [
                     'label' => $definition['label'] ?? $resource,
                     'group' => $groupKey,
-                    'actions' => $definition['actions']
-                        ?? array_keys(self::actions()),
+
+                    /*
+                     * Lista interna de acciones:
+                     *
+                     * ['view', 'create', 'update', 'delete']
+                     *
+                     * o:
+                     *
+                     * ['manage']
+                     */
+                    'actions' => array_keys($actionOptions),
+
+                    /*
+                     * Opciones que verá Filament:
+                     *
+                     * [
+                     *     'manage' => 'Manejar ORBAT',
+                     * ]
+                     */
+                    'action_options' => $actionOptions,
                 ];
             }
         }
@@ -44,14 +67,7 @@ class PermissionCatalog
 
     public static function actionOptionsFor(string $resource): array
     {
-        $allowedActions = array_flip(
-            self::actionsFor($resource)
-        );
-
-        return array_intersect_key(
-            self::actions(),
-            $allowedActions
-        );
+        return self::resources()[$resource]['action_options'] ?? [];
     }
 
     public static function permissionNames(
@@ -72,17 +88,45 @@ class PermissionCatalog
 
     public static function fieldName(string $resource): string
     {
-        /*
-         * El permiso conserva el guion:
-         * user-metopas.view
-         *
-         * Pero el campo Filament usa guion bajo:
-         * permissions_user_metopas
-         */
-        return 'permissions_'.str_replace(
+        return 'permissions_' . str_replace(
             '-',
             '_',
             $resource
         );
+    }
+
+    private static function normalizeActionOptions(
+        ?array $configuredActions
+    ): array {
+        /*
+         * Sin configuración específica:
+         * usamos las acciones CRUD normales.
+         */
+        if ($configuredActions === null) {
+            return self::actions();
+        }
+
+        /*
+         * Ejemplo:
+         *
+         * 'actions' => ['view']
+         *
+         * Busca las etiquetas en el catálogo general.
+         */
+        if (array_is_list($configuredActions)) {
+            return array_intersect_key(
+                self::actions(),
+                array_flip($configuredActions)
+            );
+        }
+
+        /*
+         * Permite acciones personalizadas:
+         *
+         * 'actions' => [
+         *     'manage' => 'Manejar ORBAT',
+         * ]
+         */
+        return $configuredActions;
     }
 }

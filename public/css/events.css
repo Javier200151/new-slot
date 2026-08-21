@@ -1255,6 +1255,266 @@ html:has(.event-detail) {
     font-weight: 850;
 }
 
+/* =========================================================
+   GESTIÓN DEL ORBAT
+   ========================================================= */
+
+.event-orbat__managed-player {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    min-height: 32px;
+
+    padding: 4px 6px 4px 7px;
+
+    border: 1px solid transparent;
+    border-radius: 8px;
+
+    background: rgba(255, 255, 255, 0.015);
+
+    cursor: grab;
+
+    user-select: none;
+
+    transition:
+        border-color 150ms ease,
+        background 150ms ease,
+        opacity 150ms ease,
+        transform 150ms ease;
+}
+
+.event-orbat__managed-player:hover {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--event-color, var(--primary)) 35%,
+            transparent
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--event-color, var(--primary)) 7%,
+            transparent
+        );
+}
+
+.event-orbat__managed-player:active {
+    cursor: grabbing;
+}
+
+.event-orbat__drag-handle {
+    color: var(--text-muted);
+
+    font-size: 1rem;
+    font-weight: 900;
+
+    line-height: 1;
+
+    cursor: grab;
+
+    transition:
+        color 150ms ease,
+        transform 150ms ease;
+}
+
+.event-orbat__managed-player:hover
+.event-orbat__drag-handle {
+    color:
+        var(--event-color, var(--primary));
+
+    transform: scale(1.08);
+}
+
+.event-orbat__remove-player {
+    width: 23px;
+    height: 23px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border: 1px solid transparent;
+    border-radius: 6px;
+
+    color: #7f8997;
+    background: transparent;
+
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        color 150ms ease,
+        border-color 150ms ease,
+        background 150ms ease,
+        transform 150ms ease;
+}
+
+.event-orbat__remove-player:hover {
+    color: #fecaca;
+
+    border-color: rgba(248, 113, 113, 0.42);
+
+    background: rgba(239, 68, 68, 0.12);
+
+    transform: scale(1.05);
+}
+
+
+/* =========================================================
+   DURANTE EL ARRASTRE
+   ========================================================= */
+
+.event-orbat__managed-player.is-dragging {
+    opacity: 0.35;
+    cursor: grabbing;
+}
+
+.event-orbat.is-managing
+.event-orbat__slot {
+    transition:
+        border-color 120ms ease,
+        background 120ms ease,
+        box-shadow 120ms ease,
+        transform 120ms ease;
+}
+
+.event-orbat.is-managing
+.event-orbat__slot:not(.is-drag-source) {
+    outline:
+        1px dashed
+        color-mix(
+            in srgb,
+            var(--event-color, var(--primary)) 22%,
+            transparent
+        );
+
+    outline-offset: -4px;
+}
+
+.event-orbat__slot.is-drop-target {
+    position: relative;
+
+    z-index: 2;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--event-color, var(--primary)) 12%,
+            #0c1118
+        );
+
+    outline:
+        2px solid
+        var(--event-color, var(--primary)) !important;
+
+    outline-offset: -2px;
+
+    box-shadow:
+        inset 0 0 24px
+        color-mix(
+            in srgb,
+            var(--event-color, var(--primary)) 10%,
+            transparent
+        );
+
+    transform: translateY(-1px);
+}
+
+.event-orbat__slot.is-drop-target::after {
+    content: "SOLTAR AQUÍ";
+
+    position: absolute;
+
+    right: 16px;
+    bottom: 4px;
+
+    color:
+        var(--event-color, var(--primary));
+
+    font-size: 0.5rem;
+    font-weight: 900;
+
+    letter-spacing: 0.1em;
+
+    pointer-events: none;
+}
+
+.event-orbat__slot.is-drag-source {
+    opacity: 0.68;
+}
+
+
+/* =========================================================
+   PETICIÓN EN CURSO
+   ========================================================= */
+
+.event-detail__orbat.is-orbat-busy
+.event-orbat {
+    opacity: 0.72;
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   AVISO FLOTANTE
+   ========================================================= */
+
+.event-orbat-toast {
+    position: fixed;
+
+    right: 24px;
+    bottom: 24px;
+
+    z-index: 9999;
+
+    max-width: 380px;
+
+    padding: 12px 16px;
+
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    border-radius: 9px;
+
+    color: #bbf7d0;
+
+    background: rgba(8, 15, 12, 0.96);
+
+    box-shadow:
+        0 16px 45px
+        rgba(0, 0, 0, 0.4);
+
+    font-size: 0.76rem;
+    font-weight: 750;
+
+    opacity: 0;
+
+    transform: translateY(10px);
+
+    transition:
+        opacity 180ms ease,
+        transform 180ms ease;
+}
+
+.event-orbat-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.event-orbat-toast.is-error {
+    color: #fecaca;
+
+    border-color: rgba(239, 68, 68, 0.4);
+
+    background: rgba(24, 8, 10, 0.97);
+}
+
 .event-orbat__slot.is-occupied .event-orbat__occupant {
     color: #fcd34d;
     background: rgba(245, 158, 11, 0.1);
@@ -1658,5 +1918,32 @@ html:has(.event-detail) {
 
     .event-comment__replies {
         padding-left: 9px;
+    }
+}
+/* Slot recién actualizado */
+
+.event-orbat__slot.is-orbat-updated {
+    animation: orbat-slot-updated 850ms ease;
+}
+
+@keyframes orbat-slot-updated {
+    0% {
+        box-shadow:
+            inset 0 0 0 2px
+            var(--event-color, var(--primary)),
+            inset 0 0 28px
+            color-mix(
+                in srgb,
+                var(--event-color, var(--primary)) 20%,
+                transparent
+            );
+    }
+
+    100% {
+        box-shadow:
+            inset 0 0 0 0
+            transparent,
+            inset 0 0 0
+            transparent;
     }
 }

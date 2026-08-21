@@ -166,7 +166,13 @@
                 </section>
             @endif
 
-            <section id="orbat" class="event-detail__section event-detail__orbat" aria-labelledby="event-orbat-title">
+            <section
+                id="orbat"
+                class="event-detail__section event-detail__orbat"
+                aria-labelledby="event-orbat-title"
+                data-orbat
+                data-csrf-token="{{ csrf_token() }}"
+            >
                 <header><span id="event-orbat-title">ORBAT</span></header>
 
                 @if($visibleOrbatGroups->isEmpty())
@@ -190,59 +196,237 @@
                                 @else
                                     <div class="event-orbat__slots">
                                         @foreach($group['slots'] as $slot)
-                                            @php($assignment = $slot['assignment'])
-                                            @php($occupantName = $assignment?->user?->nick ?? $assignment?->ally?->name)
-                                            <div @class([
-                                                'event-orbat__slot',
-                                                'is-occupied' => $slot['is_occupied'],
-                                                'is-owned' => $slot['is_owned_by_user'],
-                                            ])>
+                                            @php
+                                                $assignment = $slot['assignment'];
+
+                                                $occupantName =
+                                                    $assignment?->user?->nick
+                                                    ?? $assignment?->ally?->name;
+
+                                                $isOrbatManager =
+                                                    $canManageOrbat
+                                                    && $event->eventStatus?->name === 'ACTIVO';
+                                            @endphp
+
+                                            <div
+                                                @class([
+                                                    'event-orbat__slot',
+                                                    'is-occupied' => $slot['is_occupied'],
+                                                    'is-owned' => $slot['is_owned_by_user'],
+                                                ])
+
+                                                @if($isOrbatManager)
+                                                    data-orbat-slot
+                                                    data-slot-key="{{ $slot['slot_key'] }}"
+                                                    data-manage-url="{{ route(
+                                                        'events.slots.manage',
+                                                        [
+                                                            $event,
+                                                            $slot['slot_key'],
+                                                        ]
+                                                    ) }}"
+                                                    data-occupant-user-id="{{ $assignment?->user_id }}"
+                                                    data-occupant-name="{{ $occupantName }}"
+                                                @endif
+                                            >
                                                 <div class="event-orbat__slot-info">
-                                                    <strong>{{ $slot['name'] ?? 'Slot sin nombre' }}</strong>
-                                                    <span>{{ $slot['slot_type']?->name ?? 'Sin tipo' }}</span>
+                                                    <strong>
+                                                        {{ $slot['name'] ?? 'Slot sin nombre' }}
+                                                    </strong>
+
+                                                    <span>
+                                                        {{ $slot['slot_type']?->name ?? 'Sin tipo' }}
+                                                    </span>
                                                 </div>
 
                                                 <div class="event-orbat__slot-action">
+
+                                                    {{-- ======================================================
+                                                        USUARIO SQA OCUPANDO EL SLOT
+                                                    ======================================================= --}}
                                                     @if($assignment?->user)
-                                                        <strong
-                                                            class="event-orbat__occupant-user"
-                                                            @style([
-                                                                '--member-group-color: ' . ($assignment->user->mainSqaGroup?->color ?? '') => filled($assignment->user->mainSqaGroup?->color),
-                                                            ])
-                                                        >
-                                                            {{ $assignment->user->nick }}
-                                                        </strong>
-                                                    @else
+
+                                                        @if($isOrbatManager)
+
+                                                            <div
+                                                                class="event-orbat__managed-player"
+                                                                draggable="true"
+                                                                data-orbat-player
+                                                                data-user-id="{{ $assignment->user->id }}"
+                                                                data-user-name="{{ $assignment->user->nick }}"
+                                                                data-source-slot-key="{{ $slot['slot_key'] }}"
+                                                            >
+                                                                <span
+                                                                    class="event-orbat__drag-handle"
+                                                                    aria-hidden="true"
+                                                                    title="Arrastrar jugador"
+                                                                >
+                                                                    ⠿
+                                                                </span>
+
+                                                                <strong
+                                                                    class="event-orbat__occupant-user"
+                                                                    @style([
+                                                                        '--member-group-color: '
+                                                                        . ($assignment->user->mainSqaGroup?->color ?? '')
+                                                                        => filled(
+                                                                            $assignment->user->mainSqaGroup?->color
+                                                                        ),
+                                                                    ])
+                                                                >
+                                                                    {{ $assignment->user->nick }}
+                                                                </strong>
+
+                                                                <button
+                                                                    type="button"
+                                                                    class="event-orbat__remove-player"
+                                                                    data-orbat-remove
+                                                                    data-user-name="{{ $assignment->user->nick }}"
+                                                                    draggable="false"
+                                                                    title="Eliminar del ORBAT"
+                                                                    aria-label="Eliminar a {{ $assignment->user->nick }} del ORBAT"
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            </div>
+
+                                                        @else
+
+                                                            <strong
+                                                                class="event-orbat__occupant-user"
+                                                                @style([
+                                                                    '--member-group-color: '
+                                                                    . ($assignment->user->mainSqaGroup?->color ?? '')
+                                                                    => filled(
+                                                                        $assignment->user->mainSqaGroup?->color
+                                                                    ),
+                                                                ])
+                                                            >
+                                                                {{ $assignment->user->nick }}
+                                                            </strong>
+
+                                                        @endif
+
+                                                    {{-- ======================================================
+                                                        ALIADO EXTERNO
+                                                    ======================================================= --}}
+                                                    @elseif($assignment?->ally)
+
                                                         <span class="event-orbat__occupant">
-                                                            {{ $slot['is_occupied'] ? ($occupantName ?? 'Usuario asignado') : 'Libre' }}
+                                                            {{ $assignment->ally->name }}
                                                         </span>
+
+                                                        @if($isOrbatManager)
+                                                            <button
+                                                                type="button"
+                                                                class="event-orbat__remove-player"
+                                                                data-orbat-remove
+                                                                data-user-name="{{ $assignment->ally->name }}"
+                                                                draggable="false"
+                                                                title="Eliminar del ORBAT"
+                                                                aria-label="Eliminar a {{ $assignment->ally->name }} del ORBAT"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        @endif
+
+                                                    {{-- ======================================================
+                                                        SLOT LIBRE
+                                                    ======================================================= --}}
+                                                    @else
+
+                                                        <span class="event-orbat__occupant">
+                                                            Libre
+                                                        </span>
+
                                                     @endif
 
-                                                    @if($slot['is_owned_by_user'])
-                                                        @if($event->eventStatus?->name === 'ACTIVO')
-                                                            <form method="POST" action="{{ route('events.slots.unregister', [$event, $slot['slot_key']]) }}">
+
+                                                    {{-- ======================================================
+                                                        CONTROLES NORMALES DE INSCRIPCIÓN
+
+                                                        Los dejamos para slots libres.
+
+                                                        En un slot ocupado, si eres gestor ORBAT,
+                                                        ya tienes arrastrar + X.
+                                                    ======================================================= --}}
+
+                                                    @if(! $isOrbatManager || ! $slot['is_occupied'])
+
+                                                        @if($slot['is_owned_by_user'])
+
+                                                            @if($event->eventStatus?->name === 'ACTIVO')
+                                                                <form
+                                                                    method="POST"
+                                                                    action="{{ route(
+                                                                        'events.slots.unregister',
+                                                                        [
+                                                                            $event,
+                                                                            $slot['slot_key'],
+                                                                        ]
+                                                                    ) }}"
+                                                                >
+                                                                    @csrf
+                                                                    @method('DELETE')
+
+                                                                    <button
+                                                                        type="submit"
+                                                                        class="event-orbat__unregister-button"
+                                                                    >
+                                                                        Desapuntarme
+                                                                    </button>
+                                                                </form>
+                                                            @else
+                                                                <span class="event-orbat__own-slot">
+                                                                    Tu slot
+                                                                </span>
+                                                            @endif
+
+                                                        @elseif($slot['can_register'])
+
+                                                            <form
+                                                                method="POST"
+                                                                action="{{ route(
+                                                                    'events.slots.register',
+                                                                    [
+                                                                        $event,
+                                                                        $slot['slot_key'],
+                                                                    ]
+                                                                ) }}"
+                                                            >
                                                                 @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit" class="event-orbat__unregister-button">
-                                                                    Desapuntarme
+
+                                                                <button
+                                                                    type="submit"
+                                                                    class="event-orbat__register-button"
+                                                                >
+                                                                    {{ $slot['will_move_user']
+                                                                        ? 'Cambiarme aquí'
+                                                                        : 'Apuntarme'
+                                                                    }}
                                                                 </button>
                                                             </form>
-                                                        @else
-                                                            <span class="event-orbat__own-slot">Tu slot</span>
+
+                                                        @elseif(
+                                                            ! $slot['is_occupied']
+                                                            && $event->eventStatus?->name === 'ACTIVO'
+                                                        )
+
+                                                            @guest
+                                                                <a
+                                                                    href="{{ route('login') }}"
+                                                                    class="event-orbat__login-link"
+                                                                >
+                                                                    Inicia sesión para apuntarte
+                                                                </a>
+                                                            @else
+                                                                <span class="event-orbat__unavailable">
+                                                                    No disponible para tu estado
+                                                                </span>
+                                                            @endguest
+
                                                         @endif
-                                                    @elseif($slot['can_register'])
-                                                        <form method="POST" action="{{ route('events.slots.register', [$event, $slot['slot_key']]) }}">
-                                                            @csrf
-                                                            <button type="submit" class="event-orbat__register-button">
-                                                                {{ $slot['will_move_user'] ? 'Cambiarme aquí' : 'Apuntarme' }}
-                                                            </button>
-                                                        </form>
-                                                    @elseif(! $slot['is_occupied'] && $event->eventStatus?->name === 'ACTIVO')
-                                                        @guest
-                                                            <a href="{{ route('login') }}" class="event-orbat__login-link">Inicia sesión para apuntarte</a>
-                                                        @else
-                                                            <span class="event-orbat__unavailable">No disponible para tu estado</span>
-                                                        @endguest
+
                                                     @endif
                                                 </div>
                                             </div>

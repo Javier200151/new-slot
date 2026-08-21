@@ -71,18 +71,29 @@ return [
         'events' => [
             'label' => 'Eventos',
             'icon' => 'heroicon-o-calendar-days',
+
             'resources' => [
                 'events' => [
                     'label' => 'Eventos',
                 ],
+
                 'event-comments' => [
                     'label' => 'Comentarios de eventos',
                 ],
+
                 'event-results' => [
                     'label' => 'Resultados de eventos',
                 ],
+
                 'event-statuses' => [
                     'label' => 'Estados de eventos',
+                ],
+
+                'event-orbat' => [
+                    'label' => 'ORBAT',
+                    'actions' => [
+                        'manage' => 'Manejar ORBAT',
+                    ],
                 ],
             ],
         ],
