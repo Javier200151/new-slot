@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Addon;
 use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\EventSlot;
 use App\Models\EventSlotHistory;
 use App\Models\Faction;
@@ -245,6 +246,17 @@ class PublicEventController extends Controller
             ->orderBy('name')
             ->get();
 
+        $eventComments = EventComment::query()
+            ->where('event_id', $event->id)
+            ->with('user.mainSqaGroup')
+            ->orderByDesc('is_pinned')
+            ->oldest('created_at')
+            ->oldest('id')
+            ->get();
+        $commentsByParent = $eventComments->groupBy(
+            fn (EventComment $comment): int|string => $comment->parent_id ?? 'root',
+        );
+
         $slotHistory = EventSlotHistory::query()
             ->where('event_id', $event->id)
             ->with([
@@ -262,8 +274,10 @@ class PublicEventController extends Controller
 
         return view('events.show', compact(
             'addons',
+            'commentsByParent',
             'descriptionSections',
             'event',
+            'eventComments',
             'operation',
             'radioNetworks',
             'slotHistory',
@@ -465,6 +479,72 @@ class PublicEventController extends Controller
         return redirect()
             ->route('events.show', $event)
             ->with('status', 'Te has desapuntado correctamente.');
+    }
+
+    public function storeComment(Event $event, Request $request): RedirectResponse
+    {
+        abort_unless(
+            $event->eventStatus()->whereIn('name', ['ACTIVO', 'FINALIZADO'])->exists(),
+            404,
+        );
+
+        $validated = $request->validate([
+            'comment' => ['required', 'string', 'max:5000'],
+            'parent_id' => ['nullable', 'integer'],
+        ]);
+
+        $parent = filled($validated['parent_id'] ?? null)
+            ? EventComment::query()
+                ->where('event_id', $event->id)
+                ->find($validated['parent_id'])
+            : null;
+
+        if (filled($validated['parent_id'] ?? null) && ! $parent) {
+            throw ValidationException::withMessages([
+                'comment' => 'El comentario al que intentas responder ya no está disponible.',
+            ]);
+        }
+
+        EventComment::query()->create([
+            'event_id' => $event->id,
+            'user_id' => $request->user()->id,
+            'parent_id' => $parent?->id,
+            'comment' => $validated['comment'],
+        ]);
+
+        return redirect()
+            ->to(route('events.show', $event).'#comentarios')
+            ->with(
+                'comment_status',
+                $parent
+                    ? 'Tu respuesta se ha publicado correctamente.'
+                    : 'Tu comentario se ha publicado correctamente.',
+            );
+    }
+
+    public function updateComment(
+        Event $event,
+        EventComment $eventComment,
+        Request $request,
+    ): RedirectResponse {
+        abort_unless(
+            $event->eventStatus()->whereIn('name', ['ACTIVO', 'FINALIZADO'])->exists(),
+            404,
+        );
+        abort_unless((int) $eventComment->event_id === (int) $event->id, 404);
+        abort_unless((int) $eventComment->user_id === (int) $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'comment' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $eventComment->update([
+            'comment' => $validated['comment'],
+        ]);
+
+        return redirect()
+            ->to(route('events.show', $event).'#comentarios')
+            ->with('comment_status', 'Tu comentario se ha actualizado correctamente.');
     }
 
     /**

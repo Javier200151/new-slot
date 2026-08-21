@@ -71,6 +71,7 @@
                         @if($addons->isNotEmpty())
                             <a href="#addons">Addons</a>
                         @endif
+                        <a href="#comentarios">Comentarios</a>
                     </nav>
 
                     {{-- @if($event->name && $event->name !== $operation->name)
@@ -349,6 +350,57 @@
                     </div>
                 </section>
             @endif
+
+            <section id="comentarios" class="event-detail__section event-comments" aria-labelledby="event-comments-title">
+                <header class="event-comments__header">
+                    <span id="event-comments-title">Comentarios</span>
+                    <strong>{{ $eventComments->count() }}</strong>
+                </header>
+
+                @if(session('comment_status'))
+                    <div class="event-comments__notice" role="status">{{ session('comment_status') }}</div>
+                @endif
+
+                @auth
+                    <form method="POST" action="{{ route('events.comments.store', $event) }}" class="event-comment-form">
+                        @csrf
+                        <label for="event-comment-new">Añadir un comentario</label>
+                        <textarea
+                            id="event-comment-new"
+                            name="comment"
+                            rows="4"
+                            maxlength="5000"
+                            required
+                            placeholder="Escribe tu comentario sobre el evento..."
+                        >{{ old('comment') }}</textarea>
+                        @error('comment')
+                            <span class="event-comment-form__error">{{ $message }}</span>
+                        @enderror
+                        <div><button type="submit">Publicar comentario</button></div>
+                    </form>
+                @else
+                    <p class="event-comments__login">
+                        <a href="{{ route('login') }}">Inicia sesión</a> para publicar un comentario.
+                    </p>
+                @endauth
+
+                @if($eventComments->isEmpty())
+                    <div class="events-empty">
+                        <strong>Todavía no hay comentarios</strong>
+                        <p>Los comentarios publicados sobre este evento aparecerán aquí.</p>
+                    </div>
+                @else
+                    <div class="event-comments__list">
+                        @foreach($commentsByParent->get('root', collect()) as $comment)
+                            @include('events.partials.comment', [
+                                'comment' => $comment,
+                                'commentsByParent' => $commentsByParent,
+                                'depth' => 0,
+                            ])
+                        @endforeach
+                    </div>
+                @endif
+            </section>
         </div>
     </article>
 @endsection

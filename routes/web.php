@@ -150,6 +150,14 @@ Route::delete('/eventos/{event}/slots/{slotKey}', [PublicEventController::class,
     ->middleware('auth')
     ->name('events.slots.unregister');
 
+Route::post('/eventos/{event}/comentarios', [PublicEventController::class, 'storeComment'])
+    ->middleware('auth')
+    ->name('events.comments.store');
+
+Route::patch('/eventos/{event}/comentarios/{eventComment}', [PublicEventController::class, 'updateComment'])
+    ->middleware('auth')
+    ->name('events.comments.update');
+
 Route::get('/mapas/{map}', [PublicMapController::class, 'show'])
     ->name('maps.show');
 

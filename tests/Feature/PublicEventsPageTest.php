@@ -232,6 +232,18 @@ class PublicEventsPageTest extends TestCase
             $table->timestamp('created_at')->nullable();
         });
 
+        Schema::create('event_comments', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->foreignId('user_id')->nullable();
+            $table->foreignId('parent_id')->nullable();
+            $table->text('comment');
+            $table->boolean('is_pinned')->default(false);
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
         DB::table('event_status')->insert([
             ['id' => 1, 'name' => 'ACTIVO'],
             ['id' => 2, 'name' => 'FINALIZADO'],
@@ -586,6 +598,41 @@ class PublicEventsPageTest extends TestCase
             'created_at' => '2026-08-01 10:00:00',
             'updated_at' => '2026-08-01 10:00:00',
         ]);
+        DB::table('event_comments')->insert([
+            [
+                'id' => 1,
+                'event_id' => 1,
+                'user_id' => 10,
+                'parent_id' => null,
+                'comment' => 'Revisad el material antes del evento.',
+                'is_pinned' => true,
+                'created_at' => '2026-08-08 18:00:00',
+                'updated_at' => '2026-08-08 18:00:00',
+                'deleted_at' => null,
+            ],
+            [
+                'id' => 2,
+                'event_id' => 1,
+                'user_id' => 10,
+                'parent_id' => 1,
+                'comment' => 'Material revisado y preparado.',
+                'is_pinned' => false,
+                'created_at' => '2026-08-08 19:00:00',
+                'updated_at' => '2026-08-08 19:00:00',
+                'deleted_at' => null,
+            ],
+            [
+                'id' => 3,
+                'event_id' => 1,
+                'user_id' => 10,
+                'parent_id' => null,
+                'comment' => 'Comentario eliminado.',
+                'is_pinned' => false,
+                'created_at' => '2026-08-08 20:00:00',
+                'updated_at' => '2026-08-08 20:00:00',
+                'deleted_at' => '2026-08-08 21:00:00',
+            ],
+        ]);
 
         $this->get('/eventos/1')
             ->assertOk()
@@ -606,12 +653,19 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('href="#orbat"', escape: false)
             ->assertSee('href="#comunicaciones"', escape: false)
             ->assertSee('href="#addons"', escape: false)
+            ->assertSee('href="#comentarios"', escape: false)
             ->assertSee('id="datos-evento"', escape: false)
             ->assertSee('id="briefing"', escape: false)
             ->assertSee('id="orbat"', escape: false)
             ->assertSee('id="movimientos"', escape: false)
             ->assertSee('id="comunicaciones"', escape: false)
             ->assertSee('id="addons"', escape: false)
+            ->assertSee('id="comentarios"', escape: false)
+            ->assertSee('Revisad el material antes del evento.')
+            ->assertSee('Material revisado y preparado.')
+            ->assertSee('Fijado')
+            ->assertSee('--member-group-color: #22c55e', escape: false)
+            ->assertDontSee('Comentario eliminado.')
             ->assertDontSee('Alpha oculto')
             ->assertDontSee('Grupo secreto')
             ->assertDontSee('Slot secreto')
@@ -620,6 +674,7 @@ class PublicEventsPageTest extends TestCase
                 'ORBAT',
                 'Mando',
                 'ACE',
+                'Revisad el material antes del evento.',
             ]);
 
         $this->assertStringContainsString(
@@ -635,6 +690,148 @@ class PublicEventsPageTest extends TestCase
     public function test_draft_event_page_is_not_public(): void
     {
         $this->get('/eventos/3')->assertNotFound();
+    }
+
+    public function test_authenticated_user_can_publish_and_edit_own_event_comments(): void
+    {
+        DB::table('users')->insert([
+            ['id' => 20, 'nick' => 'Comentarista'],
+            ['id' => 21, 'nick' => 'Otro usuario'],
+        ]);
+
+        $user = User::query()->findOrFail(20);
+
+        $this->actingAs($user)
+            ->get('/eventos/1')
+            ->assertOk()
+            ->assertSee('Publicar comentario')
+            ->assertSee(route('events.comments.store', 1), escape: false);
+
+        $this->post('/eventos/1/comentarios', [
+            'comment' => 'Comentario recién publicado.',
+        ])
+            ->assertRedirect('/eventos/1#comentarios')
+            ->assertSessionHas('comment_status');
+
+        $commentId = (int) DB::table('event_comments')->where('user_id', 20)->value('id');
+
+        $this->assertDatabaseHas('event_comments', [
+            'id' => $commentId,
+            'event_id' => 1,
+            'user_id' => 20,
+            'comment' => 'Comentario recién publicado.',
+        ]);
+
+        $this->get('/eventos/1')
+            ->assertOk()
+            ->assertSee('Comentario recién publicado.')
+            ->assertSee('Editar comentario')
+            ->assertSee(route('events.comments.update', [1, $commentId]), escape: false);
+
+        $this->patch("/eventos/1/comentarios/{$commentId}", [
+            'comment' => 'Comentario actualizado.',
+        ])
+            ->assertRedirect('/eventos/1#comentarios')
+            ->assertSessionHas('comment_status');
+
+        $this->assertDatabaseHas('event_comments', [
+            'id' => $commentId,
+            'comment' => 'Comentario actualizado.',
+            'updated_by' => 20,
+        ]);
+
+        $this->actingAs(User::query()->findOrFail(21))
+            ->post('/eventos/1/comentarios', [
+                'parent_id' => $commentId,
+                'comment' => 'Respuesta al comentario actualizado.',
+            ])
+            ->assertRedirect('/eventos/1#comentarios')
+            ->assertSessionHas('comment_status', 'Tu respuesta se ha publicado correctamente.');
+
+        $replyId = (int) DB::table('event_comments')
+            ->where('parent_id', $commentId)
+            ->value('id');
+
+        $this->assertDatabaseHas('event_comments', [
+            'id' => $replyId,
+            'event_id' => 1,
+            'user_id' => 21,
+            'parent_id' => $commentId,
+            'comment' => 'Respuesta al comentario actualizado.',
+        ]);
+
+        $this->get('/eventos/1')
+            ->assertOk()
+            ->assertSee('Responder')
+            ->assertSee('Publicar respuesta')
+            ->assertSee('Respuesta al comentario actualizado.')
+            ->assertSee('class="event-comment is-reply"', escape: false)
+            ->assertSeeInOrder([
+                'Comentario actualizado.',
+                'Respuesta al comentario actualizado.',
+            ]);
+
+        $this->patch("/eventos/1/comentarios/{$commentId}", [
+            'comment' => 'Intento de edición ajena.',
+        ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('event_comments', [
+            'id' => $commentId,
+            'comment' => 'Intento de edición ajena.',
+        ]);
+    }
+
+    public function test_user_cannot_reply_to_a_comment_from_another_event(): void
+    {
+        DB::table('users')->insert(['id' => 23, 'nick' => 'Comentarista']);
+        DB::table('event_comments')->insert([
+            'id' => 21,
+            'event_id' => 2,
+            'user_id' => 23,
+            'parent_id' => null,
+            'comment' => 'Comentario de otro evento.',
+            'is_pinned' => false,
+            'created_at' => '2026-08-08 18:00:00',
+            'updated_at' => '2026-08-08 18:00:00',
+        ]);
+
+        $this->actingAs(User::query()->findOrFail(23))
+            ->post('/eventos/1/comentarios', [
+                'parent_id' => 21,
+                'comment' => 'Respuesta cruzada no permitida.',
+            ])
+            ->assertSessionHasErrors('comment');
+
+        $this->assertDatabaseMissing('event_comments', [
+            'event_id' => 1,
+            'parent_id' => 21,
+        ]);
+    }
+
+    public function test_guest_cannot_publish_or_edit_event_comments(): void
+    {
+        DB::table('users')->insert(['id' => 22, 'nick' => 'Autor']);
+        DB::table('event_comments')->insert([
+            'id' => 20,
+            'event_id' => 1,
+            'user_id' => 22,
+            'parent_id' => null,
+            'comment' => 'Comentario existente.',
+            'is_pinned' => false,
+            'created_at' => '2026-08-08 18:00:00',
+            'updated_at' => '2026-08-08 18:00:00',
+        ]);
+
+        $this->get('/eventos/1')
+            ->assertOk()
+            ->assertSee('Inicia sesión')
+            ->assertDontSee('Publicar comentario');
+
+        $this->post('/eventos/1/comentarios', ['comment' => 'No permitido'])
+            ->assertRedirect('/login');
+        $this->patch('/eventos/1/comentarios/20', ['comment' => 'No permitido'])
+            ->assertRedirect('/login');
     }
 
     public function test_map_page_shows_all_available_map_data(): void
