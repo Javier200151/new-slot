@@ -8,60 +8,42 @@ use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class Metopa extends Model
+class Page extends Model
 {
     use LogsActivity, SoftDeletes;
 
-    protected $table = 'metopas';
-
     protected $fillable = [
-        'name',
-        'description',
-        'image',
-        'image_large',
-        'despag1',
-        'despag2',
-        'sqa_group_id',
-        'imgback',
+        'title',
+        'slug',
+        'content',
+        'is_published',
         'created_by',
         'updated_by',
     ];
 
-    public function users()
+    protected function casts(): array
     {
-        return $this->belongsToMany(User::class, 'metopa_user')
-            ->withPivot('assigned_at')
-            ->wherePivotNull('deleted_at')
-            ->withTimestamps();
-    }
-
-    public function sqaGroup()
-    {
-        return $this->belongsTo(SqaGroup::class, 'sqa_group_id');
+        return [
+            'is_published' => 'boolean',
+        ];
     }
 
     protected static function booted(): void
     {
-        static::creating(function ($metopa) {
+        static::creating(function (Page $page): void {
             if (Auth::check()) {
-                $metopa->created_by = Auth::id();
-                $metopa->updated_by = Auth::id();
+                $page->created_by = Auth::id();
+                $page->updated_by = Auth::id();
             }
         });
 
-        static::updating(function ($metopa) {
+        static::updating(function (Page $page): void {
             if (Auth::check()) {
-                $metopa->updated_by = Auth::id();
+                $page->updated_by = Auth::id();
             }
         });
     }
 
-    public function getRouteKeyName(): string
-    {
-        return 'name';
-    }
-
-    // Para que en las listas podamos mostrar el nombre de usuario
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

@@ -9,5 +9,6 @@ class Ally extends Model
     protected $fillable = [
         'name',
         'image',
+        'url',
     ];
 }

@@ -15,8 +15,11 @@ class SideForm
                 TextInput::make('name')
                     ->required(),
                 FileUpload::make('image')
-                    ->preserveFilenames()
-                    ->image(),
+                    ->image()
+                    ->disk('public')
+                    ->directory('sides')
+                    ->visibility('public')
+                    ->preserveFilenames(),
                 TextInput::make('description'),
             ]);
     }

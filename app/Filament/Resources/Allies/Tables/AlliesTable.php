@@ -27,6 +27,13 @@ class AlliesTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('url')
+                    ->label('URL')
+                    ->url(fn ($record): ?string => $record->url)
+                    ->openUrlInNewTab()
+                    ->limit(50)
+                    ->toggleable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

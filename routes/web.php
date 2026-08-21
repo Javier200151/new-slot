@@ -1,9 +1,13 @@
 <?php
 
+use App\Http\Controllers\MetopaController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicCampaignController;
+use App\Http\Controllers\PublicEventController;
 use App\Http\Controllers\PublicLoginController;
+use App\Http\Controllers\PublicMapController;
 use App\Http\Controllers\PublicRegisterController;
-use App\Models\Metopa;
 use App\Models\User;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
@@ -120,9 +124,45 @@ Route::middleware('auth')->group(function (): void {
 |--------------------------------------------------------------------------
 */
 
-Route::get('/metopas/{metopa}', function (Metopa $metopa) {
-    return view('metopas.show', compact('metopa'));
-})->name('metopas.show');
+Route::get('/metopas', [MetopaController::class, 'index'])
+    ->name('metopas.index');
+
+Route::get('/metopas/{metopa}', [MetopaController::class, 'show'])
+    ->name('metopas.show');
+
+/*
+|--------------------------------------------------------------------------
+| Eventos públicos
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/eventos', [PublicEventController::class, 'index'])
+    ->name('events.index');
+
+Route::get('/eventos/{event}', [PublicEventController::class, 'show'])
+    ->name('events.show');
+
+Route::post('/eventos/{event}/slots/{slotKey}', [PublicEventController::class, 'registerSlot'])
+    ->middleware('auth')
+    ->name('events.slots.register');
+
+Route::delete('/eventos/{event}/slots/{slotKey}', [PublicEventController::class, 'unregisterSlot'])
+    ->middleware('auth')
+    ->name('events.slots.unregister');
+
+Route::post('/eventos/{event}/comentarios', [PublicEventController::class, 'storeComment'])
+    ->middleware('auth')
+    ->name('events.comments.store');
+
+Route::patch('/eventos/{event}/comentarios/{eventComment}', [PublicEventController::class, 'updateComment'])
+    ->middleware('auth')
+    ->name('events.comments.update');
+
+Route::get('/mapas/{map}', [PublicMapController::class, 'show'])
+    ->name('maps.show');
+
+Route::get('/campanas/{campaign}', [PublicCampaignController::class, 'show'])
+    ->name('campaigns.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -140,3 +180,16 @@ Route::get('/firmas/{nick}.html', function ($nick) {
 
     return view('firmas.show', compact('user'));
 })->name('firmas.show');
+
+/*
+|--------------------------------------------------------------------------
+| Páginas públicas
+|--------------------------------------------------------------------------
+|
+| Esta ruta debe permanecer al final para no interferir con las rutas
+| específicas de la aplicación.
+|
+*/
+
+Route::get('/{page:slug}', [PageController::class, 'show'])
+    ->name('pages.show');

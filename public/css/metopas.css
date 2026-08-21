@@ -1,0 +1,702 @@
+:root {
+    --metopa-surface: rgba(12, 16, 22, 0.92);
+    --metopa-surface-soft: rgba(17, 22, 30, 0.78);
+    --metopa-line: rgba(245, 158, 11, 0.34);
+}
+
+.metopas-body {
+    position: relative;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 18% 10%, rgba(245, 158, 11, 0.08), transparent 27%),
+        #05070a;
+}
+
+.metopas-main {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 130px);
+    padding-top: var(--header-height);
+}
+
+.landing-nav a.is-active {
+    color: var(--primary-light);
+}
+
+.landing-nav a.is-active::after {
+    transform: scaleX(1);
+}
+
+.metopas-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 850;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.metopas-kicker::before {
+    content: "";
+    width: 34px;
+    height: 1px;
+    background: var(--primary);
+}
+
+.metopas-index-hero {
+    position: relative;
+    min-height: 350px;
+    display: grid;
+    align-items: end;
+    overflow: hidden;
+    padding: 90px 0 76px;
+    border-bottom: 1px solid var(--border);
+    background:
+        linear-gradient(90deg, rgba(245, 158, 11, 0.06) 1px, transparent 1px),
+        linear-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 1px);
+    background-size: 70px 70px;
+}
+
+.metopas-index-hero::after {
+    content: "METOPAS";
+    position: absolute;
+    right: -0.04em;
+    bottom: -0.24em;
+    color: rgba(255, 255, 255, 0.025);
+    font-size: clamp(7rem, 20vw, 18rem);
+    font-weight: 950;
+    line-height: 1;
+    letter-spacing: -0.08em;
+    pointer-events: none;
+}
+
+.metopas-index-hero__content {
+    position: relative;
+    z-index: 1;
+}
+
+.metopas-index-hero h1,
+.metopa-detail__header h1 {
+    max-width: 1000px;
+    margin: 16px 0 0;
+    color: var(--primary);
+    font-size: clamp(3.4rem, 8vw, 7rem);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.055em;
+}
+
+.metopas-index-hero p {
+    max-width: 650px;
+    margin: 28px 0 0;
+    color: var(--text-soft);
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+.metopas-catalogue {
+    padding: 92px 0 120px;
+}
+
+.metopas-section-heading {
+    display: grid;
+    grid-template-columns: 0.65fr 1.35fr;
+    gap: 50px;
+    align-items: start;
+    margin-bottom: 55px;
+}
+
+.metopas-section-heading > div {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.metopas-section-heading__index {
+    color: var(--primary);
+    font-weight: 900;
+}
+
+.metopas-section-heading__label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.metopas-section-heading h2 {
+    max-width: 620px;
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+}
+
+.metopas-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.metopa-card {
+    position: relative;
+    min-height: 270px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(17, 22, 30, 0.95), rgba(8, 11, 16, 0.97));
+    transition:
+        transform 200ms ease,
+        border-color 200ms ease,
+        box-shadow 200ms ease;
+}
+
+.metopa-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--metopa-line);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.34);
+}
+
+.metopa-card__number {
+    position: absolute;
+    z-index: 2;
+    top: 12px;
+    right: 13px;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+}
+
+.metopa-card__image {
+    min-height: 145px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 25px 20px 18px;
+    border-bottom: 1px solid var(--border);
+    background:
+        radial-gradient(circle, rgba(245, 158, 11, 0.09), transparent 62%),
+        rgba(255, 255, 255, 0.012);
+}
+
+.metopa-card__image img {
+    width: auto;
+    max-width: 100%;
+    max-height: 95px;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 25px rgba(0, 0, 0, 0.38));
+    transition: transform 220ms ease;
+}
+
+.metopa-card:hover .metopa-card__image img {
+    transform: scale(1.035);
+}
+
+.metopa-card__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 17px 18px 19px;
+}
+
+.metopa-card__code {
+    margin-bottom: 6px;
+    color: var(--primary);
+    font-size: 0.6rem;
+    font-weight: 850;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.metopa-card h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 0.94rem;
+    line-height: 1.35;
+}
+
+.metopa-card__group {
+    display: inline-flex;
+    align-self: flex-start;
+    margin-top: 10px;
+    padding: 4px 8px;
+    border: 1px solid rgba(245, 158, 11, 0.24);
+    border-radius: 999px;
+    color: var(--primary-light);
+    background: rgba(245, 158, 11, 0.06);
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.metopa-card__link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: auto;
+    padding-top: 17px;
+    color: var(--text-muted);
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 180ms ease;
+}
+
+.metopa-card:hover .metopa-card__link {
+    color: var(--primary-light);
+}
+
+.metopas-empty {
+    padding: 65px 30px;
+    border: 1px dashed var(--metopa-line);
+    border-radius: 16px;
+    text-align: center;
+    background: var(--metopa-surface-soft);
+}
+
+.metopas-empty span {
+    color: var(--primary);
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.metopas-empty p {
+    margin: 12px 0 0;
+    color: var(--text-soft);
+}
+
+.metopa-page-background {
+    position: fixed;
+    z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.metopa-page-background img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(0.72) contrast(1.08);
+}
+
+.metopa-page-background::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgba(5, 7, 10, 0.4), rgba(5, 7, 10, 0.58) 36%, rgba(5, 7, 10, 0.78)),
+        linear-gradient(90deg, rgba(5, 7, 10, 0.3), transparent 50%, rgba(5, 7, 10, 0.3));
+}
+
+.metopa-detail {
+    padding: 58px 0 110px;
+}
+
+.metopa-detail__container {
+    width: min(980px, calc(100% - 48px));
+}
+
+.metopa-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 72px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.metopa-breadcrumb a {
+    color: var(--primary);
+}
+
+.metopa-breadcrumb a:hover {
+    color: var(--primary-light);
+}
+
+.metopa-detail__header {
+    padding-bottom: 58px;
+    border-bottom: 1px solid var(--metopa-line);
+}
+
+.metopa-detail__header h1 {
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    line-height: 1.02;
+}
+
+.metopa-rich-content {
+    color: #d4d8df;
+    font-size: 1.08rem;
+    line-height: 1.9;
+}
+
+.metopa-rich-content--intro {
+    padding: 55px 0;
+}
+
+.metopa-rich-content--secondary {
+    padding: 58px 0;
+    border-bottom: 1px solid var(--metopa-line);
+}
+
+.metopa-rich-content > :first-child {
+    margin-top: 0;
+}
+
+.metopa-rich-content > :last-child {
+    margin-bottom: 0;
+}
+
+.metopa-rich-content h2,
+.metopa-rich-content h3 {
+    color: #fff;
+    line-height: 1.25;
+}
+
+.metopa-rich-content a {
+    color: var(--primary-light);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.metopa-rich-content blockquote {
+    margin: 35px 0;
+    padding: 5px 0 5px 25px;
+    border-left: 3px solid var(--primary);
+    color: #fff;
+}
+
+.metopa-rich-content ul,
+.metopa-rich-content ol {
+    padding-left: 25px;
+}
+
+.metopa-detail__main-image {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 10px;
+    border: 1px solid var(--metopa-line);
+    border-radius: 12px;
+    background: rgba(4, 6, 9, 0.7);
+    box-shadow: 0 25px 65px rgba(0, 0, 0, 0.5);
+}
+
+.metopa-detail__main-image img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 7px;
+}
+
+.metopa-awardees {
+    padding: 48px 0;
+    border-bottom: 1px solid var(--metopa-line);
+}
+
+.metopa-awardees__disclosure {
+    overflow: hidden;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 14px;
+    background: rgba(8, 11, 16, 0.78);
+    backdrop-filter: blur(12px);
+}
+
+.metopa-awardees__disclosure summary {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 20px;
+    align-items: center;
+    padding: 22px 24px;
+    list-style: none;
+    cursor: pointer;
+    transition: background 180ms ease;
+}
+
+.metopa-awardees__disclosure summary::-webkit-details-marker {
+    display: none;
+}
+
+.metopa-awardees__disclosure summary:hover {
+    background: rgba(245, 158, 11, 0.055);
+}
+
+.metopa-awardees__heading {
+    display: grid;
+    gap: 4px;
+}
+
+.metopa-awardees__heading small {
+    color: var(--primary);
+    font-size: 0.62rem;
+    font-weight: 850;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.metopa-awardees__heading strong {
+    color: #fff;
+    font-size: 1rem;
+}
+
+.metopa-awardees__hide-label {
+    display: none;
+}
+
+.metopa-awardees__disclosure[open] .metopa-awardees__show-label {
+    display: none;
+}
+
+.metopa-awardees__disclosure[open] .metopa-awardees__hide-label {
+    display: inline;
+}
+
+.metopa-awardees__count {
+    min-width: 28px;
+    padding: 4px 8px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 999px;
+    color: var(--primary-light);
+    background: rgba(245, 158, 11, 0.08);
+    font-size: 0.72rem;
+    font-weight: 850;
+    text-align: center;
+}
+
+.metopa-awardees__chevron {
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid var(--primary);
+    border-bottom: 2px solid var(--primary);
+    transform: rotate(45deg) translateY(-3px);
+    transition: transform 180ms ease;
+}
+
+.metopa-awardees__disclosure[open] .metopa-awardees__chevron {
+    transform: rotate(225deg) translate(-2px, -2px);
+}
+
+.metopa-awardees__disclosure[open] summary {
+    border-bottom: 1px solid var(--border);
+}
+
+.metopa-awardees__content {
+    padding: 8px 24px 14px;
+}
+
+.metopa-awardees__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.metopa-awardees__list li {
+    display: grid;
+    grid-template-columns: 38px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.metopa-awardees__list li:last-child {
+    border-bottom: 0;
+}
+
+.metopa-awardees__position {
+    color: rgba(255, 255, 255, 0.28);
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+}
+
+.metopa-awardees__member {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.metopa-awardees__member strong {
+    color: var(--member-group-color, #fff);
+    font-size: 0.93rem;
+}
+
+.metopa-awardees__member span {
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: var(--text-soft);
+    background: rgba(255, 255, 255, 0.07);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.metopa-awardees__list time {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.metopa-awardees__empty {
+    margin: 0;
+    padding: 18px 0 12px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.metopa-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 62px 0;
+    border-bottom: 1px solid var(--metopa-line);
+}
+
+.metopa-group > img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.45));
+}
+
+.metopa-detail__back {
+    padding-top: 55px;
+}
+
+.metopas-footer {
+    position: relative;
+    z-index: 2;
+}
+
+@media (max-width: 1100px) {
+    .metopas-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 880px) {
+    .metopas-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .metopas-main {
+        padding-top: 0;
+    }
+
+    .metopas-index-body .nav-wrapper {
+        padding-block: 9px;
+    }
+
+    .metopas-index-body .brand-logo-image {
+        height: 40px;
+    }
+
+    .metopas-index-hero {
+        min-height: 240px;
+        padding: 42px 0 34px;
+    }
+
+    .metopas-index-hero h1 {
+        font-size: clamp(3rem, 15vw, 4.2rem);
+    }
+
+    .metopas-index-hero p {
+        margin-top: 18px;
+        font-size: 0.94rem;
+        line-height: 1.65;
+    }
+
+    .metopas-catalogue {
+        padding: 38px 0 80px;
+    }
+
+    .metopas-section-heading {
+        grid-template-columns: 1fr;
+    }
+
+    .metopas-section-heading {
+        gap: 28px;
+    }
+
+    .metopa-detail {
+        padding-top: 35px;
+    }
+
+    .metopa-detail__container {
+        width: min(100%, calc(100% - 28px));
+    }
+
+    .metopa-breadcrumb {
+        margin-bottom: 48px;
+    }
+
+    .metopa-detail__header {
+        padding-bottom: 42px;
+    }
+
+    .metopa-rich-content--intro,
+    .metopa-rich-content--secondary {
+        padding: 42px 0;
+    }
+
+    .metopa-awardees {
+        padding: 38px 0;
+    }
+
+    .metopa-awardees__disclosure summary {
+        gap: 13px;
+        padding: 19px 17px;
+    }
+
+    .metopa-awardees__content {
+        padding-right: 17px;
+        padding-left: 17px;
+    }
+
+    .metopa-awardees__list li {
+        grid-template-columns: 28px 1fr;
+        gap: 8px 12px;
+    }
+
+    .metopa-awardees__list time {
+        grid-column: 2;
+    }
+}
+
+@media (max-width: 590px) {
+    .metopas-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .metopa-card {
+        min-height: 260px;
+    }
+
+    .metopa-card__image {
+        min-height: 135px;
+    }
+}
+
+@media (max-width: 390px) {
+    .metopas-grid {
+        grid-template-columns: 1fr;
+    }
+}

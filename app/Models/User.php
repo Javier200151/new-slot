@@ -2,28 +2,28 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\PromoImageGenerator;
 use App\Services\SignatureBannerGenerator;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
-use App\Services\PromoImageGenerator;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles, LogsActivity, SoftDeletes;
+    use HasFactory, HasRoles, LogsActivity, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'nick',
@@ -59,7 +59,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         return $this->nick ?? $this->email;
     }
 
-    public function canAccessPanel(\Filament\Panel $panel): bool
+    public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasRole('admin') || $this->can('filament.access');
     }
@@ -125,7 +125,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
                 'promo_id' => null,
             ])->saveQuietly();
         }
-        
 
         app(SignatureBannerGenerator::class)->generate($this);
     }
@@ -159,6 +158,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             'nick' => strtolower($this->nick),
         ]);
     }
+
     public function userMetopas()
     {
         return $this->hasMany(MetopaUser::class, 'user_id', 'id')
@@ -182,6 +182,18 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             ->wherePivotNull('deleted_at');
     }
 
+    public function mainSqaGroup()
+    {
+        return $this->hasOneThrough(
+            SqaGroup::class,
+            SqaGroupUser::class,
+            'user_id',
+            'id',
+            'id',
+            'sqa_group_id',
+        )->where('sqa_group_users.main', true);
+    }
+
     public function eventComments()
     {
         return $this->hasMany(EventComment::class);
@@ -191,11 +203,12 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     {
         return $this->hasMany(User::class, 'tutor_id');
     }
+
     public function tutor()
     {
         return $this->belongsTo(User::class, 'tutor_id');
     }
-    
+
     // Para que en las listas podamos mostrar el nombre de usuario
     public function createdBy()
     {
@@ -206,7 +219,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
-
 
     public function getActivitylogOptions(): LogOptions
     {

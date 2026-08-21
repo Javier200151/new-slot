@@ -1,0 +1,129 @@
+.public-page-body {
+    background:
+        radial-gradient(circle at 18% 8%, rgba(245, 158, 11, 0.08), transparent 30%),
+        #05070a;
+}
+
+.public-page {
+    min-height: calc(100vh - 130px);
+    padding: 58px 0 110px;
+}
+
+.public-page__container {
+    width: min(900px, calc(100% - 48px));
+}
+
+.public-page__breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 60px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.public-page__breadcrumb a {
+    color: var(--primary);
+}
+
+.public-page__header {
+    padding-bottom: 42px;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.34);
+}
+
+.public-page__header > span {
+    color: var(--primary);
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.public-page__header h1 {
+    margin: 13px 0 0;
+    color: #fff;
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.05em;
+}
+
+.public-page__content {
+    padding: 50px 0;
+    color: #d4d8df;
+    font-size: 1.04rem;
+    line-height: 1.85;
+}
+
+.public-page__content > :first-child {
+    margin-top: 0;
+}
+
+.public-page__content > :last-child {
+    margin-bottom: 0;
+}
+
+.public-page__content h2,
+.public-page__content h3,
+.public-page__content h4 {
+    margin-top: 2em;
+    color: #fff;
+    line-height: 1.25;
+}
+
+.public-page__content a {
+    color: var(--primary-light);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.public-page__content blockquote {
+    margin: 32px 0;
+    padding: 4px 0 4px 24px;
+    border-left: 3px solid var(--primary);
+    color: #fff;
+}
+
+.public-page__content img {
+    max-width: 100%;
+    height: auto;
+}
+
+.public-page__content table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.public-page__content th,
+.public-page__content td {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+@media (max-width: 760px) {
+    .public-page {
+        padding: 35px 0 75px;
+    }
+
+    .public-page__container {
+        width: min(100%, calc(100% - 28px));
+    }
+
+    .public-page__breadcrumb {
+        margin-bottom: 42px;
+    }
+
+    .public-page__header {
+        padding-bottom: 34px;
+    }
+
+    .public-page__content {
+        overflow-x: auto;
+        padding: 38px 0;
+        font-size: 0.98rem;
+    }
+}

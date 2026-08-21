@@ -22,4 +22,19 @@ class Campaign extends Model
             'persistent' => 'boolean',
         ];
     }
+
+    public function operations()
+    {
+        return $this->hasMany(Operation::class);
+    }
+
+    public function events()
+    {
+        return $this->hasManyThrough(
+            Event::class,
+            Operation::class,
+            'campaign_id',
+            'operation_id',
+        );
+    }
 }
