@@ -66,7 +66,24 @@ class PublicEventsPageTest extends TestCase
             $table->id();
             $table->string('nick');
             $table->foreignId('status_id')->nullable();
+            $table->string('firma')->nullable();
+            $table->string('image')->nullable();
             $table->softDeletes();
+        });
+
+        Schema::create('metopas', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('image');
+            $table->softDeletes();
+        });
+
+        Schema::create('metopa_user', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('metopa_id');
+            $table->foreignId('user_id');
+            $table->date('assigned_at')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('roles', function (Blueprint $table): void {
@@ -685,6 +702,14 @@ class PublicEventsPageTest extends TestCase
             ".event-orbat {\n    display: grid;\n    grid-template-columns: repeat(2, minmax(0, 1fr));",
             file_get_contents(public_path('css/events.css')),
         );
+        $this->assertStringContainsString(
+            'availableWidth / signatureWidth',
+            file_get_contents(resource_path('views/firmas/show.blade.php')),
+        );
+        $this->assertStringNotContainsString(
+            '$escalaMovil',
+            file_get_contents(resource_path('views/firmas/show.blade.php')),
+        );
     }
 
     public function test_draft_event_page_is_not_public(): void
@@ -695,8 +720,18 @@ class PublicEventsPageTest extends TestCase
     public function test_authenticated_user_can_publish_and_edit_own_event_comments(): void
     {
         DB::table('users')->insert([
-            ['id' => 20, 'nick' => 'Comentarista'],
-            ['id' => 21, 'nick' => 'Otro usuario'],
+            [
+                'id' => 20,
+                'nick' => 'Comentarista',
+                'image' => 'users/comentarista.png',
+                'firma' => '/firmas/comentarista.html',
+            ],
+            [
+                'id' => 21,
+                'nick' => 'Otro usuario',
+                'image' => null,
+                'firma' => null,
+            ],
         ]);
 
         $user = User::query()->findOrFail(20);
@@ -726,6 +761,12 @@ class PublicEventsPageTest extends TestCase
             ->assertOk()
             ->assertSee('Comentario recién publicado.')
             ->assertSee('Editar comentario')
+            ->assertSee('storage/users/comentarista.png', escape: false)
+            ->assertSee('class="event-comment__signature"', escape: false)
+            ->assertSee('src="/firmas/comentarista.html"', escape: false)
+            ->assertSee('data-signature-frame', escape: false)
+            ->assertSee('js/events.js', escape: false)
+            ->assertDontSee('style="height:', escape: false)
             ->assertSee(route('events.comments.update', [1, $commentId]), escape: false);
 
         $this->patch("/eventos/1/comentarios/{$commentId}", [

@@ -1,6 +1,9 @@
 @php
     $author = $comment->user;
     $replies = $commentsByParent->get($comment->id, collect());
+    $authorImage = $author?->image
+        ? asset('storage/' . $author->image)
+        : asset('images/sqa-shield-white.png');
 @endphp
 
 <article @class(['event-comment', 'is-reply' => $depth > 0, 'is-pinned' => $comment->is_pinned])>
@@ -20,9 +23,16 @@
             @endif
         </div>
 
-        <time datetime="{{ $comment->updated_at?->toIso8601String() }}">
-            {{ $comment->updated_at?->format('d/m/Y H:i') }}
-        </time>
+        <div class="event-comment__user-media">
+            <time datetime="{{ $comment->updated_at?->toIso8601String() }}">
+                {{ $comment->updated_at?->format('d/m/Y H:i') }}
+            </time>
+            <img
+                src="{{ $authorImage }}"
+                alt="Imagen de {{ $author?->nick ?? 'usuario eliminado' }}"
+                loading="lazy"
+            >
+        </div>
     </header>
 
     <p class="event-comment__body">{{ $comment->comment }}</p>
@@ -69,6 +79,17 @@
             @endif
         </div>
     @endauth
+
+    @if($author?->firma && ! $author->trashed())
+        <iframe
+            class="event-comment__signature"
+            src="{{ $author->firma }}"
+            title="Firma de {{ $author->nick }}"
+            loading="lazy"
+            scrolling="no"
+            data-signature-frame
+        ></iframe>
+    @endif
 
     @if($replies->isNotEmpty())
         <div class="event-comment__replies">

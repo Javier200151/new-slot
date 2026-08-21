@@ -110,5 +110,6 @@
     ])
 
     <script src="{{ asset('js/landing.js') }}" defer></script>
+    @stack('scripts')
 </body>
 </html>

@@ -1062,10 +1062,27 @@ html:has(.event-detail) {
     text-transform: uppercase;
 }
 
-.event-comment__header time {
+.event-comment__user-media {
     flex: 0 0 auto;
+    display: grid;
+    justify-items: end;
+    gap: 7px;
+}
+
+.event-comment__user-media time {
     color: var(--text-muted);
     font-size: 0.65rem;
+}
+
+.event-comment__user-media img {
+    display: block;
+    width: 70px;
+    height: 70px;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #080b10;
+    object-fit: contain;
 }
 
 .event-comment__body {
@@ -1109,6 +1126,15 @@ html:has(.event-detail) {
     justify-items: end;
     gap: 9px;
     margin-top: 10px;
+}
+
+.event-comment__signature {
+    display: block;
+    width: min(620px, 100%);
+    height: 130px;
+    margin-top: 16px;
+    border: 0;
+    background: transparent;
 }
 
 .event-comment__replies {

@@ -24,6 +24,10 @@
     <link rel="stylesheet" href="{{ asset('css/events.css') }}">
 @endpush
 
+@push('scripts')
+    <script src="{{ asset('js/events.js') }}" defer></script>
+@endpush
+
 @section('content')
     <article
         class="event-detail"
