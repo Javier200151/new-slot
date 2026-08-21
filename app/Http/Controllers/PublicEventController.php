@@ -10,6 +10,7 @@ use App\Models\EventSlotHistory;
 use App\Models\Faction;
 use App\Models\OperationType;
 use App\Models\SlotType;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
 
 class PublicEventController extends Controller
 {
@@ -188,6 +191,9 @@ class PublicEventController extends Controller
             ? $event->slots->firstWhere('user_id', auth()->id())
             : null;
         $isRegistrationOpen = $event->eventStatus?->name === 'ACTIVO';
+        $canManageOrbat = $this->canManageOrbat(
+            auth()->user()
+        );
 
         $visibleOrbatGroups = $groups
             ->map(function (array $group) use ($assignments, $currentUserSlot, $factions, $isRegistrationOpen, $slotTypes): array {
@@ -274,6 +280,7 @@ class PublicEventController extends Controller
 
         return view('events.show', compact(
             'addons',
+            'canManageOrbat',
             'commentsByParent',
             'descriptionSections',
             'event',
@@ -481,46 +488,382 @@ class PublicEventController extends Controller
             ->with('status', 'Te has desapuntado correctamente.');
     }
 
-    public function storeComment(Event $event, Request $request): RedirectResponse
-    {
-        abort_unless(
-            $event->eventStatus()->whereIn('name', ['ACTIVO', 'FINALIZADO'])->exists(),
-            404,
-        );
+    public function manageSlot(
+    Event $event,
+    string $slotKey,
+    Request $request,
+): JsonResponse|RedirectResponse {
+    $manager = $request->user();
 
-        $validated = $request->validate([
-            'comment' => ['required', 'string', 'max:5000'],
-            'parent_id' => ['nullable', 'integer'],
-        ]);
+    abort_unless(
+        $this->canManageOrbat($manager),
+        403,
+    );
 
-        $parent = filled($validated['parent_id'] ?? null)
-            ? EventComment::query()
-                ->where('event_id', $event->id)
-                ->find($validated['parent_id'])
-            : null;
+    $validated = $request->validate([
+        'action' => [
+            'required',
+            Rule::in([
+                'move',
+                'clear',
+            ]),
+        ],
 
-        if (filled($validated['parent_id'] ?? null) && ! $parent) {
+        'user_id' => [
+            Rule::requiredIf(
+                fn (): bool =>
+                    $request->input('action') === 'move'
+            ),
+            'nullable',
+            'integer',
+            Rule::exists('users', 'id')
+                ->whereNull('deleted_at'),
+        ],
+    ]);
+
+    $result = DB::transaction(function () use (
+        $event,
+        $slotKey,
+        $validated,
+        $manager,
+    ): array {
+        $lockedEvent = Event::query()
+            ->whereKey($event->id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Comprobar que el evento permite modificar el ORBAT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            ! $lockedEvent
+                ->eventStatus()
+                ->where('name', 'ACTIVO')
+                ->exists()
+        ) {
             throw ValidationException::withMessages([
-                'comment' => 'El comentario al que intentas responder ya no está disponible.',
+                'slot' => 'El ORBAT de este evento ya no puede modificarse.',
             ]);
         }
 
-        EventComment::query()->create([
-            'event_id' => $event->id,
-            'user_id' => $request->user()->id,
-            'parent_id' => $parent?->id,
-            'comment' => $validated['comment'],
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Comprobar slot destino
+        |--------------------------------------------------------------------------
+        */
 
-        return redirect()
-            ->to(route('events.show', $event).'#comentarios')
-            ->with(
-                'comment_status',
-                $parent
-                    ? 'Tu respuesta se ha publicado correctamente.'
-                    : 'Tu comentario se ha publicado correctamente.',
+        $orbatSlot = $this->findVisibleOrbatSlot(
+            $lockedEvent,
+            $slotKey,
+        );
+
+        if ($orbatSlot === null) {
+            throw ValidationException::withMessages([
+                'slot' => 'El slot seleccionado no existe o no está visible.',
+            ]);
+        }
+
+        $slotTypeId = (int) (
+            $orbatSlot['slot']['slot_type_id'] ?? 0
+        );
+
+        $factionId = (int) (
+            $orbatSlot['group']['faction_id'] ?? 0
+        );
+
+        if ($slotTypeId < 1 || $factionId < 1) {
+            throw ValidationException::withMessages([
+                'slot' => 'El slot seleccionado no tiene una configuración válida.',
+            ]);
+        }
+
+        $targetSnapshot = [
+            'slot_key' => $slotKey,
+
+            'name' =>
+                $orbatSlot['slot']['name']
+                ?? 'Slot sin nombre',
+
+            'slot_type_id' => $slotTypeId,
+
+            'slot_group' =>
+                $orbatSlot['group']['name']
+                ?? 'Grupo sin nombre',
+
+            'faction_id' => $factionId,
+
+            'army_id' => Faction::query()
+                ->whereKey($factionId)
+                ->value('army_id'),
+        ];
+
+        $targetSlot = EventSlot::query()
+            ->where('event_id', $lockedEvent->id)
+            ->where('slot_key', $slotKey)
+            ->with([
+                'user',
+                'ally',
+                'faction',
+            ])
+            ->lockForUpdate()
+            ->first();
+
+        /*
+        |--------------------------------------------------------------------------
+        | ELIMINAR jugador del ORBAT
+        |--------------------------------------------------------------------------
+        */
+
+        if ($validated['action'] === 'clear') {
+
+            if (
+                ! $targetSlot
+                || (
+                    ! $targetSlot->user_id
+                    && ! $targetSlot->ally_id
+                )
+            ) {
+                return [
+                    'action' => 'clear',
+                    'slot_key' => $slotKey,
+                    'message' => 'El slot ya estaba libre.',
+                ];
+            }
+
+            $removedName =
+                $targetSlot->user?->nick
+                ?? $targetSlot->ally?->name
+                ?? 'el jugador';
+
+            $this->recordSlotUnassignment(
+                $targetSlot,
+                $manager->id,
             );
+
+            $targetSlot->delete();
+
+            return [
+                'action' => 'clear',
+                'slot_key' => $slotKey,
+                'message' => "{$removedName} ha sido eliminado del ORBAT.",
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | MOVER jugador
+        |--------------------------------------------------------------------------
+        */
+
+        $userId = (int) $validated['user_id'];
+
+        /*
+         * Buscamos el slot actual del jugador que estamos arrastrando.
+         */
+        $sourceSlot = EventSlot::query()
+            ->where('event_id', $lockedEvent->id)
+            ->where('user_id', $userId)
+            ->with([
+                'user',
+                'faction',
+            ])
+            ->lockForUpdate()
+            ->first();
+
+        if (! $sourceSlot) {
+            throw ValidationException::withMessages([
+                'slot' => 'El jugador ya no se encuentra en el ORBAT.',
+            ]);
+        }
+
+        /*
+         * Lo hemos soltado encima de su propio slot.
+         */
+        if ($sourceSlot->slot_key === $slotKey) {
+            return [
+                'action' => 'move',
+                'source_slot_key' => $sourceSlot->slot_key,
+                'target_slot_key' => $slotKey,
+                'swapped' => false,
+                'message' => 'El jugador ya ocupa ese slot.',
+            ];
+        }
+
+        /*
+         * De momento no intercambiamos usuarios SQA
+         * directamente con aliados externos.
+         */
+        if ($targetSlot?->ally_id) {
+            throw ValidationException::withMessages([
+                'slot' => 'No puedes intercambiar un usuario con un aliado externo. Vacía primero ese slot.',
+            ]);
+        }
+
+        $sourceSnapshot = [
+            'slot_key' => $sourceSlot->slot_key,
+            'name' => $sourceSlot->name,
+            'slot_type_id' => $sourceSlot->slot_type_id,
+            'slot_group' => $sourceSlot->slot_group,
+            'faction_id' => $sourceSlot->faction_id,
+            'army_id' => $sourceSlot->faction?->army_id,
+        ];
+
+        $draggedUserName =
+            $sourceSlot->user?->nick
+            ?? 'Usuario';
+
+        /*
+        |--------------------------------------------------------------------------
+        | DESTINO OCUPADO → INTERCAMBIO
+        |--------------------------------------------------------------------------
+        */
+
+        if ($targetSlot?->user_id) {
+            $targetUserId = (int) $targetSlot->user_id;
+
+            $targetUserName =
+                $targetSlot->user?->nick
+                ?? 'Usuario';
+
+            /*
+             * Intercambiamos únicamente los ocupantes.
+             *
+             * Los registros EventSlot permanecen vinculados
+             * a sus respectivos slots.
+             */
+            $sourceSlot->forceFill([
+                'user_id' => $targetUserId,
+                'ally_id' => null,
+            ])->save();
+
+            $targetSlot->forceFill([
+                'user_id' => $userId,
+                'ally_id' => null,
+            ])->save();
+
+            /*
+             * Historial del jugador arrastrado.
+             */
+            $this->recordSlotMovement(
+                eventSlot: $targetSlot,
+                eventId: $lockedEvent->id,
+                userId: $userId,
+                from: $sourceSnapshot,
+                to: $targetSnapshot,
+                changedByUserId: $manager->id,
+            );
+
+            /*
+             * Historial del jugador que estaba en el destino.
+             */
+            $this->recordSlotMovement(
+                eventSlot: $sourceSlot,
+                eventId: $lockedEvent->id,
+                userId: $targetUserId,
+                from: $targetSnapshot,
+                to: $sourceSnapshot,
+                changedByUserId: $manager->id,
+            );
+
+            return [
+                'action' => 'move',
+                'source_slot_key' => $sourceSnapshot['slot_key'],
+                'target_slot_key' => $targetSnapshot['slot_key'],
+                'swapped' => true,
+
+                'message' =>
+                    "{$draggedUserName} y {$targetUserName} han intercambiado sus slots.",
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | DESTINO LIBRE
+        |--------------------------------------------------------------------------
+        */
+
+        /*
+         * Puede existir un EventSlot vacío.
+         */
+        if ($targetSlot) {
+            $sourceSlot->forceFill([
+                'user_id' => null,
+                'ally_id' => null,
+            ])->save();
+
+            $targetSlot->forceFill([
+                'user_id' => $userId,
+                'ally_id' => null,
+            ])->save();
+
+            $newEventSlot = $targetSlot;
+        }
+
+        /*
+         * Si el destino no tiene registro EventSlot,
+         * movemos directamente el registro actual.
+         */
+        else {
+            $sourceSlot->forceFill([
+                'slot_key' => $targetSnapshot['slot_key'],
+                'name' => $targetSnapshot['name'],
+                'slot_type_id' => $targetSnapshot['slot_type_id'],
+                'slot_group' => $targetSnapshot['slot_group'],
+                'faction_id' => $targetSnapshot['faction_id'],
+                'user_id' => $userId,
+                'ally_id' => null,
+            ])->save();
+
+            $newEventSlot = $sourceSlot;
+        }
+
+        $this->recordSlotMovement(
+            eventSlot: $newEventSlot,
+            eventId: $lockedEvent->id,
+            userId: $userId,
+            from: $sourceSnapshot,
+            to: $targetSnapshot,
+            changedByUserId: $manager->id,
+        );
+
+        return [
+            'action' => 'move',
+            'source_slot_key' => $sourceSnapshot['slot_key'],
+            'target_slot_key' => $targetSnapshot['slot_key'],
+            'swapped' => false,
+
+            'message' =>
+                "{$draggedUserName} ha sido movido correctamente.",
+        ];
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Respuesta AJAX
+    |--------------------------------------------------------------------------
+    */
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            ...$result,
+        ]);
     }
+
+    /*
+     * Permitimos también que funcione sin JavaScript.
+     */
+    return redirect()
+        ->route('events.show', $event)
+        ->with(
+            'status',
+            $result['message']
+                ?? 'El ORBAT se ha actualizado correctamente.',
+        );
+}
 
     public function updateComment(
         Event $event,
@@ -568,5 +911,123 @@ class PublicEventController extends Controller
         }
 
         return null;
+    }
+    private function canManageOrbat(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        /*
+        * Dejamos admin como respaldo para no bloquearlo
+        * aunque todavía no se haya ejecutado el seeder
+        * de este nuevo permiso.
+        */
+        return $user->hasRole('admin')
+            || $user->can('event-orbat.manage');
+    }
+
+    private function recordSlotUnassignment(
+        EventSlot $eventSlot,
+        int $changedByUserId,
+    ): void {
+        $eventSlot->loadMissing('faction');
+
+        EventSlotHistory::query()->create([
+            'event_slot_id' => $eventSlot->id,
+
+            'event_id' => $eventSlot->event_id,
+
+            'user_id' => $eventSlot->user_id,
+
+            'ally_id' => $eventSlot->ally_id,
+
+            'action' => 'unassigned',
+
+            'from_slot_key' =>
+                $eventSlot->slot_key,
+
+            'from_slot_name' =>
+                $eventSlot->name,
+
+            'from_slot_type_id' =>
+                $eventSlot->slot_type_id,
+
+            'from_slot_group' =>
+                $eventSlot->slot_group,
+
+            'from_army_id' =>
+                $eventSlot->faction?->army_id,
+
+            'to_slot_key' => null,
+
+            'to_slot_name' => null,
+
+            'to_slot_type_id' => null,
+
+            'to_slot_group' => null,
+
+            'to_army_id' => null,
+
+            'changed_by_user_id' =>
+                $changedByUserId,
+
+            'created_at' => now(),
+        ]);
+    }
+    private function recordSlotMovement(
+        EventSlot $eventSlot,
+        int $eventId,
+        int $userId,
+        array $from,
+        array $to,
+        int $changedByUserId,
+    ): void {
+        EventSlotHistory::query()->create([
+            'event_slot_id' => $eventSlot->id,
+
+            'event_id' => $eventId,
+
+            'user_id' => $userId,
+
+            'ally_id' => null,
+
+            'action' => 'moved',
+
+            'from_slot_key' =>
+                $from['slot_key'] ?? null,
+
+            'from_slot_name' =>
+                $from['name'] ?? null,
+
+            'from_slot_type_id' =>
+                $from['slot_type_id'] ?? null,
+
+            'from_slot_group' =>
+                $from['slot_group'] ?? null,
+
+            'from_army_id' =>
+                $from['army_id'] ?? null,
+
+            'to_slot_key' =>
+                $to['slot_key'] ?? null,
+
+            'to_slot_name' =>
+                $to['name'] ?? null,
+
+            'to_slot_type_id' =>
+                $to['slot_type_id'] ?? null,
+
+            'to_slot_group' =>
+                $to['slot_group'] ?? null,
+
+            'to_army_id' =>
+                $to['army_id'] ?? null,
+
+            'changed_by_user_id' =>
+                $changedByUserId,
+
+            'created_at' => now(),
+        ]);
     }
 }
