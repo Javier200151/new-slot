@@ -138,7 +138,7 @@
 
 .profile-layout {
     display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: 380px minmax(0, 1fr);
     gap: 24px;
     align-items: start;
 }
@@ -437,4 +437,489 @@
     .readonly-list dd {
         text-align: left;
     }
+}
+/* =========================================================
+   FIRMA EMBEBIDA
+========================================================= */
+
+.profile-signature-block__header a:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   EDITOR DE AVATAR
+========================================================= */
+
+body.avatar-editor-open {
+    overflow: hidden;
+}
+
+.avatar-editor[hidden] {
+    display: none;
+}
+
+.avatar-editor {
+    position: fixed;
+
+    z-index: 1000;
+
+    inset: 0;
+
+    display: grid;
+    place-items: center;
+
+    padding: 24px;
+}
+
+.avatar-editor__backdrop {
+    position: absolute;
+
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.82);
+
+    backdrop-filter: blur(8px);
+}
+
+.avatar-editor__dialog {
+    position: relative;
+
+    z-index: 1;
+
+    width: min(520px, 100%);
+
+    overflow: hidden;
+
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #11161e,
+            #080b10
+        );
+
+    box-shadow:
+        0 35px 100px
+        rgba(0, 0, 0, 0.65);
+}
+
+.avatar-editor__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 24px 26px 18px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.avatar-editor__header > div > span {
+    color: var(--primary);
+
+    font-size: 0.65rem;
+    font-weight: 900;
+
+    letter-spacing: 0.13em;
+
+    text-transform: uppercase;
+}
+
+.avatar-editor__header h2 {
+    margin: 5px 0 4px;
+
+    color: #fff;
+
+    font-size: 1.45rem;
+}
+
+.avatar-editor__header p {
+    margin: 0;
+
+    color: var(--text-muted);
+
+    font-size: 0.78rem;
+}
+
+.avatar-editor__close {
+    width: 32px;
+    height: 32px;
+
+    display: grid;
+    place-items: center;
+
+    flex-shrink: 0;
+
+    padding: 0;
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    color: var(--text-soft);
+
+    background: transparent;
+
+    font-size: 1.2rem;
+
+    cursor: pointer;
+}
+
+.avatar-editor__close:hover {
+    color: #fff;
+
+    border-color: var(--primary);
+
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.avatar-editor__workspace {
+    display: grid;
+    justify-items: center;
+
+    gap: 15px;
+
+    padding: 30px 25px 23px;
+}
+
+.avatar-editor__viewport {
+    position: relative;
+
+    width: min(320px, 72vw);
+    aspect-ratio: 1;
+
+    overflow: hidden;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            #141a22,
+            #05070a
+        );
+
+    cursor: grab;
+
+    touch-action: none;
+
+    user-select: none;
+
+    box-shadow:
+        0 0 0 8px rgba(245, 158, 11, 0.035),
+        0 18px 55px rgba(0, 0, 0, 0.45);
+}
+
+.avatar-editor__viewport:active {
+    cursor: grabbing;
+}
+
+.avatar-editor__image {
+    position: absolute;
+
+    top: 50%;
+    left: 50%;
+
+    max-width: none;
+
+    pointer-events: none;
+
+    user-select: none;
+
+    transform-origin: center;
+}
+
+.avatar-editor__frame {
+    position: absolute;
+
+    inset: 0;
+
+    border: 3px solid var(--primary);
+    border-radius: 50%;
+
+    pointer-events: none;
+
+    box-shadow:
+        inset 0 0 0 1px
+        rgba(255, 255, 255, 0.15),
+        inset 0 0 30px
+        rgba(0, 0, 0, 0.18);
+}
+
+.avatar-editor__hint {
+    margin: 0;
+
+    color: var(--text-muted);
+
+    font-size: 0.72rem;
+
+    text-align: center;
+}
+
+.avatar-editor__controls {
+    display: grid;
+
+    gap: 11px;
+
+    padding: 20px 26px;
+
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.avatar-editor__control-label {
+    color: #fff;
+
+    font-size: 0.77rem;
+    font-weight: 800;
+}
+
+.avatar-editor__zoom {
+    display: grid;
+
+    grid-template-columns:
+        36px
+        minmax(0, 1fr)
+        36px;
+
+    align-items: center;
+
+    gap: 12px;
+}
+
+.avatar-editor__zoom button {
+    width: 36px;
+    height: 36px;
+
+    display: grid;
+    place-items: center;
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    color: var(--primary);
+
+    background: rgba(255, 255, 255, 0.025);
+
+    font-size: 1.1rem;
+    font-weight: 850;
+
+    cursor: pointer;
+}
+
+.avatar-editor__zoom button:hover {
+    border-color: var(--primary);
+
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.avatar-editor__zoom input[type="range"] {
+    width: 100%;
+
+    accent-color: var(--primary);
+
+    cursor: pointer;
+}
+
+.avatar-editor__reset {
+    justify-self: start;
+
+    padding: 0;
+
+    border: 0;
+
+    color: var(--text-muted);
+
+    background: transparent;
+
+    font-family: inherit;
+    font-size: 0.68rem;
+
+    cursor: pointer;
+}
+
+.avatar-editor__reset:hover {
+    color: var(--primary);
+}
+
+.avatar-editor__footer {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    padding: 18px 26px 22px;
+}
+
+@media (max-width: 600px) {
+    .avatar-editor {
+        padding: 12px;
+    }
+
+    .avatar-editor__header {
+        padding:
+            20px
+            20px
+            16px;
+    }
+
+    .avatar-editor__workspace {
+        padding:
+            25px
+            18px
+            20px;
+    }
+
+    .avatar-editor__controls {
+        padding:
+            18px
+            20px;
+    }
+
+    .avatar-editor__footer {
+        padding:
+            16px
+            20px
+            20px;
+    }
+
+    .avatar-editor__footer .btn {
+        flex: 1;
+    }
+}
+/* =========================================================
+   FIRMA SQA
+========================================================= */
+
+.profile-signature-card {
+    overflow: hidden;
+
+    border: 1px solid var(--border);
+    border-radius: 15px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17, 21, 29, 0.96),
+            rgba(8, 11, 16, 0.98)
+        );
+
+    box-shadow:
+        0 20px 55px
+        rgba(0, 0, 0, 0.22);
+}
+
+
+/* Cabecera */
+
+.profile-signature-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 18px 20px 15px;
+
+    border-bottom:
+        1px solid var(--border);
+}
+
+
+.profile-signature-card__header > div {
+    display: grid;
+
+    gap: 4px;
+}
+
+
+.profile-signature-card__header span {
+    color: var(--primary);
+
+    font-size: 0.62rem;
+    font-weight: 900;
+
+    letter-spacing: 0.15em;
+
+    text-transform: uppercase;
+}
+
+
+.profile-signature-card__header strong {
+    color: #fff;
+
+    font-size: 1rem;
+    font-weight: 850;
+}
+
+
+.profile-signature-card__header a {
+    padding: 7px 10px;
+
+    border: 1px solid
+        rgba(245, 158, 11, 0.38);
+
+    border-radius: 7px;
+
+    color: var(--primary);
+
+    background:
+        rgba(245, 158, 11, 0.04);
+
+    font-size: 0.68rem;
+    font-weight: 800;
+
+    transition:
+        color 150ms ease,
+        border-color 150ms ease,
+        background 150ms ease;
+}
+
+
+.profile-signature-card__header a:hover {
+    color: #111;
+
+    border-color: var(--primary);
+
+    background: var(--primary);
+}
+
+
+/* Vista previa */
+
+.profile-signature-card__preview {
+    width: 100%;
+
+    padding: 14px;
+
+    overflow: hidden;
+
+    background: #05070a;
+}
+
+
+.profile-signature-card__iframe {
+    display: block;
+
+    width: 100%;
+
+    /*
+     * Solo sirve como altura inicial.
+     *
+     * El JS de /firmas/{nick}.html ya modifica
+     * automáticamente la altura del iframe.
+     */
+    height: 150px;
+
+    margin: 0;
+    padding: 0;
+
+    border: 0;
+
+    overflow: hidden;
+
+    background: transparent;
 }

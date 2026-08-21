@@ -72,7 +72,14 @@
                             Crear cuenta
                         </a>
                     @else
-                        <a href="{{ route('profile.show') }}" class="btn btn-outline">
+                        @include(
+                            'partials.notification-bell'
+                        )
+
+                        <a
+                            href="{{ route('profile.show') }}"
+                            class="btn btn-outline"
+                        >
                             Mi perfil
                         </a>
 

@@ -163,4 +163,57 @@ class Event extends Model
 
         return new HtmlString($html);
     }
+    public function getAvailableVisibleSlotsCount(): int
+    {
+        $visibleSlotKeys = collect(
+            $this->orbat['groups'] ?? []
+        )
+            ->filter(
+                fn (array $group): bool =>
+                    (bool) ($group['visible'] ?? true)
+            )
+            ->flatMap(
+                fn (array $group) =>
+                    collect($group['slots'] ?? [])
+                        ->filter(
+                            fn (array $slot): bool =>
+                                (bool) (
+                                    $slot['visible'] ?? true
+                                )
+                        )
+                        ->pluck('slot_key')
+            )
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($visibleSlotKeys->isEmpty()) {
+            return 0;
+        }
+
+        $eventSlots = $this->relationLoaded('slots')
+            ? $this->slots
+            : $this->slots()->get();
+
+        $occupiedSlots = $eventSlots
+            ->filter(
+                fn ($slot): bool =>
+                    $visibleSlotKeys->contains(
+                        $slot->slot_key
+                    )
+                    && (
+                        $slot->user_id !== null
+                        || $slot->ally_id !== null
+                    )
+            )
+            ->pluck('slot_key')
+            ->unique()
+            ->count();
+
+        return max(
+            0,
+            $visibleSlotKeys->count()
+                - $occupiedSlots
+        );
+    }
 }

@@ -150,3 +150,113 @@ document.addEventListener('DOMContentLoaded', () => {
         openModal('register-modal');
     }
 });
+
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+        const centers = document.querySelectorAll(
+            '[data-notification-center]'
+        );
+
+        if (centers.length === 0) {
+            return;
+        }
+
+        const closeAllNotifications = (
+            except = null
+        ) => {
+            centers.forEach((center) => {
+                if (center === except) {
+                    return;
+                }
+
+                const button =
+                    center.querySelector(
+                        '[data-notification-toggle]'
+                    );
+
+                const panel =
+                    center.querySelector(
+                        '[data-notification-panel]'
+                    );
+
+                if (!button || !panel) {
+                    return;
+                }
+
+                button.setAttribute(
+                    'aria-expanded',
+                    'false'
+                );
+
+                panel.hidden = true;
+            });
+        };
+
+        centers.forEach((center) => {
+            const button =
+                center.querySelector(
+                    '[data-notification-toggle]'
+                );
+
+            const panel =
+                center.querySelector(
+                    '[data-notification-panel]'
+                );
+
+            if (!button || !panel) {
+                return;
+            }
+
+            button.addEventListener(
+                'click',
+                (event) => {
+                    event.stopPropagation();
+
+                    const willOpen =
+                        panel.hidden;
+
+                    closeAllNotifications(
+                        center
+                    );
+
+                    panel.hidden =
+                        !willOpen;
+
+                    button.setAttribute(
+                        'aria-expanded',
+                        String(willOpen)
+                    );
+                }
+            );
+        });
+
+        document.addEventListener(
+            'click',
+            (event) => {
+                if (
+                    event.target.closest(
+                        '[data-notification-center]'
+                    )
+                ) {
+                    return;
+                }
+
+                closeAllNotifications();
+            }
+        );
+
+        document.addEventListener(
+            'keydown',
+            (event) => {
+                if (
+                    event.key !== 'Escape'
+                ) {
+                    return;
+                }
+
+                closeAllNotifications();
+            }
+        );
+    }
+);

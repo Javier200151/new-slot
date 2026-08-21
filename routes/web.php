@@ -11,6 +11,7 @@ use App\Http\Controllers\PublicRegisterController;
 use App\Models\User;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -117,6 +118,16 @@ Route::middleware('auth')->group(function (): void {
         ->middleware('throttle:6,1')
         ->name('verification.send');
 });
+
+Route::post(
+    '/notificaciones/leer-todas',
+    [NotificationController::class, 'readAll'],
+)->name('notifications.read-all');
+
+Route::get(
+    '/notificaciones/{notification}/abrir',
+    [NotificationController::class, 'open'],
+)->name('notifications.open');
 
 /*
 |--------------------------------------------------------------------------

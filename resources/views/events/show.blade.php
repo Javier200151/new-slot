@@ -421,7 +421,7 @@
                                                                 </a>
                                                             @else
                                                                 <span class="event-orbat__unavailable">
-                                                                    No disponible para tu estado
+                                                                    No disponible para reclutas
                                                                 </span>
                                                             @endguest
 
