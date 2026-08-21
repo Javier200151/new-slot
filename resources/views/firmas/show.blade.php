@@ -18,7 +18,22 @@
     $resto = $totalMetopas % $porFila;
     $relleno = $resto === 0 ? 0 : ($porFila - $resto);
     $totalMostrar = $totalMetopas + $relleno;
+    $filasMetopas = $totalMostrar > 0
+        ? (int) ceil($totalMostrar / $porFila)
+        : 0;
+
+    $escalaMovil = 0.55;
+
     $anchoFirma = 620;
+    $altoFilaSuperior = 110;
+    $altoFilaMetopa = 32;
+
+    $margenExtra = 20;
+
+    $altoFirma = $altoFilaSuperior + ($filasMetopas * $altoFilaMetopa) + $margenExtra;
+
+    $anchoMovil = (int) ceil($anchoFirma * $escalaMovil);
+    $altoMovil = (int) ceil($altoFirma * $escalaMovil);
 @endphp
 
 <!DOCTYPE html>
@@ -39,12 +54,23 @@
 
         .firma {
             display: inline-block;
-            width: {{ $anchoFirma }}px;
             font-size: 0;
             line-height: 0;
             margin: 0;
             padding: 0;
             transform-origin: top left;
+        }
+
+        @media (max-width: 700px) {
+            .firma {
+                transform: scale({{ $escalaMovil }});
+            }
+
+            html,
+            body {
+                width: {{ $anchoMovil }}px;
+                height: {{ $altoMovil }}px;
+            }
         }
 
         .fila-superior {
@@ -102,47 +128,6 @@
 
     </div>
 @endif
-
-<script>
-    (() => {
-        const signature = document.querySelector('.firma');
-
-        if (! signature) {
-            return;
-        }
-
-        const signatureWidth = {{ $anchoFirma }};
-
-        const fitSignature = () => {
-            const availableWidth = Math.max(document.documentElement.clientWidth, 1);
-            const scale = Math.min(1, availableWidth / signatureWidth);
-
-            signature.style.transform = `scale(${scale})`;
-
-            const height = Math.ceil(signature.getBoundingClientRect().height);
-            document.documentElement.style.height = `${height}px`;
-            document.body.style.height = `${height}px`;
-
-            try {
-                if (window.frameElement) {
-                    window.frameElement.style.height = `${height}px`;
-                }
-            } catch {
-                // La firma también puede abrirse como una página independiente.
-            }
-        };
-
-        document.querySelectorAll('img').forEach((image) => {
-            if (! image.complete) {
-                image.addEventListener('load', fitSignature, { once: true });
-            }
-        });
-
-        new ResizeObserver(fitSignature).observe(signature);
-        window.addEventListener('resize', fitSignature);
-        window.requestAnimationFrame(fitSignature);
-    })();
-</script>
 
 </body>
 </html>
