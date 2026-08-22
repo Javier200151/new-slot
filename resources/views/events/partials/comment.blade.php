@@ -9,14 +9,17 @@
 <article @class(['event-comment', 'is-reply' => $depth > 0, 'is-pinned' => $comment->is_pinned])>
     <header class="event-comment__header">
         <div>
-            <strong
+            <x-user-link
+                :user="$author"
                 class="event-comment__author"
                 @style([
-                    '--member-group-color: ' . ($author?->mainSqaGroup?->color ?? '') => filled($author?->mainSqaGroup?->color),
+                    '--member-group-color: '
+                    . ($author?->mainSqaGroup?->color ?? '')
+                    => filled(
+                        $author?->mainSqaGroup?->color
+                    ),
                 ])
-            >
-                {{ $author?->nick ?? 'Usuario eliminado' }}
-            </strong>
+            />
 
             @if($comment->is_pinned)
                 <span class="event-comment__pinned">Fijado</span>

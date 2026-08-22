@@ -1063,6 +1063,55 @@ form {
     fill: currentColor;
     stroke: none;
 }
+.footer-users-link {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 7px;
+
+    padding: 8px 12px;
+
+    border: 1px solid var(--border-orange);
+    border-radius: 8px;
+
+    color: var(--primary) !important;
+
+    background:
+        rgba(245, 158, 11, 0.035);
+
+    font-size: 0.72rem !important;
+    font-weight: 800;
+
+    transition:
+        color 150ms ease,
+        background 150ms ease,
+        border-color 150ms ease,
+        transform 150ms ease;
+}
+
+.footer-users-link svg {
+    width: 15px;
+    height: 15px;
+
+    fill: none;
+
+    stroke: currentColor;
+    stroke-width: 1.8;
+
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.footer-users-link:hover,
+.footer-users-link.is-active {
+    color: #111 !important;
+
+    border-color: var(--primary);
+
+    background: var(--primary);
+
+    transform: translateY(-1px);
+}
 
 /* =========================================================
    MODALES

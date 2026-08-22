@@ -249,7 +249,7 @@
                                 <dt>Promo</dt>
                                 <dd>
                                     {{ $user->promo_id
-                                        ? 'Promo #' . $user->promo_id
+                                        ? '#' . $user->promo_id
                                         : 'Sin promo'
                                     }}
                                 </dd>

@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PublicUserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -198,7 +199,21 @@ Route::get('/firmas/{nick}.html', function ($nick) {
 
     return view('firmas.show', compact('user'));
 })->name('firmas.show');
+/*
+|--------------------------------------------------------------------------
+| Usuarios públicos
+|--------------------------------------------------------------------------
+*/
 
+Route::get(
+    '/usuarios',
+    [PublicUserController::class, 'index']
+)->name('users.index');
+
+Route::get(
+    '/usuarios/{user:nick}',
+    [PublicUserController::class, 'show']
+)->name('users.show');
 /*
 |--------------------------------------------------------------------------
 | Páginas públicas

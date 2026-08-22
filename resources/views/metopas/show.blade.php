@@ -84,9 +84,17 @@
                                         </span>
 
                                         <span class="metopa-awardees__member">
-                                            <strong @style(['--member-group-color: ' . ($user->mainSqaGroup?->color ?? '') => filled($user->mainSqaGroup?->color)])>
-                                                {{ $user->nick }}
-                                            </strong>
+                                            <x-user-link
+                                                :user="$user"
+                                                class="metopa-user-link"
+                                                @style([
+                                                    '--member-group-color: '
+                                                    . ($user->mainSqaGroup?->color ?? '')
+                                                    => filled(
+                                                        $user->mainSqaGroup?->color
+                                                    ),
+                                                ])
+                                            />
                                             <span>{{ $user->status->name }}</span>
                                         </span>
 
