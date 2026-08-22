@@ -44,13 +44,29 @@ class SqaGroupUser extends Model
                 return;
             }
 
-            static::query()
-                ->where('user_id', $sqaGroupUser->user_id)
-                ->whereKeyNot($sqaGroupUser->id)
-                ->update([
+            $otherMainGroups =
+                static::query()
+                    ->where(
+                        'user_id',
+                        $sqaGroupUser->user_id
+                    )
+                    ->whereKeyNot(
+                        $sqaGroupUser->id
+                    )
+                    ->where('main', true)
+                    ->get();
+
+            foreach (
+                $otherMainGroups
+                as $otherGroup
+            ) {
+                $otherGroup->forceFill([
                     'main' => false,
-                    'updated_by' => Auth::id(),
-                ]);
+
+                    'updated_by' =>
+                        Auth::id(),
+                ])->save();
+            }
         });
     }
 

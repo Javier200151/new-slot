@@ -5,13 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Activitylog\Models\Concerns\LogsActivity;
-use Spatie\Activitylog\Support\LogOptions;
 use App\Models\Concerns\Auditable;
 
 class Metopa extends Model
 {
-    use LogsActivity, SoftDeletes, Auditable;
+    use SoftDeletes, Auditable;
 
     protected $table = 'metopas';
 

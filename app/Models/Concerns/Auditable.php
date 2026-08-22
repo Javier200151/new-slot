@@ -2,7 +2,6 @@
 
 namespace App\Models\Concerns;
 
-use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -13,11 +12,19 @@ trait Auditable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
+
+            /*
+             * Logs normales de cambios de BD.
+             */
             ->useLogName('audit')
+
+            /*
+             * Guardar todos los campos.
+             */
             ->logAll()
 
             /*
-             * Nunca almacenar estos valores.
+             * JAMÁS guardar estas credenciales.
              */
             ->logExcept([
                 'password',
@@ -25,67 +32,22 @@ trait Auditable
             ])
 
             /*
-             * En UPDATE solo guardar lo que
-             * realmente haya cambiado.
+             * No generar log solo porque Laravel
+             * haya cambiado updated_at.
+             */
+            ->dontLogIfAttributesChangedOnly([
+                'updated_at',
+            ])
+
+            /*
+             * En updates guardar únicamente
+             * los campos modificados.
              */
             ->logOnlyDirty()
 
             /*
-             * No crear registros vacíos.
+             * No guardar actividades vacías.
              */
             ->dontLogEmptyChanges();
-    }
-
-    public function beforeActivityLogged(
-        Activity $activity,
-        string $eventName,
-    ): void {
-        /*
-         * Información adicional.
-         */
-        $properties = $activity->properties?->toArray() ?? [];
-
-        /*
-         |--------------------------------------------------------------------------
-         | Acción desde navegador
-         |--------------------------------------------------------------------------
-         */
-
-        if (! app()->runningInConsole()) {
-            $request = request();
-
-            $activity->ip_address =
-                $request->ip();
-
-            $activity->user_agent =
-                $request->userAgent();
-
-            $activity->url =
-                $request->fullUrl();
-
-            $properties['request'] = [
-                'method' => $request->method(),
-                'route' => $request->route()?->getName(),
-            ];
-        }
-
-        /*
-         |--------------------------------------------------------------------------
-         | Acción desde Artisan
-         |--------------------------------------------------------------------------
-         */
-
-        else {
-            $properties['request'] = [
-                'source' => 'console',
-                'command' => implode(
-                    ' ',
-                    $_SERVER['argv'] ?? []
-                ),
-            ];
-        }
-
-        $activity->properties =
-            collect($properties);
     }
 }

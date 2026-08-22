@@ -3,13 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\Support\LogOptions;
-use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use App\Models\Concerns\Auditable;
 
 class Promo extends Model
 {
-    use LogsActivity, Auditable;
+    use Auditable;
 
     protected $table = 'promo';
 
