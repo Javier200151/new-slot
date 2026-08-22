@@ -51,28 +51,141 @@ class ActivityForm
                 Textarea::make('attribute_changes')
                     ->label('Cambios realizados')
                     ->rows(14)
-                    ->formatStateUsing(function ($state) {
-                        $data = is_string($state) ? json_decode($state, true) : $state;
+                    ->formatStateUsing(function ($state, $record) {
+                        $data = is_string($state)
+                            ? json_decode($state, true)
+                            : $state;
 
                         if (! is_array($data)) {
-                            return '';
+                            return 'Sin datos registrados.';
                         }
 
                         $old = $data['old'] ?? [];
                         $new = $data['attributes'] ?? [];
 
+                        /*
+                        * Unimos todos los campos existentes
+                        * en antes y después.
+                        */
+                        $fields = array_unique([
+                            ...array_keys($old),
+                            ...array_keys($new),
+                        ]);
+
+                        /*
+                        * updated_at aporta muy poca información
+                        * visual y ensucia el detalle.
+                        *
+                        * Sigue estando guardado en BD.
+                        */
+                        $fields = array_filter(
+                            $fields,
+                            fn ($field) =>
+                                $field !== 'updated_at'
+                        );
+
+                        $formatValue = function ($value): string {
+                            if ($value === null) {
+                                return 'NULL';
+                            }
+
+                            if (is_bool($value)) {
+                                return $value
+                                    ? 'true'
+                                    : 'false';
+                            }
+
+                            if (is_array($value) || is_object($value)) {
+                                return json_encode(
+                                    $value,
+                                    JSON_PRETTY_PRINT
+                                    | JSON_UNESCAPED_UNICODE
+                                    | JSON_UNESCAPED_SLASHES
+                                );
+                            }
+
+                            return (string) $value;
+                        };
+
                         $lines = [];
 
-                        foreach ($new as $field => $newValue) {
-                            $oldValue = $old[$field] ?? null;
+                        foreach ($fields as $field) {
+                            $oldExists =
+                                array_key_exists(
+                                    $field,
+                                    $old
+                                );
 
-                            $lines[] = "{$field}:";
-                            $lines[] = "ANTES: " . ($oldValue ?? 'null');
-                            $lines[] = "DESPUÉS: " . ($newValue ?? 'null');
-                            $lines[] = "";
+                            $newExists =
+                                array_key_exists(
+                                    $field,
+                                    $new
+                                );
+
+
+                            $lines[] = strtoupper($field);
+
+
+                            /*
+                            * CREACIÓN
+                            */
+                            if (
+                                $record->event === 'created'
+                                && $newExists
+                            ) {
+                                $lines[] =
+                                    'CREADO: '
+                                    . $formatValue(
+                                        $new[$field]
+                                    );
+                            }
+
+                            /*
+                            * ELIMINACIÓN
+                            */
+                            elseif (
+                                $record->event === 'deleted'
+                                && $oldExists
+                            ) {
+                                $lines[] =
+                                    'ANTES DE ELIMINAR: '
+                                    . $formatValue(
+                                        $old[$field]
+                                    );
+                            }
+
+                            /*
+                            * UPDATE / RESTORE
+                            */
+                            else {
+                                $lines[] =
+                                    'ANTES: '
+                                    . (
+                                        $oldExists
+                                            ? $formatValue(
+                                                $old[$field]
+                                            )
+                                            : 'NULL'
+                                    );
+
+                                $lines[] =
+                                    'DESPUÉS: '
+                                    . (
+                                        $newExists
+                                            ? $formatValue(
+                                                $new[$field]
+                                            )
+                                            : 'NULL'
+                                    );
+                            }
+
+                            $lines[] = '';
                         }
 
-                        return implode("\n", $lines);
+                        return implode(
+                            PHP_EOL,
+                            $lines
+                        );
                     })
                     ->disabled(),
             ]);

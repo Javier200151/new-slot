@@ -11,7 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use App\Filament\Resources\Activities\Pages\EditActivity;
+use App\Filament\Resources\Activities\Pages\ViewActivity;
 use UnitEnum;
 
 class ActivityResource extends Resource
@@ -55,8 +55,7 @@ class ActivityResource extends Resource
     {
         return [
             'index' => ListActivities::route('/'),
-            'edit' => EditActivity::route('/{record}/edit'),
+            'view' => ViewActivity::route('/{record}'),
         ];
     }
-    
 }

@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
+use App\Models\Concerns\Auditable;
 
 class Page extends Model
 {
-    use LogsActivity, SoftDeletes;
+    use LogsActivity, SoftDeletes, Auditable;
 
     protected $fillable = [
         'title',

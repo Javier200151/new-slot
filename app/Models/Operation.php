@@ -8,10 +8,11 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
+use App\Models\Concerns\Auditable;
 
 class Operation extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use SoftDeletes, LogsActivity, Auditable;
 
     protected $table = 'operations';
 

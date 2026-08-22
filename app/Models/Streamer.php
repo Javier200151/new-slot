@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Auditable;
 
 class Streamer extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, Auditable;
 
     protected $fillable = [
         'user_id',

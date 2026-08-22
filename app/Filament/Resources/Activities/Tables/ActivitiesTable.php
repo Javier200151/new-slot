@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Activities\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Table;
@@ -49,7 +49,7 @@ class ActivitiesTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
-                EditAction::make()
+                ViewAction::make()
                     ->label('Ver detalle'),
             ]);
     }

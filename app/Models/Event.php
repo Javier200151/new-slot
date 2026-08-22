@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
+use App\Models\Concerns\Auditable;
 
 class Event extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, Auditable;
 
     protected $fillable = [
         'operation_id',

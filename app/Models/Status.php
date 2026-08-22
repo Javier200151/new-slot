@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\User;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use App\Models\Concerns\Auditable;
 
 class Status extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use SoftDeletes, LogsActivity, Auditable;
 
     protected $table = 'status';
 

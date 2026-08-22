@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Concerns\Auditable;
 
 class EventSlot extends Model
 {
+    use Auditable;
     protected $fillable = [
         'event_id',
         'slot_key',
