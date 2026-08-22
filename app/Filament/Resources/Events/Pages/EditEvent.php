@@ -16,6 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use App\Services\CommunityNotificationService;
 
 class EditEvent extends EditRecord
 {
@@ -181,5 +182,24 @@ class EditEvent extends EditRecord
                 ->values()
                 ->all(),
         ];
+    }
+    protected function afterSave(): void
+    {
+        $this->record->loadMissing(
+            'eventStatus'
+        );
+
+        if (
+            $this->record->eventStatus?->name
+            !== 'ACTIVO'
+        ) {
+            return;
+        }
+
+        app(
+            CommunityNotificationService::class
+        )->eventPublished(
+            $this->record
+        );
     }
 }

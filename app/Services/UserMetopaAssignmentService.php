@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use App\Models\Metopa;
+use App\Models\User;
 
 class UserMetopaAssignmentService
 {
@@ -18,7 +20,7 @@ class UserMetopaAssignmentService
     ): string {
         $this->validateIds($userId, $metopaId);
 
-        return DB::transaction(function () use (
+        $result = DB::transaction(function () use (
             $userId,
             $metopaId,
             $assignedAt,
@@ -74,6 +76,33 @@ class UserMetopaAssignmentService
 
             return 'updated';
         });
+                if (
+                    in_array(
+                        $result,
+                        [
+                            'created',
+                            'restored',
+                        ],
+                        true
+                    )
+                ) {
+                    $user = User::query()
+                        ->find($userId);
+
+                    $metopa = Metopa::query()
+                        ->find($metopaId);
+
+                    if ($user && $metopa) {
+                        app(
+                            CommunityNotificationService::class
+                        )->metopaAwarded(
+                            $user,
+                            $metopa,
+                        );
+                    }
+                }
+
+                return $result;
     }
 
     public function updateAssignedAt(

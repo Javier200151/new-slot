@@ -1947,3 +1947,47 @@ html:has(.event-detail) {
             transparent;
     }
 }
+.event-orbat__occupant-user,
+.event-comment__author,
+.event-slot-history__user,
+.event-slot-history__manager {
+    text-decoration: none;
+}
+
+a.event-orbat__occupant-user,
+a.event-comment__author {
+    cursor: pointer;
+
+    transition:
+        filter 150ms ease,
+        text-decoration-color 150ms ease;
+}
+
+a.event-orbat__occupant-user:hover,
+a.event-comment__author:hover {
+    text-decoration: underline;
+
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+
+    filter: brightness(1.25);
+}
+
+.event-comment__avatar-link {
+    display: block;
+
+    border-radius: 8px;
+}
+
+.event-comment__avatar-link:hover img {
+    border-color:
+        var(--event-color, var(--primary));
+
+    transform: translateY(-1px);
+}
+
+.event-comment__user-media img {
+    transition:
+        border-color 150ms ease,
+        transform 150ms ease;
+}

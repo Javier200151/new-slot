@@ -264,7 +264,8 @@
                                                                     ⠿
                                                                 </span>
 
-                                                                <strong
+                                                                <x-user-link
+                                                                    :user="$assignment->user"
                                                                     class="event-orbat__occupant-user"
                                                                     @style([
                                                                         '--member-group-color: '
@@ -273,9 +274,7 @@
                                                                             $assignment->user->mainSqaGroup?->color
                                                                         ),
                                                                     ])
-                                                                >
-                                                                    {{ $assignment->user->nick }}
-                                                                </strong>
+                                                                />
 
                                                                 <button
                                                                     type="button"
@@ -421,7 +420,7 @@
                                                                 </a>
                                                             @else
                                                                 <span class="event-orbat__unavailable">
-                                                                    No disponible para tu estado
+                                                                    No disponible para reclutas
                                                                 </span>
                                                             @endguest
 

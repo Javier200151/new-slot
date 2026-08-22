@@ -11,6 +11,8 @@ use App\Http\Controllers\PublicRegisterController;
 use App\Models\User;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PublicUserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -118,6 +120,16 @@ Route::middleware('auth')->group(function (): void {
         ->name('verification.send');
 });
 
+Route::post(
+    '/notificaciones/leer-todas',
+    [NotificationController::class, 'readAll'],
+)->name('notifications.read-all');
+
+Route::get(
+    '/notificaciones/{notification}/abrir',
+    [NotificationController::class, 'open'],
+)->name('notifications.open');
+
 /*
 |--------------------------------------------------------------------------
 | Metopas públicas
@@ -187,7 +199,21 @@ Route::get('/firmas/{nick}.html', function ($nick) {
 
     return view('firmas.show', compact('user'));
 })->name('firmas.show');
+/*
+|--------------------------------------------------------------------------
+| Usuarios públicos
+|--------------------------------------------------------------------------
+*/
 
+Route::get(
+    '/usuarios',
+    [PublicUserController::class, 'index']
+)->name('users.index');
+
+Route::get(
+    '/usuarios/{user:nick}',
+    [PublicUserController::class, 'show']
+)->name('users.show');
 /*
 |--------------------------------------------------------------------------
 | Páginas públicas

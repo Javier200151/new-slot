@@ -56,6 +56,9 @@
             </a>
 
             <div class="nav-actions">
+                @include(
+                    'partials.notification-bell'
+                )
                 <a
                     href="{{ route('home') }}"
                     class="btn btn-outline"
@@ -206,7 +209,35 @@
                             </form>
                         @endif
                     </section>
+                    @if($user->status?->name !== 'USUARIO')
+                        <section class="profile-signature-card">
 
+                            <div class="profile-signature-card__header">
+                                <div>
+                                    <span>FIRMA SQA</span>
+                                    <strong>Mi firma</strong>
+                                </div>
+
+                                <a
+                                    href="{{ $user->getSignatureUrl() }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Abrir
+                                </a>
+                            </div>
+
+                            <div class="profile-signature-card__preview">
+                                <iframe
+                                    src="{{ $user->getSignatureUrl() }}"
+                                    title="Firma de {{ $user->nick }}"
+                                    class="profile-signature-card__iframe"
+                                    scrolling="no"
+                                ></iframe>
+                            </div>
+
+                        </section>
+                    @endif
                     <section class="profile-card">
                         <header class="profile-card__header">
                             <span>Información SQA</span>
@@ -218,7 +249,7 @@
                                 <dt>Promo</dt>
                                 <dd>
                                     {{ $user->promo_id
-                                        ? 'Promo #' . $user->promo_id
+                                        ? '#' . $user->promo_id
                                         : 'Sin promo'
                                     }}
                                 </dd>
@@ -255,23 +286,6 @@
                                     {{ $user->created_at?->format('d/m/Y H:i')
                                         ?? 'No disponible'
                                     }}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt>Firma</dt>
-                                <dd>
-                                    @if($user->firma)
-                                        <a
-                                            href="{{ $user->firma }}"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            Abrir firma
-                                        </a>
-                                    @else
-                                        No disponible
-                                    @endif
                                 </dd>
                             </div>
                         </dl>
@@ -442,8 +456,13 @@
                                         id="image"
                                         name="image"
                                         type="file"
-                                        accept="image/png,image/jpeg,image/webp,image/gif"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        data-avatar-input
                                     >
+
+                                    <small>
+                                        Selecciona una imagen y podrás ajustar su posición y zoom antes de guardarla.
+                                    </small>
 
                                     <small>
                                         Máximo 2 MB y 1600 × 1600 píxeles.
@@ -565,6 +584,139 @@
             </div>
         </div>
     </main>
+<div
+    class="avatar-editor"
+    data-avatar-editor
+    hidden
+>
+    <div
+        class="avatar-editor__backdrop"
+        data-avatar-cancel
+    ></div>
 
+    <div
+        class="avatar-editor__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="avatar-editor-title"
+    >
+        <header class="avatar-editor__header">
+            <div>
+                <span>Imagen de perfil</span>
+
+                <h2 id="avatar-editor-title">
+                    Ajustar imagen
+                </h2>
+
+                <p>
+                    Arrastra la imagen para colocarla dentro del marco.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="avatar-editor__close"
+                data-avatar-cancel
+                aria-label="Cerrar"
+            >
+                ×
+            </button>
+        </header>
+
+        <div class="avatar-editor__workspace">
+
+            <div
+                class="avatar-editor__viewport"
+                data-avatar-viewport
+            >
+                <img
+                    src=""
+                    alt=""
+                    class="avatar-editor__image"
+                    data-avatar-image
+                    draggable="false"
+                >
+
+                <div
+                    class="avatar-editor__frame"
+                    aria-hidden="true"
+                ></div>
+            </div>
+
+            <p class="avatar-editor__hint">
+                Arrastra la imagen con el ratón para cambiar el encuadre.
+            </p>
+
+        </div>
+
+        <div class="avatar-editor__controls">
+
+            <span class="avatar-editor__control-label">
+                Zoom
+            </span>
+
+            <div class="avatar-editor__zoom">
+                <button
+                    type="button"
+                    data-avatar-zoom-out
+                    aria-label="Alejar"
+                >
+                    −
+                </button>
+
+                <input
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.01"
+                    value="1"
+                    data-avatar-zoom
+                >
+
+                <button
+                    type="button"
+                    data-avatar-zoom-in
+                    aria-label="Acercar"
+                >
+                    +
+                </button>
+            </div>
+
+            <button
+                type="button"
+                class="avatar-editor__reset"
+                data-avatar-reset
+            >
+                Restablecer encuadre
+            </button>
+        </div>
+
+        <footer class="avatar-editor__footer">
+            <button
+                type="button"
+                class="btn btn-outline"
+                data-avatar-cancel
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                data-avatar-apply
+            >
+                Aplicar encuadre
+            </button>
+        </footer>
+    </div>
+</div>
+<script
+    src="{{ asset('js/landing.js') }}"
+    defer
+></script>
+<script
+    src="{{ asset('js/profile.js') }}"
+    defer
+></script>
 </body>
 </html>
