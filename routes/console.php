@@ -10,10 +10,10 @@ Artisan::command('inspire', function () {
 
 Schedule::command('notifications:cleanup')
     ->dailyAt('03:30')
+    ->timezone('Europe/Madrid')
     ->withoutOverlapping();
 
-Schedule::command(
-    'activitylog:clean --force'
-)
+Schedule::command('activitylog:clean --force')
     ->dailyAt('03:30')
+    ->timezone('Europe/Madrid')
     ->withoutOverlapping();
