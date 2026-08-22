@@ -207,9 +207,21 @@ class ProfileController extends Controller
             ],
         );
 
-        $request->user()->update([
+        $user = $request->user();
+
+        $user->update([
             'password' => $validated['password'],
         ]);
+
+        app(\App\Services\AuditLogger::class)
+            ->security(
+                event: 'password_changed',
+                subject: $user,
+                properties: [
+                    'method' => 'profile',
+                ],
+                causer: $user,
+            );
 
         $request->session()->regenerate();
 

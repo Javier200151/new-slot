@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Concerns\Auditable;
 
 class SqaGroupUser extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, Auditable;
 
     protected $fillable = [
         'sqa_group_id',
@@ -43,13 +44,29 @@ class SqaGroupUser extends Model
                 return;
             }
 
-            static::query()
-                ->where('user_id', $sqaGroupUser->user_id)
-                ->whereKeyNot($sqaGroupUser->id)
-                ->update([
+            $otherMainGroups =
+                static::query()
+                    ->where(
+                        'user_id',
+                        $sqaGroupUser->user_id
+                    )
+                    ->whereKeyNot(
+                        $sqaGroupUser->id
+                    )
+                    ->where('main', true)
+                    ->get();
+
+            foreach (
+                $otherMainGroups
+                as $otherGroup
+            ) {
+                $otherGroup->forceFill([
                     'main' => false,
-                    'updated_by' => Auth::id(),
-                ]);
+
+                    'updated_by' =>
+                        Auth::id(),
+                ])->save();
+            }
         });
     }
 

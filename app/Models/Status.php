@@ -5,12 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\User;
-use Spatie\Activitylog\Support\LogOptions;
-use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use App\Models\Concerns\Auditable;
 
 class Status extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use SoftDeletes, Auditable;
 
     protected $table = 'status';
 

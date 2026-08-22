@@ -126,6 +126,23 @@ return [
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
+        'security' => [
+            'driver' => 'daily',
+
+            'path' =>
+                storage_path(
+                    'logs/security.log'
+                ),
+
+            'level' => 'info',
+
+            /*
+            * 180 días de logs en fichero.
+            */
+            'days' => 180,
+
+            'replace_placeholders' => true,
+        ],
 
     ],
 

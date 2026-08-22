@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\Auditable;
 
 class SlotType extends Model
 {
+    use Auditable;
     protected $table = 'slot_types';
 
     public $timestamps = false;

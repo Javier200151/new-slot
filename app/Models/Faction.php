@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\Auditable;
 
 class Faction extends Model
 {
+    use Auditable;
     protected $fillable = [
         'army_id',
         'side_id',
