@@ -44,7 +44,7 @@ class PublicStreamerController extends Controller
                     )
             )
             ->with([
-                'event',
+                'event.slots',
                 'streamer.user',
             ])
             ->orderByDesc('started_at')
@@ -53,11 +53,54 @@ class PublicStreamerController extends Controller
                 function (
                     Stream $stream
                 ) use ($embedService): Stream {
+
+                    /*
+                    * URL del reproductor.
+                    */
                     $stream->setAttribute(
                         'embed_url',
                         $embedService->embedUrl(
                             $stream
                         )
+                    );
+
+                    /*
+                    * Buscamos qué slot ocupa este
+                    * streamer en el evento que
+                    * está retransmitiendo.
+                    */
+                    $assignment = null;
+
+                    if (
+                        $stream->event
+                        && $stream->streamer
+                    ) {
+                        $assignment = $stream
+                            ->event
+                            ->slots
+                            ->first(
+                                fn ($slot): bool =>
+                                    (int) $slot->user_id
+                                    ===
+                                    (int) $stream
+                                        ->streamer
+                                        ->user_id
+                            );
+                    }
+
+                    /*
+                    * Estos atributos no se guardan
+                    * en streams. Solo se añaden
+                    * temporalmente para la vista.
+                    */
+                    $stream->setAttribute(
+                        'orbat_slot_name',
+                        $assignment?->name
+                    );
+
+                    $stream->setAttribute(
+                        'orbat_group_name',
+                        $assignment?->slot_group
                     );
 
                     return $stream;
