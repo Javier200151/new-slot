@@ -39,7 +39,14 @@ class ProfileController extends Controller
                     'min:3',
                     'max:30',
                     'regex:/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/',
-                    new NotReservedUsername(),
+
+                    Rule::when(
+                        $request->input('nick') !== $user->nick,
+                        [
+                            new NotReservedUsername(),
+                        ],
+                    ),
+
                     Rule::unique('users', 'nick')->ignore($user),
                 ],
 
