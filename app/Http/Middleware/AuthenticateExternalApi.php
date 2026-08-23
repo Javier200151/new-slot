@@ -13,21 +13,14 @@ class AuthenticateExternalApi
         Request $request,
         Closure $next
     ): Response {
-        /*
-        |--------------------------------------------------------------------------
-        | Token esperado
-        |--------------------------------------------------------------------------
-        */
-
         $expectedToken = (string) config(
             'external_api.token',
             ''
         );
 
-
         /*
         |--------------------------------------------------------------------------
-        | Comprobar configuración
+        | API mal configurada
         |--------------------------------------------------------------------------
         */
 
@@ -35,32 +28,29 @@ class AuthenticateExternalApi
             app(AuditLogger::class)->system(
                 event: 'api_configuration_error',
                 properties: [
-                    'reason' =>
-                        'EXTERNAL_API_TOKEN no está configurado.',
+                    'reason' => 'EXTERNAL_API_TOKEN no configurado.',
                 ],
             );
 
             return response()->json([
-                'message' => 'API no configurada.',
+                'message' => 'API no disponible.',
             ], 503);
         }
 
-
         /*
         |--------------------------------------------------------------------------
-        | Bearer Token recibido
+        | Token recibido
         |--------------------------------------------------------------------------
         */
 
         $providedToken = $request->bearerToken();
-
 
         /*
         |--------------------------------------------------------------------------
         | Validación
         |--------------------------------------------------------------------------
         |
-        | Nunca almacenamos el token recibido en logs.
+        | Nunca registramos el token en logs.
         |
         */
 
@@ -74,8 +64,7 @@ class AuthenticateExternalApi
             app(AuditLogger::class)->security(
                 event: 'api_auth_failed',
                 properties: [
-                    'reason' =>
-                        'invalid_bearer_token',
+                    'reason' => 'invalid_bearer_token',
                 ],
             );
 
@@ -83,7 +72,6 @@ class AuthenticateExternalApi
                 'message' => 'No autorizado.',
             ], 401);
         }
-
 
         return $next($request);
     }
