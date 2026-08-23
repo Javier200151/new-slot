@@ -55,6 +55,15 @@
                         Eventos
                     </a>
                     <a
+                        href="{{ route('streams.index') }}"
+                        @class([
+                            'is-active' =>
+                                request()->routeIs('streams.*')
+                        ])
+                    >
+                        Directos
+                    </a>
+                    <a
                         href="{{ route('metopas.index') }}"
                         @class(['is-active' => request()->routeIs('metopas.*')])
                     >

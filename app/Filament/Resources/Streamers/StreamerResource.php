@@ -27,7 +27,7 @@ class StreamerResource extends Resource
 
     protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedUserCircle;
 
-    protected static ?string $recordTitleAttribute = 'twich_channel';
+    protected static ?string $recordTitleAttribute = 'twitch_channel';
 
     protected static ?string $modelLabel = 'Streamer';
 
