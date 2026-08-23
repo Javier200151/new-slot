@@ -8,370 +8,366 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <meta
-        name="csrf-token"
-        content="{{ csrf_token() }}"
-    >
-
-    <title>Restablecer contraseña - Squad ALPHA</title>
-
-    <link
-        rel="stylesheet"
-        href="{{ asset('css/landing.css') }}"
-    >
+    <title>Recupera tu contraseña | Squad ALPHA</title>
 </head>
 
 <body
-    class="landing-body"
     style="
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 40px 20px;
+        margin: 0;
+        padding: 0;
+        background-color: #05070a;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #f7f7f8;
     "
 >
 
-    <main
+    {{-- Preheader --}}
+    <div
         style="
-            width: 100%;
-            max-width: 520px;
+            display: none;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            color: transparent;
         "
     >
+        Recupera el acceso a tu cuenta de Squad ALPHA.
+    </div>
 
-        {{-- Logo --}}
-        <div
-            style="
-                display: flex;
-                justify-content: center;
-                margin-bottom: 28px;
-            "
-        >
-            <a
-                href="{{ route('home') }}"
-                style="
-                    display: inline-flex;
-                    text-decoration: none;
-                "
-            >
-                <img
-                    src="{{ asset('images/sqa-header-logo.png') }}"
-                    alt="Squad ALPHA"
-                    style="
-                        width: 190px;
-                        max-width: 100%;
-                        height: auto;
-                    "
-                >
-            </a>
-        </div>
-
-        {{-- Tarjeta --}}
-        <section
-            style="
-                position: relative;
-                overflow: hidden;
-                padding: 38px;
-                border: 1px solid rgba(245, 158, 11, 0.28);
-                border-radius: 18px;
-                background:
-                    radial-gradient(
-                        circle at 90% 0%,
-                        rgba(245, 158, 11, 0.08),
-                        transparent 35%
-                    ),
-                    #0e1219;
-                box-shadow:
-                    0 24px 70px rgba(0, 0, 0, 0.45);
-            "
-        >
-
-            {{-- Línea naranja superior --}}
-            <div
-                style="
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 3px;
-                    background: linear-gradient(
-                        90deg,
-                        #f59e0b,
-                        rgba(245, 158, 11, 0.15)
-                    );
-                "
-            ></div>
-
-            {{-- Cabecera --}}
-            <div
-                style="
-                    margin-bottom: 30px;
-                "
+    <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        border="0"
+        style="
+            width: 100%;
+            background-color: #05070a;
+        "
+    >
+        <tr>
+            <td
+                align="center"
+                style="padding: 48px 20px;"
             >
 
-                <span
-                    style="
-                        display: block;
-                        margin-bottom: 10px;
-                        color: #f59e0b;
-                        font-size: 0.72rem;
-                        font-weight: 800;
-                        letter-spacing: 2px;
-                        text-transform: uppercase;
-                    "
-                >
-                    Seguridad de la cuenta
-                </span>
-
-                <h1
-                    style="
-                        margin: 0 0 12px;
-                        color: #f7f7f8;
-                        font-size: 2rem;
-                        line-height: 1.15;
-                        font-weight: 800;
-                    "
-                >
-                    Nueva contraseña
-                </h1>
-
-                <p
-                    style="
-                        margin: 0;
-                        color: #929bad;
-                        font-size: 0.95rem;
-                        line-height: 1.65;
-                    "
-                >
-                    Introduce una nueva contraseña para recuperar
-                    el acceso a tu cuenta de Squad ALPHA.
-                </p>
-
-            </div>
-
-            {{-- Errores generales --}}
-            @if ($errors->any())
-                <div
-                    style="
-                        margin-bottom: 22px;
-                        padding: 14px 16px;
-                        border: 1px solid rgba(239, 68, 68, 0.35);
-                        border-radius: 10px;
-                        background: rgba(239, 68, 68, 0.08);
-                        color: #fecaca;
-                        font-size: 0.86rem;
-                        line-height: 1.55;
-                    "
-                >
-                    No hemos podido cambiar la contraseña.
-                    Revisa los datos introducidos.
-                </div>
-            @endif
-
-            <form
-                method="POST"
-                action="{{ route('password.update') }}"
-                class="auth-form"
-            >
-                @csrf
-
-                {{-- Token de recuperación --}}
-                <input
-                    type="hidden"
-                    name="token"
-                    value="{{ $token }}"
-                >
-
-                {{-- Email --}}
-                <div class="auth-form__group">
-
-                    <label for="reset-email">
-                        Correo electrónico
-                    </label>
-
-                    <input
-                        id="reset-email"
-                        type="email"
-                        name="email"
-                        value="{{ old('email', $email) }}"
-                        autocomplete="email"
-                        required
-                        readonly
-                    >
-
-                    <small
-                        style="
-                            display: block;
-                            margin-top: 7px;
-                            color: #707b90;
-                            font-size: 0.78rem;
-                            line-height: 1.45;
-                        "
-                    >
-                        Esta es la cuenta asociada al enlace
-                        de recuperación recibido.
-                    </small>
-
-                    @error('email')
-                        <span
-                            class="auth-form__error"
-                            style="
-                                display: block;
-                                margin-top: 7px;
-                            "
-                        >
-                            {{ $message }}
-                        </span>
-                    @enderror
-
-                </div>
-
-                {{-- Nueva contraseña --}}
-                <div class="auth-form__group">
-
-                    <label for="reset-password">
-                        Nueva contraseña
-                    </label>
-
-                    <input
-                        id="reset-password"
-                        type="password"
-                        name="password"
-                        autocomplete="new-password"
-                        minlength="8"
-                        required
-                        autofocus
-                    >
-
-                    <small
-                        style="
-                            display: block;
-                            margin-top: 7px;
-                            color: #707b90;
-                            font-size: 0.78rem;
-                            line-height: 1.45;
-                        "
-                    >
-                        Debe contener al menos 8 caracteres.
-                    </small>
-
-                    @error('password')
-                        <span
-                            class="auth-form__error"
-                            style="
-                                display: block;
-                                margin-top: 7px;
-                            "
-                        >
-                            {{ $message }}
-                        </span>
-                    @enderror
-
-                </div>
-
-                {{-- Confirmación --}}
-                <div class="auth-form__group">
-
-                    <label for="reset-password-confirmation">
-                        Repetir nueva contraseña
-                    </label>
-
-                    <input
-                        id="reset-password-confirmation"
-                        type="password"
-                        name="password_confirmation"
-                        autocomplete="new-password"
-                        minlength="8"
-                        required
-                    >
-
-                </div>
-
-                {{-- Botón --}}
-                <button
-                    type="submit"
-                    class="
-                        btn
-                        btn-primary
-                        btn-lg
-                        auth-form__submit
-                    "
+                <table
+                    role="presentation"
+                    width="100%"
+                    cellspacing="0"
+                    cellpadding="0"
+                    border="0"
                     style="
                         width: 100%;
-                        margin-top: 8px;
+                        max-width: 620px;
                     "
                 >
-                    Cambiar contraseña
-                </button>
 
-            </form>
+                    {{-- Logo --}}
+                    <tr>
+                        <td
+                            align="center"
+                            style="padding-bottom: 28px;"
+                        >
+                            <img
+                                src="{{ url('/images/sqa-header-logo.png') }}"
+                                alt="Squad ALPHA"
+                                width="180"
+                                style="
+                                    display: block;
+                                    width: 180px;
+                                    max-width: 100%;
+                                    height: auto;
+                                    border: 0;
+                                "
+                            >
+                        </td>
+                    </tr>
 
-            {{-- Volver --}}
-            <div
-                style="
-                    margin-top: 25px;
-                    padding-top: 22px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.07);
-                    text-align: center;
-                "
-            >
-                <span
-                    style="
-                        color: #7f899b;
-                        font-size: 0.84rem;
-                    "
-                >
-                    ¿Ya recuerdas tu contraseña?
-                </span>
+                    {{-- Tarjeta --}}
+                    <tr>
+                        <td
+                            style="
+                                background-color: #0e1219;
+                                border: 1px solid rgba(245, 158, 11, 0.30);
+                                border-radius: 18px;
+                                overflow: hidden;
+                            "
+                        >
 
-                <a
-                    href="{{ route('home', ['modal' => 'login']) }}"
-                    style="
-                        margin-left: 5px;
-                        color: #f59e0b;
-                        font-size: 0.84rem;
-                        font-weight: 800;
-                        text-decoration: none;
-                    "
-                >
-                    Iniciar sesión
-                </a>
-            </div>
+                            {{-- Línea superior --}}
+                            <div
+                                style="
+                                    height: 4px;
+                                    background-color: #f59e0b;
+                                    line-height: 4px;
+                                    font-size: 1px;
+                                "
+                            >
+                                &nbsp;
+                            </div>
 
-        </section>
+                            <table
+                                role="presentation"
+                                width="100%"
+                                cellspacing="0"
+                                cellpadding="0"
+                                border="0"
+                            >
 
-        {{-- Pie --}}
-        <div
-            style="
-                margin-top: 25px;
-                text-align: center;
-            "
-        >
-            <p
-                style="
-                    margin: 0 0 5px;
-                    color: #f59e0b;
-                    font-size: 0.67rem;
-                    font-weight: 800;
-                    letter-spacing: 2px;
-                    text-transform: uppercase;
-                "
-            >
-                Realismo · Disciplina · Equipo
-            </p>
+                                {{-- Cabecera --}}
+                                <tr>
+                                    <td
+                                        align="center"
+                                        style="
+                                            padding: 44px 42px 16px;
+                                        "
+                                    >
 
-            <p
-                style="
-                    margin: 0;
-                    color: #525b6b;
-                    font-size: 0.72rem;
-                "
-            >
-                © {{ date('Y') }} Squad ALPHA
-            </p>
-        </div>
+                                        <img
+                                            src="{{ url('/images/sqa-shield-white.png') }}"
+                                            alt=""
+                                            width="72"
+                                            style="
+                                                display: block;
+                                                width: 72px;
+                                                height: auto;
+                                                margin-bottom: 28px;
+                                                border: 0;
+                                            "
+                                        >
 
-    </main>
+                                        <div
+                                            style="
+                                                margin-bottom: 14px;
+                                                color: #f59e0b;
+                                                font-size: 12px;
+                                                font-weight: 700;
+                                                letter-spacing: 3px;
+                                                text-transform: uppercase;
+                                            "
+                                        >
+                                            SEGURIDAD DE LA CUENTA
+                                        </div>
+
+                                        <h1
+                                            style="
+                                                margin: 0 0 18px;
+                                                color: #f7f7f8;
+                                                font-size: 32px;
+                                                line-height: 1.15;
+                                                font-weight: 800;
+                                            "
+                                        >
+                                            Recupera tu contraseña
+                                        </h1>
+
+                                        <p
+                                            style="
+                                                margin: 0;
+                                                color: #adb4c0;
+                                                font-size: 16px;
+                                                line-height: 1.7;
+                                            "
+                                        >
+                                            Hola
+                                            <strong
+                                                style="color: #f59e0b;"
+                                            >
+                                                {{ $user->nick }}
+                                            </strong>,
+                                        </p>
+
+                                        <p
+                                            style="
+                                                margin: 14px 0 0;
+                                                color: #adb4c0;
+                                                font-size: 16px;
+                                                line-height: 1.7;
+                                            "
+                                        >
+                                            Hemos recibido una solicitud
+                                            para restablecer la contraseña
+                                            de tu cuenta de Squad ALPHA.
+                                        </p>
+
+                                        <p
+                                            style="
+                                                margin: 14px 0 0;
+                                                color: #adb4c0;
+                                                font-size: 14px;
+                                                line-height: 1.7;
+                                            "
+                                        >
+                                            El enlace será válido durante
+
+                                            <strong
+                                                style="color: #f59e0b;"
+                                            >
+                                                {{ $expireMinutes }} minutos
+                                            </strong>.
+                                        </p>
+
+                                    </td>
+                                </tr>
+
+                                {{-- Botón --}}
+                                <tr>
+                                    <td
+                                        align="center"
+                                        style="
+                                            padding: 22px 42px 34px;
+                                        "
+                                    >
+
+                                        <a
+                                            href="{{ $resetUrl }}"
+                                            style="
+                                                display: inline-block;
+                                                padding: 16px 30px;
+                                                background-color: #f59e0b;
+                                                border-radius: 8px;
+                                                color: #05070a;
+                                                font-size: 14px;
+                                                font-weight: 800;
+                                                letter-spacing: 0.5px;
+                                                text-decoration: none;
+                                            "
+                                        >
+                                            RESTABLECER CONTRASEÑA
+                                        </a>
+
+                                    </td>
+                                </tr>
+
+                                {{-- Separador --}}
+                                <tr>
+                                    <td
+                                        style="
+                                            padding: 0 42px;
+                                        "
+                                    >
+                                        <div
+                                            style="
+                                                height: 1px;
+                                                background-color: #252b35;
+                                            "
+                                        ></div>
+                                    </td>
+                                </tr>
+
+                                {{-- Aviso --}}
+                                <tr>
+                                    <td
+                                        style="
+                                            padding: 30px 42px 42px;
+                                        "
+                                    >
+
+                                        <p
+                                            style="
+                                                margin: 0 0 10px;
+                                                color: #adb4c0;
+                                                font-size: 13px;
+                                                line-height: 1.6;
+                                            "
+                                        >
+                                            Si no has solicitado un cambio
+                                            de contraseña, puedes ignorar
+                                            este correo. Tu contraseña
+                                            actual seguirá funcionando.
+                                        </p>
+
+                                        <p
+                                            style="
+                                                margin: 0 0 18px;
+                                                color: #6f7888;
+                                                font-size: 12px;
+                                                line-height: 1.6;
+                                            "
+                                        >
+                                            Si el botón no funciona, copia
+                                            y pega este enlace en tu
+                                            navegador:
+                                        </p>
+
+                                        <p
+                                            style="
+                                                margin: 0;
+                                                padding: 13px 15px;
+                                                background-color: #090c11;
+                                                border: 1px solid #252b35;
+                                                border-radius: 7px;
+                                                color: #8f98a8;
+                                                font-size: 11px;
+                                                line-height: 1.6;
+                                                word-break: break-all;
+                                            "
+                                        >
+                                            {{ $resetUrl }}
+                                        </p>
+
+                                    </td>
+                                </tr>
+
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    {{-- Footer --}}
+                    <tr>
+                        <td
+                            align="center"
+                            style="
+                                padding: 28px 20px 0;
+                            "
+                        >
+
+                            <p
+                                style="
+                                    margin: 0 0 7px;
+                                    color: #f59e0b;
+                                    font-size: 11px;
+                                    font-weight: 700;
+                                    letter-spacing: 2px;
+                                    text-transform: uppercase;
+                                "
+                            >
+                                REALISMO · DISCIPLINA · EQUIPO
+                            </p>
+
+                            <p
+                                style="
+                                    margin: 0;
+                                    color: #6f7888;
+                                    font-size: 12px;
+                                    line-height: 1.6;
+                                "
+                            >
+                                © {{ date('Y') }} Squad ALPHA
+                            </p>
+
+                            <p
+                                style="
+                                    margin: 4px 0 0;
+                                    color: #505866;
+                                    font-size: 11px;
+                                "
+                            >
+                                Este mensaje ha sido enviado
+                                automáticamente.
+                                No respondas a este correo.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
 
 </body>
 </html>
