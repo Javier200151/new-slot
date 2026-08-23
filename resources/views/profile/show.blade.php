@@ -402,7 +402,7 @@
 
                                 <div class="profile-field">
                                     <label for="steam_id">
-                                        Steam ID
+                                        Steam ID64
                                     </label>
 
                                     <input
