@@ -154,15 +154,19 @@ Route::middleware('auth')->group(function (): void {
         ->name('verification.send');
 });
 
-Route::post(
-    '/notificaciones/leer-todas',
-    [NotificationController::class, 'readAll'],
-)->name('notifications.read-all');
+Route::middleware('auth')->group(function (): void {
 
-Route::get(
-    '/notificaciones/{notification}/abrir',
-    [NotificationController::class, 'open'],
-)->name('notifications.open');
+    Route::post(
+        '/notificaciones/leer-todas',
+        [NotificationController::class, 'readAll'],
+    )->name('notifications.read-all');
+
+    Route::get(
+        '/notificaciones/{notification}/abrir',
+        [NotificationController::class, 'open'],
+    )->name('notifications.open');
+
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -188,28 +192,42 @@ Route::get('/eventos', [PublicEventController::class, 'index'])
 Route::get('/eventos/{event}', [PublicEventController::class, 'show'])
     ->name('events.show');
 
-Route::post('/eventos/{event}/slots/{slotKey}', [PublicEventController::class, 'registerSlot'])
-    ->middleware('auth')
-    ->name('events.slots.register');
+/*
+|--------------------------------------------------------------------------
+| Acciones de eventos para usuarios verificados
+|--------------------------------------------------------------------------
+*/
 
-Route::delete('/eventos/{event}/slots/{slotKey}', [PublicEventController::class, 'unregisterSlot'])
-    ->middleware('auth')
-    ->name('events.slots.unregister');
+Route::middleware([
+    'auth',
+    'verified',
+])->group(function (): void {
 
-Route::patch(
-    '/eventos/{event}/slots/{slotKey}/manage',
-    [PublicEventController::class, 'manageSlot']
-)
-    ->middleware('auth')
-    ->name('events.slots.manage');
+    Route::post(
+        '/eventos/{event}/slots/{slotKey}',
+        [PublicEventController::class, 'registerSlot']
+    )->name('events.slots.register');
 
-Route::post('/eventos/{event}/comentarios', [PublicEventController::class, 'storeComment'])
-    ->middleware('auth')
-    ->name('events.comments.store');
+    Route::delete(
+        '/eventos/{event}/slots/{slotKey}',
+        [PublicEventController::class, 'unregisterSlot']
+    )->name('events.slots.unregister');
 
-Route::patch('/eventos/{event}/comentarios/{eventComment}', [PublicEventController::class, 'updateComment'])
-    ->middleware('auth')
-    ->name('events.comments.update');
+    Route::patch(
+        '/eventos/{event}/slots/{slotKey}/manage',
+        [PublicEventController::class, 'manageSlot']
+    )->name('events.slots.manage');
+
+    Route::post(
+        '/eventos/{event}/comentarios',
+        [PublicEventController::class, 'storeComment']
+    )->name('events.comments.store');
+
+    Route::patch(
+        '/eventos/{event}/comentarios/{eventComment}',
+        [PublicEventController::class, 'updateComment']
+    )->name('events.comments.update');
+});
 
 Route::get('/mapas/{map}', [PublicMapController::class, 'show'])
     ->name('maps.show');
