@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Concerns\Auditable;
 use App\Notifications\VerifyEmailNotification;
+use App\Notifications\ResetPasswordNotification;
 
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
@@ -56,6 +57,14 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function getFilamentName(): string
     {
         return $this->nick ?? $this->email;
+    }
+
+    public function sendPasswordResetNotification(
+        $token
+    ): void {
+        $this->notify(
+            new ResetPasswordNotification($token)
+        );
     }
 
     public function canAccessPanel(Panel $panel): bool

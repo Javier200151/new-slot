@@ -61,7 +61,44 @@
                     <input type="checkbox" name="remember" value="1">
                     <span>Recordarme</span>
                 </label>
-
+                <div
+                    style="
+                        display: flex;
+                        justify-content: flex-end;
+                        margin-top: -8px;
+                    "
+                >
+                    <button
+                        type="button"
+                        data-switch-modal="forgot-password-modal"
+                        style="
+                            padding: 0;
+                            border: 0;
+                            background: none;
+                            color: var(--primary);
+                            font-size: 0.86rem;
+                            font-weight: 800;
+                            cursor: pointer;
+                        "
+                    >
+                        ¿Has olvidado tu contraseña?
+                    </button>
+                </div>
+                @if(session('status') === 'password-reset')
+                    <div
+                        style="
+                            padding: 13px 15px;
+                            border: 1px solid rgba(34, 197, 94, 0.35);
+                            border-radius: 9px;
+                            background: rgba(34, 197, 94, 0.08);
+                            color: #bbf7d0;
+                            font-size: 0.86rem;
+                        "
+                    >
+                        Contraseña actualizada correctamente.
+                        Ya puedes iniciar sesión.
+                    </div>
+                @endif
                 <button
                     type="submit"
                     class="btn btn-primary btn-lg auth-form__submit"
@@ -78,7 +115,144 @@
             </div>
         </div>
     </div>
+    {{-- Modal recuperación de contraseña --}}
+    <div
+        id="forgot-password-modal"
+        class="auth-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="forgot-password-modal-title"
+        hidden
+    >
+        <div
+            class="auth-modal__backdrop"
+            data-close-modal
+        ></div>
 
+        <div class="auth-modal__panel">
+
+            <button
+                type="button"
+                class="auth-modal__close"
+                data-close-modal
+                aria-label="Cerrar"
+            >
+                ×
+            </button>
+
+            <div class="auth-modal__header">
+
+                <span class="auth-modal__eyebrow">
+                    Recuperar acceso
+                </span>
+
+                <h2 id="forgot-password-modal-title">
+                    Recuperar contraseña
+                </h2>
+
+                <p>
+                    Introduce el correo asociado a tu cuenta
+                    de Squad ALPHA.
+                </p>
+
+            </div>
+
+            @if(
+                session('status')
+                === 'password-reset-link-sent'
+            )
+                <div
+                    style="
+                        margin-bottom: 20px;
+                        padding: 14px 16px;
+                        border: 1px solid
+                            rgba(34, 197, 94, 0.35);
+                        border-radius: 10px;
+                        background:
+                            rgba(34, 197, 94, 0.08);
+                        color: #bbf7d0;
+                        font-size: 0.87rem;
+                        line-height: 1.5;
+                    "
+                >
+                    Si existe una cuenta asociada a ese
+                    correo, recibirás un enlace para
+                    restablecer tu contraseña.
+                </div>
+            @endif
+
+            <form
+                method="POST"
+                action="{{ route('password.email') }}"
+                class="auth-form"
+            >
+                @csrf
+
+                <input
+                    type="hidden"
+                    name="auth_form"
+                    value="forgot-password"
+                >
+
+                <div class="auth-form__group">
+
+                    <label for="forgot-password-email">
+                        Correo electrónico
+                    </label>
+
+                    <input
+                        id="forgot-password-email"
+                        type="email"
+                        name="email"
+                        value="{{
+                            old('auth_form')
+                                === 'forgot-password'
+                                    ? old('email')
+                                    : ''
+                        }}"
+                        autocomplete="email"
+                        required
+                    >
+
+                    @error('email', 'forgotPassword')
+                        <span class="auth-form__error">
+                            {{ $message }}
+                        </span>
+                    @enderror
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="
+                        btn
+                        btn-primary
+                        btn-lg
+                        auth-form__submit
+                    "
+                >
+                    Enviar enlace de recuperación
+                </button>
+
+            </form>
+
+            <div class="auth-modal__switch">
+
+                <span>
+                    ¿Recuerdas tu contraseña?
+                </span>
+
+                <button
+                    type="button"
+                    data-switch-modal="login-modal"
+                >
+                    Iniciar sesión
+                </button>
+
+            </div>
+
+        </div>
+    </div>
     {{-- Modal registro --}}
     <div
         id="register-modal"

@@ -13,6 +13,7 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PublicUserController;
+use App\Http\Controllers\PasswordResetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +63,39 @@ Route::post(
     '/logout',
     [PublicLoginController::class, 'logout'],
 )->name('logout');
+
+
+/*
+|--------------------------------------------------------------------------
+| Recuperación de contraseña
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('guest')->group(function (): void {
+
+    Route::get('/forgot-password', function () {
+        return redirect()->route('home', [
+            'modal' => 'forgot-password',
+        ]);
+    })->name('password.request');
+
+    Route::post(
+        '/forgot-password',
+        [PasswordResetController::class, 'sendLink'],
+    )
+        ->middleware('throttle:5,1')
+        ->name('password.email');
+
+    Route::get(
+        '/reset-password/{token}',
+        [PasswordResetController::class, 'show'],
+    )->name('password.reset');
+
+    Route::post(
+        '/reset-password',
+        [PasswordResetController::class, 'reset'],
+    )->name('password.update');
+});
 
 /*
 |--------------------------------------------------------------------------
