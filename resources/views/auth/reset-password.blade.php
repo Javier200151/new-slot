@@ -20,10 +20,7 @@
 
 <body class="landing-body">
 
-    <div
-        class="auth-modal is-open"
-        style="display: flex;"
-    >
+    <div class="auth-modal is-open">
 
         <div class="auth-modal__backdrop"></div>
 
