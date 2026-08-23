@@ -32,12 +32,13 @@ Route::middleware([
 
 
         /*
-         * Usuario por nick.
+         * Usuario por identifier.
          *
-         * GET /api/users/Rylod
+         * GET /api/users/{NICK}
+         * GET /api/users/{STEAMID}
          */
         Route::get(
-            '/users/{nick}',
+            '/users/{identifier}',
             [
                 UserController::class,
                 'show',

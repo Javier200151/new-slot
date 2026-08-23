@@ -55,8 +55,15 @@ class UserController extends Controller
     */
 
     public function show(
-        string $nick
+        string $identifier
     ): UserResource {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Buscar primero por nick
+        |--------------------------------------------------------------------------
+        */
+
         $user = User::query()
             ->with([
                 'status',
@@ -65,25 +72,73 @@ class UserController extends Controller
             ])
             ->where(
                 'nick',
-                $nick
+                $identifier
             )
-            ->firstOrFail();
+            ->first();
+
+        $lookupBy = 'nick';
+
 
         /*
-         * Auditoría.
-         */
+        |--------------------------------------------------------------------------
+        | Si no existe el nick, buscar por Steam ID
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user === null) {
+            $user = User::query()
+                ->with([
+                    'status',
+                    'promo',
+                    'metopas',
+                ])
+                ->where(
+                    'steam_id',
+                    $identifier
+                )
+                ->first();
+
+            $lookupBy = 'steam_id';
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | No encontrado
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user === null) {
+            abort(404);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Auditoría
+        |--------------------------------------------------------------------------
+        */
+
         activity('audit')
             ->event('api_user_read')
             ->performedOn($user)
             ->withProperties([
-                'client' => 'arma_reforger',
+                'client' =>
+                    'arma_reforger',
+
+                'lookup_by' =>
+                    $lookupBy,
 
                 'requested_user' => [
-                    'id' => $user->id,
-                    'nick' => $user->nick,
+                    'id' =>
+                        $user->id,
+
+                    'nick' =>
+                        $user->nick,
                 ],
             ])
             ->log('api_user_read');
+
 
         return new UserResource(
             $user
