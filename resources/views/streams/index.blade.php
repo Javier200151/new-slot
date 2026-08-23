@@ -115,7 +115,51 @@
                             @endif
 
                         </div>
+                        <div
+                            class="live-layout-controls"
+                            data-live-layout-controls
+                            data-event-id="{{ $event?->id ?? 'unknown' }}"
+                        >
 
+                            <span class="live-layout-controls__label">
+                                Vista:
+                            </span>
+
+                            <div class="live-layout-buttons">
+
+                                <button
+                                    type="button"
+                                    class="
+                                        live-layout-button
+                                        is-active
+                                    "
+                                    data-live-view="auto"
+                                    aria-pressed="true"
+                                >
+                                    Automática
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="live-layout-button"
+                                    data-live-view="2"
+                                    aria-pressed="false"
+                                >
+                                    2 columnas
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="live-layout-button"
+                                    data-live-view="3"
+                                    aria-pressed="false"
+                                >
+                                    3 columnas
+                                </button>
+
+                            </div>
+
+                        </div>
 
                         @php
                             $streamCount = $eventStreams->count();
@@ -129,6 +173,7 @@
                             "
                             data-live-grid
                             data-event-id="{{ $event?->id ?? 'unknown' }}"
+                            data-view="auto"
                         >
 
                             @foreach($eventStreams as $stream)
@@ -248,17 +293,66 @@
                                     </div>
 
 
+                                    @<div class="live-card__footer">
+
                                     @if($stream->title)
-                                        <div
-                                            class="
-                                                live-card__footer
-                                            "
-                                        >
-                                            {{
-                                                $stream->title
-                                            }}
+
+                                        <div class="live-card__stream-title">
+                                            {{ $stream->title }}
                                         </div>
+
                                     @endif
+
+
+                                    @if(
+                                        $stream->orbat_group_name
+                                        || $stream->orbat_slot_name
+                                    )
+
+                                        <div class="live-card__orbat">
+
+                                            <div class="live-card__orbat-item">
+
+                                                <span>
+                                                    Escuadra
+                                                </span>
+
+                                                <strong>
+                                                    {{
+                                                        $stream->orbat_group_name
+                                                        ?? 'Sin escuadra'
+                                                    }}
+                                                </strong>
+
+                                            </div>
+
+
+                                            <div class="live-card__orbat-item">
+
+                                                <span>
+                                                    Slot
+                                                </span>
+
+                                                <strong>
+                                                    {{
+                                                        $stream->orbat_slot_name
+                                                        ?? 'Sin slot'
+                                                    }}
+                                                </strong>
+
+                                            </div>
+
+                                        </div>
+
+                                    @else
+
+                                        <div class="live-card__orbat-empty">
+                                            Sin slot asignado en este evento
+                                        </div>
+
+                                    @endif
+
+                                </div>
 
                                 </article>
 
