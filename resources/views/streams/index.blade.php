@@ -18,8 +18,10 @@
 
 @section('content')
 
-<section class="streams-page">
-
+<section
+    class="streams-page"
+    data-stream-status-url="{{ route('streams.status') }}"
+>
     <div class="container streams-container">
 
         <header class="streams-header">
@@ -46,6 +48,34 @@
             </div>
         @endif
 
+        <div
+            class="stream-update-notice"
+            data-stream-update-notice
+            hidden
+        >
+
+            <div>
+                <span class="live-dot live-dot--small"></span>
+
+                <strong>
+                    Hay cambios en las retransmisiones
+                </strong>
+
+                <span>
+                    Algún streamer ha comenzado o
+                    terminado su emisión.
+                </span>
+            </div>
+
+            <button
+                type="button"
+                class="live-refresh-button"
+                data-refresh-streams
+            >
+                Actualizar directos
+            </button>
+
+        </div>
 
         {{-- EMISIONES ACTIVAS --}}
         @if($activeStreams->isNotEmpty())
@@ -66,13 +96,29 @@
                         </h2>
                     </div>
 
-                    <span class="live-count">
-                        {{ $activeStreams->count() }}
-                        {{ $activeStreams->count() === 1
-                            ? 'emisión'
-                            : 'emisiones'
-                        }}
-                    </span>
+                    <div class="live-section__actions">
+
+                        <span class="live-count">
+                            {{ $activeStreams->count() }}
+                            {{ $activeStreams->count() === 1
+                                ? 'emisión'
+                                : 'emisiones'
+                            }}
+                        </span>
+
+                        <button
+                            type="button"
+                            class="live-refresh-button"
+                            data-refresh-streams
+                        >
+                            <span class="live-refresh-button__icon">
+                                ↻
+                            </span>
+
+                            Actualizar directos
+                        </button>
+
+                    </div>
 
                 </header>
 
@@ -384,6 +430,17 @@
                         emisión aparecerá aquí.
                     </p>
                 </div>
+                <button
+                    type="button"
+                    class="live-refresh-button"
+                    data-refresh-streams
+                >
+                    <span class="live-refresh-button__icon">
+                        ↻
+                    </span>
+
+                    Comprobar directos
+                </button>
 
             </section>
 
