@@ -1,6 +1,288 @@
 document.addEventListener(
     'DOMContentLoaded',
     () => {
+        /*
+        |--------------------------------------------------------------------------
+        | Formulario del streamer
+        |--------------------------------------------------------------------------
+        */
+
+        const platformSelect =
+            document.querySelector('#platform');
+
+        const twitchField =
+            document.querySelector(
+                '[data-twitch-field]'
+            );
+
+        const youtubeField =
+            document.querySelector(
+                '[data-youtube-field]'
+            );
+
+        const twitchInput =
+            document.querySelector(
+                '#twitch_username'
+            );
+
+        const youtubeInput =
+            document.querySelector(
+                '#youtube_url'
+            );
+
+        const updatePlatformFields = () => {
+            if (! platformSelect) {
+                return;
+            }
+
+            const platform =
+                platformSelect.value;
+
+            const isTwitch =
+                platform === 'twitch';
+
+            if (twitchField) {
+                twitchField.hidden =
+                    ! isTwitch;
+            }
+
+            if (youtubeField) {
+                youtubeField.hidden =
+                    isTwitch;
+            }
+
+            if (twitchInput) {
+                twitchInput.required =
+                    isTwitch;
+            }
+
+            if (youtubeInput) {
+                youtubeInput.required =
+                    ! isTwitch;
+            }
+        };
+
+        if (platformSelect) {
+
+            platformSelect.addEventListener(
+                'change',
+                updatePlatformFields
+            );
+
+            updatePlatformFields();
+        }
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Actualización de retransmisiones
+        |--------------------------------------------------------------------------
+        */
+
+        const streamsPage =
+            document.querySelector(
+                '.streams-page'
+            );
+
+        const refreshButtons =
+            document.querySelectorAll(
+                '[data-refresh-streams]'
+            );
+
+        const updateNotice =
+            document.querySelector(
+                '[data-stream-update-notice]'
+            );
+
+
+        /*
+        * Botones de actualización manual.
+        */
+        refreshButtons.forEach(
+            (button) => {
+
+                button.addEventListener(
+                    'click',
+                    () => {
+
+                        button.classList.add(
+                            'is-loading'
+                        );
+
+                        window.location.reload();
+                    }
+                );
+            }
+        );
+
+
+        /*
+        * Estado de los streams que estaban
+        * presentes al cargar la página.
+        */
+        const getCurrentStreamIds = () => {
+
+            return Array.from(
+                document.querySelectorAll(
+                    '[data-stream-id]'
+                )
+            )
+                .map(
+                    (card) =>
+                        String(
+                            card.dataset.streamId
+                        )
+                )
+                .sort();
+        };
+
+
+        let knownStreamIds =
+            getCurrentStreamIds();
+
+
+        /*
+        * Comparar dos listas.
+        */
+        const sameStreams = (
+            first,
+            second
+        ) => {
+
+            if (
+                first.length
+                !== second.length
+            ) {
+                return false;
+            }
+
+            return first.every(
+                (value, index) =>
+                    value === second[index]
+            );
+        };
+
+
+        /*
+        * Consultar periódicamente Laravel.
+        */
+        const checkStreamStatus =
+            async () => {
+
+                if (! streamsPage) {
+                    return;
+                }
+
+                const statusUrl =
+                    streamsPage.dataset
+                        .streamStatusUrl;
+
+                if (! statusUrl) {
+                    return;
+                }
+
+                /*
+                * Si la pestaña está oculta,
+                * no hacemos peticiones.
+                */
+                if (document.hidden) {
+                    return;
+                }
+
+                try {
+
+                    const response =
+                        await fetch(
+                            statusUrl,
+                            {
+                                method: 'GET',
+
+                                headers: {
+                                    Accept:
+                                        'application/json',
+                                },
+
+                                cache: 'no-store',
+                            }
+                        );
+
+                    if (! response.ok) {
+                        return;
+                    }
+
+                    const data =
+                        await response.json();
+
+                    const newStreamIds =
+                        Array.isArray(
+                            data.streams
+                        )
+                            ? data.streams
+                                .map(
+                                    (stream) =>
+                                        String(
+                                            stream.id
+                                        )
+                                )
+                                .sort()
+                            : [];
+
+
+                    if (
+                        sameStreams(
+                            knownStreamIds,
+                            newStreamIds
+                        )
+                    ) {
+                        return;
+                    }
+
+
+                    /*
+                    * Si todavía no había ningún
+                    * directo y acaba de aparecer
+                    * el primero, podemos recargar
+                    * automáticamente.
+                    */
+                    if (
+                        knownStreamIds.length === 0
+                        && newStreamIds.length > 0
+                    ) {
+                        window.location.reload();
+
+                        return;
+                    }
+
+
+                    /*
+                    * Si ya estaba viendo streams,
+                    * NO recargamos automáticamente.
+                    *
+                    * Le avisamos para no cortarle
+                    * los reproductores.
+                    */
+                    if (updateNotice) {
+                        updateNotice.hidden =
+                            false;
+                    }
+
+                } catch (error) {
+
+                    console.debug(
+                        'No se pudo comprobar '
+                        + 'el estado de los directos.',
+                        error
+                    );
+                }
+            };
+
+
+        /*
+        * Comprobamos cada 15 segundos.
+        */
+        window.setInterval(
+            checkStreamStatus,
+            15000
+        );
 
         const grids =
             document.querySelectorAll(

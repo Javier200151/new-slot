@@ -18,8 +18,10 @@
 
 @section('content')
 
-<section class="streams-page">
-
+<section
+    class="streams-page"
+    data-stream-status-url="{{ route('streams.status') }}"
+>
     <div class="container streams-container">
 
         <header class="streams-header">
@@ -46,6 +48,34 @@
             </div>
         @endif
 
+        <div
+            class="stream-update-notice"
+            data-stream-update-notice
+            hidden
+        >
+
+            <div>
+                <span class="live-dot live-dot--small"></span>
+
+                <strong>
+                    Hay cambios en las retransmisiones
+                </strong>
+
+                <span>
+                    Algún streamer ha comenzado o
+                    terminado su emisión.
+                </span>
+            </div>
+
+            <button
+                type="button"
+                class="live-refresh-button"
+                data-refresh-streams
+            >
+                Actualizar directos
+            </button>
+
+        </div>
 
         {{-- EMISIONES ACTIVAS --}}
         @if($activeStreams->isNotEmpty())
@@ -66,13 +96,29 @@
                         </h2>
                     </div>
 
-                    <span class="live-count">
-                        {{ $activeStreams->count() }}
-                        {{ $activeStreams->count() === 1
-                            ? 'emisión'
-                            : 'emisiones'
-                        }}
-                    </span>
+                    <div class="live-section__actions">
+
+                        <span class="live-count">
+                            {{ $activeStreams->count() }}
+                            {{ $activeStreams->count() === 1
+                                ? 'emisión'
+                                : 'emisiones'
+                            }}
+                        </span>
+
+                        <button
+                            type="button"
+                            class="live-refresh-button"
+                            data-refresh-streams
+                        >
+                            <span class="live-refresh-button__icon">
+                                ↻
+                            </span>
+
+                            Actualizar directos
+                        </button>
+
+                    </div>
 
                 </header>
 
@@ -384,6 +430,17 @@
                         emisión aparecerá aquí.
                     </p>
                 </div>
+                <button
+                    type="button"
+                    class="live-refresh-button"
+                    data-refresh-streams
+                >
+                    <span class="live-refresh-button__icon">
+                        ↻
+                    </span>
+
+                    Comprobar directos
+                </button>
 
             </section>
 
@@ -681,46 +738,101 @@
                             </div>
 
 
+                            @php
+                                $currentTwitchUsername = '';
+
+                                if (
+                                    $myActiveStream
+                                    && $myActiveStream->platform === 'twitch'
+                                    && $myActiveStream->stream_url
+                                ) {
+                                    $currentTwitchUsername = \Illuminate\Support\Str::after(
+                                        $myActiveStream->stream_url,
+                                        'https://www.twitch.tv/'
+                                    );
+                                }
+                            @endphp
+
+
+                            {{-- Twitch --}}
                             <div
-                                class="
-                                    streamer-control-field
-                                "
+                                class="streamer-control-field"
+                                data-twitch-field
                             >
 
-                                <label for="stream_url">
-                                    Enlace del directo
+                                <label for="twitch_username">
+                                    Usuario de Twitch
+                                </label>
+
+                                <div class="stream-url-composer">
+
+                                    <span class="stream-url-prefix">
+                                        https://www.twitch.tv/
+                                    </span>
+
+                                    <input
+                                        id="twitch_username"
+                                        type="text"
+                                        name="twitch_username"
+                                        value="{{
+                                            old(
+                                                'twitch_username',
+                                                $currentTwitchUsername
+                                            )
+                                        }}"
+                                        maxlength="100"
+                                        autocomplete="off"
+                                        placeholder="usuario"
+                                    >
+
+                                </div>
+
+                                <small>
+                                    Escribe únicamente tu nombre de usuario de Twitch.
+                                </small>
+
+                                @error('twitch_username')
+                                    <span class="stream-form-error">
+                                        {{ $message }}
+                                    </span>
+                                @enderror
+
+                            </div>
+
+
+                            {{-- YouTube --}}
+                            <div
+                                class="streamer-control-field"
+                                data-youtube-field
+                                hidden
+                            >
+
+                                <label for="youtube_url">
+                                    Enlace del directo de YouTube
                                 </label>
 
                                 <input
-                                    id="stream_url"
+                                    id="youtube_url"
                                     type="url"
-                                    name="stream_url"
+                                    name="youtube_url"
                                     value="{{
                                         old(
-                                            'stream_url',
-                                            $myActiveStream
-                                                ?->stream_url
+                                            'youtube_url',
+                                            $myActiveStream?->platform === 'youtube'
+                                                ? $myActiveStream->stream_url
+                                                : ''
                                         )
                                     }}"
-                                    required
                                     maxlength="500"
-                                    placeholder="
-https://www.twitch.tv/usuario
-                                    "
+                                    placeholder="https://www.youtube.com/watch?v=..."
                                 >
 
                                 <small>
-                                    Introduce la URL del
-                                    canal de Twitch o del
-                                    directo de YouTube.
+                                    Introduce el enlace completo del directo de YouTube.
                                 </small>
 
-                                @error('stream_url')
-                                    <span
-                                        class="
-                                            stream-form-error
-                                        "
-                                    >
+                                @error('youtube_url')
+                                    <span class="stream-form-error">
                                         {{ $message }}
                                     </span>
                                 @enderror

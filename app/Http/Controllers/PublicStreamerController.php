@@ -8,9 +8,47 @@ use App\Models\Streamer;
 use App\Services\StreamEmbedService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Http\JsonResponse;
 
 class PublicStreamerController extends Controller
 {
+    public function status(): JsonResponse
+    {
+        $streams = Stream::query()
+            ->where('enabled', true)
+            ->whereHas(
+                'streamer',
+                fn ($query) =>
+                    $query->where(
+                        'enable',
+                        true
+                    )
+            )
+            ->orderBy('id')
+            ->get([
+                'id',
+                'event_id',
+                'streamer_id',
+                'updated_at',
+            ]);
+
+        return response()->json([
+            'streams' => $streams
+                ->map(
+                    fn (Stream $stream): array => [
+                        'id' => $stream->id,
+                        'event_id' => $stream->event_id,
+                        'streamer_id' =>
+                            $stream->streamer_id,
+                        'updated_at' =>
+                            $stream->updated_at
+                                ?->timestamp,
+                    ]
+                )
+                ->values(),
+        ]);
+    }
+    
     public function index(
         Request $request,
         StreamEmbedService $embedService

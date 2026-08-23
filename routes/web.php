@@ -280,6 +280,11 @@ Route::get(
     [PublicStreamerController::class, 'index']
 )->name('streams.index');
 
+Route::get(
+    '/directos/estado',
+    [PublicStreamerController::class, 'status']
+)->name('streams.status');
+
 Route::middleware([
     'auth',
     'verified',
