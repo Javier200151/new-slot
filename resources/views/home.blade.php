@@ -18,7 +18,7 @@
     >
 
     <title>
-        {{ config('app.name', 'New Slot') }} - Squad ALPHA
+        {{ config('app.name', 'New Slot') }}
     </title>
 
     <link

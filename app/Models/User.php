@@ -17,6 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Concerns\Auditable;
+use App\Notifications\VerifyEmailNotification;
 
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
@@ -60,6 +61,11 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasRole('admin') || $this->can('filament.access');
+    }
+    
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification());
     }
 
     protected static function booted(): void
