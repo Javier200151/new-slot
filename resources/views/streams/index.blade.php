@@ -117,25 +117,49 @@
                         </div>
 
 
-                        <div class="live-grid">
+                        @php
+                            $streamCount = $eventStreams->count();
+                        @endphp
 
-                            @foreach(
-                                $eventStreams
-                                as $stream
-                            )
+                        <div
+                            class="
+                                live-grid
+                                live-grid--count-{{ $streamCount }}
+                                {{ $streamCount > 4 ? 'live-grid--many' : '' }}
+                            "
+                            data-live-grid
+                            data-event-id="{{ $event?->id ?? 'unknown' }}"
+                        >
+
+                            @foreach($eventStreams as $stream)
 
                                 <article
                                     class="live-card"
-                                    id="directo-{{
-                                        $stream->id
-                                    }}"
+                                    id="directo-{{ $stream->id }}"
+                                    data-stream-id="{{ $stream->id }}"
+                                    draggable="true"
                                 >
 
                                     <header
                                         class="live-card__header"
                                     >
 
-                                        <div>
+                                        <div class="live-card__identity">
+
+                                            <button
+                                                type="button"
+                                                class="live-drag-handle"
+                                                title="Arrastra para cambiar la posición"
+                                                aria-label="Mover retransmisión de {{
+                                                    $stream->streamer?->user?->nick
+                                                    ?? 'streamer'
+                                                }}"
+                                            >
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                            </button>
+
                                             <span
                                                 class="
                                                     live-dot
@@ -152,6 +176,7 @@
                                                     ?? 'Streamer'
                                                 }}
                                             </strong>
+
                                         </div>
 
                                         <span
@@ -868,3 +893,9 @@ https://www.twitch.tv/usuario
 </section>
 
 @endsection
+@push('scripts')
+    <script
+        src="{{ asset('js/streams.js') }}"
+        defer
+    ></script>
+@endpush

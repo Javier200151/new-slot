@@ -118,17 +118,38 @@
     color: #6f7888;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Grid de retransmisiones
+|--------------------------------------------------------------------------
+*/
+
 .live-grid {
     display: grid;
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(
-                min(100%, 460px),
-                1fr
-            )
-        );
     gap: 18px;
+    width: 100%;
+}
+
+.live-grid--count-1 {
+    grid-template-columns: 1fr;
+}
+
+
+.live-grid--count-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+
+.live-grid--count-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.live-grid--count-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.live-grid--many {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .live-card {
@@ -449,6 +470,64 @@
     border-color: #f59e0b;
     color: #f59e0b;
 }
+/*
+|--------------------------------------------------------------------------
+| Ordenación manual de streams
+|--------------------------------------------------------------------------
+*/
+
+.live-card {
+    transition:
+        transform 0.16s ease,
+        opacity 0.16s ease,
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+.live-card.is-dragging {
+    opacity: 0.45;
+    border-color: #f59e0b;
+    transform: scale(0.985);
+}
+
+.live-card.is-drag-target {
+    border-color: #f59e0b;
+    box-shadow:
+        0 0 0 1px rgba(245, 158, 11, 0.2),
+        0 12px 35px rgba(0, 0, 0, 0.35);
+}
+
+.live-card__identity {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.live-drag-handle {
+    display: grid;
+    gap: 3px;
+    width: 22px;
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    cursor: grab;
+}
+
+.live-drag-handle:active {
+    cursor: grabbing;
+}
+
+.live-drag-handle span {
+    display: block;
+    width: 14px;
+    height: 2px;
+    border-radius: 999px;
+    background: #6f7888;
+}
+
+.live-drag-handle:hover span {
+    background: #f59e0b;
+}
 
 @media (max-width: 800px) {
     .streams-page {
@@ -466,5 +545,29 @@
 
     .stream-stop-button {
         width: 100%;
+    }
+}
+/*
+|--------------------------------------------------------------------------
+| Responsive del multistream
+|--------------------------------------------------------------------------
+*/
+
+@media (max-width: 1200px) {
+    .live-grid--count-3,
+    .live-grid--many {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .live-grid,
+    .live-grid--count-1,
+    .live-grid--count-2,
+    .live-grid--count-3,
+    .live-grid--count-4,
+    .live-grid--many {
+        grid-template-columns: 1fr;
     }
 }
