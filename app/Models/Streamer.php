@@ -13,9 +13,15 @@ class Streamer extends Model
     protected $fillable = [
         'user_id',
         'enable',
-        'twich_channel',
+
+        'twitch_channel',
+        'twitch_user_id',
+
         'youtube_channel',
+        'youtube_channel_id',
+
         'other_channel',
+        'website_url',
     ];
 
     protected function casts(): array

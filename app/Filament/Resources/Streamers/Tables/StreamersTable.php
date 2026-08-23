@@ -29,35 +29,53 @@ class StreamersTable
                     ->boolean()
                     ->sortable(),
 
-                TextColumn::make('twich_channel')
+                TextColumn::make('twitch_channel')
                     ->label('Twitch')
-                    ->searchable(),
+                    ->url(fn ($state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->limit(45),
 
                 TextColumn::make('youtube_channel')
                     ->label('YouTube')
-                    ->searchable(),
+                    ->url(fn ($state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->limit(45),
+
+                TextColumn::make('website_url')
+                    ->label('Web')
+                    ->url(fn ($state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->limit(40),
 
                 TextColumn::make('other_channel')
                     ->label('Otro canal')
-                    ->searchable(),
+                    ->url(fn ($state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->limit(40),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(
+                        isToggledHiddenByDefault: true
+                    ),
 
                 TextColumn::make('updated_at')
                     ->label('Actualizado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(
+                        isToggledHiddenByDefault: true
+                    ),
 
                 TextColumn::make('deleted_at')
                     ->label('Eliminado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(
+                        isToggledHiddenByDefault: true
+                    ),
             ])
             ->filters([
                 TernaryFilter::make('enable')

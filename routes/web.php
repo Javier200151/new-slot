@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PublicUserController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\PublicStreamerController;
+use App\Http\Controllers\StreamerBroadcastController;
 
 /*
 |--------------------------------------------------------------------------
@@ -266,6 +268,33 @@ Route::get(
     '/usuarios/{user:nick}',
     [PublicUserController::class, 'show']
 )->name('users.show');
+
+/*
+|--------------------------------------------------------------------------
+| Directos
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/directos',
+    [PublicStreamerController::class, 'index']
+)->name('streams.index');
+
+Route::middleware([
+    'auth',
+    'verified',
+])->group(function (): void {
+
+    Route::put(
+        '/directos/mi-emision',
+        [StreamerBroadcastController::class, 'update']
+    )->name('streams.mine.update');
+
+    Route::delete(
+        '/directos/mi-emision/{event}',
+        [StreamerBroadcastController::class, 'destroy']
+    )->name('streams.mine.destroy');
+});
 /*
 |--------------------------------------------------------------------------
 | Páginas públicas

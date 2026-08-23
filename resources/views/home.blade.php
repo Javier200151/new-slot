@@ -60,8 +60,17 @@
                     <a href="#inicio">Inicio</a>
                     <a href="#comunidad">Quiénes somos</a>
                     <a href="{{ route('pages.show', 'normativa') }}">Normativa</a>
-                    <a href="{{ route('events.index') }}">Eventos</a>
-                    <a href="{{ route('metopas.index') }}">Metopas</a>
+                    <a href="{{ route('events.index') }}">
+                        Eventos
+                    </a>
+
+                    <a href="{{ route('streams.index') }}">
+                        Directos
+                    </a>
+
+                    <a href="{{ route('metopas.index') }}">
+                        Metopas
+                    </a>
                 </nav>
 
                 <div class="nav-actions">
