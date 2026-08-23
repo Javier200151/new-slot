@@ -340,7 +340,7 @@
                                     line-height: 1.6;
                                 "
                             >
-                                © {{ date('Y') }} Squad ALPHA
+                                {{ date('Y') }} Squad ALPHA
                             </p>
 
                             <p
