@@ -149,6 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (initialModal === 'register') {
         openModal('register-modal');
     }
+
+    if (initialModal === 'forgot-password') {
+        openModal('forgot-password-modal');
+    }
 });
 
 document.addEventListener(
