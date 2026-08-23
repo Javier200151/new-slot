@@ -41,8 +41,17 @@ class StreamerBroadcastController extends Controller
                 ]),
             ],
 
-            'stream_url' => [
-                'required',
+            'twitch_username' => [
+                'nullable',
+                'required_if:platform,twitch',
+                'string',
+                'max:100',
+                'regex:/^[A-Za-z0-9_]+$/',
+            ],
+
+            'youtube_url' => [
+                'nullable',
+                'required_if:platform,youtube',
                 'url',
                 'max:500',
             ],
@@ -52,12 +61,40 @@ class StreamerBroadcastController extends Controller
                 'string',
                 'max:255',
             ],
+        ], [
+            'twitch_username.required_if' =>
+                'Introduce tu nombre de usuario de Twitch.',
+
+            'twitch_username.regex' =>
+                'El usuario de Twitch solo puede contener letras, números y guiones bajos.',
+
+            'youtube_url.required_if' =>
+                'Introduce el enlace del directo de YouTube.',
+
+            'youtube_url.url' =>
+                'Introduce una URL válida de YouTube.',
         ]);
+        if ($validated['platform'] === 'twitch') {
+
+            $twitchUsername = ltrim(
+                trim($validated['twitch_username']),
+                '@'
+            );
+
+            $streamUrl =
+                'https://www.twitch.tv/'
+                . $twitchUsername;
+
+        } else {
+
+            $streamUrl =
+                $validated['youtube_url'];
+        }
 
         if (
             ! $embedService->supports(
                 $validated['platform'],
-                $validated['stream_url']
+                $streamUrl
             )
         ) {
             throw ValidationException::withMessages([
@@ -104,8 +141,7 @@ class StreamerBroadcastController extends Controller
             'platform' =>
                 $validated['platform'],
 
-            'stream_url' =>
-                $validated['stream_url'],
+            'stream_url' => $streamUrl,
 
             'title' =>
                 $validated['title'] ?? null,

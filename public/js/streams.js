@@ -1,7 +1,77 @@
 document.addEventListener(
     'DOMContentLoaded',
     () => {
+        /*
+        |--------------------------------------------------------------------------
+        | Formulario del streamer
+        |--------------------------------------------------------------------------
+        */
 
+        const platformSelect =
+            document.querySelector('#platform');
+
+        const twitchField =
+            document.querySelector(
+                '[data-twitch-field]'
+            );
+
+        const youtubeField =
+            document.querySelector(
+                '[data-youtube-field]'
+            );
+
+        const twitchInput =
+            document.querySelector(
+                '#twitch_username'
+            );
+
+        const youtubeInput =
+            document.querySelector(
+                '#youtube_url'
+            );
+
+        const updatePlatformFields = () => {
+            if (! platformSelect) {
+                return;
+            }
+
+            const platform =
+                platformSelect.value;
+
+            const isTwitch =
+                platform === 'twitch';
+
+            if (twitchField) {
+                twitchField.hidden =
+                    ! isTwitch;
+            }
+
+            if (youtubeField) {
+                youtubeField.hidden =
+                    isTwitch;
+            }
+
+            if (twitchInput) {
+                twitchInput.required =
+                    isTwitch;
+            }
+
+            if (youtubeInput) {
+                youtubeInput.required =
+                    ! isTwitch;
+            }
+        };
+
+        if (platformSelect) {
+
+            platformSelect.addEventListener(
+                'change',
+                updatePlatformFields
+            );
+
+            updatePlatformFields();
+        }
+        
         const grids =
             document.querySelectorAll(
                 '[data-live-grid]'
