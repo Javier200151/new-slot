@@ -20,10 +20,6 @@ class UserController extends Controller
 
     public function index(): AnonymousResourceCollection
     {
-        /*
-         * Cargamos también las relaciones necesarias
-         * para evitar consultas repetidas.
-         */
         $users = User::query()
             ->with([
                 'status',
@@ -33,37 +29,26 @@ class UserController extends Controller
             ->orderBy('nick')
             ->get();
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Auditoría
-        |--------------------------------------------------------------------------
-        */
-
+         * Auditoría.
+         */
         activity('audit')
             ->event('api_users_read')
             ->withProperties([
-                'api_client' =>
-                    'external_api',
-
-                'returned_users' =>
-                    $users->count(),
+                'client' => 'arma_reforger',
+                'returned_users' => $users->count(),
             ])
             ->log('api_users_read');
-
 
         return UserResource::collection(
             $users
         );
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | Usuario individual por nick
+    | Usuario por nick
     |--------------------------------------------------------------------------
-    |
-    | Ejemplo:
     |
     | GET /api/users/Rylod
     |
@@ -84,30 +69,21 @@ class UserController extends Controller
             )
             ->firstOrFail();
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Auditoría
-        |--------------------------------------------------------------------------
-        */
-
+         * Auditoría.
+         */
         activity('audit')
             ->event('api_user_read')
             ->performedOn($user)
             ->withProperties([
-                'api_client' =>
-                    'external_api',
+                'client' => 'arma_reforger',
 
                 'requested_user' => [
-                    'id' =>
-                        $user->id,
-
-                    'nick' =>
-                        $user->nick,
+                    'id' => $user->id,
+                    'nick' => $user->nick,
                 ],
             ])
             ->log('api_user_read');
-
 
         return new UserResource(
             $user

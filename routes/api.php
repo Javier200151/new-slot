@@ -8,9 +8,6 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | API externa de New Slot
 |--------------------------------------------------------------------------
-|
-| API de solo lectura destinada a integraciones externas.
-|
 */
 
 Route::middleware([
@@ -21,9 +18,9 @@ Route::middleware([
     ->group(function (): void {
 
         /*
-         * GET /api/users
+         * Todos los usuarios.
          *
-         * Devuelve todos los usuarios.
+         * GET /api/users
          */
         Route::get(
             '/users',
@@ -35,9 +32,9 @@ Route::middleware([
 
 
         /*
-         * GET /api/users/Rylod
+         * Usuario por nick.
          *
-         * Devuelve un usuario mediante su nick.
+         * GET /api/users/Rylod
          */
         Route::get(
             '/users/{nick}',
