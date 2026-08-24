@@ -71,10 +71,4 @@ class Metopa extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnlyDirty()
-            ->logAll();
-    }
 }

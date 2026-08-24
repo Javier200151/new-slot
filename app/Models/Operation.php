@@ -341,11 +341,4 @@ class Operation extends Model
 
         return new HtmlString($html);
     }
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnlyDirty()
-            ->logAll();
-    }
 }

@@ -47,10 +47,4 @@ class MetopaUser extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnlyDirty()
-            ->logAll();
-    }
 }
