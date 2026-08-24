@@ -1,4 +1,88 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const page =
+        document.querySelector('.event-detail');
+
+    const toggle =
+        document.querySelector(
+            '[data-event-editor-toggle]'
+        );
+
+    if (!page || !toggle) {
+        return;
+    }
+
+    toggle.addEventListener('click', () => {
+        const enabled =
+            !page.classList.contains(
+                'is-editor-mode'
+            );
+
+        page.classList.toggle(
+            'is-editor-mode',
+            enabled
+        );
+
+        toggle.setAttribute(
+            'aria-pressed',
+            enabled ? 'true' : 'false'
+        );
+
+        toggle.lastChild.textContent =
+            enabled
+                ? ' Salir del modo edición'
+                : ' Modo edición';
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const openDetailsFromHash = () => {
+        const hash = window.location.hash;
+
+        if (!hash) {
+            return;
+        }
+
+        const id = decodeURIComponent(
+            hash.substring(1)
+        );
+
+        const element = document.getElementById(id);
+
+        if (element instanceof HTMLDetailsElement) {
+            element.open = true;
+        }
+    };
+
+    document
+        .querySelectorAll('a[href^="#"]')
+        .forEach((link) => {
+            link.addEventListener('click', () => {
+                const id = decodeURIComponent(
+                    link.getAttribute('href')
+                        .substring(1)
+                );
+
+                const target =
+                    document.getElementById(id);
+
+                if (
+                    target
+                    instanceof HTMLDetailsElement
+                ) {
+                    target.open = true;
+                }
+            });
+        });
+
+    openDetailsFromHash();
+
+    window.addEventListener(
+        'hashchange',
+        openDetailsFromHash
+    );
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     const signatureFrames = [...document.querySelectorAll('[data-signature-frame]')];
 
     if (signatureFrames.length === 0) {

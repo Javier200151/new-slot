@@ -26,7 +26,6 @@ class Operation extends Model
         'ocap',
         'respawn',
         'jip',
-        'day_id',
         'pbo',
         'addons',
         'created_by',
@@ -82,9 +81,14 @@ class Operation extends Model
         return $this->belongsTo(Campaign::class, 'campaign_id');
     }
 
-    public function day()
+    public function days()
     {
-        return $this->belongsTo(OperationDay::class, 'day_id');
+        return $this->belongsToMany(
+            OperationDay::class,
+            'operation_operation_day',
+            'operation_id',
+            'operation_day_id'
+        );
     }
 
     public function platform()
@@ -199,32 +203,303 @@ class Operation extends Model
 
     public function getDescriptionSummaryHtml(): HtmlString
     {
-        $sections = $this->description['sections'] ?? [];
+        $sections =
+            $this->description['sections'] ?? [];
 
-        if (blank($sections) && filled($this->description['content'] ?? null)) {
+        if (
+            blank($sections)
+            && filled(
+                $this->description['content'] ?? null
+            )
+        ) {
             $sections = [
                 [
                     'title' => 'Descripción',
-                    'content' => $this->description['content'],
+                    'content' =>
+                        $this->description['content'],
                 ],
             ];
         }
 
         if (blank($sections)) {
-            return new HtmlString('<div style="color: #6b7280; font-size: 0.875rem;">Esta operación todavía no tiene descripción.</div>');
+            return new HtmlString(
+                '<div
+                    style="
+                        color: #6b7280;
+                        font-size: 0.875rem;
+                    "
+                >
+                    Esta operación todavía no tiene descripción.
+                </div>'
+            );
         }
 
-        $html = '<div style="display: grid; gap: 1rem;">';
+        $html = '
+            <div
+                style="
+                    display: grid;
+                    gap: 1rem;
+                "
+            >
+        ';
 
         foreach ($sections as $section) {
-            $title = e($section['title'] ?? 'Sección sin título');
-            $content = $section['content'] ?? '';
 
-            $html .= '<section style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">';
-            $html .= "<h3 style=\"font-size: 1.125rem; font-weight: 700; margin: 0 0 0.75rem;\">{$title}</h3>";
+            $title = e(
+                $section['title']
+                ?? 'Sección sin título'
+            );
+
+            $content =
+                $section['content'] ?? '';
+
+            $image = trim(
+                (string) (
+                    $section['image'] ?? ''
+                )
+            );
+
+            $position =
+                $section['image_position']
+                ?? 'left';
+
+            $width = (string) (
+                $section['image_width']
+                ?? '40'
+            );
+
+            $caption = trim(
+                (string) (
+                    $section['image_caption']
+                    ?? ''
+                )
+            );
+
+            if (! in_array(
+                $position,
+                [
+                    'left',
+                    'right',
+                    'top',
+                    'bottom',
+                ],
+                true
+            )) {
+                $position = 'left';
+            }
+
+            if (! in_array(
+                $width,
+                [
+                    '33',
+                    '40',
+                    '50',
+                    '66',
+                    '100',
+                ],
+                true
+            )) {
+                $width = '40';
+            }
+
+            if (
+                $width === '100'
+                && in_array(
+                    $position,
+                    ['left', 'right'],
+                    true
+                )
+            ) {
+                $position = 'top';
+            }
+
+            $html .= '
+                <section
+                    style="
+                        border: 1px solid #e5e7eb;
+                        border-radius: 0.5rem;
+                        padding: 1rem;
+                    "
+                >
+            ';
+
+            $html .= "
+                <h3
+                    style=\"
+                        font-size: 1.125rem;
+                        font-weight: 700;
+                        margin: 0 0 0.75rem;
+                    \"
+                >
+                    {$title}
+                </h3>
+            ";
+
+            $contentHtml = '';
 
             if (filled($content)) {
-                $html .= "<div style=\"margin-bottom: 1rem;\">{$content}</div>";
+                $contentHtml = "
+                    <div
+                        style=\"
+                            min-width: 0;
+                            line-height: 1.6;
+                        \"
+                    >
+                        {$content}
+                    </div>
+                ";
+            }
+
+            $imageHtml = '';
+
+            if (filled($image)) {
+
+                $safeImage =
+                    e($image);
+
+                $safeCaption =
+                    e($caption);
+
+                $imageHtml = "
+                    <figure
+                        style=\"
+                            margin: 0;
+                            min-width: 0;
+                        \"
+                    >
+                        <img
+                            src=\"{$safeImage}\"
+                            alt=\"{$safeCaption}\"
+                            style=\"
+                                display: block;
+                                width: 100%;
+                                max-width: 100%;
+                                height: auto;
+                                border-radius: 0.5rem;
+                                object-fit: contain;
+                            \"
+                        >
+                ";
+
+                if (filled($caption)) {
+                    $imageHtml .= "
+                        <figcaption
+                            style=\"
+                                margin-top: 0.5rem;
+                                color: #9ca3af;
+                                font-size: 0.75rem;
+                                text-align: center;
+                            \"
+                        >
+                            {$safeCaption}
+                        </figcaption>
+                    ";
+                }
+
+                $imageHtml .= '</figure>';
+            }
+
+            /*
+            * Sin imagen.
+            */
+            if (blank($image)) {
+                $html .= $contentHtml;
+            }
+
+            /*
+            * Imagen izquierda.
+            */
+            elseif ($position === 'left') {
+
+                $html .= "
+                    <div
+                        style=\"
+                            display: grid;
+                            grid-template-columns:
+                                {$width}% minmax(0, 1fr);
+                            gap: 1.5rem;
+                            align-items: start;
+                        \"
+                    >
+                        {$imageHtml}
+                        {$contentHtml}
+                    </div>
+                ";
+            }
+
+            /*
+            * Imagen derecha.
+            */
+            elseif ($position === 'right') {
+
+                $html .= "
+                    <div
+                        style=\"
+                            display: grid;
+                            grid-template-columns:
+                                minmax(0, 1fr) {$width}%;
+                            gap: 1.5rem;
+                            align-items: start;
+                        \"
+                    >
+                        {$contentHtml}
+                        {$imageHtml}
+                    </div>
+                ";
+            }
+
+            /*
+            * Imagen arriba.
+            */
+            elseif ($position === 'top') {
+
+                $html .= "
+                    <div
+                        style=\"
+                            display: flex;
+                            flex-direction: column;
+                            gap: 1rem;
+                        \"
+                    >
+                        <div
+                            style=\"
+                                width: {$width}%;
+                                max-width: 100%;
+                            \"
+                        >
+                            {$imageHtml}
+                        </div>
+
+                        {$contentHtml}
+                    </div>
+                ";
+            }
+
+            /*
+            * Imagen abajo.
+            */
+            else {
+
+                $html .= "
+                    <div
+                        style=\"
+                            display: flex;
+                            flex-direction: column;
+                            gap: 1rem;
+                        \"
+                    >
+                        {$contentHtml}
+
+                        <div
+                            style=\"
+                                width: {$width}%;
+                                max-width: 100%;
+                            \"
+                        >
+                            {$imageHtml}
+                        </div>
+                    </div>
+                ";
             }
 
             $html .= '</section>';

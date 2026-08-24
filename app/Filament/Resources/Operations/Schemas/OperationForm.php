@@ -54,12 +54,15 @@ class OperationForm
                     ->afterStateUpdated(fn (Set $set) => $set('map_id', null))
                     ->required(),
 
-                Select::make('day_id')
-                    ->label('Día')
-                    ->relationship('day', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->nullable(),
+                Select::make('days')
+                ->label('Días')
+                ->relationship('days', 'name')
+                ->multiple()
+                ->searchable()
+                ->preload()
+                ->helperText(
+                    'Déjalo vacío si puede jugarse cualquier día.'
+                ),
                 
                 FileUpload::make('image')
                     ->label('Imagen')

@@ -41,6 +41,52 @@
                 <span aria-hidden="true">/</span>
                 <span>{{ $event->name ?: $operation->name }}</span>
             </nav>
+            @if($canUseEditorMode)
+                <div class="event-editor-mode">
+                    <button
+                        type="button"
+                        class="event-editor-mode__toggle"
+                        data-event-editor-toggle
+                        aria-pressed="false"
+                    >
+                        <span>✎</span>
+                        Modo edición
+                    </button>
+
+                    <div
+                        class="event-editor-mode__tools
+                            event-editor-only"
+                    >
+                        @if($canEditOperation)
+                            <a
+                                href="{{
+                                    \App\Filament\Resources\Operations\OperationResource::getUrl(
+                                        'edit',
+                                        ['record' => $operation]
+                                    )
+                                }}"
+                                class="btn btn-outline"
+                            >
+                                Editar operativo
+                            </a>
+                        @endif
+
+                        @if($canEditEvent)
+                            <a
+                                href="{{
+                                    \App\Filament\Resources\Events\EventResource::getUrl(
+                                        'edit',
+                                        ['record' => $event]
+                                    )
+                                }}"
+                                class="btn btn-outline"
+                            >
+                                Editar evento
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            @endif
 
             @if(session('status'))
                 <div class="event-detail__notice is-success" role="status">{{ session('status') }}</div>
@@ -153,15 +199,92 @@
             @endif --}}
 
             @if($descriptionSections->isNotEmpty())
-                <section id="briefing" class="event-detail__section">
-                    <header><span>Briefing</span></header>
+                <section
+                    id="briefing"
+                    class="event-detail__section"
+                >
+                    <header>
+                        <span>Briefing</span>
+                    </header>
+
                     <div class="event-detail__descriptions">
+
                         @foreach($descriptionSections as $section)
+
+                            @php
+                                $image =
+                                    $section['image'] ?? null;
+
+                                $imagePosition =
+                                    $section['image_position'] ?? 'left';
+
+                                $imageWidth =
+                                    $section['image_width'] ?? '40';
+
+                                $imageCaption =
+                                    $section['image_caption'] ?? null;
+                            @endphp
+
                             <section>
-                                <h3>{{ $section['title'] }}</h3>
-                                <div class="event-rich-content">{{ $section['content'] }}</div>
+
+                                <h3>
+                                    {{ $section['title'] }}
+                                </h3>
+
+                                <div
+                                    class="
+                                        briefing-section
+
+                                        @if($image)
+                                            briefing-section--with-image
+                                            briefing-section--{{ $imagePosition }}
+                                        @endif
+                                    "
+                                    style="
+                                        --briefing-image-width:
+                                        {{ $imageWidth }}%;
+                                    "
+                                >
+
+                                    @if($image)
+
+                                        <figure
+                                            class="
+                                                briefing-section__image
+                                            "
+                                        >
+                                            <img
+                                                src="{{ $image }}"
+                                                alt="{{ $imageCaption ?? '' }}"
+                                                loading="lazy"
+                                            >
+
+                                            @if(filled($imageCaption))
+                                                <figcaption>
+                                                    {{ $imageCaption }}
+                                                </figcaption>
+                                            @endif
+                                        </figure>
+
+                                    @endif
+
+                                    <div
+                                        class="
+                                            briefing-section__content
+                                            event-rich-content
+                                        "
+                                    >
+                                        <section>
+                                            <div class="event-rich-content">{{ $section['content'] }}</div>
+                                        </section>                                    
+                                    </div>
+
+                                </div>
+
                             </section>
+
                         @endforeach
+
                     </div>
                 </section>
             @endif
@@ -185,8 +308,34 @@
                                     <div><span>Grupo</span><h3>{{ $group['name'] ?? 'Grupo sin nombre' }}</h3></div>
                                     @if($group['faction'])
                                         <div class="event-orbat__faction">
-                                            <strong>{{ $group['faction']->name }}</strong>
-                                            @if($group['faction']->army)<span>{{ $group['faction']->army->name }}</span>@endif
+
+                                            @if($group['faction']->army?->image)
+                                                <img
+                                                    src="{{
+                                                        asset(
+                                                            'storage/'
+                                                            . $group['faction']->army->image
+                                                        )
+                                                    }}"
+                                                    alt="{{
+                                                        $group['faction']->army->name
+                                                    }}"
+                                                    class="event-orbat__army-logo"
+                                                >
+                                            @endif
+
+                                            <div class="event-orbat__faction-copy">
+                                                <strong>
+                                                    {{ $group['faction']->name }}
+                                                </strong>
+
+                                                @if($group['faction']->army)
+                                                    <span>
+                                                        {{ $group['faction']->army->name }}
+                                                    </span>
+                                                @endif
+                                            </div>
+
                                         </div>
                                     @endif
                                 </header>
@@ -491,51 +640,145 @@
             </details>
 
             @if($radioNetworks->isNotEmpty())
-                <section id="comunicaciones" class="event-detail__section">
-                    <header><span>Comunicaciones</span></header>
-                    <div class="event-detail__table-wrap">
-                        <table class="event-detail__table">
-                            <thead><tr><th>Red</th><th>Radio</th><th>Configuración</th><th>Notas</th></tr></thead>
-                            <tbody>
-                                @foreach($radioNetworks as $network)
+                <details
+                    id="comunicaciones"
+                    class="
+                        event-detail__section
+                        event-detail__collapsible
+                    "
+                >
+                    <summary
+                        class="event-detail__collapsible-summary"
+                    >
+                        <div>
+                            <span>Comunicaciones</span>
+
+                            <small>
+                                Radios y frecuencias del operativo
+                            </small>
+                        </div>
+
+                        <strong>
+                            {{ $radioNetworks->count() }}
+                            {{ $radioNetworks->count() === 1
+                                ? 'red'
+                                : 'redes' }}
+                        </strong>
+                    </summary>
+
+                    <div class="event-detail__collapsible-content">
+                        <div class="event-detail__table-wrap">
+                            <table class="event-detail__table">
+                                <thead>
                                     <tr>
-                                        <td><strong>{{ $network['name'] ?? 'Sin nombre' }}</strong></td>
-                                        <td>{{ $network['radio_model_name'] ?? '—' }}</td>
-                                        <td>
-                                            @foreach(($network['configuration'] ?? []) as $key => $value)
-                                                @if(filled($value))
-                                                    <span>{{ match ($key) { 'channel' => 'Canal', 'block' => 'Bloque', 'frequency' => 'Frecuencia', default => ucfirst($key) } }}: {{ $value }}{{ $key === 'frequency' ? ' MHz' : '' }}</span>
-                                                @endif
-                                            @endforeach
-                                        </td>
-                                        <td>{{ $network['notes'] ?? '—' }}</td>
+                                        <th>Red</th>
+                                        <th>Radio</th>
+                                        <th>Configuración</th>
+                                        <th>Notas</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                </thead>
+
+                                <tbody>
+                                    @foreach($radioNetworks as $network)
+                                        <tr>
+                                            <td>
+                                                <strong>
+                                                    {{ $network['name'] ?? 'Sin nombre' }}
+                                                </strong>
+                                            </td>
+
+                                            <td>
+                                                {{ $network['radio_model_name'] ?? '—' }}
+                                            </td>
+
+                                            <td>
+                                                @foreach(
+                                                    ($network['configuration'] ?? [])
+                                                    as $key => $value
+                                                )
+                                                    @if(filled($value))
+                                                        <span>
+                                                            {{
+                                                                match ($key) {
+                                                                    'channel' => 'Canal',
+                                                                    'block' => 'Bloque',
+                                                                    'frequency' => 'Frecuencia',
+                                                                    default => ucfirst($key),
+                                                                }
+                                                            }}:
+                                                            {{ $value }}
+                                                            {{ $key === 'frequency'
+                                                                ? ' MHz'
+                                                                : '' }}
+                                                        </span>
+                                                    @endif
+                                                @endforeach
+                                            </td>
+
+                                            <td>
+                                                {{ $network['notes'] ?? '—' }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </section>
+                </details>
             @endif
 
             @if($addons->isNotEmpty())
-                <section id="addons" class="event-detail__section">
-                    <header><span>Addons</span></header>
-                    <div class="event-detail__table-wrap">
-                        <table class="event-detail__table event-detail__addons-table">
-                            {{-- <thead><tr><th>Addon</th><th>Uso</th><th>Descripción</th></tr></thead> --}}
-                            <thead><tr><th>Addon</th></tr></thead>
-                            <tbody>
-                                @foreach($addons as $addon)
+                <details
+                    id="addons"
+                    class="
+                        event-detail__section
+                        event-detail__collapsible
+                    "
+                >
+                    <summary
+                        class="event-detail__collapsible-summary"
+                    >
+                        <div>
+                            <span>Addons</span>
+
+                            <small>
+                                Mods utilizados por el operativo
+                            </small>
+                        </div>
+
+                        <strong>
+                            {{ $addons->count() }}
+                            {{ $addons->count() === 1
+                                ? 'addon'
+                                : 'addons' }}
+                        </strong>
+                    </summary>
+
+                    <div class="event-detail__collapsible-content">
+                        <div class="event-detail__table-wrap">
+                            <table
+                                class="
+                                    event-detail__table
+                                    event-detail__addons-table
+                                "
+                            >
+                                <thead>
                                     <tr>
-                                        <td>{{ $addon->name }}</td>
-                                        {{-- <td>{{ $addon->mandatory ? 'Obligatorio' : 'Opcional' }}</td>
-                                        <td>{{ $addon->description ?: '—' }}</td> --}}
+                                        <th>Addon</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                </thead>
+
+                                <tbody>
+                                    @foreach($addons as $addon)
+                                        <tr>
+                                            <td>{{ $addon->name }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </section>
+                </details>
             @endif
 
             <section id="comentarios" class="event-detail__section event-comments" aria-labelledby="event-comments-title">

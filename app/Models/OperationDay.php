@@ -16,4 +16,13 @@ class OperationDay extends Model
         'name',
 
     ];
+    public function operations()
+    {
+        return $this->belongsToMany(
+            Operation::class,
+            'operation_operation_day',
+            'operation_day_id',
+            'operation_id'
+        );
+    }
 }

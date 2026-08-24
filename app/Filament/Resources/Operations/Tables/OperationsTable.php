@@ -13,6 +13,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use App\Models\OperationDay;
+use Illuminate\Database\Eloquent\Builder;
 
 class OperationsTable
 {
@@ -72,10 +74,11 @@ class OperationsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('day.name')
-                    ->label('Día')
-                    ->searchable()
-                    ->sortable(),
+                TextColumn::make('days.name')
+                ->label('Días')
+                ->badge()
+                ->separator(',')
+                ->placeholder('Cualquier día'),
 
                 TextColumn::make('editor.nick')
                     ->label('Editor')
@@ -175,10 +178,46 @@ class OperationsTable
                     ->multiple()
                     ->relationship('period', 'name'),
 
-                SelectFilter::make('day_id')
-                    ->label('Día')
-                    ->multiple()
-                    ->relationship('day', 'name'),
+                SelectFilter::make('days')
+                ->label('Días')
+                ->multiple()
+                ->options(
+                    fn (): array => OperationDay::query()
+                        ->orderBy('id')
+                        ->pluck('name', 'id')
+                        ->all()
+                )
+                ->searchable()
+                ->preload()
+                ->query(function (
+                    Builder $query,
+                    array $data,
+                ): Builder {
+                    $dayIds = array_values(
+                        array_filter(
+                            $data['values'] ?? []
+                        )
+                    );
+
+                    if ($dayIds === []) {
+                        return $query;
+                    }
+
+                    return $query->where(
+                        function (Builder $query) use ($dayIds): void {
+                            $query
+                                ->whereHas(
+                                    'days',
+                                    fn (Builder $daysQuery) =>
+                                        $daysQuery->whereIn(
+                                            'operation_day.id',
+                                            $dayIds
+                                        )
+                                )
+                                ->orWhereDoesntHave('days');
+                        }
+                    );
+                }),
 
                 SelectFilter::make('editor_id')
                     ->label('Editor')
