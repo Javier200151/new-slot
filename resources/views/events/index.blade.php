@@ -97,28 +97,90 @@
                             @if($calendarDay['is_current_month'])
                                 <div class="events-calendar__items">
                                     @foreach($calendarDay['events'] as $event)
-                                        <a
-                                            href="{{ route('events.show', $event) }}"
+
+                                        <div
                                             class="events-calendar__event"
-                                            title="{{ $event->name ?: $event->operation?->name }}"
                                             @style([
-                                                '--event-color: ' . ($event->operation?->operationType?->color ?? '') => filled($event->operation?->operationType?->color),
+                                                '--event-color: '
+                                                . ($event->operation?->operationType?->color ?? '')
+                                                => filled(
+                                                    $event->operation?->operationType?->color
+                                                ),
                                             ])
                                         >
-                                            @if($event->operation?->period?->ico || $event->operation?->platform?->image)
-                                                <span class="events-calendar__icons" aria-hidden="true">
-                                                    @if($event->operation?->period?->ico)
-                                                        <img src="{{ asset('storage/' . $event->operation->period->ico) }}" alt="">
-                                                    @endif
 
-                                                    @if($event->operation?->platform?->image)
-                                                        <img src="{{ asset('storage/' . $event->operation->platform->image) }}" alt="">
-                                                    @endif
+                                            <a
+                                                href="{{ route('events.show', $event) }}"
+                                                class="events-calendar__event-main"
+                                                title="{{ $event->name ?: $event->operation?->name }}"
+                                            >
+
+                                                @if(
+                                                    $event->operation?->period?->ico
+                                                    || $event->operation?->platform?->image
+                                                )
+
+                                                    <span
+                                                        class="events-calendar__icons"
+                                                        aria-hidden="true"
+                                                    >
+
+                                                        @if($event->operation?->period?->ico)
+
+                                                            <img
+                                                                src="{{ asset(
+                                                                    'storage/'
+                                                                    . $event->operation->period->ico
+                                                                ) }}"
+                                                                alt=""
+                                                            >
+
+                                                        @endif
+
+
+                                                        @if($event->operation?->platform?->image)
+
+                                                            <img
+                                                                src="{{ asset(
+                                                                    'storage/'
+                                                                    . $event->operation->platform->image
+                                                                ) }}"
+                                                                alt=""
+                                                            >
+
+                                                        @endif
+
+                                                    </span>
+
+                                                @endif
+
+
+                                                <span class="events-calendar__event-name">
+                                                    {{ $event->name ?: $event->operation?->name }}
                                                 </span>
+
+                                            </a>
+
+
+                                            @if(
+                                                $event->eventStatus?->name === 'FINALIZADO'
+                                                && filled($event->ocap_url)
+                                            )
+
+                                                <a
+                                                    href="{{ $event->ocap_url }}"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="events-calendar__ocap-link"
+                                                    title="Abrir OCAP de {{ $event->name ?: $event->operation?->name }}"
+                                                >
+                                                    OCAP ↗
+                                                </a>
+
                                             @endif
 
-                                            <span class="events-calendar__event-name">{{ $event->name ?: $event->operation?->name }}</span>
-                                        </a>
+                                        </div>
+
                                     @endforeach
                                 </div>
                             @endif

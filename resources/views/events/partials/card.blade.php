@@ -58,13 +58,34 @@
 
     <div class="event-card__body">
         <div class="event-card__topline">
-            <span class="event-card__type">{{ $operation?->operationType?->name ?? 'Sin tipo' }}</span>
+
+            <span class="event-card__type">
+                {{ $operation?->operationType?->name ?? 'Sin tipo' }}
+            </span>
+
             <span @class([
                 'event-card__status',
                 'is-active' => $event->eventStatus?->name === 'ACTIVO',
             ])>
                 {{ $event->eventStatus?->name }}
             </span>
+
+            @if(
+                $event->eventStatus?->name === 'FINALIZADO'
+                && filled($event->ocap_url)
+            )
+                <a
+                    href="{{ $event->ocap_url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="event-card__ocap-link"
+                    title="Abrir OCAP"
+                    aria-label="Abrir OCAP de {{ $event->name ?: $operation?->name }}"
+                >
+                    OCAP ↗
+                </a>
+            @endif
+
         </div>
 
         <div class="event-card__title-row">

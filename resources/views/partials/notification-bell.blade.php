@@ -11,6 +11,14 @@
         ->unreadNotifications()
         ->count();
 
+    $latestNotification =
+        $headerNotifications->first();
+
+    $notificationSignature =
+        ($latestNotification?->id ?? 'none')
+        . ':'
+        . $unreadNotificationCount;
+
     $notificationEventIds = $headerNotifications
         ->filter(
             fn ($notification) =>
@@ -40,7 +48,16 @@
 
 <div
     class="notification-center"
+
     data-notification-center
+
+    data-notification-poll-url="{{
+        route('notifications.poll')
+    }}"
+
+    data-notification-signature="{{
+        $notificationSignature
+    }}"
 >
     <button
         type="button"
@@ -153,14 +170,36 @@
                     ])
                 >
                     <span class="notification-item__icon">
+
                         @if(
                             $type
                             === 'metopa_awarded'
                         )
                             ★
+
+                        @elseif(
+                            $type
+                            === 'event_comment_reply'
+                        )
+                            ↩
+
+                        @elseif(
+                            $type
+                            === 'event_slot_changed'
+                        )
+                            @if(
+                                ($data['action'] ?? null)
+                                === 'removed'
+                            )
+                                ×
+                            @else
+                                ↔
+                            @endif
+
                         @else
                             !
                         @endif
+
                     </span>
 
                     <span class="notification-item__content">
@@ -228,7 +267,146 @@
                                     ] ?? 'una metopa' }}
                                 </b>
                             </span>
+                        @elseif(
+                            $type
+                            === 'event_comment_reply'
+                        )
+                            <strong>
+                                Nueva respuesta
+                            </strong>
 
+                            <span>
+                                <b>
+                                    {{ $data[
+                                        'reply_user_nick'
+                                    ] ?? 'Un usuario' }}
+                                </b>
+
+                                ha respondido a tu comentario en
+
+                                <b>
+                                    {{ $data[
+                                        'event_name'
+                                    ] ?? 'un evento' }}
+                                </b>
+                            </span>
+                        @elseif(
+                            $type
+                            === 'event_slot_changed'
+                        )
+
+                            @php
+                                $slotAction =
+                                    $data['action']
+                                    ?? 'moved';
+
+                                $fromSlotParts = array_filter([
+                                    $data['from_slot_group']
+                                        ?? null,
+
+                                    $data['from_slot_name']
+                                        ?? null,
+                                ]);
+
+                                $toSlotParts = array_filter([
+                                    $data['to_slot_group']
+                                        ?? null,
+
+                                    $data['to_slot_name']
+                                        ?? null,
+                                ]);
+
+                                $fromSlotLabel =
+                                    implode(
+                                        ' · ',
+                                        $fromSlotParts
+                                    );
+
+                                $toSlotLabel =
+                                    implode(
+                                        ' · ',
+                                        $toSlotParts
+                                    );
+                            @endphp
+
+
+                            @if(
+                                $slotAction
+                                === 'removed'
+                            )
+
+                                <strong>
+                                    Has sido eliminado del ORBAT
+                                </strong>
+
+                                <span>
+                                    <b>
+                                        {{ $data[
+                                            'changed_by_user_nick'
+                                        ] ?? 'Un administrador' }}
+                                    </b>
+
+                                    te ha eliminado del ORBAT de
+
+                                    <b>
+                                        {{ $data[
+                                            'event_name'
+                                        ] ?? 'un evento' }}
+                                    </b>
+                                </span>
+
+                                @if(filled($fromSlotLabel))
+                                    <small>
+                                        {{ $fromSlotLabel }}
+                                    </small>
+                                @endif
+
+
+                            @else
+
+                                <strong>
+                                    Tu slot ha cambiado
+                                </strong>
+
+                                <span>
+                                    <b>
+                                        {{ $data[
+                                            'changed_by_user_nick'
+                                        ] ?? 'Un administrador' }}
+                                    </b>
+
+                                    te ha movido en
+
+                                    <b>
+                                        {{ $data[
+                                            'event_name'
+                                        ] ?? 'un evento' }}
+                                    </b>
+                                </span>
+
+                                @if(
+                                    filled($fromSlotLabel)
+                                    || filled($toSlotLabel)
+                                )
+                                    <small>
+                                        @if(filled($fromSlotLabel))
+                                            {{ $fromSlotLabel }}
+                                        @endif
+
+                                        @if(
+                                            filled($fromSlotLabel)
+                                            && filled($toSlotLabel)
+                                        )
+                                            →
+                                        @endif
+
+                                        @if(filled($toSlotLabel))
+                                            {{ $toSlotLabel }}
+                                        @endif
+                                    </small>
+                                @endif
+
+                            @endif
                         @else
                             <strong>
                                 Notificación

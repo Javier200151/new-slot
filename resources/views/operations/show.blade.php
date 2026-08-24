@@ -366,6 +366,12 @@
                                     ]
                                     ?? 'left';
 
+                                $imageAlignment =
+                                    $section[
+                                        'image_alignment'
+                                    ]
+                                    ?? 'left';
+
                                 $imageWidth =
                                     $section[
                                         'image_width'
@@ -394,6 +400,16 @@
                                         @if($image)
                                             briefing-section--with-image
                                             briefing-section--{{ $imagePosition }}
+
+                                            @if(
+                                                in_array(
+                                                    $imagePosition,
+                                                    ['top', 'bottom'],
+                                                    true
+                                                )
+                                            )
+                                                briefing-section--align-{{ $imageAlignment }}
+                                            @endif
                                         @endif
                                     "
                                     style="
@@ -979,7 +995,6 @@
 
                                     <small>
                                         Eventos programados
-                                        para este operativo
                                     </small>
 
                                 </div>
@@ -1116,43 +1131,41 @@
 
                                             <div class="event-card__body">
 
-                                                <div
-                                                    class="
-                                                        event-card__topline
-                                                    "
-                                                >
+                                                <div class="event-card__topline">
 
-                                                    <span
-                                                        class="
-                                                            event-card__type
-                                                        "
-                                                    >
-                                                        {{ $operation
-                                                            ->operationType
-                                                            ?->name
-                                                            ?? 'Operativo'
-                                                        }}
+                                                    <span class="event-card__type">
+                                                        {{ $operation->operationType?->name ?? 'Operativo' }}
                                                     </span>
-
 
                                                     @if($event->eventStatus)
 
                                                         <span
                                                             @class([
                                                                 'event-card__status',
-
                                                                 'is-active' =>
-                                                                    $event
-                                                                        ->eventStatus
-                                                                        ?->name
-                                                                    === 'ACTIVO',
+                                                                    $event->eventStatus?->name === 'ACTIVO',
                                                             ])
                                                         >
-                                                            {{ $event
-                                                                ->eventStatus
-                                                                ->name
-                                                            }}
+                                                            {{ $event->eventStatus->name }}
                                                         </span>
+
+                                                    @endif
+
+                                                    @if(
+                                                        $event->eventStatus?->name === 'FINALIZADO'
+                                                        && filled($event->ocap_url)
+                                                    )
+
+                                                        <a
+                                                            href="{{ $event->ocap_url }}"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            class="event-card__ocap-link"
+                                                            title="Abrir OCAP"
+                                                            aria-label="Abrir OCAP de {{ $event->name ?: $operation->name }}"
+                                                        >
+                                                            OCAP ↗
+                                                        </a>
 
                                                     @endif
 
@@ -1414,43 +1427,41 @@
 
                                             <div class="event-card__body">
 
-                                                <div
-                                                    class="
-                                                        event-card__topline
-                                                    "
-                                                >
+                                                <div class="event-card__topline">
 
-                                                    <span
-                                                        class="
-                                                            event-card__type
-                                                        "
-                                                    >
-                                                        {{ $operation
-                                                            ->operationType
-                                                            ?->name
-                                                            ?? 'Operativo'
-                                                        }}
+                                                    <span class="event-card__type">
+                                                        {{ $operation->operationType?->name ?? 'Operativo' }}
                                                     </span>
-
 
                                                     @if($event->eventStatus)
 
                                                         <span
                                                             @class([
                                                                 'event-card__status',
-
                                                                 'is-active' =>
-                                                                    $event
-                                                                        ->eventStatus
-                                                                        ?->name
-                                                                    === 'ACTIVO',
+                                                                    $event->eventStatus?->name === 'ACTIVO',
                                                             ])
                                                         >
-                                                            {{ $event
-                                                                ->eventStatus
-                                                                ->name
-                                                            }}
+                                                            {{ $event->eventStatus->name }}
                                                         </span>
+
+                                                    @endif
+
+                                                    @if(
+                                                        $event->eventStatus?->name === 'FINALIZADO'
+                                                        && filled($event->ocap_url)
+                                                    )
+
+                                                        <a
+                                                            href="{{ $event->ocap_url }}"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            class="event-card__ocap-link"
+                                                            title="Abrir OCAP"
+                                                            aria-label="Abrir OCAP de {{ $event->name ?: $operation->name }}"
+                                                        >
+                                                            OCAP ↗
+                                                        </a>
 
                                                     @endif
 

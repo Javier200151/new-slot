@@ -6,6 +6,8 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use App\Models\Country;
+use Illuminate\Support\Facades\Storage;
 
 class ArmyForm
 {
@@ -15,7 +17,48 @@ class ArmyForm
             ->components([
                 Select::make('country_id')
                     ->label('País')
-                    ->relationship('country', 'name')
+                    ->relationship(
+                        name: 'country',
+                        titleAttribute: 'name',
+                    )
+                    ->getOptionLabelFromRecordUsing(
+                        function (Country $country): string {
+                            $name = e($country->name);
+
+                            if (! filled($country->image)) {
+                                return $name;
+                            }
+
+                            $imageUrl = e(
+                                Storage::disk('public')->url(
+                                    $country->image
+                                )
+                            );
+
+                            return <<<HTML
+                                <div style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
+                                ">
+                                    <img
+                                        src="{$imageUrl}"
+                                        alt=""
+                                        style="
+                                            width: 28px;
+                                            height: 20px;
+                                            object-fit: cover;
+                                            border-radius: 3px;
+                                            flex-shrink: 0;
+                                        "
+                                    >
+
+                                    <span>{$name}</span>
+                                </div>
+                            HTML;
+                        }
+                    )
+                    ->allowHtml()
                     ->searchable()
                     ->preload()
                     ->required(),

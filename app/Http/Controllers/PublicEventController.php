@@ -22,6 +22,8 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
+use App\Notifications\EventCommentReplyNotification;
+use App\Notifications\EventSlotChangedNotification;
 
 class PublicEventController extends Controller
 {
@@ -273,6 +275,16 @@ class PublicEventController extends Controller
                 $position = 'left';
             }
 
+            $alignment = $section['image_alignment'] ?? 'left';
+
+            if (! in_array(
+                $alignment,
+                ['left', 'center', 'right'],
+                true
+            )) {
+                $alignment = 'left';
+            }
+
             $width = (string) ($section['image_width'] ?? '40');
 
             if (! in_array(
@@ -309,6 +321,9 @@ class PublicEventController extends Controller
 
                 'image_position' =>
                     $position,
+
+                'image_alignment' =>
+                    $alignment,
 
                 'image_width' =>
                     $width,
@@ -712,8 +727,17 @@ class PublicEventController extends Controller
                 ];
             }
 
+            /*
+            * Guardamos el usuario antes de eliminar
+            * el registro EventSlot.
+            *
+            * Si es un aliado externo, será null y
+            * simplemente no habrá notificación.
+            */
+            $removedUser = $targetSlot->user;
+
             $removedName =
-                $targetSlot->user?->nick
+                $removedUser?->nick
                 ?? $targetSlot->ally?->name
                 ?? 'el jugador';
 
@@ -722,12 +746,38 @@ class PublicEventController extends Controller
                 $manager->id,
             );
 
+            /*
+            * Si hemos eliminado a un usuario SQA
+            * y no es el propio administrador,
+            * le notificamos.
+            */
+            if (
+                $removedUser
+                && (int) $removedUser->id
+                    !== (int) $manager->id
+            ) {
+                $removedUser->notify(
+                    new EventSlotChangedNotification(
+                        event: $lockedEvent,
+                        action: 'removed',
+                        changedBy: $manager,
+
+                        fromSlotName:
+                            $targetSlot->name,
+
+                        fromSlotGroup:
+                            $targetSlot->slot_group,
+                    )
+                );
+            }
+
             $targetSlot->delete();
 
             return [
                 'action' => 'clear',
                 'slot_key' => $slotKey,
-                'message' => "{$removedName} ha sido eliminado del ORBAT.",
+                'message' =>
+                    "{$removedName} ha sido eliminado del ORBAT.",
             ];
         }
 
@@ -790,8 +840,10 @@ class PublicEventController extends Controller
             'army_id' => $sourceSlot->faction?->army_id,
         ];
 
+        $draggedUser = $sourceSlot->user;
+
         $draggedUserName =
-            $sourceSlot->user?->nick
+            $draggedUser?->nick
             ?? 'Usuario';
 
         /*
@@ -803,8 +855,10 @@ class PublicEventController extends Controller
         if ($targetSlot?->user_id) {
             $targetUserId = (int) $targetSlot->user_id;
 
+            $targetUser = $targetSlot->user;
+
             $targetUserName =
-                $targetSlot->user?->nick
+                $targetUser?->nick
                 ?? 'Usuario';
 
             /*
@@ -846,6 +900,71 @@ class PublicEventController extends Controller
                 to: $sourceSnapshot,
                 changedByUserId: $manager->id,
             );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Notificar al usuario arrastrado
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $draggedUser
+                && (int) $draggedUser->id
+                    !== (int) $manager->id
+            ) {
+                $draggedUser->notify(
+                    new EventSlotChangedNotification(
+                        event: $lockedEvent,
+                        action: 'moved',
+                        changedBy: $manager,
+
+                        fromSlotName:
+                            $sourceSnapshot['name'],
+
+                        fromSlotGroup:
+                            $sourceSnapshot['slot_group'],
+
+                        toSlotName:
+                            $targetSnapshot['name'],
+
+                        toSlotGroup:
+                            $targetSnapshot['slot_group'],
+                    )
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Notificar al usuario que ocupaba el destino
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $targetUser
+                && (int) $targetUser->id
+                    !== (int) $manager->id
+            ) {
+                $targetUser->notify(
+                    new EventSlotChangedNotification(
+                        event: $lockedEvent,
+                        action: 'moved',
+                        changedBy: $manager,
+
+                        fromSlotName:
+                            $targetSnapshot['name'],
+
+                        fromSlotGroup:
+                            $targetSnapshot['slot_group'],
+
+                        toSlotName:
+                            $sourceSnapshot['name'],
+
+                        toSlotGroup:
+                            $sourceSnapshot['slot_group'],
+                    )
+                );
+            }
 
             return [
                 'action' => 'move',
@@ -907,6 +1026,32 @@ class PublicEventController extends Controller
             to: $targetSnapshot,
             changedByUserId: $manager->id,
         );
+
+        if (
+            $draggedUser
+            && (int) $draggedUser->id
+                !== (int) $manager->id
+        ) {
+            $draggedUser->notify(
+                new EventSlotChangedNotification(
+                    event: $lockedEvent,
+                    action: 'moved',
+                    changedBy: $manager,
+
+                    fromSlotName:
+                        $sourceSnapshot['name'],
+
+                    fromSlotGroup:
+                        $sourceSnapshot['slot_group'],
+
+                    toSlotName:
+                        $targetSnapshot['name'],
+
+                    toSlotGroup:
+                        $targetSnapshot['slot_group'],
+                )
+            );
+        }
 
         return [
             'action' => 'move',
@@ -1003,20 +1148,29 @@ class PublicEventController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        EventComment::create([
+        $comment = EventComment::create([
             'event_id' => $event->id,
-
-            'user_id' => $request
-                ->user()
-                ->id,
-
-            'parent_id' =>
-                $validated['parent_id']
-                ?? null,
-
-            'comment' =>
-                $validated['comment'],
+            'user_id' => $request->user()->id,
+            'parent_id' => $validated['parent_id'] ?? null,
+            'comment' => $validated['comment'],
         ]);
+
+        if ($comment->parent_id !== null) {
+            $parentComment = EventComment::query()
+                ->with('user')
+                ->find($comment->parent_id);
+
+            if (
+                $parentComment?->user
+                && $parentComment->user_id !== $request->user()->id
+            ) {
+                $parentComment->user->notify(
+                    new EventCommentReplyNotification(
+                        $comment
+                    )
+                );
+            }
+        }
 
 
         /*
