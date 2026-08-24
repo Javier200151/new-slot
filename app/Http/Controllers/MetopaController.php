@@ -40,7 +40,12 @@ class MetopaController extends Controller
             'sqaGroup',
             'users' => fn ($query) => $query
                 ->whereHas('status', fn (Builder $query): Builder => $query
-                    ->whereIn('name', ['ACTIVO', 'RESERVA']))
+                    ->whereIn('name', [
+                        'ACTIVO',
+                        'RESERVA',
+                        'CESADO',
+                        'BAJA',
+                    ]))
                 ->with([
                     'status:id,name',
                     'mainSqaGroup',
@@ -49,13 +54,17 @@ class MetopaController extends Controller
                 ->orderBy('users.nick', 'asc'),
         ]);
 
-        $descriptionOne = new HtmlString(
-            RichContentRenderer::make($metopa->despag1)->toHtml(),
-        );
+        $descriptionOne = filled($metopa->despag1)
+            ? new HtmlString(
+                RichContentRenderer::make($metopa->despag1)->toHtml()
+            )
+            : new HtmlString('');
 
-        $descriptionTwo = new HtmlString(
-            RichContentRenderer::make($metopa->despag2)->toHtml(),
-        );
+        $descriptionTwo = filled($metopa->despag2)
+            ? new HtmlString(
+                RichContentRenderer::make($metopa->despag2)->toHtml()
+            )
+            : new HtmlString('');
 
         return view('metopas.show', compact(
             'metopa',

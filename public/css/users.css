@@ -324,7 +324,7 @@
 }
 
 .public-user-hero h1 {
-    margin: 8px 0;
+    margin: 8px 0 14px;
 
     color:
         var(
@@ -337,6 +337,137 @@
     line-height: 0.95;
 
     letter-spacing: -0.055em;
+}
+/* =========================================================
+   GRUPOS SQA - PERFIL PÚBLICO
+========================================================= */
+
+.public-user-groups {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 11px;
+}
+
+.public-user-group-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    padding: 7px 12px;
+
+    border: 1px solid
+        color-mix(
+            in srgb,
+            var(--group-color) 45%,
+            transparent
+        );
+
+    border-radius: 999px;
+
+    color: var(--group-color);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--group-color) 9%,
+            transparent
+        );
+
+    box-shadow:
+        0 0 12px
+        color-mix(
+            in srgb,
+            var(--group-color) 13%,
+            transparent
+        );
+
+    font-size: 0.72rem;
+    font-weight: 850;
+    line-height: 1;
+
+    letter-spacing: 0.025em;
+
+    white-space: nowrap;
+
+    transition:
+        background 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+}
+
+.public-user-group-badge:hover {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--group-color) 75%,
+            transparent
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--group-color) 15%,
+            transparent
+        );
+
+    box-shadow:
+        0 0 18px
+        color-mix(
+            in srgb,
+            var(--group-color) 22%,
+            transparent
+        );
+
+    transform: translateY(-1px);
+}
+
+
+/* Grupo principal */
+
+.public-user-group-badge.is-main {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--group-color) 75%,
+            transparent
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--group-color) 15%,
+            transparent
+        );
+
+    box-shadow:
+        0 0 16px
+        color-mix(
+            in srgb,
+            var(--group-color) 22%,
+            transparent
+        );
+}
+
+.public-user-group-badge__star {
+    color: var(--group-color);
+
+    font-size: 0.75rem;
+    line-height: 1;
+
+    text-shadow:
+        0 0 8px
+        color-mix(
+            in srgb,
+            var(--group-color) 70%,
+            transparent
+        );
 }
 
 .public-user-hero__badges {
@@ -656,6 +787,10 @@
 
     .public-user-grid {
         grid-template-columns: 1fr;
+    }
+
+    .public-user-groups {
+        justify-content: center;
     }
 
     .public-user-hero__badges {

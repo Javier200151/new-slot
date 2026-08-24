@@ -71,12 +71,26 @@
                     <div class="metopa-awardees__content">
                         @if($metopa->users->isEmpty())
                             <p class="metopa-awardees__empty">
-                                Actualmente no hay miembros activos o reservistas con esta metopa.
+                                Actualmente no hay miembros galardonados con esta metopa.
                             </p>
                         @else
                             <ol class="metopa-awardees__list">
                                 @foreach($metopa->users as $user)
-                                    @php($assignedAt = \Illuminate\Support\Carbon::parse($user->pivot->assigned_at))
+                                    @php
+                                        $assignedAt = \Illuminate\Support\Carbon::parse(
+                                            $user->pivot->assigned_at
+                                        );
+
+                                        $statusName = $user->status?->name ?? 'SIN ESTADO';
+
+                                        $statusClass = match (strtoupper($statusName)) {
+                                            'ACTIVO' => 'is-active',
+                                            'RESERVA' => 'is-reserve',
+                                            'CESADO' => 'is-dismissed',
+                                            'BAJA' => 'is-leave',
+                                            default => 'is-default',
+                                        };
+                                    @endphp
 
                                     <li>
                                         <span class="metopa-awardees__position" aria-hidden="true">
@@ -95,7 +109,12 @@
                                                     ),
                                                 ])
                                             />
-                                            <span>{{ $user->status->name }}</span>
+
+                                            <span
+                                                class="metopa-member-status {{ $statusClass }}"
+                                            >
+                                                {{ $statusName }}
+                                            </span>
                                         </span>
 
                                         <time datetime="{{ $assignedAt->toDateString() }}">

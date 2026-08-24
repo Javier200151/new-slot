@@ -232,5 +232,20 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+    public function getFrontendColor(): string
+    {
+        if (filled($this->mainSqaGroup?->color)) {
+            return $this->mainSqaGroup->color;
+        }
 
+        return match (strtoupper($this->status?->name ?? '')) {
+            'ACTIVO' => '#4ade80',
+            'RESERVA' => '#60a5fa',
+            'CESADO' => '#f87171',
+            'BAJA' => '#fb923c',
+            'RECLUTA' => '#facc15',
+            'USUARIO' => '#94a3b8',
+            default => '#ffffff',
+        };
+    }
 }

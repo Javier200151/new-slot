@@ -110,6 +110,10 @@
                                 : asset(
                                     'images/sqa-shield-white.png'
                                 );
+
+                            $mainGroup = $user->mainSqaGroup;
+
+                            $userColor = $user->getFrontendColor();
                         @endphp
 
                         <a
@@ -131,20 +135,7 @@
                             <div class="user-card__content">
 
                                 <strong
-                                    @style([
-                                        '--member-group-color: '
-                                        . (
-                                            $user
-                                                ->mainSqaGroup
-                                                ?->color
-                                            ?? ''
-                                        )
-                                        => filled(
-                                            $user
-                                                ->mainSqaGroup
-                                                ?->color
-                                        ),
-                                    ])
+                                    style="color: {{ $userColor }};"
                                 >
                                     {{ $user->nick }}
                                 </strong>
@@ -155,12 +146,13 @@
                                     }}
                                 </span>
 
-                                @if($user->mainSqaGroup)
-                                    <small>
-                                        {{ $user
-                                            ->mainSqaGroup
-                                            ->name
-                                        }}
+                                @if($mainGroup)
+                                    <small
+                                        @if(filled($mainGroup->color))
+                                            style="color: {{ $mainGroup->color }};"
+                                        @endif
+                                    >
+                                        {{ $mainGroup->name }}
                                     </small>
                                 @endif
 

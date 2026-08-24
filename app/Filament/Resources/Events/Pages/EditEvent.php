@@ -60,7 +60,7 @@ class EditEvent extends EditRecord
                             TextInput::make('name')
                                 ->label('Nombre')
                                 ->disabled()
-                                ->dehydrated(false),
+                                ->dehydrated(),
 
                             TextInput::make('faction_name')
                                 ->label('Facción')
@@ -77,7 +77,7 @@ class EditEvent extends EditRecord
                                     TextInput::make('name')
                                         ->label('Nombre')
                                         ->disabled()
-                                        ->dehydrated(false),
+                                        ->dehydrated(),
 
                                     TextInput::make('slot_type_name')
                                         ->label('Tipo de slot')

@@ -2,6 +2,12 @@
     $avatarUrl = $user->image
         ? asset('storage/' . $user->image)
         : asset('images/sqa-shield-white.png');
+     
+    $sqaGroups = $user->sqaGroups
+        ->sortBy('display_order')
+        ->values();
+
+    $userNameColor = $user->getFrontendColor();    
 
     $statusMessage = match (session('status')) {
         'profile-updated' => 'Tu perfil se ha actualizado correctamente.',
@@ -46,7 +52,7 @@
             <a
                 href="{{ route('home') }}"
                 class="brand brand--image"
-                aria-label="Volver al inicio"
+                aria-label="Squad ALPHA"
             >
                 <img
                     src="{{ asset('images/sqa-header-logo.png') }}"
@@ -55,43 +61,98 @@
                 >
             </a>
 
-            <div class="nav-actions">
-                @include(
-                    'partials.notification-bell'
-                )
-                <a
-                    href="{{ route('home') }}"
-                    class="btn btn-outline"
-                >
-                    Volver al inicio
-                </a>
+            <button
+                type="button"
+                class="nav-toggle"
+                aria-label="Mostrar menú"
+                aria-controls="public-navigation"
+                aria-expanded="false"
+                data-nav-toggle
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
 
-                @if(
-                    $user->hasRole('admin')
-                    || $user->can('filament.access')
-                )
+            <div
+                id="public-navigation"
+                class="nav-menu"
+                data-nav-menu
+            >
+
+                <nav
+                    class="landing-nav"
+                    aria-label="Navegación principal"
+                >
+
+                    <a href="{{ route('home') }}">
+                        Inicio
+                    </a>
+
+                    <a href="{{ route('pages.show', 'normativa') }}">
+                        Normativa
+                    </a>
+
+                    <a href="{{ route('events.index') }}">
+                        Eventos
+                    </a>
+
+                    <a href="{{ route('operations.index') }}">
+                        Operativos
+                    </a>
+
+                    <a href="{{ route('metopas.index') }}">
+                        Metopas
+                    </a>
+
+                    <a href="{{ route('streams.index') }}">
+                        Directos
+                    </a>
+
+                </nav>
+
+                <div class="nav-actions">
+
+                    @include(
+                        'partials.notification-bell'
+                    )
+
                     <a
-                        href="{{ url('/admin') }}"
+                        href="{{ route('profile.show') }}"
                         class="btn btn-outline"
                     >
-                        Panel de administración
+                        Mi perfil
                     </a>
-                @endif
 
-                <form
-                    method="POST"
-                    action="{{ route('logout') }}"
-                    class="logout-form"
-                >
-                    @csrf
+                    @if(
+                        $user->hasRole('admin')
+                        || $user->can('filament.access')
+                    )
+                        <a
+                            href="{{ url('/admin') }}"
+                            class="btn btn-outline"
+                        >
+                            Administración
+                        </a>
+                    @endif
 
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
+                    <form
+                        method="POST"
+                        action="{{ route('logout') }}"
+                        class="logout-form"
                     >
-                        Cerrar sesión
-                    </button>
-                </form>
+                        @csrf
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            Cerrar sesión
+                        </button>
+                    </form>
+
+                </div>
+
             </div>
 
         </div>
@@ -117,7 +178,13 @@
                 <div class="profile-session">
                     <span></span>
                     Sesión iniciada como
-                    <strong>{{ $user->nick }}</strong>
+                    <strong
+                        @if($userNameColor)
+                            style="color: {{ $userNameColor }};"
+                        @endif
+                    >
+                        {{ $user->nick }}
+                    </strong>
                 </div>
             </header>
 
@@ -177,7 +244,50 @@
                             >
                         </div>
 
-                        <h2>{{ $user->nick }}</h2>
+                        <h2
+                            @if($userNameColor)
+                                style="color: {{ $userNameColor }};"
+                            @endif
+                        >
+                            {{ $user->nick }}
+                        </h2>
+
+                        @if($sqaGroups->isNotEmpty())
+                            <div
+                                class="profile-groups"
+                                aria-label="Grupos SQA"
+                            >
+                                @foreach($sqaGroups as $group)
+
+                                    @php
+                                        $isMainGroup = (bool) $group->pivot?->main;
+                                    @endphp
+
+                                    <span
+                                        class="profile-group-badge {{ $isMainGroup ? 'is-main' : '' }}"
+                                        style="--group-color: {{ $group->color ?: '#f59e0b' }};"
+                                        @if($isMainGroup)
+                                            title="{{ $group->name }} · Grupo principal"
+                                        @else
+                                            title="{{ $group->name }}"
+                                        @endif
+                                    >
+                                        @if($isMainGroup)
+                                            <span
+                                                class="profile-group-badge__star"
+                                                aria-hidden="true"
+                                            >
+                                                ★
+                                            </span>
+                                        @endif
+
+                                        {{ $group->name }}
+                                    </span>
+
+                                @endforeach
+                            </div>
+                        @endif
+
                         <p>{{ $user->email }}</p>
 
                         @if($user->hasVerifiedEmail())

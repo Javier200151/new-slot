@@ -538,14 +538,82 @@
     font-size: 0.93rem;
 }
 
-.metopa-awardees__member span {
-    padding: 3px 7px;
+.metopa-member-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 4px 8px;
+
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
+
     color: var(--text-soft);
     background: rgba(255, 255, 255, 0.07);
+
     font-size: 0.58rem;
-    font-weight: 800;
+    font-weight: 850;
+    line-height: 1;
+
     letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+
+/* ACTIVO */
+
+.metopa-member-status.is-active {
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.35);
+    background: rgba(74, 222, 128, 0.09);
+
+    box-shadow:
+        0 0 10px rgba(74, 222, 128, 0.08);
+}
+
+
+/* RESERVA */
+
+.metopa-member-status.is-reserve {
+    color: #60a5fa;
+    border-color: rgba(96, 165, 250, 0.35);
+    background: rgba(96, 165, 250, 0.09);
+
+    box-shadow:
+        0 0 10px rgba(96, 165, 250, 0.08);
+}
+
+
+/* CESADO */
+
+.metopa-member-status.is-dismissed {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(248, 113, 113, 0.09);
+
+    box-shadow:
+        0 0 10px rgba(248, 113, 113, 0.08);
+}
+
+
+/* BAJA */
+
+.metopa-member-status.is-leave {
+    color: #fb923c;
+    border-color: rgba(251, 146, 60, 0.35);
+    background: rgba(251, 146, 60, 0.09);
+
+    box-shadow:
+        0 0 10px rgba(251, 146, 60, 0.08);
+}
+
+
+/* FALLBACK */
+
+.metopa-member-status.is-default {
+    color: var(--text-soft);
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.07);
 }
 
 .metopa-awardees__list time {
