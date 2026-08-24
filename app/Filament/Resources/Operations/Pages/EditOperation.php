@@ -197,7 +197,7 @@ class EditOperation extends EditRecord
                                         ->afterStateUpdated(function ($state, Set $set): void {
                                             $slotType = SlotType::query()->find($state);
 
-                                            $set('name', $slotType->name );
+                                            $set('name', $slotType?->name);
                                         })
                                         ->required(),
 

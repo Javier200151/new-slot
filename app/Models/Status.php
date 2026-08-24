@@ -38,10 +38,4 @@ class Status extends Model
         );
     }
 
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnlyDirty()
-            ->logAll();
-    }
 }

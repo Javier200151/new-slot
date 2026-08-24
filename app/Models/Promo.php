@@ -21,10 +21,4 @@ class Promo extends Model
         return $this->hasMany(User::class, 'promo_id');
     }
     
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnlyDirty()
-            ->logAll();
-    }
 }
