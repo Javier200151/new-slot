@@ -943,6 +943,102 @@ class PublicEventController extends Controller
                 ?? 'El ORBAT se ha actualizado correctamente.',
         );
 }
+    public function storeComment(
+        Event $event,
+        Request $request,
+    ): RedirectResponse {
+        /*
+        |--------------------------------------------------------------------------
+        | El evento debe ser público
+        |--------------------------------------------------------------------------
+        */
+
+        abort_unless(
+            $event
+                ->eventStatus()
+                ->whereIn('name', [
+                    'ACTIVO',
+                    'FINALIZADO',
+                ])
+                ->exists(),
+            404,
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validación
+        |--------------------------------------------------------------------------
+        */
+
+        $validated = $request->validate([
+            'comment' => [
+                'required',
+                'string',
+                'max:5000',
+            ],
+
+            'parent_id' => [
+                'nullable',
+                'integer',
+
+                Rule::exists(
+                    'event_comments',
+                    'id'
+                )->where(
+                    fn ($query) => $query
+                        ->where(
+                            'event_id',
+                            $event->id
+                        )
+                        ->whereNull('deleted_at')
+                ),
+            ],
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Crear comentario
+        |--------------------------------------------------------------------------
+        */
+
+        EventComment::create([
+            'event_id' => $event->id,
+
+            'user_id' => $request
+                ->user()
+                ->id,
+
+            'parent_id' =>
+                $validated['parent_id']
+                ?? null,
+
+            'comment' =>
+                $validated['comment'],
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Volver directamente a comentarios
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+            ->to(
+                route(
+                    'events.show',
+                    $event
+                ) . '#comentarios'
+            )
+            ->with(
+                'comment_status',
+                isset($validated['parent_id'])
+                    ? 'Tu respuesta se ha publicado correctamente.'
+                    : 'Tu comentario se ha publicado correctamente.'
+            );
+    }
 
     public function updateComment(
         Event $event,

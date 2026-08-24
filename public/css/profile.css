@@ -218,7 +218,7 @@
 }
 
 .profile-identity h2 {
-    margin: 0 0 5px;
+    margin: 0 0 10px;
     color: #fff;
     font-size: 1.45rem;
 }
@@ -248,6 +248,137 @@
     color: #fde68a;
     border: 1px solid rgba(245, 158, 11, 0.25);
     background: rgba(245, 158, 11, 0.07);
+}
+
+/* =========================================================
+   GRUPOS SQA
+========================================================= */
+
+.profile-groups {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    margin: 0 0 15px;
+}
+
+.profile-group-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    padding: 7px 12px;
+
+    border: 1px solid
+        color-mix(
+            in srgb,
+            var(--group-color) 45%,
+            transparent
+        );
+
+    border-radius: 999px;
+
+    color: var(--group-color);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--group-color) 9%,
+            transparent
+        );
+
+    box-shadow:
+        0 0 12px
+        color-mix(
+            in srgb,
+            var(--group-color) 13%,
+            transparent
+        );
+
+    font-size: 0.72rem;
+    font-weight: 850;
+    line-height: 1;
+
+    letter-spacing: 0.025em;
+
+    white-space: nowrap;
+
+    transition:
+        background 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+}
+
+.profile-group-badge:hover {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--group-color) 75%,
+            transparent
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--group-color) 15%,
+            transparent
+        );
+
+    box-shadow:
+        0 0 18px
+        color-mix(
+            in srgb,
+            var(--group-color) 22%,
+            transparent
+        );
+
+    transform: translateY(-1px);
+}
+
+
+/* Grupo principal */
+
+.profile-group-badge.is-main {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--group-color) 75%,
+            transparent
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--group-color) 15%,
+            transparent
+        );
+
+    box-shadow:
+        0 0 16px
+        color-mix(
+            in srgb,
+            var(--group-color) 22%,
+            transparent
+        );
+}
+
+.profile-group-badge__star {
+    color: var(--group-color);
+
+    font-size: 0.75rem;
+    line-height: 1;
+
+    text-shadow:
+        0 0 8px
+        color-mix(
+            in srgb,
+            var(--group-color) 70%,
+            transparent
+        );
 }
 
 .delete-image-form {
@@ -312,11 +443,13 @@
 .profile-form__columns {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
     gap: 17px;
 }
 
 .profile-field {
     display: grid;
+    align-content: start;
     gap: 8px;
 }
 

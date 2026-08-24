@@ -53,6 +53,7 @@ class PublicUserController extends Controller
         $user->load([
             'status:id,name',
             'promo',
+            'sqaGroups',
             'mainSqaGroup',
             'metopas.sqaGroup',
         ]);

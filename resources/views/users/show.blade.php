@@ -28,6 +28,10 @@
             ? asset('storage/' . $user->image)
             : asset('images/sqa-shield-white.png');
 
+        $sqaGroups = $user->sqaGroups
+            ->sortBy('display_order')
+            ->values();
+
         $quote = trim(
             strip_tags(
                 (string) $user->quote
@@ -71,31 +75,56 @@
                     </span>
 
                     <h1
-                        @style([
-                            '--member-group-color: '
-                            . (
-                                $user->mainSqaGroup?->color
-                                ?? ''
-                            )
-                            => filled(
-                                $user->mainSqaGroup?->color
-                            ),
-                        ])
+                        style="--member-group-color: {{ $user->getFrontendColor() }};"
                     >
                         {{ $user->nick }}
                     </h1>
+                    @if($sqaGroups->isNotEmpty())
 
+                        <div
+                            class="public-user-groups"
+                            aria-label="Grupos SQA"
+                        >
+
+                            @foreach($sqaGroups as $group)
+
+                                @php
+                                    $isMainGroup = (bool) $group->pivot?->main;
+                                @endphp
+
+                                <span
+                                    class="public-user-group-badge {{ $isMainGroup ? 'is-main' : '' }}"
+                                    style="--group-color: {{ $group->color ?: '#f59e0b' }};"
+                                    @if($isMainGroup)
+                                        title="{{ $group->name }} · Grupo principal"
+                                    @else
+                                        title="{{ $group->name }}"
+                                    @endif
+                                >
+
+                                    @if($isMainGroup)
+                                        <span
+                                            class="public-user-group-badge__star"
+                                            aria-hidden="true"
+                                        >
+                                            ★
+                                        </span>
+                                    @endif
+
+                                    {{ $group->name }}
+
+                                </span>
+
+                            @endforeach
+
+                        </div>
+
+                    @endif
                     <div class="public-user-hero__badges">
 
                         @if($user->status)
                             <span>
                                 {{ $user->status->name }}
-                            </span>
-                        @endif
-
-                        @if($user->mainSqaGroup)
-                            <span>
-                                {{ $user->mainSqaGroup->name }}
                             </span>
                         @endif
 
@@ -153,21 +182,7 @@
                                     ?? 'No indicado'
                                 }}
                             </dd>
-                        </div>
-
-                        @if($user->mainSqaGroup)
-                            <div>
-                                <dt>Grupo</dt>
-
-                                <dd>
-                                    {{ $user
-                                        ->mainSqaGroup
-                                        ->name
-                                    }}
-                                </dd>
-                            </div>
-                        @endif
-
+                        </div>           
                     </dl>
                 </section>
 

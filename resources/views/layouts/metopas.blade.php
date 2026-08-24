@@ -39,36 +39,67 @@
             </button>
 
             <div id="public-navigation" class="nav-menu" data-nav-menu>
-                <nav class="landing-nav" aria-label="Navegación principal">
-                    <a href="{{ route('home') }}">Inicio</a>
-                    <a href="{{ route('home') }}#comunidad">Quiénes somos</a>
+                <nav
+                    class="landing-nav"
+                    aria-label="Navegación principal"
+                >
+
+                    <a
+                        href="{{ route('home') }}"
+                        @class([
+                            'is-active' => request()->routeIs('home'),
+                        ])
+                    >
+                        Inicio
+                    </a>
+
                     <a
                         href="{{ route('pages.show', 'normativa') }}"
-                        @class(['is-active' => request()->routeIs('pages.show') && request()->route('page')?->slug === 'normativa'])
+                        @class([
+                            'is-active' =>
+                                request()->routeIs('pages.show')
+                                && request()->route('page')?->slug === 'normativa',
+                        ])
                     >
                         Normativa
                     </a>
+
                     <a
                         href="{{ route('events.index') }}"
-                        @class(['is-active' => request()->routeIs('events.*')])
+                        @class([
+                            'is-active' => request()->routeIs('events.*'),
+                        ])
                     >
                         Eventos
                     </a>
+
+                    <a
+                        href="{{ route('operations.index') }}"
+                        @class([
+                            'is-active' => request()->routeIs('operations.*'),
+                        ])
+                    >
+                        Operativos
+                    </a>
+
+                    <a
+                        href="{{ route('metopas.index') }}"
+                        @class([
+                            'is-active' => request()->routeIs('metopas.*'),
+                        ])
+                    >
+                        Metopas
+                    </a>
+
                     <a
                         href="{{ route('streams.index') }}"
                         @class([
-                            'is-active' =>
-                                request()->routeIs('streams.*')
+                            'is-active' => request()->routeIs('streams.*'),
                         ])
                     >
                         Directos
                     </a>
-                    <a
-                        href="{{ route('metopas.index') }}"
-                        @class(['is-active' => request()->routeIs('metopas.*')])
-                    >
-                        Metopas
-                    </a>
+
                 </nav>
 
                 <div class="nav-actions">

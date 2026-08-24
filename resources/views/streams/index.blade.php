@@ -339,7 +339,7 @@
                                     </div>
 
 
-                                    @<div class="live-card__footer">
+                                    <div class="live-card__footer">
 
                                     @if($stream->title)
 

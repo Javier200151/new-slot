@@ -21,6 +21,8 @@ class ProfileController extends Controller
             'promo',
             'status',
             'tutor',
+            'sqaGroups',
+            'mainSqaGroup',
         ]);
 
         return view('profile.show', compact('user'));
