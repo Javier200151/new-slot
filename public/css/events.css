@@ -172,17 +172,107 @@
 
 .events-calendar__event {
     min-width: 0;
+
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 6px;
+
+    gap: 5px;
+
+    padding: 4px 5px;
+
     overflow: hidden;
+
     border-left: 3px solid var(--event-color, var(--primary));
     border-radius: 5px;
+
     color: #fff;
-    background: color-mix(in srgb, var(--event-color, var(--primary)) 15%, transparent);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--event-color, var(--primary)) 15%,
+            transparent
+        );
+
     font-size: 0.64rem;
     font-weight: 750;
+}
+
+.events-calendar__event-main {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    min-width: 0;
+    flex: 1;
+
+    padding: 1px 0;
+
+    overflow: hidden;
+
+    color: inherit;
+
+    text-decoration: none;
+}
+
+.events-calendar__event-main:hover
+.events-calendar__event-name {
+    color: #fff;
+    text-decoration: underline;
+}
+
+/* =========================================================
+   OCAP EN CALENDARIO
+========================================================= */
+
+.events-calendar__ocap-link {
+    position: relative;
+    z-index: 3;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    min-height: 19px;
+
+    padding: 0 5px;
+
+    border: 1px solid rgba(245, 158, 11, 0.42);
+    border-radius: 999px;
+
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.09);
+
+    font-size: 0.48rem;
+    font-weight: 900;
+    line-height: 1;
+
+    letter-spacing: 0.03em;
+
+    text-decoration: none;
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        color 150ms ease,
+        border-color 150ms ease,
+        background 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.events-calendar__ocap-link:hover {
+    color: #fff;
+
+    border-color: rgba(245, 158, 11, 0.75);
+
+    background: rgba(245, 158, 11, 0.16);
+
+    box-shadow:
+        0 0 9px rgba(245, 158, 11, 0.13);
 }
 
 .events-calendar__icons {
@@ -347,7 +437,8 @@
 .event-card__topline {
     display: flex;
     align-items: center;
-    gap: 9px;
+    flex-wrap: wrap;
+    gap: 7px;
 }
 
 .event-card__type,
@@ -373,6 +464,64 @@
 .event-card__status.is-active {
     color: #86efac;
     background: rgba(34, 197, 94, 0.12);
+}
+
+/* =========================================================
+   OCAP EN PREVIEW DE EVENTO
+========================================================= */
+
+.event-card__ocap-link {
+    position: relative;
+    z-index: 4;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 24px;
+
+    padding: 0 8px;
+
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 999px;
+
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.09);
+
+    font-size: 0.6rem;
+    font-weight: 850;
+    line-height: 1;
+
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    box-shadow:
+        0 0 10px rgba(245, 158, 11, 0.07);
+
+    cursor: pointer;
+
+    transition:
+        color 160ms ease,
+        border-color 160ms ease,
+        background 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+}
+
+.event-card__ocap-link:hover {
+    color: #fff;
+
+    border-color: rgba(245, 158, 11, 0.75);
+
+    background: rgba(245, 158, 11, 0.16);
+
+    box-shadow:
+        0 0 16px rgba(245, 158, 11, 0.13);
+
+    transform: translateY(-1px);
 }
 
 .event-card__title-row {
@@ -786,6 +935,49 @@ html:has(.event-detail) {
     border-color: rgba(34, 197, 94, 0.28);
     color: #86efac;
     background: rgba(34, 197, 94, 0.08);
+}
+
+.event-detail__ocap-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 6px 10px;
+
+    border: 1px solid rgba(245, 158, 11, 0.38);
+    border-radius: 999px;
+
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.09);
+
+    font-size: 0.65rem;
+    font-weight: 850;
+
+    text-decoration: none;
+    text-transform: uppercase;
+
+    box-shadow:
+        0 0 12px rgba(245, 158, 11, 0.07);
+
+    transition:
+        color 160ms ease,
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+}
+
+.event-detail__ocap-link:hover {
+    color: #fff;
+
+    border-color: rgba(245, 158, 11, 0.7);
+
+    background: rgba(245, 158, 11, 0.15);
+
+    box-shadow:
+        0 0 18px rgba(245, 158, 11, 0.12);
+
+    transform: translateY(-1px);
 }
 
 .event-detail__section {
@@ -1990,6 +2182,35 @@ border-radius: 10px;
     margin-top: 18px;
 }
 
+/* =========================================================
+   ALINEACIÓN DE IMÁGENES DEL BRIEFING
+   Solo para imágenes arriba o abajo
+========================================================= */
+
+.briefing-section--top.briefing-section--align-left
+.briefing-section__image,
+.briefing-section--bottom.briefing-section--align-left
+.briefing-section__image {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.briefing-section--top.briefing-section--align-center
+.briefing-section__image,
+.briefing-section--bottom.briefing-section--align-center
+.briefing-section__image {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.briefing-section--top.briefing-section--align-right
+.briefing-section__image,
+.briefing-section--bottom.briefing-section--align-right
+.briefing-section__image {
+    margin-left: auto;
+    margin-right: 0;
+}
+
 
 /* ---------------------------------------------------------
    IMAGEN
@@ -2349,9 +2570,22 @@ border-radius: 10px;
 
     .events-calendar__event {
         justify-content: center;
+
         min-height: 19px;
+
         padding: 2px;
+
+        gap: 2px;
+
         border-left-width: 2px;
+    }
+
+    .events-calendar__event-main {
+        justify-content: center;
+
+        flex: 1;
+
+        gap: 2px;
     }
 
     .events-calendar__icons {
@@ -2365,6 +2599,13 @@ border-radius: 10px;
 
     .events-calendar__event-name {
         display: none;
+    }
+    .events-calendar__ocap-link {
+        min-height: 16px;
+
+        padding: 0 3px;
+
+        font-size: 0.4rem;
     }
 
     .events-filters {

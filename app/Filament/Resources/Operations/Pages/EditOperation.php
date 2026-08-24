@@ -87,6 +87,10 @@ class EditOperation extends EditRecord
                                 $section['image_position']
                                 ?? 'left',
 
+                            'image_alignment' =>
+                                $section['image_alignment']
+                                ?? 'left',
+
                             'image_width' =>
                                 (string) (
                                     $section['image_width']
@@ -139,7 +143,26 @@ class EditOperation extends EditRecord
                                 'bottom' => 'Abajo',
                             ])
                             ->default('left')
+                            ->live()
                             ->native(false),
+
+                        Select::make('image_alignment')
+                            ->label('Alineación de la imagen')
+                            ->options([
+                                'left' => 'Izquierda',
+                                'center' => 'Centrada',
+                                'right' => 'Derecha',
+                            ])
+                            ->default('left')
+                            ->native(false)
+                            ->visible(
+                                fn (Get $get): bool =>
+                                    in_array(
+                                        $get('image_position'),
+                                        ['top', 'bottom'],
+                                        true
+                                    )
+                            ),
 
                         Select::make('image_width')
                             ->label('Tamaño de la imagen')
@@ -180,6 +203,12 @@ class EditOperation extends EditRecord
                     'bottom',
                 ];
 
+                $allowedAlignments = [
+                    'left',
+                    'center',
+                    'right',
+                ];
+
                 $allowedWidths = [
                     '33',
                     '40',
@@ -194,6 +223,7 @@ class EditOperation extends EditRecord
                     ->map(
                         function (array $section) use (
                             $allowedPositions,
+                            $allowedAlignments,
                             $allowedWidths,
                         ): array {
                             $image = trim(
@@ -214,6 +244,10 @@ class EditOperation extends EditRecord
                                 $section['image_position']
                                 ?? 'left';
 
+                            $alignment =
+                                $section['image_alignment']
+                                ?? 'left';
+
                             $width = (string) (
                                 $section['image_width']
                                 ?? '40'
@@ -228,7 +262,15 @@ class EditOperation extends EditRecord
                             ) {
                                 $position = 'left';
                             }
-
+                            if (
+                                ! in_array(
+                                    $alignment,
+                                    $allowedAlignments,
+                                    true
+                                )
+                            ) {
+                                $alignment = 'left';
+                            }
                             if (
                                 ! in_array(
                                     $width,
@@ -258,6 +300,9 @@ class EditOperation extends EditRecord
 
                                 'image_position' =>
                                     $position,
+
+                                'image_alignment' =>
+                                    $alignment,
 
                                 'image_width' =>
                                     $width,

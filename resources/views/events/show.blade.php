@@ -174,9 +174,42 @@
             </section>
 
             <section class="event-detail__options" aria-label="Opciones del operativo">
-                <span @class(['is-enabled' => $operation->ocap])>OCAP</span>
-                <span @class(['is-enabled' => $operation->respawn])>Respawn</span>
-                <span @class(['is-enabled' => $operation->jip])>JIP</span>
+
+                @if(
+                    $event->eventStatus?->name === 'FINALIZADO'
+                    && filled($event->ocap_url)
+                )
+                    <a
+                        href="{{ $event->ocap_url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="event-detail__ocap-link"
+                        title="Abrir OCAP"
+                    >
+                        OCAP ↗
+                    </a>
+                @elseif($operation->ocap)
+                    <span class="is-enabled">
+                        OCAP
+                    </span>
+                @else
+                    <span>
+                        OCAP
+                    </span>
+                @endif
+
+                <span @class([
+                    'is-enabled' => $operation->respawn,
+                ])>
+                    Respawn
+                </span>
+
+                <span @class([
+                    'is-enabled' => $operation->jip,
+                ])>
+                    JIP
+                </span>
+
             </section>
 
             {{-- @if($operation->enemyFactions->isNotEmpty())
@@ -213,16 +246,32 @@
 
                             @php
                                 $image =
-                                    $section['image'] ?? null;
+                                    $section['image']
+                                    ?? null;
 
                                 $imagePosition =
-                                    $section['image_position'] ?? 'left';
+                                    $section[
+                                        'image_position'
+                                    ]
+                                    ?? 'left';
+
+                                $imageAlignment =
+                                    $section[
+                                        'image_alignment'
+                                    ]
+                                    ?? 'left';
 
                                 $imageWidth =
-                                    $section['image_width'] ?? '40';
+                                    $section[
+                                        'image_width'
+                                    ]
+                                    ?? '40';
 
                                 $imageCaption =
-                                    $section['image_caption'] ?? null;
+                                    $section[
+                                        'image_caption'
+                                    ]
+                                    ?? null;
                             @endphp
 
                             <section>
@@ -238,6 +287,16 @@
                                         @if($image)
                                             briefing-section--with-image
                                             briefing-section--{{ $imagePosition }}
+
+                                            @if(
+                                                in_array(
+                                                    $imagePosition,
+                                                    ['top', 'bottom'],
+                                                    true
+                                                )
+                                            )
+                                                briefing-section--align-{{ $imageAlignment }}
+                                            @endif
                                         @endif
                                     "
                                     style="

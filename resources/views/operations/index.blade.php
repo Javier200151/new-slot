@@ -382,9 +382,17 @@
 
                                         @if($operation->campaign)
 
-                                            <span class="operation-card__campaign">
-                                                {{ $operation->campaign->name }}
-                                            </span>
+                                            <div class="operation-card__campaign">
+
+                                                <span class="operation-card__campaign-badge">
+                                                    Campaña
+                                                </span>
+
+                                                <span class="operation-card__campaign-name">
+                                                    {{ $operation->campaign->name }}
+                                                </span>
+
+                                            </div>
 
                                         @endif
 

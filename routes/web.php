@@ -165,6 +165,11 @@ Route::middleware('auth')->group(function (): void {
     )->name('notifications.read-all');
 
     Route::get(
+        '/notificaciones/poll',
+        [NotificationController::class, 'poll'],
+    )->name('notifications.poll');
+
+    Route::get(
         '/notificaciones/{notification}/abrir',
         [NotificationController::class, 'open'],
     )->name('notifications.open');

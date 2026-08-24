@@ -268,6 +268,13 @@ class PublicOperationController extends Controller
                 'eventStatus',
                 'eventResult',
             ])
+            ->whereDoesntHave(
+                'eventStatus',
+                fn ($query) => $query->where(
+                    'name',
+                    'BORRADOR'
+                )
+            )
             ->orderByDesc('date')
             ->get();
 
@@ -462,6 +469,24 @@ class PublicOperationController extends Controller
                             $position = 'left';
                         }
 
+                        $alignment =
+                            $section['image_alignment']
+                            ?? 'left';
+
+                        if (
+                            ! in_array(
+                                $alignment,
+                                [
+                                    'left',
+                                    'center',
+                                    'right',
+                                ],
+                                true
+                            )
+                        ) {
+                            $alignment = 'left';
+                        }
+
                         $width = (string) (
                             $section[
                                 'image_width'
@@ -525,6 +550,9 @@ class PublicOperationController extends Controller
 
                             'image_position' =>
                                 $position,
+
+                            'image_alignment' =>
+                                $alignment,
 
                             'image_width' =>
                                 $width,
