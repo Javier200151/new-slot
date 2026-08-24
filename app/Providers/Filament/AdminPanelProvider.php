@@ -19,6 +19,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Navigation\NavigationItem;
 //use Pxlrbt\FilamentActivityLog\FilamentActivityLogPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -41,6 +42,12 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Streams'),
                 NavigationGroup::make('Usuarios'),
                 NavigationGroup::make('Sistema'),    
+            ])
+            ->navigationItems([
+                NavigationItem::make('Volver a la web')
+                    ->url(fn (): string => route('home'))
+                    ->icon('heroicon-o-arrow-left')
+                    ->sort(-100),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\Filament\Clusters')

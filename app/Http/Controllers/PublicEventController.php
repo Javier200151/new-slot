@@ -151,7 +151,7 @@ class PublicEventController extends Controller
             'operation.period',
             'operation.platform',
             'operation.map',
-            'operation.day',
+            'operation.days',
             'operation.editor',
             'operation.enemyFactions.army',
             'operation.enemyFactions.side',
@@ -194,6 +194,33 @@ class PublicEventController extends Controller
         $canManageOrbat = $this->canManageOrbat(
             auth()->user()
         );
+        $user = auth()->user();
+
+        $isAdmin =
+            $user?->hasRole('admin')
+            ?? false;
+
+        $canAccessFilament =
+            $isAdmin
+            || ($user?->can('filament.access') ?? false);
+
+        $canEditOperation =
+            $canAccessFilament
+            && (
+                $isAdmin
+                || $user?->can('operations.update')
+            );
+
+        $canEditEvent =
+            $canAccessFilament
+            && (
+                $isAdmin
+                || $user?->can('events.update')
+            );
+
+        $canUseEditorMode =
+            $canEditOperation
+            || $canEditEvent;
 
         $visibleOrbatGroups = $groups
             ->map(function (array $group) use ($assignments, $currentUserSlot, $factions, $isRegistrationOpen, $slotTypes): array {
@@ -235,12 +262,61 @@ class PublicEventController extends Controller
         }
 
         $descriptionSections = $descriptionSections
-            ->map(fn (array $section): array => [
-                'title' => $section['title'] ?? 'Descripción',
+        ->map(function (array $section): array {
+            $position = $section['image_position'] ?? 'left';
+
+            if (! in_array(
+                $position,
+                ['left', 'right', 'top', 'bottom'],
+                true
+            )) {
+                $position = 'left';
+            }
+
+            $width = (string) ($section['image_width'] ?? '40');
+
+            if (! in_array(
+                $width,
+                ['33', '40', '50', '66', '100'],
+                true
+            )) {
+                $width = '40';
+            }
+
+            /*
+            * 100% no tiene sentido con texto al lado.
+            * Lo convertimos automáticamente en imagen superior.
+            */
+            if (
+                $width === '100'
+                && in_array($position, ['left', 'right'], true)
+            ) {
+                $position = 'top';
+            }
+
+            return [
+                'title' =>
+                    $section['title'] ?? 'Descripción',
+
                 'content' => new HtmlString(
-                    RichContentRenderer::make($section['content'] ?? '')->toHtml(),
+                    RichContentRenderer::make(
+                        $section['content'] ?? ''
+                    )->toHtml(),
                 ),
-            ]);
+
+                'image' =>
+                    $section['image'] ?? null,
+
+                'image_position' =>
+                    $position,
+
+                'image_width' =>
+                    $width,
+
+                'image_caption' =>
+                    $section['image_caption'] ?? null,
+            ];
+        });
 
         $radioNetworks = collect($operation->radio['networks'] ?? [])
             ->filter(fn (array $network): bool => (bool) ($network['visible'] ?? true))
@@ -289,6 +365,9 @@ class PublicEventController extends Controller
             'radioNetworks',
             'slotHistory',
             'visibleOrbatGroups',
+            'canEditEvent',
+            'canEditOperation',
+            'canUseEditorMode',
         ));
     }
 

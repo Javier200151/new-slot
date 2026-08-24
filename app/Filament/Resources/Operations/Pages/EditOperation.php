@@ -29,6 +29,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
 
+
 class EditOperation extends EditRecord
 {
     protected static string $resource = OperationResource::class;
@@ -37,105 +38,267 @@ class EditOperation extends EditRecord
     {
         return [
             Action::make('editDescription')
-                ->label('Editar descripción')
-                ->modalHeading('Editor de descripción')
-                ->modalSubmitActionLabel('Guardar descripción')
-                ->modalWidth('7xl')
-                ->fillForm(function (): array {
-                    $description = $this->record->description ?? [];
-                    $sections = $description['sections'] ?? [];
+            ->label('Editar descripción')
+            ->modalHeading('Editor de descripción')
+            ->modalSubmitActionLabel('Guardar descripción')
+            ->modalWidth('7xl')
 
-                    if (blank($sections) && filled($description['content'] ?? null)) {
-                        $sections = [
-                            [
-                                'title' => 'Descripción',
-                                'content' => $description['content'],
-                            ],
+            ->fillForm(function (): array {
+                $description = $this->record->description ?? [];
+
+                $sections = $description['sections'] ?? [];
+
+                /*
+                * Compatibilidad con el formato antiguo:
+                *
+                * description = [
+                *     'content' => ...
+                * ]
+                */
+                if (
+                    blank($sections)
+                    && filled($description['content'] ?? null)
+                ) {
+                    $sections = [
+                        [
+                            'title' => 'Descripción',
+                            'content' => $description['content'],
+                        ],
+                    ];
+                }
+
+                /*
+                * Normalizamos también las secciones antiguas
+                * que todavía no tenían información de imagen.
+                */
+                $sections = collect($sections)
+                    ->map(function (array $section): array {
+                        return [
+                            'title' =>
+                                $section['title'] ?? '',
+
+                            'content' =>
+                                $section['content'] ?? null,
+
+                            'image' =>
+                                $section['image'] ?? null,
+
+                            'image_position' =>
+                                $section['image_position']
+                                ?? 'left',
+
+                            'image_width' =>
+                                (string) (
+                                    $section['image_width']
+                                    ?? '40'
+                                ),
+
+                            'image_caption' =>
+                                $section['image_caption']
+                                ?? null,
                         ];
-                    }
+                    })
+                    ->values()
+                    ->all();
 
-                    return ['sections' => $sections];
-                })
-                ->form([
-                    Repeater::make('sections')
-                        ->label('Secciones')
-                        ->schema([
-                            TextInput::make('title')
-                                ->label('Título')
-                                ->required()
-                                ->maxLength(255),
+                return [
+                    'sections' => $sections,
+                ];
+            })
 
-                            RichEditor::make('content')
-                                ->label('Contenido')
-                                ->disableToolbarButtons([
-                                    'attachFiles',
-                                ])
-                                ->tools([
-                                    RichEditorTool::make('insertImageUrl')
-                                        ->label('Imagen por URL')
-                                        ->action()
-                                        ->icon('heroicon-o-photo'),
-                                ])
-                                ->enableToolbarButtons([
-                                    'insertImageUrl',
-                                ])
-                                ->registerActions([
-                                    Action::make('insertImageUrl')
-                                        ->label('Insertar imagen por URL')
-                                        ->modalHeading('Insertar imagen por URL')
-                                        ->form([
-                                            TextInput::make('url')
-                                                ->label('URL')
-                                                ->url()
-                                                ->required()
-                                                ->maxLength(2048),
+            ->form([
+                Repeater::make('sections')
+                    ->label('Secciones')
 
-                                            TextInput::make('alt')
-                                                ->label('Texto alternativo')
-                                                ->maxLength(1000),
-                                        ])
-                                        ->action(function (array $arguments, array $data, RichEditor $component): void {
-                                            $component->runCommands(
-                                                [
-                                                    EditorCommand::make('insertContent', arguments: [[
-                                                        'type' => 'image',
-                                                        'attrs' => [
-                                                            'alt' => $data['alt'] ?? null,
-                                                            'src' => $data['url'],
-                                                        ],
-                                                    ]]),
-                                                ],
-                                                editorSelection: $arguments['editorSelection'] ?? null,
-                                            );
-                                        }),
-                                ])
-                                ->columnSpanFull(),
+                    ->schema([
+                        TextInput::make('title')
+                            ->label('Título')
+                            ->required()
+                            ->maxLength(255),
 
-                        ])
-                        ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
-                        ->reorderableWithButtons()
-                        ->collapsible()
-                        ->default([])
-                        ->addActionLabel('Añadir sección')
-                        ->columnSpanFull(),
-                ])
-                ->action(function (array $data): void {
-                    $sections = collect($data['sections'] ?? [])
-                        ->map(fn (array $section): array => [
-                                'title' => $section['title'] ?? '',
-                                'content' => $section['content'] ?? '',
+                        RichEditor::make('content')
+                            ->label('Contenido')
+                            ->disableToolbarButtons([
+                                'attachFiles',
                             ])
-                        ->values()
-                        ->all();
+                            ->columnSpanFull(),
 
-                    $this->record->forceFill([
-                        'description' => ['sections' => $sections],
-                    ])->save();
-                }),
+                        TextInput::make('image')
+                            ->label('Imagen')
+                            ->placeholder('https://...')
+                            ->url()
+                            ->maxLength(2048)
+                            ->columnSpanFull(),
 
-            
+                        Select::make('image_position')
+                            ->label('Posición de la imagen')
+                            ->options([
+                                'left' => 'Izquierda',
+                                'right' => 'Derecha',
+                                'top' => 'Arriba',
+                                'bottom' => 'Abajo',
+                            ])
+                            ->default('left')
+                            ->native(false),
 
+                        Select::make('image_width')
+                            ->label('Tamaño de la imagen')
+                            ->options([
+                                '33' => '33%',
+                                '40' => '40%',
+                                '50' => '50%',
+                                '66' => '66%',
+                                '100' => '100%',
+                            ])
+                            ->default('40')
+                            ->native(false),
 
+                        TextInput::make('image_caption')
+                            ->label('Pie de imagen')
+                            ->placeholder('Opcional')
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+                    ])
+
+                    ->itemLabel(
+                        fn (array $state): ?string =>
+                            $state['title'] ?? null
+                    )
+
+                    ->reorderableWithButtons()
+                    ->collapsible()
+                    ->default([])
+                    ->addActionLabel('Añadir sección')
+                    ->columnSpanFull(),
+            ])
+
+            ->action(function (array $data): void {
+                $allowedPositions = [
+                    'left',
+                    'right',
+                    'top',
+                    'bottom',
+                ];
+
+                $allowedWidths = [
+                    '33',
+                    '40',
+                    '50',
+                    '66',
+                    '100',
+                ];
+
+                $sections = collect(
+                    $data['sections'] ?? []
+                )
+                    ->map(
+                        function (array $section) use (
+                            $allowedPositions,
+                            $allowedWidths,
+                        ): array {
+                            $image = trim(
+                                (string) (
+                                    $section['image']
+                                    ?? ''
+                                )
+                            );
+
+                            $caption = trim(
+                                (string) (
+                                    $section['image_caption']
+                                    ?? ''
+                                )
+                            );
+
+                            $position =
+                                $section['image_position']
+                                ?? 'left';
+
+                            $width = (string) (
+                                $section['image_width']
+                                ?? '40'
+                            );
+
+                            if (
+                                ! in_array(
+                                    $position,
+                                    $allowedPositions,
+                                    true
+                                )
+                            ) {
+                                $position = 'left';
+                            }
+
+                            if (
+                                ! in_array(
+                                    $width,
+                                    $allowedWidths,
+                                    true
+                                )
+                            ) {
+                                $width = '40';
+                            }
+
+                            return [
+                                'title' => trim(
+                                    (string) (
+                                        $section['title']
+                                        ?? ''
+                                    )
+                                ),
+
+                                'content' =>
+                                    $section['content']
+                                    ?? null,
+
+                                'image' =>
+                                    $image !== ''
+                                        ? $image
+                                        : null,
+
+                                'image_position' =>
+                                    $position,
+
+                                'image_width' =>
+                                    $width,
+
+                                'image_caption' =>
+                                    $caption !== ''
+                                        ? $caption
+                                        : null,
+                            ];
+                        }
+                    )
+
+                    ->filter(
+                        fn (array $section): bool =>
+                            $section['title'] !== ''
+                            || ! empty(
+                                $section['content']
+                            )
+                            || ! empty(
+                                $section['image']
+                            )
+                    )
+
+                    ->values()
+                    ->all();
+
+                $this->record->forceFill([
+                    'description' => [
+                        'sections' => $sections,
+                    ],
+                ])->save();
+
+                $this->record->refresh();
+
+                Notification::make()
+                    ->title(
+                        'Descripción actualizada'
+                    )
+                    ->success()
+                    ->send();
+            }),
             Action::make('editOrbat')
                 ->label('Editar ORBAT')
                 ->modalHeading('Editor de ORBAT')
@@ -277,26 +440,38 @@ class EditOperation extends EditRecord
                 ->modalWidth('7xl')
                 ->fillForm(function (): array {
                     $radio = $this->record->radio ?? [];
+
                     $networks = $radio['networks'] ?? [];
 
-                    if (blank($networks) && filled($radio['content'] ?? null)) {
+                    if (
+                        blank($networks)
+                        && filled($radio['content'] ?? null)
+                    ) {
                         $networks = [
                             [
                                 'name' => 'Radio',
+
                                 'radio_model_id' => null,
+
                                 'radio_model_name' => null,
+
                                 'configuration' => [
                                     'channel' => null,
                                     'block' => null,
                                     'frequency' => null,
                                 ],
-                                'notes' => $radio['content'],
+
+                                'notes' =>
+                                    $radio['content'],
+
                                 'visible' => true,
                             ],
                         ];
                     }
 
-                    return ['networks' => $networks];
+                    return [
+                        'networks' => $networks,
+                    ];
                 })
                 ->form([
                     Actions::make([
@@ -421,38 +596,115 @@ class EditOperation extends EditRecord
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
-                    $networks = collect($data['networks'] ?? [])
-                        ->map(function (array $network): array {
-                            $radioModel = isset($network['radio_model_id'])
-                                ? RadioModel::query()->find($network['radio_model_id'])
-                                : null;
+                    $networks = collect(
+                        $data['networks'] ?? []
+                    )
+                        ->map(function (
+                            array $network
+                        ): array {
+                            $radioModel =
+                                isset(
+                                    $network[
+                                        'radio_model_id'
+                                    ]
+                                )
+                                    ? RadioModel::query()
+                                        ->find(
+                                            $network[
+                                                'radio_model_id'
+                                            ]
+                                        )
+                                    : null;
 
                             return [
-                                'name' => $network['name'] ?? '',
-                                'radio_model_id' => isset($network['radio_model_id']) ? (int) $network['radio_model_id'] : null,
-                                'radio_model_name' => $radioModel?->name ?? $network['radio_model_name'] ?? null,
+                                'name' =>
+                                    $network['name']
+                                    ?? '',
+
+                                'radio_model_id' =>
+                                    isset(
+                                        $network[
+                                            'radio_model_id'
+                                        ]
+                                    )
+                                        ? (int) $network[
+                                            'radio_model_id'
+                                        ]
+                                        : null,
+
+                                'radio_model_name' =>
+                                    $radioModel?->name
+                                    ?? $network[
+                                        'radio_model_name'
+                                    ]
+                                    ?? null,
+
                                 'configuration' => [
-                                    'channel' => filled($network['configuration']['channel'] ?? null)
-                                        ? (int) $network['configuration']['channel']
-                                        : null,
-                                    'block' => filled($network['configuration']['block'] ?? null)
-                                        ? (int) $network['configuration']['block']
-                                        : null,
-                                    'frequency' => filled($network['configuration']['frequency'] ?? null)
-                                        ? (float) $network['configuration']['frequency']
-                                        : null,
+                                    'channel' =>
+                                        filled(
+                                            $network[
+                                                'configuration'
+                                            ]['channel']
+                                            ?? null
+                                        )
+                                            ? (int) $network[
+                                                'configuration'
+                                            ]['channel']
+                                            : null,
+
+                                    'block' =>
+                                        filled(
+                                            $network[
+                                                'configuration'
+                                            ]['block']
+                                            ?? null
+                                        )
+                                            ? (int) $network[
+                                                'configuration'
+                                            ]['block']
+                                            : null,
+
+                                    'frequency' =>
+                                        filled(
+                                            $network[
+                                                'configuration'
+                                            ]['frequency']
+                                            ?? null
+                                        )
+                                            ? (float) $network[
+                                                'configuration'
+                                            ]['frequency']
+                                            : null,
                                 ],
-                                'notes' => $network['notes'] ?? null,
-                                'visible' => (bool) ($network['visible'] ?? true),
+
+                                'notes' =>
+                                    $network['notes']
+                                    ?? null,
+
+                                'visible' =>
+                                    (bool) (
+                                        $network['visible']
+                                        ?? true
+                                    ),
                             ];
                         })
+
                         ->values()
                         ->all();
 
                     $this->record->forceFill([
-                        'radio' => ['networks' => $networks],
+                        'radio' => [
+                            'networks' => $networks,
+                        ],
                     ])->save();
-                }),    
+
+                    $this->record->refresh();
+
+                    Notification::make()
+                        ->title('Radios actualizadas')
+                        ->success()
+                        ->send();
+                }),  
 
             Action::make('editAddons')
                 ->label('Editar addons')
