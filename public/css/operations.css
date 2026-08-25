@@ -1057,14 +1057,961 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     font-size: 0.82rem;
 }
 
+/* =========================================================
+   CAMPAÑAS
+========================================================= */
+
+.operations-list-header__campaigns {
+    margin-left: 6px;
+
+    color: rgba(255, 255, 255, 0.48);
+
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
 
 /* =========================================================
-   RESPONSIVE
+   WRAPPERS
+========================================================= */
+
+.operation-card-wrapper {
+    min-width: 0;
+}
+
+.operation-card-wrapper > .operation-card {
+    width: 100%;
+    height: 100%;
+}
+
+
+/*
+ * Los operativos pertenecientes a una campaña
+ * son elementos DIRECTOS de la cuadrícula.
+ *
+ * Cuando tienen hidden desaparecen completamente
+ * del layout.
+ */
+
+.operation-card-wrapper--campaign[hidden] {
+    display: none !important;
+}
+
+
+/* =========================================================
+   TARJETA DE CAMPAÑA
+========================================================= */
+
+.operation-campaign-card {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+    height: 100%;
+
+    box-sizing: border-box;
+
+    overflow: hidden;
+
+    padding: 0;
+
+    border:
+        1px solid
+        rgba(245, 158, 11, 0.34);
+
+    border-radius: 17px;
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(245, 158, 11, 0.12),
+            transparent 55%
+        ),
+        linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.045),
+            rgba(255, 255, 255, 0.018)
+        );
+
+    box-shadow:
+        0 16px 40px
+        rgba(0, 0, 0, 0.2);
+
+    cursor: pointer;
+
+    user-select: none;
+
+    transition:
+        transform 180ms ease,
+        border-color 180ms ease,
+        background 180ms ease,
+        box-shadow 180ms ease;
+}
+
+
+/*
+ * Línea superior.
+ */
+
+.operation-campaign-card::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 45%;
+    height: 2px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #f59e0b,
+            transparent
+        );
+
+    box-shadow:
+        0 0 12px
+        rgba(245, 158, 11, 0.35);
+}
+
+
+.operation-campaign-card:hover {
+    transform: translateY(-3px);
+
+    border-color:
+        rgba(245, 158, 11, 0.58);
+
+    box-shadow:
+        0 24px 55px
+        rgba(0, 0, 0, 0.3),
+        0 0 24px
+        rgba(245, 158, 11, 0.055);
+}
+
+/* =========================================================
+   IMAGEN DE CAMPAÑA
+========================================================= */
+
+.operation-campaign-card__media {
+    position: relative;
+
+    overflow: hidden;
+
+    width: 100%;
+
+    flex-shrink: 0;
+
+    aspect-ratio: 16 / 9;
+
+    background: #101216;
+}
+
+
+.operation-campaign-card__media > img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    transition:
+        transform 400ms ease;
+}
+
+
+.operation-campaign-card:hover
+.operation-campaign-card__media > img {
+    transform: scale(1.035);
+}
+
+
+/* Placeholder cuando no existe imagen */
+
+.operation-campaign-card__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    height: 100%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(245, 158, 11, 0.1),
+            transparent 55%
+        ),
+        #111318;
+}
+
+
+.operation-campaign-card__placeholder img {
+    width: 80px;
+    max-height: 65%;
+
+    opacity: 0.22;
+
+    object-fit: contain;
+}
+
+
+/*
+ * Oscurecimiento inferior de la imagen,
+ * igual que las tarjetas de operativo.
+ */
+
+.operation-campaign-card__media-overlay {
+    position: absolute;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.02) 25%,
+            rgba(5, 6, 8, 0.72) 100%
+        );
+}
+
+
+/* Badge CAMPAÑA sobre la imagen */
+
+.operation-campaign-card__media-badge {
+    position: absolute;
+
+    z-index: 2;
+
+    top: 12px;
+    left: 12px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 26px;
+
+    padding: 0 9px;
+
+    border:
+        1px solid
+        rgba(245, 158, 11, 0.48);
+
+    border-radius: 999px;
+
+    color: #fbbf24;
+
+    background:
+        rgba(7, 8, 10, 0.74);
+
+    backdrop-filter: blur(10px);
+
+    font-size: 0.62rem;
+    font-weight: 900;
+
+    line-height: 1;
+
+    letter-spacing: 0.09em;
+
+    text-transform: uppercase;
+
+    box-shadow:
+        0 0 12px
+        rgba(245, 158, 11, 0.08);
+}
+
+/*
+ * Estado abierto.
+ *
+ * JS añade .is-open.
+ */
+
+.operation-campaign-card.is-open,
+.operation-campaign-card[aria-expanded="true"] {
+    border-color:
+        rgba(245, 158, 11, 0.68);
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(245, 158, 11, 0.17),
+            transparent 58%
+        ),
+        linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.05),
+            rgba(255, 255, 255, 0.02)
+        );
+}
+
+
+/* =========================================================
+   CONTENIDO CAMPAÑA
+========================================================= */
+
+.operation-campaign-card__main {
+    position: relative;
+
+    z-index: 1;
+
+    flex: 1;
+
+    min-width: 0;
+
+    padding:
+        18px
+        19px
+        0;
+}
+
+
+/* Etiqueta */
+
+.operation-campaign-card__label {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 11px;
+
+    color: #f59e0b;
+
+    font-size: 0.67rem;
+    font-weight: 900;
+
+    line-height: 1;
+
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+
+.operation-campaign-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 19px;
+    height: 19px;
+
+    flex-shrink: 0;
+
+    border:
+        1px solid
+        rgba(245, 158, 11, 0.46);
+
+    border-radius: 5px;
+
+    color: #f59e0b;
+
+    background:
+        rgba(245, 158, 11, 0.08);
+
+    font-size: 0.65rem;
+}
+
+
+/* Nombre */
+
+.operation-campaign-card__title {
+    margin: 0;
+
+    color: #fff;
+
+    font-size: 1.25rem;
+    font-weight: 900;
+
+    line-height: 1.15;
+
+    letter-spacing: -0.02em;
+}
+
+
+/* Descripción */
+
+.operation-campaign-card__description {
+    display: -webkit-box;
+
+    overflow: hidden;
+
+    margin: 12px 0 0;
+
+    color:
+        rgba(
+            255,
+            255,
+            255,
+            0.62
+        );
+
+    font-size: 0.82rem;
+
+    line-height: 1.6;
+
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+
+    line-clamp: 5;
+}
+
+
+.operation-campaign-card__description--empty {
+    color:
+        rgba(
+            255,
+            255,
+            255,
+            0.34
+        );
+
+    font-style: italic;
+}
+
+
+/* =========================================================
+   PARTE INFERIOR CAMPAÑA
+========================================================= */
+
+.operation-campaign-card__aside {
+    position: relative;
+
+    z-index: 1;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    width: 100%;
+
+    margin-top: auto;
+
+    padding:
+        20px
+        19px
+        19px;
+}
+
+
+.operation-campaign-card__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 8px;
+}
+
+
+/* =========================================================
+   PERSISTENCIA
+========================================================= */
+
+.operation-campaign-card__persistent {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    min-height: 23px;
+
+    padding: 0 8px;
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.08);
+
+    border-radius: 999px;
+
+    color:
+        rgba(
+            255,
+            255,
+            255,
+            0.46
+        );
+
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            0.035
+        );
+
+    font-size: 0.6rem;
+    font-weight: 850;
+
+    line-height: 1;
+
+    letter-spacing: 0.05em;
+
+    text-transform: uppercase;
+}
+
+
+.operation-campaign-card__persistent-dot {
+    width: 6px;
+    height: 6px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            0.28
+        );
+}
+
+
+.operation-campaign-card__persistent.is-persistent {
+    color: #fbbf24;
+
+    border-color:
+        rgba(245, 158, 11, 0.32);
+
+    background:
+        rgba(245, 158, 11, 0.08);
+}
+
+
+.operation-campaign-card__persistent.is-persistent
+.operation-campaign-card__persistent-dot {
+    background: #f59e0b;
+
+    box-shadow:
+        0 0 8px
+        rgba(245, 158, 11, 0.65);
+}
+
+
+/* Número de operativos */
+
+.operation-campaign-card__count {
+    color:
+        rgba(
+            255,
+            255,
+            255,
+            0.48
+        );
+
+    font-size: 0.72rem;
+    font-weight: 650;
+}
+
+
+/* =========================================================
+   BOTÓN DESPLEGAR
+========================================================= */
+
+.operation-campaign-card__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 39px;
+    height: 39px;
+
+    flex-shrink: 0;
+
+    border:
+        1px solid
+        rgba(245, 158, 11, 0.3);
+
+    border-radius: 50%;
+
+    background:
+        rgba(245, 158, 11, 0.07);
+
+    transition:
+        background 180ms ease,
+        border-color 180ms ease,
+        transform 180ms ease;
+}
+
+
+.operation-campaign-card:hover
+.operation-campaign-card__toggle {
+    border-color:
+        rgba(245, 158, 11, 0.58);
+
+    background:
+        rgba(245, 158, 11, 0.13);
+}
+
+
+.operation-campaign-card__toggle-icon {
+    display: block;
+
+    color: #f59e0b;
+
+    font-size: 1rem;
+    font-weight: 900;
+
+    line-height: 1;
+
+    transition:
+        transform 220ms ease;
+}
+
+
+.operation-campaign-card.is-open
+.operation-campaign-card__toggle-icon,
+.operation-campaign-card[aria-expanded="true"]
+.operation-campaign-card__toggle-icon {
+    transform: rotate(180deg);
+}
+
+
+/* =========================================================
+   OPERATIVOS HIJOS DE CAMPAÑA
+========================================================= */
+
+.operation-card-wrapper--campaign {
+    position: relative;
+
+    min-width: 0;
+}
+
+
+/*
+ * La tarjeta sigue siendo exactamente la misma
+ * tarjeta normal de operativo.
+ */
+
+.operation-card--campaign-child {
+    position: relative;
+
+    border-top-color:
+        rgba(245, 158, 11, 0.42);
+}
+
+
+/*
+ * Pequeña marca que indica que este operativo
+ * pertenece a una campaña.
+ */
+
+.operation-card-connector {
+    position: absolute;
+
+    z-index: 5;
+
+    top: -8px;
+    left: 15px;
+
+    width: 28px;
+    height: 8px;
+
+    border-top:
+        2px solid
+        rgba(245, 158, 11, 0.65);
+
+    border-left:
+        2px solid
+        rgba(245, 158, 11, 0.65);
+
+    border-radius:
+        7px
+        0
+        0
+        0;
+
+    pointer-events: none;
+}
+
+
+.operation-card-connector::before {
+    content: "";
+
+    position: absolute;
+
+    top: -5px;
+    left: -5px;
+
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #f59e0b;
+
+    box-shadow:
+        0 0 9px
+        rgba(245, 158, 11, 0.6);
+}
+
+
+.operation-card-wrapper--campaign:hover
+.operation-card-connector {
+    border-color:
+        rgba(245, 158, 11, 0.95);
+}
+
+
+.operation-card-wrapper--campaign:hover
+.operation-card-connector::before {
+    box-shadow:
+        0 0 13px
+        rgba(245, 158, 11, 0.9);
+}
+
+
+/* =========================================================
+   CUADRÍCULA
 ========================================================= */
 
 
+/*
+ * MUY IMPORTANTE:
+ *
+ * No hay:
+ *
+ * - details
+ * - display: contents
+ * - grids anidados
+ * - grid-column manual
+ *
+ * Campaña, hijos y operativos normales son
+ * hermanos directos del mismo grid.
+ */
+
+.operations-catalog.is-grid
+.operation-campaign-card,
+.operations-catalog.is-grid
+.operation-card-wrapper {
+    min-width: 0;
+
+    align-self: stretch;
+}
+
+
+/*
+ * La campaña ocupa exactamente UNA celda.
+ */
+
+.operations-catalog.is-grid
+.operation-campaign-card {
+    width: 100%;
+    height: 100%;
+}
+
+
+/*
+ * Operativo hijo idéntico al normal.
+ */
+
+.operations-catalog.is-grid
+.operation-card--campaign-child {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+}
+
+
+.operations-catalog.is-grid
+.operation-card--campaign-child
+.operation-card__media {
+    height: auto;
+    min-height: 0;
+
+    aspect-ratio: 16 / 9;
+}
+
+
+/* =========================================================
+   VISTA LISTA - CAMPAÑA
+========================================================= */
+
+.operations-catalog.is-list
+.operation-campaign-card {
+    display: grid;
+
+    grid-template-columns:
+        minmax(260px, 34%)
+        minmax(0, 1fr)
+        auto;
+
+    grid-template-rows:
+        auto
+        1fr;
+
+    align-items: stretch;
+
+    gap: 0;
+
+    min-height: 215px;
+
+    padding: 0;
+}
+
+.operations-catalog.is-list
+.operation-campaign-card__media {
+    grid-column: 1;
+    grid-row: 1 / -1;
+
+    width: 100%;
+    height: 100%;
+
+    aspect-ratio: auto;
+}
+
+
+.operations-catalog.is-list
+.operation-campaign-card__main {
+    grid-column: 2;
+    grid-row: 1 / -1;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    padding:
+        22px
+        26px;
+}
+
+
+.operations-catalog.is-list
+.operation-campaign-card__aside {
+    grid-column: 3;
+    grid-row: 1 / -1;
+
+    align-self: stretch;
+
+    width: auto;
+
+    min-width: 180px;
+
+    margin: 0;
+
+    padding:
+        22px
+        24px
+        22px
+        0;
+
+    align-items: center;
+}
+
+
+.operations-catalog.is-list
+.operation-campaign-card__aside {
+    width: auto;
+
+    min-width: 205px;
+
+    margin-top: 0;
+
+    align-items: center;
+}
+
+
+.operations-catalog.is-list
+.operation-campaign-card__meta {
+    align-items: flex-end;
+}
+
+
+/* =========================================================
+   VISTA LISTA - OPERATIVOS DE CAMPAÑA
+========================================================= */
+
+.operations-catalog.is-list
+.operation-card-wrapper--campaign {
+    padding-left: 42px;
+}
+
+
+/*
+ * Línea vertical que visualmente une los
+ * operativos hijos con la campaña anterior.
+ */
+
+.operations-catalog.is-list
+.operation-card-wrapper--campaign::before {
+    content: "";
+
+    position: absolute;
+
+    top: -20px;
+    bottom: -20px;
+    left: 11px;
+
+    width: 2px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(245, 158, 11, 0.7),
+            rgba(245, 158, 11, 0.18)
+        );
+
+    pointer-events: none;
+}
+
+
+/*
+ * En lista el conector sale desde el rail.
+ */
+
+.operations-catalog.is-list
+.operation-card-connector {
+    top: 42px;
+    left: 11px;
+
+    width: 31px;
+    height: 2px;
+
+    border: 0;
+
+    border-top:
+        2px solid
+        rgba(245, 158, 11, 0.62);
+
+    border-radius: 0;
+}
+
+
+.operations-catalog.is-list
+.operation-card-connector::before {
+    top: -5px;
+    left: -4px;
+}
+
+
+/* =========================================================
+   ACCESIBILIDAD
+========================================================= */
+
+.operation-campaign-card:focus-visible {
+    outline:
+        2px solid
+        rgba(245, 158, 11, 0.9);
+
+    outline-offset: 4px;
+}
+
+
+/* =========================================================
+   RESPONSIVE GENERAL
+========================================================= */
 
 @media (max-width: 1100px) {
+
     .operations-filters {
         grid-template-columns:
             repeat(
@@ -1073,9 +2020,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
             );
     }
 
+
     .operations-filter-actions {
         grid-column: 1 / -1;
     }
+
 
     .operations-catalog.is-grid {
         grid-template-columns:
@@ -1094,27 +2043,108 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         padding-top: 48px;
     }
 
+
     .operations-hero__row {
         align-items: flex-start;
+
         flex-direction: column;
     }
+
 
     .operations-view-switcher {
         align-self: stretch;
     }
 
+
     .operations-view-button {
         flex: 1;
     }
+
 
     .operations-catalog.is-list
     .operation-card {
         grid-template-columns: 1fr;
     }
 
+
     .operations-catalog.is-list
     .operation-card__media {
         aspect-ratio: 16 / 9;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-campaign-card {
+        grid-template-columns: 1fr;
+
+        grid-template-rows: auto;
+
+        gap: 0;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-campaign-card__media {
+        grid-column: 1;
+        grid-row: auto;
+
+        height: auto;
+
+        aspect-ratio: 16 / 9;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-campaign-card__main {
+        grid-column: 1;
+        grid-row: auto;
+
+        padding:
+            18px
+            19px
+            0;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-campaign-card__aside {
+        grid-column: 1;
+        grid-row: auto;
+
+        width: 100%;
+
+        min-width: 0;
+
+        padding:
+            20px
+            19px
+            19px;
+
+        justify-content:
+            space-between;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-campaign-card__meta {
+        align-items: flex-start;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-campaign-card__aside {
+        width: 100%;
+
+        min-width: 0;
+
+        justify-content:
+            space-between;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-campaign-card__meta {
+        align-items: flex-start;
     }
 
 }
@@ -1126,28 +2156,60 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         grid-template-columns: 1fr;
     }
 
+
     .operations-filter-actions {
         grid-column: auto;
 
         align-items: stretch;
     }
 
+
     .operations-filter-submit,
     .operations-filter-clear {
         flex: 1;
     }
 
+
     .operations-catalog.is-grid {
         grid-template-columns: 1fr;
     }
+
 
     .operations-catalog.is-list
     .operation-card__facts {
         grid-template-columns: 1fr;
     }
 
+
     .operation-card__facts > div {
-        grid-template-columns: 78px minmax(0, 1fr);
+        grid-template-columns:
+            78px
+            minmax(0, 1fr);
+    }
+
+
+    /*
+     * En móvil reducimos el desplazamiento
+     * visual de los hijos de campaña.
+     */
+
+    .operations-catalog.is-list
+    .operation-card-wrapper--campaign {
+        padding-left: 27px;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-card-wrapper--campaign::before {
+        left: 7px;
+    }
+
+
+    .operations-catalog.is-list
+    .operation-card-connector {
+        left: 7px;
+
+        width: 20px;
     }
 
 }
@@ -1161,8 +2223,52 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         font-size: 0.7rem;
     }
 
+
     .operation-card__body {
         padding: 16px;
+    }
+
+
+    .operation-campaign-card {
+        padding: 18px;
+
+        border-radius: 14px;
+    }
+
+
+    .operation-campaign-card__title {
+        font-size: 1.12rem;
+    }
+
+
+    .operation-campaign-card__description {
+        font-size: 0.77rem;
+
+        -webkit-line-clamp: 4;
+
+        line-clamp: 4;
+    }
+
+
+    .operation-campaign-card__toggle {
+        width: 36px;
+        height: 36px;
+    }
+
+}
+
+
+/* =========================================================
+   REDUCIR MOVIMIENTO
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .operation-card,
+    .operation-campaign-card,
+    .operation-campaign-card__toggle,
+    .operation-campaign-card__toggle-icon {
+        transition: none;
     }
 
 }
