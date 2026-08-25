@@ -161,6 +161,137 @@ class PublicOperationController extends Controller
 
             ->get();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Agrupar operativos por campaña para la vista pública
+        |--------------------------------------------------------------------------
+        |
+        | La consulta anterior ya contiene exclusivamente los operativos que
+        | cumplen los filtros actuales.
+        |
+        | Aquí NO volvemos a consultar campañas ni operativos.
+        |
+        | Esto permite que:
+        |
+        | - los operativos sin campaña aparezcan normalmente;
+        | - cada campaña aparezca una sola vez;
+        | - sus operativos aparezcan dentro de ella;
+        | - los filtros también afecten a los operativos de las campañas;
+        | - una campaña sin operativos después del filtrado no aparezca.
+        |
+        */
+
+        $operationsByCampaign = $operations
+            ->whereNotNull('campaign_id')
+            ->groupBy('campaign_id');
+
+
+        $renderedCampaigns = [];
+
+
+        /*
+        * Esta será la colección que recorrerá después
+        * operations/index.blade.php.
+        *
+        * Cada elemento tendrá uno de estos formatos:
+        *
+        * [
+        *     'type' => 'operation',
+        *     'operation' => $operation,
+        * ]
+        *
+        * o:
+        *
+        * [
+        *     'type' => 'campaign',
+        *     'campaign' => $campaign,
+        * ]
+        */
+
+        $operationItems = collect();
+
+
+        foreach ($operations as $operation) {
+
+            /*
+            * Operativo independiente.
+            */
+
+            if (
+                ! $operation->campaign_id
+                || ! $operation->campaign
+            ) {
+                $operationItems->push([
+                    'type' => 'operation',
+                    'operation' => $operation,
+                ]);
+
+                continue;
+            }
+
+
+            /*
+            * Operativo perteneciente a campaña.
+            */
+
+            $campaignId =
+                (int) $operation->campaign_id;
+
+
+            /*
+            * Si ya hemos añadido esta campaña,
+            * no volvemos a crear otra tarjeta.
+            *
+            * Sus operativos ya estarán dentro
+            * de campaign->operations.
+            */
+
+            if (
+                isset(
+                    $renderedCampaigns[
+                        $campaignId
+                    ]
+                )
+            ) {
+                continue;
+            }
+
+
+            $campaign =
+                $operation->campaign;
+
+
+            /*
+            * Sobrescribimos para esta vista la
+            * relación operations de la campaña.
+            *
+            * Así contiene únicamente los operativos
+            * que han sobrevivido a los filtros
+            * aplicados anteriormente.
+            */
+
+            $campaign->setRelation(
+                'operations',
+
+                $operationsByCampaign
+                    ->get(
+                        $campaignId,
+                        collect()
+                    )
+                    ->values()
+            );
+
+
+            $operationItems->push([
+                'type' => 'campaign',
+                'campaign' => $campaign,
+            ]);
+
+
+            $renderedCampaigns[
+                $campaignId
+            ] = true;
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -222,6 +353,7 @@ class PublicOperationController extends Controller
             'operations.index',
             compact(
                 'operations',
+                'operationItems',
                 'platforms',
                 'editors',
                 'selectedPlatformId',

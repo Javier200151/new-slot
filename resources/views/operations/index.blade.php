@@ -12,9 +12,12 @@
 @push('styles')
     <link
         rel="stylesheet"
-        href="{{ asset('css/operations.css') }}"
+        href="{{ asset('css/operations.css') }}?v={{
+            filemtime(public_path('css/operations.css'))
+        }}"
     >
 @endpush
+
 
 @section('content')
 
@@ -47,7 +50,10 @@
                         aria-pressed="true"
                         title="Vista en cuadrícula"
                     >
-                        <span aria-hidden="true">▦</span>
+                        <span aria-hidden="true">
+                            ▦
+                        </span>
+
                         Cuadrícula
                     </button>
 
@@ -58,7 +64,10 @@
                         aria-pressed="false"
                         title="Vista en lista"
                     >
-                        <span aria-hidden="true">☰</span>
+                        <span aria-hidden="true">
+                            ☰
+                        </span>
+
                         Lista
                     </button>
                 </div>
@@ -67,6 +76,7 @@
 
         </div>
     </section>
+
 
     {{-- =====================================================
         FILTROS
@@ -216,31 +226,64 @@
 
         </div>
     </section>
+
+
+    {{-- =====================================================
+        LISTADO
+    ====================================================== --}}
+
     <section
         class="operations-list-section"
         aria-labelledby="operations-list-title"
     >
         <div class="container">
 
+            @php
+                $campaignCount = $operationItems
+                    ->where('type', 'campaign')
+                    ->count();
+            @endphp
+
+
             <header class="operations-list-header">
 
                 <div>
 
                     <span>
-                        {{ $hasFilters
-                            ? 'Resultados de búsqueda'
-                            : 'Biblioteca de operativos'
+                        {{
+                            $hasFilters
+                                ? 'Resultados de búsqueda'
+                                : 'Biblioteca de operativos'
                         }}
                     </span>
+
 
                     <h2 id="operations-list-title">
 
                         {{ $operations->count() }}
 
-                        {{ $operations->count() === 1
-                            ? 'operativo'
-                            : 'operativos'
+                        {{
+                            $operations->count() === 1
+                                ? 'operativo'
+                                : 'operativos'
                         }}
+
+
+                        @if($campaignCount > 0)
+
+                            <small class="operations-list-header__campaigns">
+
+                                · {{ $campaignCount }}
+
+                                {{
+                                    $campaignCount === 1
+                                        ? 'campaña'
+                                        : 'campañas'
+                                }}
+
+                            </small>
+
+                        @endif
 
                     </h2>
 
@@ -291,273 +334,664 @@
                     data-operations-catalog
                 >
 
-                    @foreach($operations as $operation)
+                    @foreach($operationItems as $item)
 
                         @php
-                            $thumbnail = null;
+                            $isCampaign =
+                                $item['type'] === 'campaign';
 
-                            if (filled($operation->image)) {
-                                $thumbnail = asset(
-                                    'storage/' . $operation->image
-                                );
-                            } elseif (filled($operation->map?->image)) {
-                                $thumbnail = asset(
-                                    'storage/' . $operation->map->image
-                                );
-                            }
+                            $campaign =
+                                $isCampaign
+                                    ? $item['campaign']
+                                    : null;
 
-                            $operationColor =
-                                $operation->operationType?->color
-                                ?: '#f59e0b';
+                            $operationsToRender =
+                                $isCampaign
+                                    ? $campaign->operations
+                                    : collect([
+                                        $item['operation'],
+                                    ]);
                         @endphp
 
-                        <article
-                            class="operation-card"
-                            style="--operation-color: {{ $operationColor }};"
-                        >
 
-                            <a
-                                href="{{ route('operations.show', $operation) }}"
-                                class="operation-card__link"
-                                aria-label="Ver operativo {{ $operation->name }}"
-                            ></a>
+                        {{-- ==========================================
+                            CAMPAÑA
+                        =========================================== --}}
+
+                        @if($isCampaign)
+                            @php
+                            /*
+                            * La imagen de la campaña se obtiene
+                            * automáticamente del primer operativo.
+                            */
+
+                            $campaignFirstOperation =
+                                $campaign
+                                    ->operations
+                                    ->first();
 
 
-                            <div class="operation-card__media">
+                            $campaignThumbnail = null;
 
-                                @if($thumbnail)
 
-                                    <img
-                                        src="{{ $thumbnail }}"
-                                        alt="{{ $operation->name }}"
-                                        loading="lazy"
-                                    >
+                            if (
+                                $campaignFirstOperation
+                                && filled(
+                                    $campaignFirstOperation->image
+                                )
+                            ) {
+                                $campaignThumbnail = asset(
+                                    'storage/'
+                                    . $campaignFirstOperation->image
+                                );
+                            } elseif (
+                                $campaignFirstOperation
+                                && filled(
+                                    $campaignFirstOperation
+                                        ->map
+                                        ?->image
+                                )
+                            ) {
+                                /*
+                                * Igual que en las tarjetas normales:
+                                * si el operativo no tiene imagen propia,
+                                * usamos la imagen del mapa.
+                                */
 
-                                @else
+                                $campaignThumbnail = asset(
+                                    'storage/'
+                                    . $campaignFirstOperation
+                                        ->map
+                                        ->image
+                                );
+                            }
+                        @endphp
+                            <div
+                                class="operation-campaign-card"
+                                role="button"
+                                tabindex="0"
 
-                                    <div class="operation-card__placeholder">
+                                data-campaign-toggle
+                                data-campaign-id="{{ $campaign->id }}"
+
+                                aria-expanded="false"
+                                aria-controls="campaign-operations-{{ $campaign->id }}"
+                            >
+                                <div class="operation-campaign-card__media">
+
+                                    @if($campaignThumbnail)
 
                                         <img
-                                            src="{{ asset('images/sqa-shield-white.png') }}"
-                                            alt=""
+                                            src="{{ $campaignThumbnail }}"
+                                            alt="{{ $campaign->name }}"
+                                            loading="lazy"
                                         >
 
-                                    </div>
+                                    @else
 
-                                @endif
+                                        <div
+                                            class="operation-campaign-card__placeholder"
+                                        >
+
+                                            <img
+                                                src="{{ asset(
+                                                    'images/sqa-shield-white.png'
+                                                ) }}"
+                                                alt=""
+                                            >
+
+                                        </div>
+
+                                    @endif
 
 
-                                <div class="operation-card__media-overlay"></div>
+                                    <div
+                                        class="operation-campaign-card__media-overlay"
+                                        aria-hidden="true"
+                                    ></div>
 
 
-                                @if($operation->operationType)
-
-                                    <span class="operation-card__type">
-                                        {{ $operation->operationType->name }}
+                                    <span
+                                        class="operation-campaign-card__media-badge"
+                                    >
+                                        Campaña
                                     </span>
 
-                                @endif
+                                </div>
+                                    <div class="operation-campaign-card__main">
 
 
-                                @if($operation->operationStatus)
-
-                                    <span class="operation-card__status">
-                                        {{ $operation->operationStatus->name }}
-                                    </span>
-
-                                @endif
-
-                            </div>
-
-
-                            <div class="operation-card__body">
-
-                                <div class="operation-card__heading">
-
-                                    <div>
-
-                                        <h3>
-                                            {{ $operation->name }}
+                                        <h3
+                                            class="operation-campaign-card__title"
+                                        >
+                                            {{ $campaign->name }}
                                         </h3>
 
-                                        @if($operation->campaign)
 
-                                            <div class="operation-card__campaign">
+                                        @if(filled($campaign->description))
 
-                                                <span class="operation-card__campaign-badge">
-                                                    Campaña
-                                                </span>
-
-                                                <span class="operation-card__campaign-name">
-                                                    {{ $operation->campaign->name }}
-                                                </span>
-
+                                            <div
+                                                class="operation-campaign-card__description"
+                                            >
+                                                {!! nl2br(
+                                                    e(
+                                                        strip_tags(
+                                                            $campaign->description
+                                                        )
+                                                    )
+                                                ) !!}
                                             </div>
+
+                                        @else
+
+                                            <p
+                                                class="operation-campaign-card__description operation-campaign-card__description--empty"
+                                            >
+                                                Sin descripción.
+                                            </p>
 
                                         @endif
 
                                     </div>
 
+
+                                    <div
+                                        class="operation-campaign-card__aside"
+                                    >
+
+                                        <div
+                                            class="operation-campaign-card__meta"
+                                        >
+
+                                            <span
+                                                @class([
+                                                    'operation-campaign-card__persistent',
+                                                    'is-persistent' =>
+                                                        $campaign->persistent,
+                                                ])
+                                            >
+
+                                                <span
+                                                    class="operation-campaign-card__persistent-dot"
+                                                    aria-hidden="true"
+                                                ></span>
+
+                                                {{
+                                                    $campaign->persistent
+                                                        ? 'Persistente'
+                                                        : 'No persistente'
+                                                }}
+
+                                            </span>
+
+
+                                            <span
+                                                class="operation-campaign-card__count"
+                                            >
+                                                {{
+                                                    $campaign
+                                                        ->operations
+                                                        ->count()
+                                                }}
+
+                                                {{
+                                                    $campaign
+                                                        ->operations
+                                                        ->count() === 1
+                                                        ? 'operativo'
+                                                        : 'operativos'
+                                                }}
+                                            </span>
+
+                                        </div>
+
+
+                                        <span
+                                            class="operation-campaign-card__toggle"
+                                            aria-hidden="true"
+                                        >
+                                            <span
+                                                class="operation-campaign-card__toggle-icon"
+                                            >
+                                                ↓
+                                            </span>
+                                        </span>
+
+                                    </div>
+
+                                </summary>
+
+
+                                    </div>
+
+                            @endif
+
+
+                        {{-- ==========================================
+                            OPERATIVOS
+                        =========================================== --}}
+
+                        @foreach($operationsToRender as $operation)
+
+                            @php
+                                $thumbnail = null;
+
+                                if (filled($operation->image)) {
+                                    $thumbnail = asset(
+                                        'storage/' . $operation->image
+                                    );
+                                } elseif (
+                                    filled(
+                                        $operation->map?->image
+                                    )
+                                ) {
+                                    $thumbnail = asset(
+                                        'storage/' . $operation->map->image
+                                    );
+                                }
+
+                                $operationColor =
+                                    $operation
+                                        ->operationType
+                                        ?->color
+                                    ?: '#f59e0b';
+                            @endphp
+
+
+                            <div
+                                @class([
+                                    'operation-card-wrapper',
+
+                                    'operation-card-wrapper--campaign' =>
+                                        $isCampaign,
+                                ])
+
+                                @if($isCampaign)
+                                    data-campaign-child="{{ $campaign->id }}"
+                                    hidden
+                                @endif
+                            >
+
+                                @if($isCampaign)
+
                                     <span
-                                        class="operation-card__arrow"
+                                        class="operation-card-connector"
                                         aria-hidden="true"
+                                    ></span>
+
+                                @endif
+
+
+                                <article
+                                    @class([
+                                        'operation-card',
+                                        'operation-card--campaign-child' =>
+                                            $isCampaign,
+                                    ])
+                                    style="
+                                        --operation-color:
+                                        {{ $operationColor }};
+                                    "
+                                >
+
+                                    <a
+                                        href="{{ route(
+                                            'operations.show',
+                                            $operation
+                                        ) }}"
+                                        class="operation-card__link"
+                                        aria-label="Ver operativo {{ $operation->name }}"
+                                    ></a>
+
+
+                                    <div
+                                        class="operation-card__media"
                                     >
-                                        →
-                                    </span>
 
-                                </div>
+                                        @if($thumbnail)
+
+                                            <img
+                                                src="{{ $thumbnail }}"
+                                                alt="{{ $operation->name }}"
+                                                loading="lazy"
+                                            >
+
+                                        @else
+
+                                            <div
+                                                class="operation-card__placeholder"
+                                            >
+
+                                                <img
+                                                    src="{{ asset(
+                                                        'images/sqa-shield-white.png'
+                                                    ) }}"
+                                                    alt=""
+                                                >
+
+                                            </div>
+
+                                        @endif
 
 
-                                <dl class="operation-card__facts">
+                                        <div
+                                            class="operation-card__media-overlay"
+                                        ></div>
 
-                                    {{-- Plataforma --}}
-                                    @if($operation->platform)
 
-                                        <div>
-                                            <dt>Plataforma</dt>
+                                        @if($operation->operationType)
 
-                                            <dd>
+                                            <span
+                                                class="operation-card__type"
+                                            >
+                                                {{
+                                                    $operation
+                                                        ->operationType
+                                                        ->name
+                                                }}
+                                            </span>
 
-                                                @if($operation->platform->image)
+                                        @endif
 
-                                                    <img
-                                                        src="{{ asset(
-                                                            'storage/' . $operation->platform->image
-                                                        ) }}"
-                                                        alt=""
-                                                        aria-hidden="true"
-                                                        loading="lazy"
+
+                                        @if($operation->operationStatus)
+
+                                            <span
+                                                class="operation-card__status"
+                                            >
+                                                {{
+                                                    $operation
+                                                        ->operationStatus
+                                                        ->name
+                                                }}
+                                            </span>
+
+                                        @endif
+
+                                    </div>
+
+
+                                    <div
+                                        class="operation-card__body"
+                                    >
+
+                                        <div
+                                            class="operation-card__heading"
+                                        >
+
+                                            <div>
+
+                                                <h3>
+                                                    {{ $operation->name }}
+                                                </h3>
+
+
+                                                {{--
+                                                    Solo mostramos el badge
+                                                    de campaña si el operativo
+                                                    estuviera fuera de un grupo.
+
+                                                    Dentro del desplegable sería
+                                                    redundante.
+                                                --}}
+
+                                                @if(
+                                                    ! $isCampaign
+                                                    && $operation->campaign
+                                                )
+
+                                                    <div
+                                                        class="operation-card__campaign"
                                                     >
+
+                                                        <span
+                                                            class="operation-card__campaign-badge"
+                                                        >
+                                                            Campaña
+                                                        </span>
+
+                                                        <span
+                                                            class="operation-card__campaign-name"
+                                                        >
+                                                            {{
+                                                                $operation
+                                                                    ->campaign
+                                                                    ->name
+                                                            }}
+                                                        </span>
+
+                                                    </div>
 
                                                 @endif
 
-                                                <span>
-                                                    {{ $operation->platform->name }}
-                                                </span>
+                                            </div>
 
-                                            </dd>
+
+                                            <span
+                                                class="operation-card__arrow"
+                                                aria-hidden="true"
+                                            >
+                                                →
+                                            </span>
+
                                         </div>
 
-                                    @endif
+
+                                        <dl
+                                            class="operation-card__facts"
+                                        >
+
+                                            {{-- Plataforma --}}
+
+                                            @if($operation->platform)
+
+                                                <div>
+
+                                                    <dt>
+                                                        Plataforma
+                                                    </dt>
+
+                                                    <dd>
+
+                                                        @if(
+                                                            $operation
+                                                                ->platform
+                                                                ->image
+                                                        )
+
+                                                            <img
+                                                                src="{{ asset(
+                                                                    'storage/'
+                                                                    . $operation
+                                                                        ->platform
+                                                                        ->image
+                                                                ) }}"
+                                                                alt=""
+                                                                aria-hidden="true"
+                                                                loading="lazy"
+                                                            >
+
+                                                        @endif
+
+                                                        <span>
+                                                            {{
+                                                                $operation
+                                                                    ->platform
+                                                                    ->name
+                                                            }}
+                                                        </span>
+
+                                                    </dd>
+
+                                                </div>
+
+                                            @endif
 
 
-                                    {{-- Mapa --}}
-                                    @if($operation->map)
+                                            {{-- Mapa --}}
 
-                                        <div>
-                                            <dt>Mapa</dt>
+                                            @if($operation->map)
 
-                                            <dd>
+                                                <div>
 
-                                                <a
-                                                    href="{{ route(
-                                                        'maps.show',
-                                                        $operation->map
-                                                    ) }}"
-                                                    class="operation-card__fact-link"
-                                                    title="Ver mapa {{ $operation->map->name }}"
-                                                >
-                                                    {{ $operation->map->name }}
-                                                </a>
+                                                    <dt>
+                                                        Mapa
+                                                    </dt>
 
-                                            </dd>
+                                                    <dd>
+
+                                                        <a
+                                                            href="{{ route(
+                                                                'maps.show',
+                                                                $operation->map
+                                                            ) }}"
+                                                            class="operation-card__fact-link"
+                                                            title="Ver mapa {{ $operation->map->name }}"
+                                                        >
+                                                            {{
+                                                                $operation
+                                                                    ->map
+                                                                    ->name
+                                                            }}
+                                                        </a>
+
+                                                    </dd>
+
+                                                </div>
+
+                                            @endif
+
+
+                                            {{-- Periodo --}}
+
+                                            @if($operation->period)
+
+                                                <div>
+
+                                                    <dt>
+                                                        Periodo
+                                                    </dt>
+
+                                                    <dd>
+
+                                                        @if(
+                                                            $operation
+                                                                ->period
+                                                                ->ico
+                                                        )
+
+                                                            <img
+                                                                src="{{ asset(
+                                                                    'storage/'
+                                                                    . $operation
+                                                                        ->period
+                                                                        ->ico
+                                                                ) }}"
+                                                                alt=""
+                                                                aria-hidden="true"
+                                                                loading="lazy"
+                                                            >
+
+                                                        @endif
+
+                                                        <span>
+                                                            {{
+                                                                $operation
+                                                                    ->period
+                                                                    ->name
+                                                            }}
+                                                        </span>
+
+                                                    </dd>
+
+                                                </div>
+
+                                            @endif
+
+
+                                            {{-- Editor --}}
+
+                                            @if($operation->editor)
+
+                                                <div>
+
+                                                    <dt>
+                                                        Editor
+                                                    </dt>
+
+                                                    <dd>
+
+                                                        <a
+                                                            href="{{ route(
+                                                                'users.show',
+                                                                $operation->editor
+                                                            ) }}"
+                                                            class="operation-card__editor"
+                                                            style="
+                                                                --member-group-color:
+                                                                {{
+                                                                    $operation
+                                                                        ->editor
+                                                                        ->getFrontendColor()
+                                                                }};
+                                                            "
+                                                        >
+                                                            {{
+                                                                $operation
+                                                                    ->editor
+                                                                    ->nick
+                                                            }}
+                                                        </a>
+
+                                                    </dd>
+
+                                                </div>
+
+                                            @endif
+
+                                        </dl>
+
+
+                                        <div
+                                            class="operation-card__options"
+                                        >
+
+                                            <span
+                                                @class([
+                                                    'is-enabled' =>
+                                                        $operation->ocap,
+                                                ])
+                                            >
+                                                OCAP
+                                            </span>
+
+                                            <span
+                                                @class([
+                                                    'is-enabled' =>
+                                                        $operation->respawn,
+                                                ])
+                                            >
+                                                Respawn
+                                            </span>
+
+                                            <span
+                                                @class([
+                                                    'is-enabled' =>
+                                                        $operation->jip,
+                                                ])
+                                            >
+                                                JIP
+                                            </span>
+
                                         </div>
 
-                                    @endif
+                                    </div>
 
-
-                                    {{-- Periodo --}}
-                                    @if($operation->period)
-
-                                        <div>
-                                            <dt>Periodo</dt>
-
-                                            <dd>
-
-                                                @if($operation->period->ico)
-
-                                                    <img
-                                                        src="{{ asset(
-                                                            'storage/' . $operation->period->ico
-                                                        ) }}"
-                                                        alt=""
-                                                        aria-hidden="true"
-                                                        loading="lazy"
-                                                    >
-
-                                                @endif
-
-                                                <span>
-                                                    {{ $operation->period->name }}
-                                                </span>
-
-                                            </dd>
-                                        </div>
-
-                                    @endif
-
-
-                                    {{-- Editor --}}
-                                    @if($operation->editor)
-
-                                        <div>
-                                            <dt>Editor</dt>
-
-                                            <dd>
-
-                                                <a
-                                                    href="{{ route(
-                                                        'users.show',
-                                                        $operation->editor
-                                                    ) }}"
-                                                    class="operation-card__editor"
-                                                    style="
-                                                        --member-group-color:
-                                                        {{ $operation->editor->getFrontendColor() }};
-                                                    "
-                                                >
-                                                    {{ $operation->editor->nick }}
-                                                </a>
-
-                                            </dd>
-                                        </div>
-
-                                    @endif
-
-                                </dl>
-
-
-                                <div class="operation-card__options">
-
-                                    <span
-                                        @class([
-                                            'is-enabled' => $operation->ocap,
-                                        ])
-                                    >
-                                        OCAP
-                                    </span>
-
-                                    <span
-                                        @class([
-                                            'is-enabled' => $operation->respawn,
-                                        ])
-                                    >
-                                        Respawn
-                                    </span>
-
-                                    <span
-                                        @class([
-                                            'is-enabled' => $operation->jip,
-                                        ])
-                                    >
-                                        JIP
-                                    </span>
-
-                                </div>
+                                </article>
 
                             </div>
 
-                        </article>
+                        @endforeach
 
                     @endforeach
 
@@ -573,7 +1007,9 @@
 
 @push('scripts')
     <script
-        src="{{ asset('js/operations.js') }}"
+        src="{{ asset('js/operations.js') }}?v={{
+            filemtime(public_path('js/operations.js'))
+        }}"
         defer
     ></script>
 @endpush
