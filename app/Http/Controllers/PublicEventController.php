@@ -24,6 +24,9 @@ use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use App\Notifications\EventCommentReplyNotification;
 use App\Notifications\EventSlotChangedNotification;
+use App\Models\Ally;
+use App\Models\Stream;
+use App\Models\EventMedia;
 
 class PublicEventController extends Controller
 {
@@ -169,6 +172,45 @@ class PublicEventController extends Controller
         $operation = $event->operation;
         abort_if($operation === null, 404);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Emisiones activas de este evento
+        |--------------------------------------------------------------------------
+        |
+        | Utilizamos exactamente el mismo criterio que la página /directos:
+        |
+        | - Stream habilitado.
+        | - Streamer habilitado.
+        | - Asociado a este evento.
+        |
+        */
+
+        $activeEventStreams =
+            Stream::query()
+                ->where(
+                    'event_id',
+                    $event->id
+                )
+                ->where(
+                    'enabled',
+                    true
+                )
+                ->whereHas(
+                    'streamer',
+                    fn ($query) =>
+                        $query->where(
+                            'enable',
+                            true
+                        )
+                )
+                ->with(
+                    'streamer.user'
+                )
+                ->orderByDesc(
+                    'started_at'
+                )
+                ->get();
+
         $groups = collect($event->orbat['groups'] ?? [])
             ->filter(fn (array $group): bool => (bool) ($group['visible'] ?? true));
 
@@ -196,6 +238,65 @@ class PublicEventController extends Controller
         $canManageOrbat = $this->canManageOrbat(
             auth()->user()
         );
+        /*
+        |--------------------------------------------------------------------------
+        | Personas / aliados asignables manualmente al ORBAT
+        |--------------------------------------------------------------------------
+        |
+        | Solo los necesitamos para gestores del ORBAT y eventos ACTIVOS.
+        |
+        | Los usuarios que ya están ocupando un slot no aparecen en la lista,
+        | porque para ellos ya tenemos la función de arrastrar/mover.
+        |
+        | Los aliados SÍ pueden aparecer siempre porque un mismo clan puede
+        | ocupar tantos slots como sea necesario.
+        |
+        */
+
+        $orbatAssignableUsers = collect();
+
+        $orbatAssignableAllies = collect();
+
+        if (
+            $canManageOrbat
+            && $event->eventStatus?->name === 'ACTIVO'
+        ) {
+            $assignedUserIds =
+                $event->slots
+                    ->pluck('user_id')
+                    ->filter()
+                    ->map(
+                        fn ($id): int =>
+                            (int) $id
+                    )
+                    ->values()
+                    ->all();
+
+            $orbatAssignableUsers =
+                User::query()
+                    ->when(
+                        $assignedUserIds !== [],
+                        fn ($query) =>
+                            $query->whereNotIn(
+                                'id',
+                                $assignedUserIds
+                            )
+                    )
+                    ->orderBy('nick')
+                    ->get([
+                        'id',
+                        'nick',
+                    ]);
+
+            $orbatAssignableAllies =
+                Ally::query()
+                    ->orderBy('name')
+                    ->get([
+                        'id',
+                        'name',
+                        'image',
+                    ]);
+        }
         $user = auth()->user();
 
         $isAdmin =
@@ -218,6 +319,54 @@ class PublicEventController extends Controller
             && (
                 $isAdmin
                 || $user?->can('events.update')
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Multimedia del evento
+        |--------------------------------------------------------------------------
+        */
+
+        $eventMedia =
+            EventMedia::query()
+                ->where('event_id', $event->id)
+                ->with('user')
+                ->latest('created_at')
+                ->latest('id')
+                ->get();
+
+        $eventClips =
+            $eventMedia
+                ->where(
+                    'type',
+                    EventMedia::TYPE_CLIP
+                )
+                ->values();
+
+        $eventVods =
+            $eventMedia
+                ->where(
+                    'type',
+                    EventMedia::TYPE_VOD
+                )
+                ->values();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Permisos multimedia
+        |--------------------------------------------------------------------------
+        */
+
+        $canAddEventMedia =
+            $this->canAddEventMedia(
+                $event,
+                $user
+            );
+
+        $canModerateEventMedia =
+            $this->canModerateEventMedia(
+                $user
             );
 
         $canUseEditorMode =
@@ -383,7 +532,253 @@ class PublicEventController extends Controller
             'canEditEvent',
             'canEditOperation',
             'canUseEditorMode',
+            'orbatAssignableUsers',
+            'orbatAssignableAllies',
+            'activeEventStreams',
+            'eventClips',
+            'eventVods',
+            'canAddEventMedia',
+            'canModerateEventMedia',
         ));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | AÑADIR CLIP / VOD
+    |--------------------------------------------------------------------------
+    */
+
+    public function storeMedia(
+        Event $event,
+        Request $request,
+    ): RedirectResponse {
+
+        $event->loadMissing(
+            'eventStatus'
+        );
+
+        $user =
+            $request->user();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Solo eventos finalizados
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $event->eventStatus?->name
+            !== 'FINALIZADO'
+        ) {
+            throw ValidationException::withMessages([
+                'media' =>
+                    'Solo se puede añadir contenido multimedia a eventos finalizados.',
+            ]);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Solo Streamers habilitados
+        |--------------------------------------------------------------------------
+        */
+
+        abort_unless(
+            $this->canAddEventMedia(
+                $event,
+                $user
+            ),
+            403
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validación
+        |--------------------------------------------------------------------------
+        */
+
+        $validated =
+            $request->validate([
+                'type' => [
+                    'required',
+
+                    Rule::in([
+                        EventMedia::TYPE_CLIP,
+                        EventMedia::TYPE_VOD,
+                    ]),
+                ],
+
+                'title' => [
+                    'required',
+                    'string',
+                    'max:160',
+                ],
+
+                'url' => [
+                    'required',
+                    'string',
+                    'url:http,https',
+                    'max:500',
+                ],
+            ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Analizar URL
+        |--------------------------------------------------------------------------
+        */
+
+        $parsed =
+            $this->parseEventMediaUrl(
+                $validated['url'],
+                $validated['type']
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Evitar duplicados
+        |--------------------------------------------------------------------------
+        */
+
+        $alreadyExists =
+            EventMedia::query()
+                ->where(
+                    'event_id',
+                    $event->id
+                )
+                ->where(
+                    'url',
+                    $parsed['url']
+                )
+                ->exists();
+
+        if ($alreadyExists) {
+            throw ValidationException::withMessages([
+                'url' =>
+                    'Este enlace ya ha sido añadido al evento.',
+            ]);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Crear
+        |--------------------------------------------------------------------------
+        */
+
+        EventMedia::query()->create([
+            'event_id' =>
+                $event->id,
+
+            'user_id' =>
+                $user->id,
+
+            'type' =>
+                $validated['type'],
+
+            'provider' =>
+                $parsed['provider'],
+
+            'url' =>
+                $parsed['url'],
+
+            'external_id' =>
+                $parsed['external_id'],
+
+            'title' =>
+                trim(
+                    $validated['title']
+                ),
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Volver a multimedia
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+            ->to(
+                route(
+                    'events.show',
+                    $event
+                )
+                . '#multimedia'
+            )
+            ->with(
+                'media_status',
+                $validated['type']
+                    === EventMedia::TYPE_CLIP
+                        ? 'El clip se ha añadido correctamente.'
+                        : 'El VOD se ha añadido correctamente.'
+            );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ELIMINAR CLIP / VOD
+    |--------------------------------------------------------------------------
+    */
+
+    public function destroyMedia(
+        Event $event,
+        EventMedia $eventMedia,
+        Request $request,
+    ): RedirectResponse {
+
+        /*
+        * Evitamos acceder a un medio
+        * perteneciente a otro evento.
+        */
+
+        abort_unless(
+            (int) $eventMedia->event_id
+                === (int) $event->id,
+            404
+        );
+
+
+        $user =
+            $request->user();
+
+
+        /*
+        * Puede eliminar:
+        *
+        * - quien añadió el contenido;
+        * - admin;
+        * - events.update.
+        */
+
+        abort_unless(
+            $this->canDeleteEventMedia(
+                $eventMedia,
+                $user
+            ),
+            403
+        );
+
+
+        $eventMedia->delete();
+
+
+        return redirect()
+            ->to(
+                route(
+                    'events.show',
+                    $event
+                )
+                . '#multimedia'
+            )
+            ->with(
+                'media_status',
+                'El contenido multimedia se ha eliminado.'
+            );
     }
 
     public function registerSlot(Event $event, string $slotKey): RedirectResponse
@@ -600,6 +995,7 @@ class PublicEventController extends Controller
             Rule::in([
                 'move',
                 'clear',
+                'assign',
             ]),
         ],
 
@@ -612,6 +1008,28 @@ class PublicEventController extends Controller
             'integer',
             Rule::exists('users', 'id')
                 ->whereNull('deleted_at'),
+        ],
+        'assignee_type' => [
+            Rule::requiredIf(
+                fn (): bool =>
+                    $request->input('action')
+                    === 'assign'
+            ),
+            'nullable',
+            Rule::in([
+                'user',
+                'ally',
+            ]),
+        ],
+
+        'assignee_id' => [
+            Rule::requiredIf(
+                fn (): bool =>
+                    $request->input('action')
+                    === 'assign'
+            ),
+            'nullable',
+            'integer',
         ],
     ]);
 
@@ -778,6 +1196,328 @@ class PublicEventController extends Controller
                 'slot_key' => $slotKey,
                 'message' =>
                     "{$removedName} ha sido eliminado del ORBAT.",
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ASIGNAR manualmente miembro / aliado
+        |--------------------------------------------------------------------------
+        */
+
+        if ($validated['action'] === 'assign') {
+
+            /*
+            * Solo permitimos asignar sobre un slot libre.
+            *
+            * Si está ocupado, primero se elimina con la X.
+            */
+
+            if (
+                $targetSlot
+                && (
+                    $targetSlot->user_id
+                    || $targetSlot->ally_id
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'slot' =>
+                        'Ese slot ya está ocupado. '
+                        .'Vacía primero el slot antes de asignar otro jugador.',
+                ]);
+            }
+
+
+            $assigneeType =
+                (string) $validated[
+                    'assignee_type'
+                ];
+
+            $assigneeId =
+                (int) $validated[
+                    'assignee_id'
+                ];
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Resolver ocupante
+            |--------------------------------------------------------------------------
+            */
+
+            $assignedUser = null;
+
+            $assignedAlly = null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Miembro SQA
+            |--------------------------------------------------------------------------
+            */
+
+            if ($assigneeType === 'user') {
+
+                $assignedUser =
+                    User::query()
+                        ->whereKey($assigneeId)
+                        ->first();
+
+                if (! $assignedUser) {
+                    throw ValidationException::withMessages([
+                        'slot' =>
+                            'El usuario seleccionado no existe.',
+                    ]);
+                }
+
+
+                /*
+                * Un miembro solo puede estar una vez en el ORBAT.
+                *
+                * Si ya está apuntado, para cambiarlo de sitio
+                * utilizamos el sistema existente de arrastrar.
+                */
+
+                $alreadyAssigned =
+                    EventSlot::query()
+                        ->where(
+                            'event_id',
+                            $lockedEvent->id
+                        )
+                        ->where(
+                            'user_id',
+                            $assignedUser->id
+                        )
+                        ->lockForUpdate()
+                        ->exists();
+
+                if ($alreadyAssigned) {
+                    throw ValidationException::withMessages([
+                        'slot' =>
+                            "{$assignedUser->nick} ya está en el ORBAT. "
+                            .'Puedes moverlo arrastrándolo a otro slot.',
+                    ]);
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Aliado
+            |--------------------------------------------------------------------------
+            |
+            | Un mismo aliado puede ocupar varios slots.
+            |
+            | Ejemplo:
+            |
+            | ARMADOS
+            | ARMADOS
+            | ARMADOS
+            | ARMADOS
+            | ARMADOS
+            |
+            */
+
+            else {
+
+                $assignedAlly =
+                    Ally::query()
+                        ->whereKey($assigneeId)
+                        ->first();
+
+                if (! $assignedAlly) {
+                    throw ValidationException::withMessages([
+                        'slot' =>
+                            'El aliado seleccionado no existe.',
+                    ]);
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Crear / reutilizar EventSlot
+            |--------------------------------------------------------------------------
+            */
+
+            $assignmentData = [
+                'slot_key' =>
+                    $targetSnapshot['slot_key'],
+
+                'name' =>
+                    $targetSnapshot['name'],
+
+                'slot_type_id' =>
+                    $targetSnapshot['slot_type_id'],
+
+                'slot_group' =>
+                    $targetSnapshot['slot_group'],
+
+                'faction_id' =>
+                    $targetSnapshot['faction_id'],
+
+                'user_id' =>
+                    $assignedUser?->id,
+
+                'ally_id' =>
+                    $assignedAlly?->id,
+            ];
+
+
+            /*
+            * Puede existir un EventSlot vacío.
+            */
+
+            if ($targetSlot) {
+
+                $targetSlot
+                    ->forceFill(
+                        $assignmentData
+                    )
+                    ->save();
+
+                $eventSlot =
+                    $targetSlot;
+            }
+
+            /*
+            * Si todavía no existe registro,
+            * lo creamos.
+            */
+
+            else {
+
+                $eventSlot =
+                    EventSlot::query()
+                        ->create([
+                            'event_id' =>
+                                $lockedEvent->id,
+
+                            ...$assignmentData,
+                        ]);
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Historial
+            |--------------------------------------------------------------------------
+            */
+
+            EventSlotHistory::query()->create([
+                'event_slot_id' =>
+                    $eventSlot->id,
+
+                'event_id' =>
+                    $lockedEvent->id,
+
+                'user_id' =>
+                    $assignedUser?->id,
+
+                'ally_id' =>
+                    $assignedAlly?->id,
+
+                'action' =>
+                    'assigned',
+
+                'from_slot_key' =>
+                    null,
+
+                'from_slot_name' =>
+                    null,
+
+                'from_slot_type_id' =>
+                    null,
+
+                'from_slot_group' =>
+                    null,
+
+                'from_army_id' =>
+                    null,
+
+                'to_slot_key' =>
+                    $targetSnapshot['slot_key'],
+
+                'to_slot_name' =>
+                    $targetSnapshot['name'],
+
+                'to_slot_type_id' =>
+                    $targetSnapshot[
+                        'slot_type_id'
+                    ],
+
+                'to_slot_group' =>
+                    $targetSnapshot[
+                        'slot_group'
+                    ],
+
+                'to_army_id' =>
+                    $targetSnapshot[
+                        'army_id'
+                    ],
+
+                'changed_by_user_id' =>
+                    $manager->id,
+
+                'created_at' =>
+                    now(),
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Notificación al miembro
+            |--------------------------------------------------------------------------
+            |
+            | Los aliados son clanes y no tienen cuenta,
+            | por lo que solo notificamos a miembros SQA.
+            */
+
+            if (
+                $assignedUser
+                && (int) $assignedUser->id
+                    !== (int) $manager->id
+            ) {
+                $assignedUser->notify(
+                    new EventSlotChangedNotification(
+                        event:
+                            $lockedEvent,
+
+                        action:
+                            'assigned',
+
+                        changedBy:
+                            $manager,
+
+                        toSlotName:
+                            $targetSnapshot[
+                                'name'
+                            ],
+
+                        toSlotGroup:
+                            $targetSnapshot[
+                                'slot_group'
+                            ],
+                    )
+                );
+            }
+
+
+            $assignedName =
+                $assignedUser?->nick
+                ?? $assignedAlly?->name
+                ?? 'Jugador';
+
+
+            return [
+                'action' =>
+                    'assign',
+
+                'slot_key' =>
+                    $slotKey,
+
+                'message' =>
+                    "{$assignedName} ha sido asignado al slot correctamente.",
             ];
         }
 
@@ -1241,6 +1981,464 @@ class PublicEventController extends Controller
 
         return null;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PERMISOS MULTIMEDIA
+    |--------------------------------------------------------------------------
+    */
+
+    private function canAddEventMedia(
+        Event $event,
+        ?User $user,
+    ): bool {
+
+        if (! $user) {
+            return false;
+        }
+
+
+        /*
+        * Multimedia únicamente cuando
+        * el evento ha finalizado.
+        */
+
+        if (
+            $event->eventStatus?->name
+            !== 'FINALIZADO'
+        ) {
+            return false;
+        }
+
+
+        /*
+        * Cargar perfil Streamer.
+        */
+
+        $user->loadMissing(
+            'streamer'
+        );
+
+
+        /*
+        * Solo Streamers habilitados.
+        */
+
+        return (bool)
+            $user->streamer?->enable;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ANALIZAR URL MULTIMEDIA
+    |--------------------------------------------------------------------------
+    |
+    | Devuelve:
+    |
+    | [
+    |     'provider'    => 'youtube' | 'twitch',
+    |     'external_id' => '...',
+    |     'url'         => URL normalizada,
+    | ]
+    |
+    */
+
+    private function parseEventMediaUrl(
+        string $url,
+        string $type,
+    ): array {
+
+        $url =
+            trim($url);
+
+        $host =
+            strtolower(
+                (string) parse_url(
+                    $url,
+                    PHP_URL_HOST
+                )
+            );
+
+        $host =
+            preg_replace(
+                '/^(www\.|m\.)/',
+                '',
+                $host
+            );
+
+        $path =
+            trim(
+                (string) parse_url(
+                    $url,
+                    PHP_URL_PATH
+                ),
+                '/'
+            );
+
+        $segments =
+            array_values(
+                array_filter(
+                    explode(
+                        '/',
+                        $path
+                    ),
+                    fn (string $value): bool =>
+                        $value !== ''
+                )
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | YOUTUBE
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            in_array(
+                $host,
+                [
+                    'youtube.com',
+                    'youtu.be',
+                    'youtube-nocookie.com',
+                ],
+                true
+            )
+        ) {
+            $videoId = null;
+
+
+            /*
+            * youtu.be/VIDEO_ID
+            */
+
+            if (
+                $host === 'youtu.be'
+            ) {
+                $videoId =
+                    $segments[0]
+                    ?? null;
+            }
+
+
+            /*
+            * youtube.com/watch?v=VIDEO_ID
+            */
+
+            elseif (
+                ($segments[0] ?? null)
+                === 'watch'
+            ) {
+                parse_str(
+                    (string) parse_url(
+                        $url,
+                        PHP_URL_QUERY
+                    ),
+                    $query
+                );
+
+                $videoId =
+                    $query['v']
+                    ?? null;
+            }
+
+
+            /*
+            * youtube.com/shorts/VIDEO_ID
+            *
+            * youtube.com/embed/VIDEO_ID
+            *
+            * youtube.com/live/VIDEO_ID
+            */
+
+            elseif (
+                in_array(
+                    $segments[0] ?? null,
+                    [
+                        'shorts',
+                        'embed',
+                        'live',
+                    ],
+                    true
+                )
+            ) {
+                $videoId =
+                    $segments[1]
+                    ?? null;
+            }
+
+
+            /*
+            * Los enlaces /clip/ nativos de YouTube
+            * necesitan información adicional para
+            * construir correctamente el reproductor.
+            */
+
+            elseif (
+                ($segments[0] ?? null)
+                === 'clip'
+            ) {
+                throw ValidationException::withMessages([
+                    'url' =>
+                        'Para YouTube utiliza el enlace del vídeo asociado al clip.',
+                ]);
+            }
+
+
+            /*
+            * Validar ID.
+            */
+
+            if (
+                ! is_string($videoId)
+                || ! preg_match(
+                    '/^[A-Za-z0-9_-]{11}$/',
+                    $videoId
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'url' =>
+                        'No se ha podido reconocer el vídeo de YouTube.',
+                ]);
+            }
+
+
+            return [
+                'provider' =>
+                    EventMedia::PROVIDER_YOUTUBE,
+
+                'external_id' =>
+                    $videoId,
+
+                /*
+                * Guardamos siempre una URL
+                * canónica.
+                */
+
+                'url' =>
+                    'https://www.youtube.com/watch?v='
+                    . $videoId,
+            ];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | TWITCH
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            in_array(
+                $host,
+                [
+                    'twitch.tv',
+                    'clips.twitch.tv',
+                ],
+                true
+            )
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | CLIP
+            |--------------------------------------------------------------------------
+            |
+            | Formatos:
+            |
+            | clips.twitch.tv/SLUG
+            |
+            | twitch.tv/CANAL/clip/SLUG
+            |
+            */
+
+            $clipSlug = null;
+
+
+            if (
+                $host
+                === 'clips.twitch.tv'
+            ) {
+                $clipSlug =
+                    $segments[0]
+                    ?? null;
+            }
+
+
+            elseif (
+                isset(
+                    $segments[1],
+                    $segments[2]
+                )
+                && strtolower(
+                    $segments[1]
+                ) === 'clip'
+            ) {
+                $clipSlug =
+                    $segments[2];
+            }
+
+
+            if (
+                filled($clipSlug)
+            ) {
+
+                if (
+                    $type
+                    !== EventMedia::TYPE_CLIP
+                ) {
+                    throw ValidationException::withMessages([
+                        'url' =>
+                            'Este enlace de Twitch corresponde a un clip, no a un VOD.',
+                    ]);
+                }
+
+
+                if (
+                    ! preg_match(
+                        '/^[A-Za-z0-9_-]+$/',
+                        $clipSlug
+                    )
+                ) {
+                    throw ValidationException::withMessages([
+                        'url' =>
+                            'El enlace del clip de Twitch no es válido.',
+                    ]);
+                }
+
+
+                return [
+                    'provider' =>
+                        EventMedia::PROVIDER_TWITCH,
+
+                    'external_id' =>
+                        $clipSlug,
+
+                    'url' =>
+                        'https://clips.twitch.tv/'
+                        . $clipSlug,
+                ];
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | VOD
+            |--------------------------------------------------------------------------
+            |
+            | twitch.tv/videos/123456789
+            |
+            */
+
+            if (
+                ($segments[0] ?? null)
+                === 'videos'
+            ) {
+
+                if (
+                    $type
+                    !== EventMedia::TYPE_VOD
+                ) {
+                    throw ValidationException::withMessages([
+                        'url' =>
+                            'Este enlace de Twitch corresponde a un VOD, no a un clip.',
+                    ]);
+                }
+
+
+                $videoId =
+                    $segments[1]
+                    ?? null;
+
+
+                if (
+                    ! is_string($videoId)
+                    || ! ctype_digit(
+                        $videoId
+                    )
+                ) {
+                    throw ValidationException::withMessages([
+                        'url' =>
+                            'El enlace del VOD de Twitch no es válido.',
+                    ]);
+                }
+
+
+                return [
+                    'provider' =>
+                        EventMedia::PROVIDER_TWITCH,
+
+                    'external_id' =>
+                        $videoId,
+
+                    'url' =>
+                        'https://www.twitch.tv/videos/'
+                        . $videoId,
+                ];
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Proveedor no soportado
+        |--------------------------------------------------------------------------
+        */
+
+        throw ValidationException::withMessages([
+            'url' =>
+                'Solo se admiten enlaces de YouTube o Twitch.',
+        ]);
+    }
+
+    private function canModerateEventMedia(
+        ?User $user,
+    ): bool {
+
+        if (! $user) {
+            return false;
+        }
+
+        return
+            $user->hasRole('admin')
+            || $user->can(
+                'events.update'
+            );
+    }
+
+
+    private function canDeleteEventMedia(
+        EventMedia $eventMedia,
+        ?User $user,
+    ): bool {
+
+        if (! $user) {
+            return false;
+        }
+
+
+        /*
+        * Propietario.
+        */
+
+        if (
+            (int) $eventMedia->user_id
+            === (int) $user->id
+        ) {
+            return true;
+        }
+
+
+        /*
+        * Moderador.
+        */
+
+        return $this
+            ->canModerateEventMedia(
+                $user
+            );
+    }
+
     private function canManageOrbat(?User $user): bool
     {
         if (! $user) {

@@ -6,6 +6,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rules\Unique;
 
 class StreamerForm
 {
@@ -14,12 +15,16 @@ class StreamerForm
         return $schema
             ->components([
                 Select::make('user_id')
-                    ->label('Usuario')
-                    ->relationship('user', 'nick')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->unique(ignoreRecord: true),
+                ->label('Usuario')
+                ->relationship('user', 'nick')
+                ->searchable()
+                ->preload()
+                ->required()
+                ->unique(
+                    ignoreRecord: true,
+                    modifyRuleUsing: fn (Unique $rule): Unique =>
+                        $rule->whereNull('deleted_at')
+                ),
 
                 Toggle::make('enable')
                     ->label('Habilitado como streamer')

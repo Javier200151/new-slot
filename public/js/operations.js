@@ -374,3 +374,49 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
 });
+document.addEventListener('DOMContentLoaded', () => {
+    const filters = document.querySelector('[data-operations-filters]');
+
+    if (!filters) {
+        return;
+    }
+
+    const toggle = filters.querySelector('[data-operations-filters-toggle]');
+    const advanced = filters.querySelector('[data-operations-filters-advanced]');
+    const toggleLabel = filters.querySelector('[data-operations-filters-toggle-label]');
+
+    if (!toggle || !advanced) {
+        return;
+    }
+
+    const storageKey = 'operationsFiltersExpanded';
+    const hasAdvancedFilters = filters.dataset.hasAdvancedFilters === '1';
+
+    let expanded =
+        hasAdvancedFilters ||
+        window.localStorage.getItem(storageKey) === '1';
+
+    const applyState = () => {
+        filters.classList.toggle('is-expanded', expanded);
+        advanced.hidden = !expanded;
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+
+        if (toggleLabel) {
+            toggleLabel.textContent = expanded
+                ? 'Ocultar filtros'
+                : 'Más filtros';
+        }
+
+        window.localStorage.setItem(
+            storageKey,
+            expanded ? '1' : '0'
+        );
+    };
+
+    toggle.addEventListener('click', () => {
+        expanded = !expanded;
+        applyState();
+    });
+
+    applyState();
+});

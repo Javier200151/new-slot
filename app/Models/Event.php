@@ -87,6 +87,11 @@ class Event extends Model
         return $this->hasMany(Stream::class);
     }
 
+    public function media()
+    {
+        return $this->hasMany(EventMedia::class);
+    }
+
     public function slots()
     {
         return $this->hasMany(EventSlot::class);
