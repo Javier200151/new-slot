@@ -12,12 +12,25 @@ use Illuminate\View\View;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\Campaign;
+use App\Models\GameMap;
+use App\Models\OperationDay;
+use App\Models\OperationStatus;
+use App\Models\OperationType;
+use App\Models\Period;
 
 class PublicOperationController extends Controller
 {
     public function index(Request $request): View
     {
         $filters = $request->validate([
+
+            'q' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+
             'platform' => [
                 'nullable',
                 'integer',
@@ -28,6 +41,68 @@ class PublicOperationController extends Controller
                 'nullable',
                 'integer',
                 'exists:users,id',
+            ],
+
+            'type' => [
+                'nullable',
+                'integer',
+                'exists:operations_type,id',
+            ],
+
+            'status' => [
+                'nullable',
+                'integer',
+                'exists:operation_status,id',
+            ],
+
+            'map' => [
+                'nullable',
+                'integer',
+                'exists:maps,id',
+            ],
+
+            'period' => [
+                'nullable',
+                'integer',
+                'exists:periods,id',
+            ],
+
+            'campaign' => [
+                'nullable',
+                'integer',
+                'exists:campaign,id',
+            ],
+
+            'faction' => [
+                'nullable',
+                'integer',
+                'exists:factions,id',
+            ],
+
+            'day' => [
+                'nullable',
+                'integer',
+                'exists:operation_day,id',
+            ],
+
+            'day_or_night' => [
+                'nullable',
+                'in:day,night,both',
+            ],
+
+            'ocap' => [
+                'nullable',
+                'in:0,1',
+            ],
+
+            'respawn' => [
+                'nullable',
+                'in:0,1',
+            ],
+
+            'jip' => [
+                'nullable',
+                'in:0,1',
             ],
 
             'date_from' => [
@@ -42,25 +117,78 @@ class PublicOperationController extends Controller
             ],
         ]);
 
+        $search =
+            trim(
+                (string) (
+                    $filters['q']
+                    ?? ''
+                )
+            );
 
-        $selectedPlatformId = isset(
-            $filters['platform']
-        )
-            ? (int) $filters['platform']
-            : null;
+        $selectedPlatformId =
+            isset($filters['platform'])
+                ? (int) $filters['platform']
+                : null;
 
+        $selectedEditorId =
+            isset($filters['editor'])
+                ? (int) $filters['editor']
+                : null;
 
-        $selectedEditorId = isset(
-            $filters['editor']
-        )
-            ? (int) $filters['editor']
-            : null;
+        $selectedTypeId =
+            isset($filters['type'])
+                ? (int) $filters['type']
+                : null;
 
+        $selectedStatusId =
+            isset($filters['status'])
+                ? (int) $filters['status']
+                : null;
+
+        $selectedMapId =
+            isset($filters['map'])
+                ? (int) $filters['map']
+                : null;
+
+        $selectedPeriodId =
+            isset($filters['period'])
+                ? (int) $filters['period']
+                : null;
+
+        $selectedCampaignId =
+            isset($filters['campaign'])
+                ? (int) $filters['campaign']
+                : null;
+
+        $selectedFactionId =
+            isset($filters['faction'])
+                ? (int) $filters['faction']
+                : null;
+
+        $selectedDayId =
+            isset($filters['day'])
+                ? (int) $filters['day']
+                : null;
+
+        $selectedDayOrNight =
+            $filters['day_or_night']
+            ?? null;
+
+        $selectedOcap =
+            $filters['ocap']
+            ?? null;
+
+        $selectedRespawn =
+            $filters['respawn']
+            ?? null;
+
+        $selectedJip =
+            $filters['jip']
+            ?? null;
 
         $selectedDateFrom =
             $filters['date_from']
             ?? null;
-
 
         $selectedDateTo =
             $filters['date_to']
@@ -80,6 +208,155 @@ class PublicOperationController extends Controller
                 'editor.status',
                 'editor.mainSqaGroup',
             ])
+
+            /*
+            |--------------------------------------------------------------------------
+            | Buscador general
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                filled($search),
+
+                function ($query) use ($search): void {
+
+                    $like =
+                        '%' . $search . '%';
+
+                    $query->where(
+                        function ($searchQuery) use ($like): void {
+
+                            /*
+                            * Nombre / PBO.
+                            */
+
+                            $searchQuery
+                                ->where(
+                                    'name',
+                                    'like',
+                                    $like
+                                )
+                                ->orWhere(
+                                    'pbo',
+                                    'like',
+                                    $like
+                                );
+
+
+                            /*
+                            * Editor.
+                            */
+
+                            $searchQuery->orWhereHas(
+                                'editor',
+
+                                fn ($query) =>
+                                    $query->where(
+                                        'nick',
+                                        'like',
+                                        $like
+                                    )
+                            );
+
+
+                            /*
+                            * Plataforma.
+                            */
+
+                            $searchQuery->orWhereHas(
+                                'platform',
+
+                                fn ($query) =>
+                                    $query->where(
+                                        'name',
+                                        'like',
+                                        $like
+                                    )
+                            );
+
+
+                            /*
+                            * Mapa.
+                            */
+
+                            $searchQuery->orWhereHas(
+                                'map',
+
+                                fn ($query) =>
+                                    $query->where(
+                                        'name',
+                                        'like',
+                                        $like
+                                    )
+                            );
+
+
+                            /*
+                            * Periodo.
+                            */
+
+                            $searchQuery->orWhereHas(
+                                'period',
+
+                                fn ($query) =>
+                                    $query->where(
+                                        'name',
+                                        'like',
+                                        $like
+                                    )
+                            );
+
+
+                            /*
+                            * Campaña.
+                            */
+
+                            $searchQuery->orWhereHas(
+                                'campaign',
+
+                                fn ($query) =>
+                                    $query->where(
+                                        'name',
+                                        'like',
+                                        $like
+                                    )
+                            );
+
+
+                            /*
+                            * Tipo.
+                            */
+
+                            $searchQuery->orWhereHas(
+                                'operationType',
+
+                                fn ($query) =>
+                                    $query->where(
+                                        'name',
+                                        'like',
+                                        $like
+                                    )
+                            );
+
+
+                            /*
+                            * Facción enemiga.
+                            */
+
+                            $searchQuery->orWhereHas(
+                                'enemyFactions',
+
+                                fn ($query) =>
+                                    $query->where(
+                                        'name',
+                                        'like',
+                                        $like
+                                    )
+                            );
+                        }
+                    );
+                }
+            )
 
             /*
             |--------------------------------------------------------------------------
@@ -107,6 +384,200 @@ class PublicOperationController extends Controller
                     'editor_id',
                     $selectedEditorId
                 )
+            )
+
+            /*
+            |--------------------------------------------------------------------------
+            | Tipo
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedTypeId,
+
+                fn ($query) =>
+                    $query->where(
+                        'operation_type_id',
+                        $selectedTypeId
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Estado
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedStatusId,
+
+                fn ($query) =>
+                    $query->where(
+                        'operation_status_id',
+                        $selectedStatusId
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Mapa
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedMapId,
+
+                fn ($query) =>
+                    $query->where(
+                        'map_id',
+                        $selectedMapId
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Periodo
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedPeriodId,
+
+                fn ($query) =>
+                    $query->where(
+                        'period_id',
+                        $selectedPeriodId
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Campaña
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedCampaignId,
+
+                fn ($query) =>
+                    $query->where(
+                        'campaign_id',
+                        $selectedCampaignId
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Facción enemiga
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedFactionId,
+
+                fn ($query) =>
+                    $query->whereHas(
+                        'enemyFactions',
+
+                        fn ($factionQuery) =>
+                            $factionQuery->whereKey(
+                                $selectedFactionId
+                            )
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Día habitual
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedDayId,
+
+                fn ($query) =>
+                    $query->whereHas(
+                        'days',
+
+                        fn ($dayQuery) =>
+                            $dayQuery->whereKey(
+                                $selectedDayId
+                            )
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Día / Noche
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedDayOrNight,
+
+                fn ($query) =>
+                    $query->where(
+                        'day_or_night',
+                        $selectedDayOrNight
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | OCAP
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedOcap !== null,
+
+                fn ($query) =>
+                    $query->where(
+                        'ocap',
+                        (bool) (int) $selectedOcap
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Respawn
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedRespawn !== null,
+
+                fn ($query) =>
+                    $query->where(
+                        'respawn',
+                        (bool) (int) $selectedRespawn
+                    )
+            )
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | JIP
+            |--------------------------------------------------------------------------
+            */
+
+            ->when(
+                $selectedJip !== null,
+
+                fn ($query) =>
+                    $query->where(
+                        'jip',
+                        (bool) (int) $selectedJip
+                    )
             )
 
             /*
@@ -341,10 +812,86 @@ class PublicOperationController extends Controller
                 'nick',
             ]);
 
+        $operationTypes =
+            OperationType::query()
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                ]);
+
+
+        $operationStatuses =
+            OperationStatus::query()
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                ]);
+
+
+        $maps =
+            GameMap::query()
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                ]);
+
+
+        $periods =
+            Period::query()
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                ]);
+
+
+        $campaigns =
+            Campaign::query()
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                ]);
+
+
+        $factions =
+            Faction::query()
+                ->whereHas('enemyOperations')
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                ]);
+
+
+        $operationDays =
+            OperationDay::query()
+                ->whereHas('operations')
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                ]);
+
 
         $hasFilters =
-            $selectedPlatformId
+            filled($search)
+            || $selectedPlatformId
             || $selectedEditorId
+            || $selectedTypeId
+            || $selectedStatusId
+            || $selectedMapId
+            || $selectedPeriodId
+            || $selectedCampaignId
+            || $selectedFactionId
+            || $selectedDayId
+            || $selectedDayOrNight
+            || $selectedOcap !== null
+            || $selectedRespawn !== null
+            || $selectedJip !== null
             || $selectedDateFrom
             || $selectedDateTo;
 
@@ -354,12 +901,35 @@ class PublicOperationController extends Controller
             compact(
                 'operations',
                 'operationItems',
+
                 'platforms',
                 'editors',
+                'operationTypes',
+                'operationStatuses',
+                'maps',
+                'periods',
+                'campaigns',
+                'factions',
+                'operationDays',
+
+                'search',
+
                 'selectedPlatformId',
                 'selectedEditorId',
+                'selectedTypeId',
+                'selectedStatusId',
+                'selectedMapId',
+                'selectedPeriodId',
+                'selectedCampaignId',
+                'selectedFactionId',
+                'selectedDayId',
+                'selectedDayOrNight',
+                'selectedOcap',
+                'selectedRespawn',
+                'selectedJip',
                 'selectedDateFrom',
                 'selectedDateTo',
+
                 'hasFilters',
             )
         );

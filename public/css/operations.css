@@ -141,11 +141,10 @@
     display: grid;
 
     grid-template-columns:
-        minmax(170px, 1fr)
-        minmax(170px, 1fr)
-        minmax(145px, 0.8fr)
-        minmax(145px, 0.8fr)
-        auto;
+        repeat(
+            4,
+            minmax(0, 1fr)
+        );
 
     align-items: end;
 
@@ -153,7 +152,9 @@
 
     padding: 16px;
 
-    border: 1px solid rgba(255, 255, 255, 0.085);
+    border: 1px solid
+        rgba(255, 255, 255, 0.085);
+
     border-radius: 16px;
 
     background:
@@ -164,10 +165,181 @@
         );
 
     box-shadow:
-        0 16px 40px rgba(0, 0, 0, 0.14);
+        0 16px 40px
+        rgba(0, 0, 0, 0.14);
 }
 
+.operations-filter-field--search {
+    width: 100%;
+    min-width: 0;
+}
 
+.operations-filter-field--search input {
+    width: 100%;
+}
+
+.operations-filter-field--search input {
+    font-weight: 700;
+}
+
+.operations-filter-field--search input::placeholder {
+    color: #666d78;
+    font-weight: 600;
+}
+
+.operations-filter-actions {
+    justify-content: flex-end;
+}
+
+.operations-filters-toggle{
+    height: 43px;
+
+    white-space: nowrap;
+}
+
+.operations-filter-submit--basic {
+    width: auto;
+    min-width: 100px;
+
+    justify-self: end;
+
+    padding: 0 22px;
+
+    height: 43px;
+}
+.operations-filters-basic .operations-filter-submit--basic {
+    grid-column: auto;
+}
+
+/* =========================================================
+   FILTROS DESPLEGABLES
+========================================================= */
+
+.operations-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.operations-filters-basic {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        auto;
+
+    align-items: end;
+
+    gap: 12px;
+
+    width: 100%;
+}
+
+.operations-filter-field--search {
+    min-width: 0;
+    width: 100%;
+}
+
+.operations-filter-field--search input {
+    width: 100%;
+}
+
+.operations-filters-toggle,
+.operations-filter-submit--basic {
+    height: 43px;
+
+    align-self: end;
+
+    white-space: nowrap;
+}
+
+.operations-filter-submit--basic {
+    width: auto;
+    min-width: 100px;
+
+    padding-inline: 22px;
+}
+
+.operations-filter-field--search {
+    min-width: 0;
+}
+
+.operations-filters-basic__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 43px;
+}
+
+.operations-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    height: 43px;
+    padding: 0 15px;
+
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+
+    color: #d7dae0;
+    background: rgba(255, 255, 255, 0.035);
+
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 850;
+    text-decoration: none;
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        color 160ms ease,
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+}
+
+.operations-filters-toggle:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.065);
+}
+
+.operations-filters-toggle[aria-expanded="true"] {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.06);
+}
+
+.operations-filters-toggle__icon {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.operations-filters-advanced {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: end;
+    gap: 12px;
+
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.operations-filters-advanced[hidden] {
+    display: none !important;
+}
+
+.operations-filter-actions--advanced {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding-top: 4px;
+}
 /* =========================================================
    CAMPOS
 ========================================================= */
@@ -1991,7 +2163,30 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     top: -5px;
     left: -4px;
 }
+@media (max-width: 900px) {
+    .operations-filters {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
 
+}
+
+
+@media (max-width: 700px) {
+
+    .operations-filters-basic {
+        grid-template-columns: 1fr;
+    }
+
+    .operations-filter-field--search {
+        grid-column: auto;
+    }
+
+    .operations-filters-toggle,
+    .operations-filter-submit--basic {
+        width: 100%;
+    }
+}
 
 /* =========================================================
    ACCESIBILIDAD
@@ -2012,19 +2207,13 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 @media (max-width: 1100px) {
 
-    .operations-filters {
-        grid-template-columns:
-            repeat(
-                2,
-                minmax(0, 1fr)
-            );
+    .operations-filters-basic__actions {
+        justify-content: flex-start;
     }
 
-
-    .operations-filter-actions {
-        grid-column: 1 / -1;
+    .operations-filters-advanced {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
 
     .operations-catalog.is-grid {
         grid-template-columns:
@@ -2033,7 +2222,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
                 minmax(0, 1fr)
             );
     }
-
 }
 
 
@@ -2151,6 +2339,44 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 
 @media (max-width: 650px) {
+
+    .operations-filters-basic__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .operations-filters-toggle,
+    .operations-filter-submit,
+    .operations-filter-clear {
+        width: 100%;
+    }
+
+    .operations-filters-advanced {
+        grid-template-columns: 1fr;
+    }
+
+    .operations-filter-actions--advanced {
+        justify-content: stretch;
+    }
+
+    .operations-filter-actions--advanced .operations-filter-submit,
+    .operations-filter-actions--advanced .operations-filter-clear {
+        flex: 1;
+    }
+
+    .operations-catalog.is-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .operations-catalog.is-list
+    .operation-card__facts {
+        grid-template-columns: 1fr;
+    }
+
+    .operation-card__facts > div {
+        grid-template-columns: 78px minmax(0, 1fr);
+    }
+
 
     .operations-filters {
         grid-template-columns: 1fr;

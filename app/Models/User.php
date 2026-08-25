@@ -207,6 +207,13 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         )->where('sqa_group_users.main', true);
     }
 
+    public function eventMedia()
+    {
+        return $this->hasMany(
+            EventMedia::class
+        );
+    }
+
     public function eventComments()
     {
         return $this->hasMany(EventComment::class);

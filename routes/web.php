@@ -251,6 +251,22 @@ Route::middleware([
         '/eventos/{event}/comentarios/{eventComment}',
         [PublicEventController::class, 'updateComment']
     )->name('events.comments.update');
+
+        /*
+    |--------------------------------------------------------------------------
+    | Multimedia del evento
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/eventos/{event}/multimedia',
+        [PublicEventController::class, 'storeMedia']
+    )->name('events.media.store');
+
+    Route::delete(
+        '/eventos/{event}/multimedia/{eventMedia}',
+        [PublicEventController::class, 'destroyMedia']
+    )->name('events.media.destroy');
 });
 
 Route::get('/mapas/{map}', [PublicMapController::class, 'show'])

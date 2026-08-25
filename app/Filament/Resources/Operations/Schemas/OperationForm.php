@@ -12,6 +12,12 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
+use App\Models\Country;
+use App\Models\Faction;
+use App\Models\Side;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Hidden;
 
 class OperationForm
 {
@@ -117,9 +123,299 @@ class OperationForm
                     ->preload()
                     ->nullable(),
 
+                Hidden::make('enemy_faction_country_filter')
+                    ->dehydrated(false),
+
+                Hidden::make('enemy_faction_side_filter')
+                    ->dehydrated(false),
+
                 Select::make('enemyFactions')
                     ->label('Facciones enemigas')
-                    ->relationship('enemyFactions', 'name')
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Relación que realmente se guarda
+                    |--------------------------------------------------------------------------
+                    */
+
+                    ->relationship(
+                        'enemyFactions',
+                        'name'
+                    )
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Opciones filtradas
+                    |--------------------------------------------------------------------------
+                    */
+
+                    ->options(
+                        function (Get $get): array {
+
+                            $countryId =
+                                $get(
+                                    'enemy_faction_country_filter'
+                                );
+
+                            $sideId =
+                                $get(
+                                    'enemy_faction_side_filter'
+                                );
+
+                            $selectedIds =
+                                collect(
+                                    $get('enemyFactions')
+                                    ?? []
+                                )
+                                    ->filter()
+                                    ->map(
+                                        fn ($id): int =>
+                                            (int) $id
+                                    )
+                                    ->values()
+                                    ->all();
+
+                            $query =
+                                Faction::query();
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Aplicar filtros
+                            |--------------------------------------------------------------------------
+                            */
+
+                            if (
+                                filled($countryId)
+                                || filled($sideId)
+                            ) {
+                                $query->where(
+                                    function ($query) use (
+                                        $countryId,
+                                        $sideId,
+                                        $selectedIds
+                                    ): void {
+
+                                        $query->where(
+                                            function ($query) use (
+                                                $countryId,
+                                                $sideId
+                                            ): void {
+
+                                                /*
+                                                * País:
+                                                *
+                                                * Faction
+                                                *    ↓
+                                                * Army
+                                                *    ↓
+                                                * Country
+                                                */
+
+                                                if (filled($countryId)) {
+                                                    $query->whereHas(
+                                                        'army',
+                                                        fn ($armyQuery) =>
+                                                            $armyQuery->where(
+                                                                'country_id',
+                                                                $countryId
+                                                            )
+                                                    );
+                                                }
+
+
+                                                /*
+                                                * Bando.
+                                                */
+
+                                                if (filled($sideId)) {
+                                                    $query->where(
+                                                        'side_id',
+                                                        $sideId
+                                                    );
+                                                }
+                                            }
+                                        );
+
+
+                                        /*
+                                        * Conservamos las facciones
+                                        * que ya estaban seleccionadas,
+                                        * aunque cambies el filtro.
+                                        */
+
+                                        if ($selectedIds !== []) {
+                                            $query->orWhereIn(
+                                                'factions.id',
+                                                $selectedIds
+                                            );
+                                        }
+                                    }
+                                );
+                            }
+
+                            return $query
+                                ->orderBy('name')
+                                ->pluck(
+                                    'name',
+                                    'id'
+                                )
+                                ->all();
+                        }
+                    )
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Botón de filtro
+                    |--------------------------------------------------------------------------
+                    */
+
+                    ->suffixAction(
+                        Action::make(
+                            'filterEnemyFactions'
+                        )
+                            ->label(
+                                'Filtrar facciones'
+                            )
+                            ->icon(
+                                'heroicon-o-funnel'
+                            )
+                            ->iconButton()
+                            ->tooltip(
+                                'Filtrar por país o bando'
+                            )
+                            ->color(
+                                function (
+                                    Get $schemaGet
+                                ): string {
+                                    return (
+                                        filled(
+                                            $schemaGet(
+                                                'enemy_faction_country_filter'
+                                            )
+                                        )
+                                        || filled(
+                                            $schemaGet(
+                                                'enemy_faction_side_filter'
+                                            )
+                                        )
+                                    )
+                                        ? 'primary'
+                                        : 'gray';
+                                }
+                            )
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Valores actuales al abrir
+                            |--------------------------------------------------------------------------
+                            */
+
+                            ->fillForm(
+                                function (
+                                    Get $schemaGet
+                                ): array {
+                                    return [
+                                        'country_id' =>
+                                            $schemaGet(
+                                                'enemy_faction_country_filter'
+                                            ),
+
+                                        'side_id' =>
+                                            $schemaGet(
+                                                'enemy_faction_side_filter'
+                                            ),
+                                    ];
+                                }
+                            )
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Formulario del embudo
+                            |--------------------------------------------------------------------------
+                            */
+
+                            ->schema([
+
+                                Select::make(
+                                    'country_id'
+                                )
+                                    ->label('País')
+                                    ->options(
+                                        fn (): array =>
+                                            Country::query()
+                                                ->orderBy('name')
+                                                ->pluck(
+                                                    'name',
+                                                    'id'
+                                                )
+                                                ->all()
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->placeholder(
+                                        'Todos los países'
+                                    ),
+
+                                Select::make(
+                                    'side_id'
+                                )
+                                    ->label('Bando')
+                                    ->options(
+                                        fn (): array =>
+                                            Side::query()
+                                                ->orderBy('name')
+                                                ->pluck(
+                                                    'name',
+                                                    'id'
+                                                )
+                                                ->all()
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->placeholder(
+                                        'Todos los bandos'
+                                    ),
+                            ])
+
+                            ->modalHeading(
+                                'Filtrar facciones'
+                            )
+                            ->modalDescription(
+                                'Puedes filtrar por país, por bando o por ambos.'
+                            )
+                            ->modalSubmitActionLabel(
+                                'Aplicar filtros'
+                            )
+                            ->modalWidth('md')
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Aplicar
+                            |--------------------------------------------------------------------------
+                            */
+
+                            ->action(
+                                function (
+                                    array $data,
+                                    Set $schemaSet
+                                ): void {
+
+                                    $schemaSet(
+                                        'enemy_faction_country_filter',
+                                        $data['country_id']
+                                        ?? null
+                                    );
+
+                                    $schemaSet(
+                                        'enemy_faction_side_filter',
+                                        $data['side_id']
+                                        ?? null
+                                    );
+                                }
+                            )
+                    )
+
                     ->multiple()
                     ->searchable()
                     ->preload()
@@ -180,5 +476,28 @@ class OperationForm
 
 
             ]);
+    }
+    private static function factionOptionLabel(
+        Faction $faction
+    ): string {
+        $country =
+            $faction->army?->country?->name
+            ?? 'Sin país';
+
+        $side =
+            $faction->side?->name
+            ?? 'Sin bando';
+
+        $army =
+            $faction->army?->name
+            ?? 'Sin ejército';
+
+        return sprintf(
+            '%s · %s · %s · %s',
+            $faction->name,
+            $country,
+            $side,
+            $army,
+        );
     }
 }

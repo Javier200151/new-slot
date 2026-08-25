@@ -28,6 +28,9 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
+use App\Models\Country;
+use App\Models\Side;
+use Filament\Schemas\Components\Grid;
 
 
 class EditOperation extends EditRecord
@@ -378,15 +381,248 @@ class EditOperation extends EditRecord
                                 ->required()
                                 ->maxLength(255),
 
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Mostrar / ocultar filtros
+                            |--------------------------------------------------------------------------
+                            |
+                            | Estado únicamente visual.
+                            | Nunca se guarda dentro del JSON del ORBAT.
+                            |
+                            */
+
+                            Hidden::make('show_faction_filters')
+                                ->default(false)
+                                ->dehydrated(false),
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Facción
+                            |--------------------------------------------------------------------------
+                            */
+
                             Select::make('faction_id')
                                 ->label('Facción')
-                                ->options(fn (): array => Faction::query()
-                                    ->orderBy('name')
-                                    ->pluck('name', 'id')
-                                    ->all())
+                                ->options(
+                                    function (Get $get): array {
+
+                                        $countryId =
+                                            $get('faction_country_filter');
+
+                                        $sideId =
+                                            $get('faction_side_filter');
+
+                                        $selectedId =
+                                            $get('faction_id');
+
+                                        $query =
+                                            Faction::query();
+
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | Aplicar filtros
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        if (
+                                            filled($countryId)
+                                            || filled($sideId)
+                                        ) {
+                                            $query->where(
+                                                function ($query) use (
+                                                    $countryId,
+                                                    $sideId,
+                                                    $selectedId
+                                                ): void {
+
+                                                    $query->where(
+                                                        function ($query) use (
+                                                            $countryId,
+                                                            $sideId
+                                                        ): void {
+
+                                                            /*
+                                                            * País
+                                                            */
+
+                                                            if (filled($countryId)) {
+                                                                $query->whereHas(
+                                                                    'army',
+                                                                    fn ($armyQuery) =>
+                                                                        $armyQuery->where(
+                                                                            'country_id',
+                                                                            $countryId
+                                                                        )
+                                                                );
+                                                            }
+
+                                                            /*
+                                                            * Bando
+                                                            */
+
+                                                            if (filled($sideId)) {
+                                                                $query->where(
+                                                                    'side_id',
+                                                                    $sideId
+                                                                );
+                                                            }
+                                                        }
+                                                    );
+
+                                                    /*
+                                                    * Conservamos siempre la facción
+                                                    * que ya tuviera seleccionada el grupo.
+                                                    */
+
+                                                    if (filled($selectedId)) {
+                                                        $query->orWhereKey(
+                                                            $selectedId
+                                                        );
+                                                    }
+                                                }
+                                            );
+                                        }
+
+                                        return $query
+                                            ->orderBy('name')
+                                            ->pluck(
+                                                'name',
+                                                'id'
+                                            )
+                                            ->all();
+                                    }
+                                )
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Embudo
+                                |--------------------------------------------------------------------------
+                                |
+                                | IMPORTANTE:
+                                |
+                                | Ya NO tiene ->schema().
+                                | Ya NO abre otro modal.
+                                |
+                                | Simplemente muestra / oculta los filtros
+                                | dentro del modal actual del ORBAT.
+                                |
+                                */
+
+                                ->suffixAction(
+                                    Action::make('toggleFactionFilters')
+                                        ->label('Filtrar facciones')
+                                        ->icon('heroicon-o-funnel')
+                                        ->iconButton()
+                                        ->tooltip('Filtrar por país o bando')
+
+                                        /*
+                                        * Naranja cuando existe algún
+                                        * filtro aplicado.
+                                        */
+
+                                        ->color(
+                                            fn (Get $get): string =>
+                                                (
+                                                    filled(
+                                                        $get(
+                                                            'faction_country_filter'
+                                                        )
+                                                    )
+                                                    || filled(
+                                                        $get(
+                                                            'faction_side_filter'
+                                                        )
+                                                    )
+                                                )
+                                                    ? 'primary'
+                                                    : 'gray'
+                                        )
+
+                                        /*
+                                        * Mostrar / ocultar.
+                                        */
+
+                                        ->action(
+                                            function (
+                                                Get $get,
+                                                Set $set
+                                            ): void {
+
+                                                $set(
+                                                    'show_faction_filters',
+                                                    ! (bool) $get(
+                                                        'show_faction_filters'
+                                                    )
+                                                );
+                                            }
+                                        )
+                                )
+
                                 ->searchable()
+                                ->preload()
                                 ->required(),
 
+                            Grid::make(1)
+                            ->schema([
+
+                                Select::make('faction_country_filter')
+                                    ->label('Filtrar por país')
+                                    ->options(
+                                        fn (): array =>
+                                            Country::query()
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id')
+                                                ->all()
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->placeholder('Todos los países')
+                                    ->live()
+                                    ->dehydrated(false),
+
+                                Select::make('faction_side_filter')
+                                    ->label('Filtrar por bando')
+                                    ->options(
+                                        fn (): array =>
+                                            Side::query()
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id')
+                                                ->all()
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->placeholder('Todos los bandos')
+                                    ->live()
+                                    ->dehydrated(false),
+                            ])
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Colocar debajo de "Facción"
+                            |--------------------------------------------------------------------------
+                            |
+                            | El repeater del grupo tiene 3 columnas:
+                            |
+                            | 1 = Visible
+                            | 2 = Nombre
+                            | 3 = Facción
+                            |
+                            | Por eso forzamos este bloque a comenzar
+                            | en la columna 3.
+                            |
+                            */
+
+                            ->columnStart(3)
+                            ->columnSpan(1)
+
+                            /*
+                            * Solo aparece al pulsar el embudo.
+                            */
+
+                            ->visible(
+                                fn (Get $get): bool =>
+                                    (bool) $get('show_faction_filters')
+                            ),
                             Repeater::make('slots')
                                 ->label('Slots')
                                 ->columns(3)

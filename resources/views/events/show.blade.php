@@ -88,8 +88,16 @@
                 </div>
             @endif
 
-            @if(session('status'))
-                <div class="event-detail__notice is-success" role="status">{{ session('status') }}</div>
+            @if(session('media_status'))
+                <div class="event-media__notice event-media__notice--success" role="status">
+                    {{ session('media_status') }}
+                </div>
+            @endif
+
+            @if(session('media_error'))
+                <div class="event-media__notice event-media__notice--error" role="alert">
+                    {{ session('media_error') }}
+                </div>
             @endif
 
             @error('slot')
@@ -99,10 +107,48 @@
             <header class="event-detail__hero">
                 <div class="event-detail__hero-copy">
                     <div class="event-detail__eyebrow">
-                        <span>{{ $operation->operationType?->name ?? 'Evento' }}</span>
-                        <span @class(['is-active' => $event->eventStatus?->name === 'ACTIVO'])>
+
+                        <span>
+                            {{ $operation->operationType?->name ?? 'Evento' }}
+                        </span>
+
+                        <span
+                            @class([
+                                'is-active' =>
+                                    $event->eventStatus?->name === 'ACTIVO',
+                            ])
+                        >
                             {{ $event->eventStatus?->name }}
                         </span>
+
+
+                        {{-- ======================================================
+                            EVENTO EN DIRECTO
+                        ======================================================= --}}
+
+                        <a
+                            href="{{ route('streams.index') }}"
+                            class="event-detail__live"
+                            title="Ver retransmisiones en directo"
+
+                            data-event-live
+                            data-event-id="{{ $event->id }}"
+                            data-stream-status-url="{{ route('streams.status') }}"
+
+                            @if($activeEventStreams->isEmpty())
+                                hidden
+                            @endif
+                        >
+                            <span
+                                class="event-detail__live-dot"
+                                aria-hidden="true"
+                            ></span>
+
+                            <span>
+                                EN DIRECTO
+                            </span>
+                        </a>
+
                     </div>
 
                     <h1>{{ $event->name ?: $operation->name }}</h1>
@@ -121,6 +167,20 @@
                         @if($addons->isNotEmpty())
                             <a href="#addons">Addons</a>
                         @endif
+
+                        @if(
+                            $event->eventStatus?->name === 'FINALIZADO'
+                            && (
+                                $eventClips->isNotEmpty()
+                                || $eventVods->isNotEmpty()
+                                || $canAddEventMedia
+                            )
+                        )
+                            <a href="#multimedia">
+                                Multimedia
+                            </a>
+                        @endif
+
                         <a href="#comentarios">Comentarios</a>
                     </nav>
 
@@ -212,24 +272,713 @@
 
             </section>
 
-            {{-- @if($operation->enemyFactions->isNotEmpty())
-                <section class="event-detail__section">
-                    <header><span>Facciones enemigas</span></header>
-                    <div class="event-detail__tags">
-                        @foreach($operation->enemyFactions as $faction)
-                            <span>
-                                {{ $faction->name }}
-                                @if($faction->army)
-                                    · {{ $faction->army->name }}
-                                @endif
-                                @if($faction->side)
-                                    · {{ $faction->side->name }}
-                                @endif
+            {{-- =========================================================
+                MULTIMEDIA
+            ========================================================= --}}
+
+            @if(
+                $event->eventStatus?->name === 'FINALIZADO'
+                && (
+                    $eventClips->isNotEmpty()
+                    || $eventVods->isNotEmpty()
+                    || $canAddEventMedia
+                )
+            )
+
+                <section
+                    id="multimedia"
+                    class="
+                        event-detail__section
+                        event-media
+                    "
+                    aria-labelledby="event-media-title"
+                >
+
+                    {{-- =================================================
+                        CABECERA
+                    ================================================== --}}
+
+                    <header class="event-media__header">
+
+                        <div>
+                            <span id="event-media-title">
+                                Multimedia
                             </span>
-                        @endforeach
-                    </div>
+
+                            <small>
+                                Clips y retransmisiones de la partida
+                            </small>
+                        </div>
+
+
+                        @if($canAddEventMedia)
+
+                            <button
+                                type="button"
+                                class="event-media__add-button"
+                                data-event-media-form-toggle
+                                aria-expanded="{{
+                                    $errors->has('type')
+                                    || $errors->has('title')
+                                    || $errors->has('url')
+                                    || $errors->has('media')
+                                        ? 'true'
+                                        : 'false'
+                                }}"
+                            >
+                                <span aria-hidden="true">
+                                    +
+                                </span>
+
+                                Añadir contenido
+                            </button>
+
+                        @endif
+
+                    </header>
+
+
+                    {{-- =================================================
+                        MENSAJES
+                    ================================================== --}}
+
+                    @if(session('media_status'))
+
+                        <div
+                            class="
+                                event-detail__notice
+                                is-success
+                                event-media__notice
+                            "
+                            role="status"
+                        >
+                            {{ session('media_status') }}
+                        </div>
+
+                    @endif
+
+
+                    @error('media')
+
+                        <div
+                            class="
+                                event-detail__notice
+                                is-error
+                                event-media__notice
+                            "
+                            role="alert"
+                        >
+                            {{ $message }}
+                        </div>
+
+                    @enderror
+
+
+                    {{-- =================================================
+                        FORMULARIO
+                    ================================================== --}}
+
+                    @if($canAddEventMedia)
+
+                        @php
+                            $mediaFormHasErrors =
+                                $errors->has('type')
+                                || $errors->has('title')
+                                || $errors->has('url')
+                                || $errors->has('media');
+                        @endphp
+
+                        <div
+                            class="event-media-form"
+                            data-event-media-form
+                            {!! $mediaFormHasErrors ? '' : 'hidden' !!}
+                        >
+
+                            <form
+                                method="POST"
+                                action="{{
+                                    route(
+                                        'events.media.store',
+                                        $event
+                                    )
+                                }}"
+                                class="event-media-form__form"
+                            >
+                                @csrf
+
+
+                                {{-- Tipo --}}
+
+                                <div class="event-media-form__field">
+
+                                    <label for="event-media-type">
+                                        Tipo
+                                    </label>
+
+                                    <select
+                                        id="event-media-type"
+                                        name="type"
+                                        required
+                                    >
+                                        <option
+                                            value="clip"
+                                            {{ old('type', 'clip') === 'clip' ? 'selected' : '' }}
+                                        >
+                                            Clip
+                                        </option>
+
+                                        <option
+                                            value="vod"
+                                            {{ old('type') === 'vod' ? 'selected' : '' }}
+                                        >
+                                            VOD / Partida completa
+                                        </option>
+                                    </select>
+
+                                    @error('type')
+                                        <small class="is-error">
+                                            {{ $message }}
+                                        </small>
+                                    @enderror
+
+                                </div>
+
+
+                                {{-- Título --}}
+
+                                <div
+                                    class="
+                                        event-media-form__field
+                                        event-media-form__field--grow
+                                    "
+                                >
+
+                                    <label for="event-media-title-input">
+                                        Título
+                                    </label>
+
+                                    <input
+                                        id="event-media-title-input"
+                                        type="text"
+                                        name="title"
+                                        value="{{ old('title') }}"
+                                        maxlength="160"
+                                        placeholder="Ej. Asalto final al complejo"
+                                        required
+                                    >
+
+                                    @error('title')
+                                        <small class="is-error">
+                                            {{ $message }}
+                                        </small>
+                                    @enderror
+
+                                </div>
+
+
+                                {{-- URL --}}
+
+                                <div
+                                    class="
+                                        event-media-form__field
+                                        event-media-form__field--url
+                                    "
+                                >
+
+                                    <label for="event-media-url">
+                                        Enlace de YouTube o Twitch
+                                    </label>
+
+                                    <input
+                                        id="event-media-url"
+                                        type="url"
+                                        name="url"
+                                        value="{{ old('url') }}"
+                                        placeholder="https://..."
+                                        required
+                                    >
+
+                                    @error('url')
+                                        <small class="is-error">
+                                            {{ $message }}
+                                        </small>
+                                    @enderror
+
+                                </div>
+
+
+                                {{-- Acciones --}}
+
+                                <div class="event-media-form__actions">
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline"
+                                        data-event-media-form-cancel
+                                    >
+                                        Cancelar
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        class="btn"
+                                    >
+                                        Publicar
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                    @endif
+
+
+                    {{-- =================================================
+                        CLIPS
+                    ================================================== --}}
+
+                    @if($eventClips->isNotEmpty())
+
+                        <div class="event-media__clips">
+
+                            <div class="event-media__subheading">
+
+                                <div>
+                                    <span>Clips</span>
+
+                                    <small>
+                                        Momentos destacados de la partida
+                                    </small>
+                                </div>
+                             
+                                    <div
+                                        class="event-media-carousel__controls"
+                                        aria-label="Controles del carrusel"
+                                    >
+                                        <button
+                                            type="button"
+                                            data-event-media-prev
+                                            aria-label="Clip anterior"
+                                        >
+                                            ‹
+                                        </button>
+
+                                        <span data-event-media-counter>
+                                            1 / {{ $eventClips->count() }}
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            data-event-media-next
+                                            aria-label="Clip siguiente"
+                                        >
+                                            ›
+                                        </button>
+                                    </div>
+                                
+
+                            </div>
+
+
+                            {{-- Carrusel --}}
+
+                            <div
+                                class="event-media-carousel"
+                                data-event-media-carousel
+                                data-total="{{ $eventClips->count() }}"
+                            >
+
+                                <div
+                                    class="event-media-carousel__track"
+                                    data-event-media-track
+                                >
+
+                                    @foreach($eventClips as $clip)
+
+                                        @php
+                                            $clipEmbedUrl =
+                                                $clip->getEmbedUrl();
+
+                                            $canDeleteClip =
+                                                auth()->check()
+                                                && (
+                                                    (int) auth()->id()
+                                                        === (int) $clip->user_id
+
+                                                    || $canModerateEventMedia
+                                                );
+                                        @endphp
+
+                                        <article
+                                            class="
+                                                event-media-card
+                                                {{ $loop->first ? 'is-active' : '' }}
+                                            "
+                                            data-event-media-slide
+                                            data-media-index="{{ $loop->index }}"
+                                        >
+
+                                            {{-- =========================================
+                                                REPRODUCTOR
+                                            ========================================== --}}
+
+                                            <div class="event-media-card__player">
+
+                                                @if($clipEmbedUrl)
+
+                                                    <iframe
+                                                        src="{{ $clipEmbedUrl }}"
+                                                        title="{{ $clip->getDisplayTitle() }}"
+                                                        loading="{{
+                                                            $loop->first
+                                                                ? 'eager'
+                                                                : 'lazy'
+                                                        }}"
+                                                        allow="
+                                                            accelerometer;
+                                                            autoplay;
+                                                            clipboard-write;
+                                                            encrypted-media;
+                                                            gyroscope;
+                                                            picture-in-picture;
+                                                            web-share
+                                                        "
+                                                        allowfullscreen
+                                                    ></iframe>
+
+                                                @else
+
+                                                    <a
+                                                        href="{{ $clip->url }}"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        class="
+                                                            event-media-card__external
+                                                        "
+                                                    >
+                                                        <strong>
+                                                            Abrir clip
+                                                        </strong>
+
+                                                        <span>
+                                                            {{ $clip->getProviderName() }}
+                                                            ↗
+                                                        </span>
+                                                    </a>
+
+                                                @endif
+
+                                            </div>
+
+
+                                            {{-- =========================================
+                                                INFORMACIÓN
+                                            ========================================== --}}
+
+                                            <div class="event-media-card__info">
+
+                                                <div class="event-media-card__copy">
+
+                                                    <div class="event-media-card__provider">
+
+                                                        <span
+                                                            class="{{
+                                                                $clip->isYoutube()
+                                                                    ? 'is-youtube'
+                                                                    : (
+                                                                        $clip->isTwitch()
+                                                                            ? 'is-twitch'
+                                                                            : ''
+                                                                    )
+                                                            }}"
+                                                        >
+                                                            {{
+                                                                $clip
+                                                                    ->getProviderName()
+                                                            }}
+                                                        </span>
+
+                                                    </div>
+
+                                                    <h3>
+                                                        {{
+                                                            $clip
+                                                                ->getDisplayTitle()
+                                                        }}
+                                                    </h3>
+
+                                                    <p>
+                                                        Añadido por
+
+                                                        <strong>
+                                                            {{
+                                                                $clip
+                                                                    ->getAddedByName()
+                                                            }}
+                                                        </strong>
+                                                    </p>
+
+                                                </div>
+
+
+                                                <div class="event-media-card__actions">
+
+                                                    <a
+                                                        href="{{ $clip->url }}"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title="Abrir en {{ $clip->getProviderName() }}"
+                                                    >
+                                                        ↗
+                                                    </a>
+
+
+                                                    @if($canDeleteClip)
+
+                                                        <form
+                                                            method="POST"
+                                                            action="{{
+                                                                route(
+                                                                    'events.media.destroy',
+                                                                    [
+                                                                        $event,
+                                                                        $clip,
+                                                                    ]
+                                                                )
+                                                            }}"
+                                                            onsubmit="
+                                                                return confirm(
+                                                                    '¿Eliminar este clip?'
+                                                                );
+                                                            "
+                                                        >
+                                                            @csrf
+                                                            @method('DELETE')
+
+                                                            <button
+                                                                type="submit"
+                                                                title="Eliminar clip"
+                                                                aria-label="Eliminar clip"
+                                                            >
+                                                                ×
+                                                            </button>
+
+                                                        </form>
+
+                                                    @endif
+
+                                                </div>
+
+                                            </div>
+
+                                        </article>
+
+                                    @endforeach
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    @endif
+
+
+                    {{-- =================================================
+                        VODS
+                    ================================================== --}}
+
+                    @if($eventVods->isNotEmpty())
+
+                        <div class="event-media__vods">
+
+                            <div class="event-media__subheading">
+
+                                <div>
+                                    <span>
+                                        Partidas completas
+                                    </span>
+
+                                    <small>
+                                        Retransmisiones y VODs completos
+                                    </small>
+                                </div>
+
+                                <strong>
+                                    {{ $eventVods->count() }}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="event-media-vods">
+
+                                @foreach($eventVods as $vod)
+
+                                    @php
+                                        $canDeleteVod =
+                                            auth()->check()
+                                            && (
+                                                (int) auth()->id()
+                                                    === (int) $vod->user_id
+
+                                                || $canModerateEventMedia
+                                            );
+                                    @endphp
+
+                                    <article class="event-media-vod">
+
+                                        <a
+                                            href="{{ $vod->url }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="event-media-vod__main"
+                                        >
+
+                                            <span
+                                                class="
+                                                    event-media-vod__provider
+
+                                                    {{
+                                                        $vod->isYoutube()
+                                                            ? 'is-youtube'
+                                                            : (
+                                                                $vod->isTwitch()
+                                                                    ? 'is-twitch'
+                                                                    : ''
+                                                            )
+                                                    }}
+                                                "
+                                            >
+                                                @if($vod->isYoutube())
+                                                    ▶
+                                                @else
+                                                    ◈
+                                                @endif
+                                            </span>
+
+
+                                            <span class="event-media-vod__copy">
+
+                                                <strong>
+                                                    {{
+                                                        $vod
+                                                            ->getDisplayTitle()
+                                                    }}
+                                                </strong>
+
+                                                <small>
+                                                    {{
+                                                        $vod
+                                                            ->getProviderName()
+                                                    }}
+
+                                                    · Añadido por
+
+                                                    {{
+                                                        $vod
+                                                            ->getAddedByName()
+                                                    }}
+                                                </small>
+
+                                            </span>
+
+
+                                            <span
+                                                class="
+                                                    event-media-vod__external
+                                                "
+                                                aria-hidden="true"
+                                            >
+                                                ↗
+                                            </span>
+
+                                        </a>
+
+
+                                        @if($canDeleteVod)
+
+                                            <form
+                                                method="POST"
+                                                action="{{
+                                                    route(
+                                                        'events.media.destroy',
+                                                        [
+                                                            $event,
+                                                            $vod,
+                                                        ]
+                                                    )
+                                                }}"
+                                                class="
+                                                    event-media-vod__delete
+                                                "
+                                                onsubmit="
+                                                    return confirm(
+                                                        '¿Eliminar este VOD?'
+                                                    );
+                                                "
+                                            >
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button
+                                                    type="submit"
+                                                    title="Eliminar VOD"
+                                                    aria-label="Eliminar VOD"
+                                                >
+                                                    ×
+                                                </button>
+
+                                            </form>
+
+                                        @endif
+
+                                    </article>
+
+                                @endforeach
+
+                            </div>
+
+                        </div>
+
+                    @endif
+
+
+                    {{-- =================================================
+                        ESTADO VACÍO
+                    ================================================== --}}
+
+                    @if(
+                        $eventClips->isEmpty()
+                        && $eventVods->isEmpty()
+                    )
+
+                        <div class="event-media__empty">
+
+                            <strong>
+                                Todavía no hay contenido multimedia
+                            </strong>
+
+                            <p>
+                                @if($canAddEventMedia)
+                                    Puedes añadir el primer clip o VOD
+                                    de esta partida.
+                                @else
+                                    Aún no se han compartido clips o
+                                    retransmisiones de esta partida.
+                                @endif
+                            </p>
+
+                        </div>
+
+                    @endif
+
                 </section>
-            @endif --}}
+
+            @endif
+
 
             @if($descriptionSections->isNotEmpty())
                 <section
@@ -546,6 +1295,19 @@
                                                             Libre
                                                         </span>
 
+                                                        @if($isOrbatManager)
+                                                            <button
+                                                                type="button"
+                                                                class="event-orbat__assign-player"
+                                                                data-orbat-assign
+                                                                data-slot-key="{{ $slot['slot_key'] }}"
+                                                                data-slot-name="{{ $slot['name'] ?? 'Slot sin nombre' }}"
+                                                                data-group-name="{{ $group['name'] ?? 'Grupo sin nombre' }}"
+                                                            >
+                                                                + Asignar
+                                                            </button>
+                                                        @endif
+
                                                     @endif
 
 
@@ -644,6 +1406,228 @@
                         @endforeach
                     </div>
                 @endif
+                @if(
+                    $canManageOrbat
+                    && $event->eventStatus?->name === 'ACTIVO'
+                )
+                    <dialog
+                        class="event-orbat-assign-modal"
+                        data-orbat-assign-modal
+                    >
+                        <div class="event-orbat-assign-modal__panel">
+
+                            <header class="event-orbat-assign-modal__header">
+                                <div>
+                                    <span>Gestión de ORBAT</span>
+
+                                    <h3>
+                                        Asignar slot
+                                    </h3>
+
+                                    <p data-orbat-assign-context>
+                                        Selecciona un miembro o aliado.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    class="event-orbat-assign-modal__close"
+                                    data-orbat-assign-close
+                                    aria-label="Cerrar"
+                                >
+                                    ×
+                                </button>
+                            </header>
+
+                            <div class="event-orbat-assign-modal__search">
+                                <label for="orbat-assignee-search">
+                                    Buscar
+                                </label>
+
+                                <input
+                                    id="orbat-assignee-search"
+                                    type="search"
+                                    placeholder="Buscar miembro o aliado..."
+                                    autocomplete="off"
+                                    data-orbat-assignee-search
+                                >
+                            </div>
+
+                            <div
+                                class="event-orbat-assign-modal__lists"
+                                data-orbat-assignee-lists
+                            >
+
+                                {{-- ======================================================
+                                    MIEMBROS
+                                ======================================================= --}}
+
+                                <section
+                                    class="event-orbat-assign-modal__group"
+                                    data-orbat-assignee-group
+                                >
+                                    <header>
+                                        <h4>Miembros</h4>
+
+                                        <span>
+                                            {{ $orbatAssignableUsers->count() }}
+                                        </span>
+                                    </header>
+
+                                    <div class="event-orbat-assign-modal__options">
+
+                                        @forelse($orbatAssignableUsers as $assignableUser)
+
+                                            <button
+                                                type="button"
+                                                class="event-orbat-assignee"
+                                                data-orbat-assignee
+                                                data-assignee-type="user"
+                                                data-assignee-id="{{ $assignableUser->id }}"
+                                                data-assignee-name="{{ $assignableUser->nick }}"
+                                            >
+                                                <span
+                                                    class="event-orbat-assignee__avatar"
+                                                    aria-hidden="true"
+                                                >
+                                                    {{ mb_strtoupper(
+                                                        mb_substr(
+                                                            $assignableUser->nick,
+                                                            0,
+                                                            1
+                                                        )
+                                                    ) }}
+                                                </span>
+
+                                                <span class="event-orbat-assignee__copy">
+                                                    <strong>
+                                                        {{ $assignableUser->nick }}
+                                                    </strong>
+
+                                                    <small>
+                                                        Miembro
+                                                    </small>
+                                                </span>
+                                            </button>
+
+                                        @empty
+
+                                            <p class="event-orbat-assign-modal__empty">
+                                                No hay miembros disponibles.
+                                            </p>
+
+                                        @endforelse
+
+                                    </div>
+                                </section>
+
+
+                                {{-- ======================================================
+                                    ALIADOS
+                                ======================================================= --}}
+
+                                <section
+                                    class="event-orbat-assign-modal__group"
+                                    data-orbat-assignee-group
+                                >
+                                    <header>
+                                        <h4>Aliados</h4>
+
+                                        <span>
+                                            {{ $orbatAssignableAllies->count() }}
+                                        </span>
+                                    </header>
+
+                                    <div class="event-orbat-assign-modal__options">
+
+                                        @forelse($orbatAssignableAllies as $assignableAlly)
+
+                                            <button
+                                                type="button"
+                                                class="event-orbat-assignee"
+                                                data-orbat-assignee
+                                                data-assignee-type="ally"
+                                                data-assignee-id="{{ $assignableAlly->id }}"
+                                                data-assignee-name="{{ $assignableAlly->name }}"
+                                            >
+
+                                                @if($assignableAlly->image)
+
+                                                    <img
+                                                        src="{{ asset(
+                                                            'storage/'
+                                                            . $assignableAlly->image
+                                                        ) }}"
+                                                        alt=""
+                                                        class="event-orbat-assignee__image"
+                                                        loading="lazy"
+                                                    >
+
+                                                @else
+
+                                                    <span
+                                                        class="event-orbat-assignee__avatar"
+                                                        aria-hidden="true"
+                                                    >
+                                                        {{ mb_strtoupper(
+                                                            mb_substr(
+                                                                $assignableAlly->name,
+                                                                0,
+                                                                1
+                                                            )
+                                                        ) }}
+                                                    </span>
+
+                                                @endif
+
+                                                <span class="event-orbat-assignee__copy">
+                                                    <strong>
+                                                        {{ $assignableAlly->name }}
+                                                    </strong>
+
+                                                    <small>
+                                                        Aliado
+                                                    </small>
+                                                </span>
+
+                                            </button>
+
+                                        @empty
+
+                                            <p class="event-orbat-assign-modal__empty">
+                                                No hay aliados disponibles.
+                                            </p>
+
+                                        @endforelse
+
+                                    </div>
+                                </section>
+
+                            </div>
+
+                            <p
+                                class="event-orbat-assign-modal__no-results"
+                                data-orbat-assignee-empty
+                                hidden
+                            >
+                                No se encontraron resultados.
+                            </p>
+
+                            <footer class="event-orbat-assign-modal__footer">
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline"
+                                    data-orbat-assign-close
+                                >
+                                    Cancelar
+                                </button>
+
+                            </footer>
+
+                        </div>
+                    </dialog>
+                @endif
             </section>
 
             <details id="movimientos" class="event-slot-history">
@@ -658,7 +1642,14 @@
                     @else
                         <ol>
                             @foreach($slotHistory as $movement)
-                                @php($memberName = $movement->user?->nick ?? $movement->ally?->name ?? 'Usuario eliminado')
+
+                                @php
+                                    $memberName =
+                                        $movement->user?->nick
+                                        ?? $movement->ally?->name
+                                        ?? 'Usuario eliminado';
+                                @endphp
+
                                 <li>
                                     <div class="event-slot-history__movement">
                                         <strong>{{ $memberName }}</strong>
@@ -839,7 +1830,7 @@
                     </div>
                 </details>
             @endif
-
+            
             <section id="comentarios" class="event-detail__section event-comments" aria-labelledby="event-comments-title">
                 <header class="event-comments__header">
                     <span id="event-comments-title">Comentarios</span>

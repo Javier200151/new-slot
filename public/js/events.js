@@ -379,16 +379,17 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightSlotKey = null
     ) => {
         if (busy) {
-            return;
+            return false;
         }
 
         const orbatSection = getOrbatSection();
 
         if (!orbatSection) {
-            return;
+            return false;
         }
 
         const url = slot.dataset.manageUrl;
+
         const csrfToken =
             orbatSection.dataset.csrfToken;
 
@@ -398,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 true
             );
 
-            return;
+            return false;
         }
 
         busy = true;
@@ -429,14 +430,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
             }
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
-            await refreshOrbat(highlightSlotKey);
+            await refreshOrbat(
+                highlightSlotKey
+            );
 
             showOrbatToast(
                 data.message
                 ?? 'ORBAT actualizado correctamente.'
             );
+
+            return true;
+
         } catch (error) {
             console.error(error);
 
@@ -445,13 +452,239 @@ document.addEventListener('DOMContentLoaded', () => {
                 ?? 'No se pudo modificar el ORBAT.',
                 true
             );
+
+            return false;
+
         } finally {
-            getOrbatSection()?.classList.remove(
-                'is-orbat-busy'
-            );
+            getOrbatSection()
+                ?.classList
+                .remove(
+                    'is-orbat-busy'
+                );
 
             busy = false;
         }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | ASIGNACIÓN MANUAL
+    |--------------------------------------------------------------------------
+    */
+
+    const getAssignModal = () => {
+        return document.querySelector(
+            '[data-orbat-assign-modal]'
+        );
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Normalizar búsqueda
+    |--------------------------------------------------------------------------
+    */
+
+    const normalizeAssigneeSearch = (
+        value
+    ) => {
+        return String(value ?? '')
+            .normalize('NFD')
+            .replace(
+                /[\u0300-\u036f]/g,
+                ''
+            )
+            .toLowerCase()
+            .trim();
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resetear búsqueda
+    |--------------------------------------------------------------------------
+    */
+
+    const resetAssignSearch = (
+        modal
+    ) => {
+        const search =
+            modal.querySelector(
+                '[data-orbat-assignee-search]'
+            );
+
+        if (search) {
+            search.value = '';
+        }
+
+        modal
+            .querySelectorAll(
+                '[data-orbat-assignee]'
+            )
+            .forEach((option) => {
+                option.hidden = false;
+            });
+
+        modal
+            .querySelectorAll(
+                '[data-orbat-assignee-group]'
+            )
+            .forEach((group) => {
+                group.hidden = false;
+            });
+
+        const empty =
+            modal.querySelector(
+                '[data-orbat-assignee-empty]'
+            );
+
+        if (empty) {
+            empty.hidden = true;
+        }
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Abrir modal de asignación
+    |--------------------------------------------------------------------------
+    */
+
+    const openAssignModal = (
+        button
+    ) => {
+        const modal =
+            getAssignModal();
+
+        const slot =
+            button.closest(
+                '[data-orbat-slot]'
+            );
+
+        if (
+            !modal
+            || !slot
+            || busy
+        ) {
+            return;
+        }
+
+        const slotKey =
+            slot.dataset.slotKey;
+
+        if (!slotKey) {
+            return;
+        }
+
+        /*
+        * Guardamos qué slot estamos gestionando.
+        */
+        modal.dataset.slotKey =
+            slotKey;
+
+        const slotName =
+            button.dataset.slotName
+            || 'Slot';
+
+        const groupName =
+            button.dataset.groupName
+            || 'Grupo';
+
+        const context =
+            modal.querySelector(
+                '[data-orbat-assign-context]'
+            );
+
+        if (context) {
+            context.textContent =
+                `${groupName} · ${slotName}`;
+        }
+
+        resetAssignSearch(
+            modal
+        );
+
+        if (
+            modal instanceof
+            HTMLDialogElement
+        ) {
+            if (!modal.open) {
+                modal.showModal();
+            }
+        }
+
+        window.requestAnimationFrame(
+            () => {
+                modal
+                    .querySelector(
+                        '[data-orbat-assignee-search]'
+                    )
+                    ?.focus();
+            }
+        );
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cerrar modal
+    |--------------------------------------------------------------------------
+    */
+
+    const closeAssignModal = () => {
+        const modal =
+            getAssignModal();
+
+        if (!modal) {
+            return;
+        }
+
+        delete modal.dataset.slotKey;
+
+        modal.classList.remove(
+            'is-submitting'
+        );
+
+        resetAssignSearch(
+            modal
+        );
+
+        if (
+            modal instanceof
+            HTMLDialogElement
+            && modal.open
+        ) {
+            modal.close();
+        }
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Localizar nuevamente un slot
+    |--------------------------------------------------------------------------
+    |
+    | No conservamos referencias DOM antiguas porque refreshOrbat()
+    | sustituye el HTML completo del ORBAT.
+    |
+    */
+
+    const findOrbatSlot = (
+        slotKey
+    ) => {
+        if (!slotKey) {
+            return null;
+        }
+
+        return [
+            ...document.querySelectorAll(
+                '[data-orbat-slot]'
+            ),
+        ].find(
+            (slot) =>
+                slot.dataset.slotKey
+                === slotKey
+        ) ?? null;
     };
 
     /*
@@ -710,6 +943,327 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /*
     |--------------------------------------------------------------------------
+    | ABRIR SELECTOR DE ASIGNACIÓN
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'click',
+        (event) => {
+            const assignButton =
+                event.target.closest(
+                    '[data-orbat-assign]'
+                );
+
+            if (!assignButton) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            openAssignModal(
+                assignButton
+            );
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CERRAR SELECTOR
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'click',
+        (event) => {
+            const closeButton =
+                event.target.closest(
+                    '[data-orbat-assign-close]'
+                );
+
+            if (!closeButton) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (busy) {
+                return;
+            }
+
+            closeAssignModal();
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cerrar pulsando fuera del panel
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'click',
+        (event) => {
+            const modal =
+                event.target.closest(
+                    '[data-orbat-assign-modal]'
+                );
+
+            if (!modal) {
+                return;
+            }
+
+            /*
+            * En un <dialog>, el clic sobre
+            * el fondo tiene como target el propio dialog.
+            */
+
+            if (
+                event.target === modal
+                && !busy
+            ) {
+                closeAssignModal();
+            }
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | BUSCADOR
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'input',
+        (event) => {
+            const search =
+                event.target.closest(
+                    '[data-orbat-assignee-search]'
+                );
+
+            if (!search) {
+                return;
+            }
+
+            const modal =
+                search.closest(
+                    '[data-orbat-assign-modal]'
+                );
+
+            if (!modal) {
+                return;
+            }
+
+            const term =
+                normalizeAssigneeSearch(
+                    search.value
+                );
+
+            let totalVisible = 0;
+
+            modal
+                .querySelectorAll(
+                    '[data-orbat-assignee]'
+                )
+                .forEach((option) => {
+
+                    const name =
+                        normalizeAssigneeSearch(
+                            option.dataset
+                                .assigneeName
+                        );
+
+                    const matches =
+                        term === ''
+                        || name.includes(term);
+
+                    option.hidden =
+                        !matches;
+
+                    if (matches) {
+                        totalVisible++;
+                    }
+                });
+
+
+            /*
+            * Ocultar completamente una categoría
+            * si no contiene resultados.
+            */
+
+            modal
+                .querySelectorAll(
+                    '[data-orbat-assignee-group]'
+                )
+                .forEach((group) => {
+
+                    const hasVisible =
+                        [
+                            ...group.querySelectorAll(
+                                '[data-orbat-assignee]'
+                            ),
+                        ].some(
+                            (option) =>
+                                !option.hidden
+                        );
+
+                    group.hidden =
+                        !hasVisible;
+                });
+
+
+            /*
+            * Mensaje sin resultados.
+            */
+
+            const empty =
+                modal.querySelector(
+                    '[data-orbat-assignee-empty]'
+                );
+
+            if (empty) {
+                empty.hidden =
+                    totalVisible > 0;
+            }
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SELECCIONAR MIEMBRO / ALIADO
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'click',
+        async (event) => {
+            const option =
+                event.target.closest(
+                    '[data-orbat-assignee]'
+                );
+
+            if (!option) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (busy) {
+                return;
+            }
+
+            const modal =
+                option.closest(
+                    '[data-orbat-assign-modal]'
+                );
+
+            if (!modal) {
+                return;
+            }
+
+            const slotKey =
+                modal.dataset.slotKey;
+
+            const slot =
+                findOrbatSlot(
+                    slotKey
+                );
+
+            if (!slot) {
+                showOrbatToast(
+                    'No se pudo localizar el slot seleccionado.',
+                    true
+                );
+
+                closeAssignModal();
+
+                return;
+            }
+
+            const assigneeType =
+                option.dataset.assigneeType;
+
+            const assigneeId =
+                option.dataset.assigneeId;
+
+            const assigneeName =
+                option.dataset.assigneeName
+                || 'Jugador';
+
+            if (
+                !assigneeType
+                || !assigneeId
+            ) {
+                return;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Estado visual
+            |--------------------------------------------------------------------------
+            */
+
+            modal.classList.add(
+                'is-submitting'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Enviar
+            |--------------------------------------------------------------------------
+            */
+
+            const success =
+                await sendOrbatAction(
+                    slot,
+                    {
+                        action:
+                            'assign',
+
+                        assignee_type:
+                            assigneeType,
+
+                        assignee_id:
+                            assigneeId,
+                    },
+                    slotKey
+                );
+
+
+            /*
+            * refreshOrbat() sustituye el HTML del ORBAT.
+            *
+            * Por tanto, si salió bien, el modal antiguo
+            * incluso puede haber desaparecido ya del DOM.
+            */
+
+            if (success) {
+                closeAssignModal();
+
+                return;
+            }
+
+
+            /*
+            * Si falló, permitimos volver a intentarlo.
+            */
+
+            getAssignModal()
+                ?.classList
+                .remove(
+                    'is-submitting'
+                );
+        }
+    );
+
+    /*
+    |--------------------------------------------------------------------------
     | ELIMINAR CON X
     |--------------------------------------------------------------------------
     */
@@ -763,3 +1317,1064 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     });
 });
+/*
+|--------------------------------------------------------------------------
+| INDICADOR EN DIRECTO DEL EVENTO
+|--------------------------------------------------------------------------
+|
+| Comprueba periódicamente /directos/estado.
+|
+| Si existe al menos un stream activo asociado
+| al evento actual:
+|
+|     ● EN DIRECTO
+|
+| aparece automáticamente.
+|
+| Si termina el último directo del evento,
+| desaparece sin recargar la página.
+|
+*/
+
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+
+        const liveIndicator =
+            document.querySelector(
+                '[data-event-live]'
+            );
+
+        /*
+         * Esta página no tiene indicador
+         * de evento en directo.
+         */
+        if (!liveIndicator) {
+            return;
+        }
+
+
+        const eventId =
+            String(
+                liveIndicator.dataset.eventId
+                ?? ''
+            );
+
+        const statusUrl =
+            liveIndicator.dataset
+                .streamStatusUrl;
+
+
+        if (
+            !eventId
+            || !statusUrl
+        ) {
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Evitar peticiones simultáneas
+        |--------------------------------------------------------------------------
+        */
+
+        let checking = false;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Mostrar / ocultar indicador
+        |--------------------------------------------------------------------------
+        */
+
+        const setLiveState = (
+            isLive
+        ) => {
+
+            const wasLive =
+                !liveIndicator.hidden;
+
+            /*
+             * No hacemos nada si
+             * el estado no ha cambiado.
+             */
+            if (wasLive === isLive) {
+                return;
+            }
+
+            liveIndicator.hidden =
+                !isLive;
+
+
+            /*
+             * Pequeña clase temporal cuando
+             * comienza el directo.
+             *
+             * Luego podremos usarla para una
+             * animación de entrada si queremos.
+             */
+            if (isLive) {
+
+                liveIndicator.classList.add(
+                    'is-appearing'
+                );
+
+                window.setTimeout(
+                    () => {
+                        liveIndicator
+                            .classList
+                            .remove(
+                                'is-appearing'
+                            );
+                    },
+                    600
+                );
+            }
+        };
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Consultar estado
+        |--------------------------------------------------------------------------
+        */
+
+        const checkEventLiveStatus =
+            async () => {
+
+                /*
+                 * No hacemos varias consultas
+                 * simultáneas.
+                 */
+                if (checking) {
+                    return;
+                }
+
+
+                /*
+                 * Si el usuario tiene la pestaña
+                 * en segundo plano, no hacemos
+                 * peticiones innecesarias.
+                 */
+                if (document.hidden) {
+                    return;
+                }
+
+
+                checking = true;
+
+
+                try {
+
+                    const response =
+                        await fetch(
+                            statusUrl,
+                            {
+                                method: 'GET',
+
+                                headers: {
+                                    Accept:
+                                        'application/json',
+
+                                    'X-Requested-With':
+                                        'XMLHttpRequest',
+                                },
+
+                                cache:
+                                    'no-store',
+
+                                credentials:
+                                    'same-origin',
+                            }
+                        );
+
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+
+                    const data =
+                        await response.json();
+
+
+                    const streams =
+                        Array.isArray(
+                            data.streams
+                        )
+                            ? data.streams
+                            : [];
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | ¿Hay un directo de ESTE evento?
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const isLive =
+                        streams.some(
+                            (stream) =>
+                                String(
+                                    stream.event_id
+                                    ?? ''
+                                )
+                                === eventId
+                        );
+
+
+                    setLiveState(
+                        isLive
+                    );
+
+                } catch (error) {
+
+                    /*
+                     * Si hay un fallo puntual de red,
+                     * mantenemos el estado actual.
+                     *
+                     * No ocultamos EN DIRECTO por
+                     * un timeout o una petición fallida.
+                     */
+
+                    console.error(
+                        'No se pudo comprobar el estado del directo:',
+                        error
+                    );
+
+                } finally {
+
+                    checking = false;
+                }
+            };
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Primera comprobación
+        |--------------------------------------------------------------------------
+        |
+        | No esperamos 3 segundos al cargar.
+        |
+        */
+
+        checkEventLiveStatus();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Polling
+        |--------------------------------------------------------------------------
+        */
+
+        const liveStatusInterval =
+            window.setInterval(
+                checkEventLiveStatus,
+                3000
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Al volver a la pestaña
+        |--------------------------------------------------------------------------
+        |
+        | Mientras estaba oculta no consultamos.
+        | En cuanto el usuario vuelve, actualizamos
+        | inmediatamente.
+        |
+        */
+
+        document.addEventListener(
+            'visibilitychange',
+            () => {
+
+                if (!document.hidden) {
+                    checkEventLiveStatus();
+                }
+            }
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Limpieza
+        |--------------------------------------------------------------------------
+        */
+
+        window.addEventListener(
+            'pagehide',
+            () => {
+                window.clearInterval(
+                    liveStatusInterval
+                );
+            }
+        );
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| MULTIMEDIA DE EVENTOS
+|--------------------------------------------------------------------------
+*/
+
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+
+        /*
+        |--------------------------------------------------------------------------
+        | FORMULARIO AÑADIR MULTIMEDIA
+        |--------------------------------------------------------------------------
+        */
+
+        const mediaFormContainer =
+            document.querySelector(
+                '[data-event-media-form]'
+            );
+
+        const mediaFormToggle =
+            document.querySelector(
+                '[data-event-media-form-toggle]'
+            );
+
+        const mediaFormCancel =
+            document.querySelector(
+                '[data-event-media-form-cancel]'
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Abrir / cerrar formulario
+        |--------------------------------------------------------------------------
+        */
+
+        const setMediaFormOpen = (
+            open
+        ) => {
+
+            if (!mediaFormContainer) {
+                return;
+            }
+
+
+            mediaFormContainer.hidden =
+                !open;
+
+
+            if (mediaFormToggle) {
+
+                mediaFormToggle.setAttribute(
+                    'aria-expanded',
+                    open
+                        ? 'true'
+                        : 'false'
+                );
+            }
+
+
+            /*
+             * Focus al primer campo cuando
+             * se abre manualmente.
+             */
+
+            if (open) {
+
+                window.requestAnimationFrame(
+                    () => {
+
+                        mediaFormContainer
+                            .querySelector(
+                                'select, input'
+                            )
+                            ?.focus();
+                    }
+                );
+            }
+        };
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Botón + Añadir contenido
+        |--------------------------------------------------------------------------
+        */
+
+        mediaFormToggle
+            ?.addEventListener(
+                'click',
+                () => {
+
+                    const isCurrentlyOpen =
+                        !mediaFormContainer
+                            ?.hidden;
+
+                    setMediaFormOpen(
+                        !isCurrentlyOpen
+                    );
+                }
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Cancelar
+        |--------------------------------------------------------------------------
+        */
+
+        mediaFormCancel
+            ?.addEventListener(
+                'click',
+                () => {
+
+                    setMediaFormOpen(
+                        false
+                    );
+                }
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Evitar doble envío
+        |--------------------------------------------------------------------------
+        */
+
+        const mediaForm =
+            mediaFormContainer
+                ?.querySelector(
+                    'form'
+                );
+
+
+        mediaForm
+            ?.addEventListener(
+                'submit',
+                () => {
+
+                    const submitButton =
+                        mediaForm.querySelector(
+                            'button[type="submit"]'
+                        );
+
+                    if (!submitButton) {
+                        return;
+                    }
+
+
+                    submitButton.disabled =
+                        true;
+
+                    submitButton.dataset
+                        .originalText =
+                        submitButton.textContent;
+
+                    submitButton.textContent =
+                        'Publicando...';
+                }
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CARRUSELES
+        |--------------------------------------------------------------------------
+        */
+
+        document
+            .querySelectorAll(
+                '[data-event-media-carousel]'
+            )
+            .forEach(
+                (carousel) => {
+
+                    const track =
+                        carousel.querySelector(
+                            '[data-event-media-track]'
+                        );
+
+                    const slides =
+                        [
+                            ...carousel
+                                .querySelectorAll(
+                                    '[data-event-media-slide]'
+                                ),
+                        ];
+
+
+                    if (
+                        !track
+                        || slides.length === 0
+                    ) {
+                        return;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Controles
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const clipsSection =
+                        carousel.closest(
+                            '.event-media__clips'
+                        );
+
+                    const prevButton =
+                        clipsSection
+                            ?.querySelector(
+                                '[data-event-media-prev]'
+                            );
+
+                    const nextButton =
+                        clipsSection
+                            ?.querySelector(
+                                '[data-event-media-next]'
+                            );
+
+                    const counter =
+                        clipsSection
+                            ?.querySelector(
+                                '[data-event-media-counter]'
+                            );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Estado inicial
+                    |--------------------------------------------------------------------------
+                    */
+
+                    let activeIndex =
+                        Math.max(
+                            0,
+                            slides.findIndex(
+                                (slide) =>
+                                    slide.classList
+                                        .contains(
+                                            'is-active'
+                                        )
+                            )
+                        );
+
+
+                    /*
+                     * Permitimos usar flechas del
+                     * teclado cuando el carrusel
+                     * tiene foco.
+                     */
+
+                    carousel.tabIndex =
+                        0;
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Posicionar carrusel
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const positionCarousel =
+                        (
+                            animate = true
+                        ) => {
+
+                            const activeSlide =
+                                slides[
+                                    activeIndex
+                                ];
+
+                            if (!activeSlide) {
+                                return;
+                            }
+
+
+                            /*
+                             * Posición necesaria para que
+                             * el centro del slide coincida
+                             * con el centro del carrusel.
+                             */
+
+                            const desiredPosition =
+                                activeSlide.offsetLeft
+                                - (
+                                    (
+                                        carousel
+                                            .clientWidth
+                                        - activeSlide
+                                            .offsetWidth
+                                    )
+                                    / 2
+                                );
+
+
+                            /*
+                             * Evitamos salirnos físicamente
+                             * de los extremos del track.
+                             */
+
+                            const maxPosition =
+                                Math.max(
+                                    0,
+                                    track.scrollWidth
+                                    - carousel
+                                        .clientWidth
+                                );
+
+
+                            const position =
+                                Math.min(
+                                    Math.max(
+                                        desiredPosition,
+                                        0
+                                    ),
+                                    maxPosition
+                                );
+
+
+                            if (!animate) {
+
+                                track.style
+                                    .transition =
+                                    'none';
+                            }
+
+
+                            track.style.transform =
+                                `translate3d(${-position}px, 0, 0)`;
+
+
+                            if (!animate) {
+
+                                window
+                                    .requestAnimationFrame(
+                                        () => {
+                                            track.style
+                                                .transition =
+                                                '';
+                                        }
+                                    );
+                            }
+                        };
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Actualizar estado visual
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const updateCarousel =
+                        (
+                            animate = true
+                        ) => {
+
+                            slides.forEach(
+                                (
+                                    slide,
+                                    index
+                                ) => {
+
+                                    const isActive =
+                                        index
+                                        === activeIndex;
+
+
+                                    slide.classList
+                                        .toggle(
+                                            'is-active',
+                                            isActive
+                                        );
+
+
+                                    slide.setAttribute(
+                                        'aria-hidden',
+                                        isActive
+                                            ? 'false'
+                                            : 'true'
+                                    );
+                                }
+                            );
+
+
+                            /*
+                             * Contador
+                             */
+
+                            if (counter) {
+
+                                counter.textContent =
+                                    `${activeIndex + 1} / ${slides.length}`;
+                            }
+
+
+                            /*
+                             * En un carrusel circular no
+                             * necesitamos deshabilitar.
+                             */
+
+                            positionCarousel(
+                                animate
+                            );
+                        };
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Ir a un índice
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const goToSlide =
+                        (
+                            index,
+                            animate = true
+                        ) => {
+
+                            if (
+                                slides.length
+                                <= 1
+                            ) {
+                                return;
+                            }
+
+
+                            /*
+                             * Carrusel circular:
+                             *
+                             * anterior desde 0
+                             * → último.
+                             *
+                             * siguiente desde último
+                             * → primero.
+                             */
+
+                            if (index < 0) {
+
+                                activeIndex =
+                                    slides.length
+                                    - 1;
+                            }
+
+                            else if (
+                                index
+                                >= slides.length
+                            ) {
+
+                                activeIndex =
+                                    0;
+                            }
+
+                            else {
+
+                                activeIndex =
+                                    index;
+                            }
+
+
+                            updateCarousel(
+                                animate
+                            );
+                        };
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Flecha izquierda
+                    |--------------------------------------------------------------------------
+                    */
+
+                    prevButton
+                        ?.addEventListener(
+                            'click',
+                            () => {
+
+                                goToSlide(
+                                    activeIndex
+                                    - 1
+                                );
+                            }
+                        );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Flecha derecha
+                    |--------------------------------------------------------------------------
+                    */
+
+                    nextButton
+                        ?.addEventListener(
+                            'click',
+                            () => {
+
+                                goToSlide(
+                                    activeIndex
+                                    + 1
+                                );
+                            }
+                        );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Pulsar sobre un clip lateral
+                    |--------------------------------------------------------------------------
+                    */
+
+                    slides.forEach(
+                        (
+                            slide,
+                            index
+                        ) => {
+
+                            slide.addEventListener(
+                                'click',
+                                () => {
+
+                                    if (
+                                        index
+                                        === activeIndex
+                                    ) {
+                                        return;
+                                    }
+
+
+                                    goToSlide(
+                                        index
+                                    );
+                                }
+                            );
+                        }
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Teclado
+                    |--------------------------------------------------------------------------
+                    */
+
+                    carousel.addEventListener(
+                        'keydown',
+                        (event) => {
+
+                            if (
+                                event.key
+                                === 'ArrowLeft'
+                            ) {
+
+                                event.preventDefault();
+
+                                goToSlide(
+                                    activeIndex
+                                    - 1
+                                );
+                            }
+
+
+                            if (
+                                event.key
+                                === 'ArrowRight'
+                            ) {
+
+                                event.preventDefault();
+
+                                goToSlide(
+                                    activeIndex
+                                    + 1
+                                );
+                            }
+                        }
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Swipe móvil
+                    |--------------------------------------------------------------------------
+                    */
+
+                    let touchStartX =
+                        null;
+
+
+                    carousel.addEventListener(
+                        'touchstart',
+                        (event) => {
+
+                            touchStartX =
+                                event.touches[
+                                    0
+                                ]?.clientX
+                                ?? null;
+                        },
+                        {
+                            passive:
+                                true,
+                        }
+                    );
+
+
+                    carousel.addEventListener(
+                        'touchend',
+                        (event) => {
+
+                            if (
+                                touchStartX
+                                === null
+                            ) {
+                                return;
+                            }
+
+
+                            const touchEndX =
+                                event.changedTouches[
+                                    0
+                                ]?.clientX
+                                ?? touchStartX;
+
+
+                            const distance =
+                                touchEndX
+                                - touchStartX;
+
+
+                            touchStartX =
+                                null;
+
+
+                            /*
+                             * Evitar movimientos
+                             * accidentales pequeños.
+                             */
+
+                            if (
+                                Math.abs(
+                                    distance
+                                )
+                                < 45
+                            ) {
+                                return;
+                            }
+
+
+                            if (
+                                distance > 0
+                            ) {
+
+                                goToSlide(
+                                    activeIndex
+                                    - 1
+                                );
+                            }
+
+                            else {
+
+                                goToSlide(
+                                    activeIndex
+                                    + 1
+                                );
+                            }
+                        },
+                        {
+                            passive:
+                                true,
+                        }
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Recalcular al cambiar tamaño
+                    |--------------------------------------------------------------------------
+                    */
+
+                    let resizeTimeout =
+                        null;
+
+
+                    const handleResize =
+                        () => {
+
+                            window.clearTimeout(
+                                resizeTimeout
+                            );
+
+
+                            resizeTimeout =
+                                window.setTimeout(
+                                    () => {
+
+                                        positionCarousel(
+                                            false
+                                        );
+                                    },
+                                    100
+                                );
+                        };
+
+
+                    if (
+                        typeof ResizeObserver
+                        !== 'undefined'
+                    ) {
+
+                        const observer =
+                            new ResizeObserver(
+                                handleResize
+                            );
+
+
+                        observer.observe(
+                            carousel
+                        );
+                    }
+
+                    else {
+
+                        window.addEventListener(
+                            'resize',
+                            handleResize
+                        );
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Primera posición
+                    |--------------------------------------------------------------------------
+                    */
+
+                    updateCarousel(
+                        false
+                    );
+
+
+                    /*
+                     * Los iframes pueden alterar ligeramente
+                     * las dimensiones cuando terminan
+                     * de cargarse.
+                     */
+
+                    window.addEventListener(
+                        'load',
+                        () => {
+
+                            positionCarousel(
+                                false
+                            );
+                        },
+                        {
+                            once:
+                                true,
+                        }
+                    );
+                }
+            );
+    }
+);

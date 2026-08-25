@@ -162,23 +162,6 @@
                                             </a>
 
 
-                                            @if(
-                                                $event->eventStatus?->name === 'FINALIZADO'
-                                                && filled($event->ocap_url)
-                                            )
-
-                                                <a
-                                                    href="{{ $event->ocap_url }}"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    class="events-calendar__ocap-link"
-                                                    title="Abrir OCAP de {{ $event->name ?: $event->operation?->name }}"
-                                                >
-                                                    OCAP ↗
-                                                </a>
-
-                                            @endif
-
                                         </div>
 
                                     @endforeach
