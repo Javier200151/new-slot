@@ -8,7 +8,6 @@ use Filament\Resources\Pages\CreateRecord;
 use App\Services\CommunityNotificationService;
 use App\Models\EventStatus;
 use Illuminate\Validation\ValidationException;
-use App\Support\OperationTypeAccess;
 
 class CreateEvent extends CreateRecord
 {
@@ -39,18 +38,6 @@ class CreateEvent extends CreateRecord
         $operation = Operation::query()
             ->with('operationStatus')
             ->find($data['operation_id'] ?? null);
-
-        if (! OperationTypeAccess::can(
-            auth()->user(),
-            'events',
-            'create',
-            $operation?->operation_type_id,
-        )) {
-            throw ValidationException::withMessages([
-                'data.operation_id' =>
-                    'No tienes permiso para crear eventos de este tipo.',
-            ]);
-        }
 
         $submittedEventStatusId =
             $data['event_status_id'] ?? null;

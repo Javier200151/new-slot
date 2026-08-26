@@ -2,8 +2,6 @@
 
 namespace App\Filament\Resources\Operations\Tables;
 
-use App\Models\OperationType;
-use App\Support\OperationTypeAccess;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -158,20 +156,7 @@ class OperationsTable
                 SelectFilter::make('operation_type_id')
                     ->label('Tipo')
                     ->multiple()
-                    ->options(
-                        fn (): array => OperationType::query()
-                            ->whereIn(
-                                'id',
-                                OperationTypeAccess::allowedTypeIds(
-                                    auth()->user(),
-                                    'operations',
-                                    'view',
-                                )
-                            )
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->all()
-                    ),
+                    ->relationship('operationType', 'name'),
 
                 SelectFilter::make('operation_status_id')
                     ->label('Estado')

@@ -2,9 +2,8 @@
 
 namespace App\Filament\Resources\Operations\Pages;
 
+use App\Models\Operation;
 use App\Filament\Resources\Operations\OperationResource;
-use App\Models\OperationType;
-use App\Support\OperationTypeAccess;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -23,46 +22,41 @@ class ListOperations extends ListRecords
 
     public function getTabs(): array
     {
-        $baseQuery = OperationResource::getEloquentQuery();
-
-        $tabs = [
+        return [
             'todos' => Tab::make('Todos')
-                ->badge((clone $baseQuery)->count()),
+                ->badge(Operation::query()->count()),
+
+            'operacion' => Tab::make('Operaciones')
+                ->badge(static::countByType('OPERACIÓN'))
+                ->modifyQueryUsing(fn (Builder $query) => static::filterByType($query, 'OPERACIÓN')),
+
+            'curso' => Tab::make('Cursos')
+                ->badge(static::countByType('CURSO'))
+                ->modifyQueryUsing(fn (Builder $query) => static::filterByType($query, 'CURSO')),
+
+            'maniobras' => Tab::make('Maniobras')
+                ->badge(static::countByType('MANIOBRAS'))
+                ->modifyQueryUsing(fn (Builder $query) => static::filterByType($query, 'MANIOBRAS')),
+
+            'practicas' => Tab::make('Practicas')
+                ->badge(static::countByType('PRACTICAS'))
+                ->modifyQueryUsing(fn (Builder $query) => static::filterByType($query, 'PRACTICAS')),
+
+            'reunion' => Tab::make('Reuniones')
+                ->badge(static::countByType('REUNIÓN'))
+                ->modifyQueryUsing(fn (Builder $query) => static::filterByType($query, 'REUNIÓN')),
         ];
+    }
 
-        $allowedTypeIds = OperationTypeAccess::allowedTypeIds(
-            auth()->user(),
-            'operations',
-            'view',
-        );
+    protected static function countByType(string $type): int
+    {
+        return Operation::query()
+            ->whereHas('operationType', fn (Builder $query) => $query->where('name', $type))
+            ->count();
+    }
 
-        $operationTypes = OperationType::query()
-            ->whereIn('id', $allowedTypeIds)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        foreach ($operationTypes as $operationType) {
-            $operationTypeId = (int) $operationType->id;
-
-            $tabs['type_' . $operationTypeId] =
-                Tab::make($operationType->name)
-                    ->badge(
-                        (clone $baseQuery)
-                            ->where(
-                                'operation_type_id',
-                                $operationTypeId,
-                            )
-                            ->count()
-                    )
-                    ->modifyQueryUsing(
-                        fn (Builder $query): Builder =>
-                            $query->where(
-                                'operation_type_id',
-                                $operationTypeId,
-                            )
-                    );
-        }
-
-        return $tabs;
+    protected static function filterByType(Builder $query, string $type): Builder
+    {
+        return $query->whereHas('operationType', fn (Builder $query) => $query->where('name', $type));
     }
 }

@@ -2,9 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\OperationType;
-use Illuminate\Support\Facades\Schema;
-
 class PermissionCatalog
 {
     public static function guard(): string
@@ -28,6 +25,7 @@ class PermissionCatalog
 
         foreach (self::groups() as $groupKey => $group) {
             foreach ($group['resources'] ?? [] as $resource => $definition) {
+
                 $actionOptions = self::normalizeActionOptions(
                     $definition['actions'] ?? null
                 );
@@ -35,8 +33,25 @@ class PermissionCatalog
                 $resources[$resource] = [
                     'label' => $definition['label'] ?? $resource,
                     'group' => $groupKey,
-                    'scope' => $definition['scope'] ?? null,
+
+                    /*
+                     * Lista interna de acciones:
+                     *
+                     * ['view', 'create', 'update', 'delete']
+                     *
+                     * o:
+                     *
+                     * ['manage']
+                     */
                     'actions' => array_keys($actionOptions),
+
+                    /*
+                     * Opciones que verá Filament:
+                     *
+                     * [
+                     *     'manage' => 'Manejar ORBAT',
+                     * ]
+                     */
                     'action_options' => $actionOptions,
                 ];
             }
@@ -55,12 +70,6 @@ class PermissionCatalog
         return self::resources()[$resource]['action_options'] ?? [];
     }
 
-    public static function isOperationTypeScoped(string $resource): bool
-    {
-        return (self::resources()[$resource]['scope'] ?? null)
-            === 'operation_type';
-    }
-
     public static function permissionNames(
         bool $includeFilamentAccess = true
     ): array {
@@ -69,20 +78,6 @@ class PermissionCatalog
             : [];
 
         foreach (self::resources() as $resource => $definition) {
-            if (self::isOperationTypeScoped($resource)) {
-                foreach (self::operationTypeIds() as $operationTypeId) {
-                    foreach ($definition['actions'] as $action) {
-                        $permissions[] = self::operationTypePermissionName(
-                            $resource,
-                            $operationTypeId,
-                            $action,
-                        );
-                    }
-                }
-
-                continue;
-            }
-
             foreach ($definition['actions'] as $action) {
                 $permissions[] = "{$resource}.{$action}";
             }
@@ -93,46 +88,31 @@ class PermissionCatalog
 
     public static function fieldName(string $resource): string
     {
-        return 'permissions_' . str_replace('-', '_', $resource);
-    }
-
-    public static function operationTypeFieldName(
-        string $resource,
-        int $operationTypeId,
-    ): string {
-        return self::fieldName($resource)
-            . '_type_'
-            . $operationTypeId;
-    }
-
-    public static function operationTypePermissionName(
-        string $resource,
-        int $operationTypeId,
-        string $action,
-    ): string {
-        return "{$resource}.type.{$operationTypeId}.{$action}";
-    }
-
-    public static function operationTypeIds(): array
-    {
-        if (! Schema::hasTable('operations_type')) {
-            return [];
-        }
-
-        return OperationType::query()
-            ->orderBy('id')
-            ->pluck('id')
-            ->map(fn ($id): int => (int) $id)
-            ->all();
+        return 'permissions_' . str_replace(
+            '-',
+            '_',
+            $resource
+        );
     }
 
     private static function normalizeActionOptions(
         ?array $configuredActions
     ): array {
+        /*
+         * Sin configuración específica:
+         * usamos las acciones CRUD normales.
+         */
         if ($configuredActions === null) {
             return self::actions();
         }
 
+        /*
+         * Ejemplo:
+         *
+         * 'actions' => ['view']
+         *
+         * Busca las etiquetas en el catálogo general.
+         */
         if (array_is_list($configuredActions)) {
             return array_intersect_key(
                 self::actions(),
@@ -140,6 +120,13 @@ class PermissionCatalog
             );
         }
 
+        /*
+         * Permite acciones personalizadas:
+         *
+         * 'actions' => [
+         *     'manage' => 'Manejar ORBAT',
+         * ]
+         */
         return $configuredActions;
     }
 }

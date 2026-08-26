@@ -5,10 +5,6 @@ namespace App\Filament\Resources\Roles;
 use App\Filament\Resources\Roles\Pages\CreateRole;
 use App\Filament\Resources\Roles\Pages\EditRole;
 use App\Filament\Resources\Roles\Pages\ListRoles;
-use App\Models\OperationType;
-use App\Models\Permission;
-use App\Models\Role;
-use App\Support\PermissionCatalog;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -16,15 +12,18 @@ use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use App\Models\Role;
+use App\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
+use UnitEnum;
+use App\Support\PermissionCatalog;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Spatie\Permission\PermissionRegistrar;
-use UnitEnum;
 
 class RoleResource extends Resource
 {
@@ -72,50 +71,15 @@ class RoleResource extends Resource
                 self::permissionTabs(),
             ]);
     }
-
     public static function permissionTabs(): Tabs
     {
         $tabs = [];
-        $operationTypes = OperationType::query()
-            ->orderBy('name')
-            ->get(['id', 'name']);
 
         foreach (PermissionCatalog::groups() as $group) {
-            $components = [];
+            $checkboxes = [];
 
             foreach ($group['resources'] ?? [] as $resource => $definition) {
-                if (PermissionCatalog::isOperationTypeScoped($resource)) {
-                    $typeCheckboxes = [];
-
-                    foreach ($operationTypes as $operationType) {
-                        $typeCheckboxes[] = CheckboxList::make(
-                            PermissionCatalog::operationTypeFieldName(
-                                $resource,
-                                (int) $operationType->id,
-                            )
-                        )
-                            ->label($operationType->name)
-                            ->options(
-                                PermissionCatalog::actionOptionsFor($resource)
-                            )
-                            ->columns(4)
-                            ->bulkToggleable();
-                    }
-
-                    $components[] = Section::make(
-                        ($definition['label'] ?? $resource) . ' por tipo'
-                    )
-                        ->description(
-                            'Selecciona qué acciones puede realizar este rol en cada tipo.'
-                        )
-                        ->schema($typeCheckboxes)
-                        ->columns(2)
-                        ->columnSpanFull();
-
-                    continue;
-                }
-
-                $components[] = CheckboxList::make(
+                $checkboxes[] = CheckboxList::make(
                     PermissionCatalog::fieldName($resource)
                 )
                     ->label($definition['label'] ?? $resource)
@@ -128,7 +92,7 @@ class RoleResource extends Resource
 
             $tabs[] = Tab::make($group['label'])
                 ->icon($group['icon'] ?? null)
-                ->schema($components)
+                ->schema($checkboxes)
                 ->columns(2);
         }
 
@@ -138,7 +102,6 @@ class RoleResource extends Resource
             ->id('role-permission-tabs')
             ->columnSpanFull();
     }
-
     public static function table(Table $table): Table
     {
         return $table
@@ -172,7 +135,7 @@ class RoleResource extends Resource
                             ->intersect($knownPermissions)
                             ->count();
 
-                        return "{$granted} / " . count($knownPermissions);
+                        return "{$granted} / ".count($knownPermissions);
                     })
                     ->color(function (Role $record): string {
                         $record->loadMissing('permissions');
@@ -228,27 +191,12 @@ class RoleResource extends Resource
 
     public static function permissionFieldNames(): array
     {
-        $fields = [];
-        $operationTypeIds = PermissionCatalog::operationTypeIds();
-
-        foreach (PermissionCatalog::resources() as $resource => $definition) {
-            if (PermissionCatalog::isOperationTypeScoped($resource)) {
-                foreach ($operationTypeIds as $operationTypeId) {
-                    $fields[] = PermissionCatalog::operationTypeFieldName(
-                        $resource,
-                        $operationTypeId,
-                    );
-                }
-
-                continue;
-            }
-
-            $fields[] = PermissionCatalog::fieldName($resource);
-        }
-
-        return $fields;
+        return array_map(
+            fn (string $resource): string =>
+                PermissionCatalog::fieldName($resource),
+            array_keys(PermissionCatalog::resources())
+        );
     }
-
     public static function getPermissionBadgeColor(
         Role $role,
         string $resource
@@ -256,39 +204,47 @@ class RoleResource extends Resource
         $role->loadMissing('permissions');
 
         $actions = PermissionCatalog::actionsFor($resource);
+
         $permissionNames = $role->permissions
             ->pluck('name')
             ->all();
 
-        $expected = [];
+        $grantedActions = 0;
 
-        if (PermissionCatalog::isOperationTypeScoped($resource)) {
-            foreach (PermissionCatalog::operationTypeIds() as $operationTypeId) {
-                foreach ($actions as $action) {
-                    $expected[] = PermissionCatalog::operationTypePermissionName(
-                        $resource,
-                        $operationTypeId,
-                        $action,
-                    );
-                }
-            }
-        } else {
-            foreach ($actions as $action) {
-                $expected[] = "{$resource}.{$action}";
+        foreach ($actions as $action) {
+            if (in_array(
+                "{$resource}.{$action}",
+                $permissionNames,
+                true
+            )) {
+                $grantedActions++;
             }
         }
 
-        $granted = count(array_intersect($expected, $permissionNames));
-
-        if ($granted === 0) {
+        if ($grantedActions === 0) {
             return 'danger';
         }
 
-        if ($granted === count($expected)) {
+        if ($grantedActions === count($actions)) {
             return 'success';
         }
 
         return 'warning';
+    }
+
+    public static function permissionCheckboxes(): array
+    {
+        $components = [];
+
+        foreach (self::permissionResources() as $resource => $label) {
+            $components[] = CheckboxList::make("permissions_{$resource}")
+                ->label("Permisos de {$label}")
+                ->options(self::permissionActions())
+                ->columns(4)
+                ->bulkToggleable();
+        }
+
+        return $components;
     }
 
     public static function removePermissionFieldsFromData(array $data): array
@@ -319,34 +275,6 @@ class RoleResource extends Resource
             PermissionCatalog::resources()
             as $resource => $definition
         ) {
-            if (PermissionCatalog::isOperationTypeScoped($resource)) {
-                foreach (PermissionCatalog::operationTypeIds() as $operationTypeId) {
-                    $selectedActions = [];
-
-                    foreach ($definition['actions'] as $action) {
-                        $permissionName =
-                            PermissionCatalog::operationTypePermissionName(
-                                $resource,
-                                $operationTypeId,
-                                $action,
-                            );
-
-                        if (in_array($permissionName, $permissionNames, true)) {
-                            $selectedActions[] = $action;
-                        }
-                    }
-
-                    $state[
-                        PermissionCatalog::operationTypeFieldName(
-                            $resource,
-                            $operationTypeId,
-                        )
-                    ] = $selectedActions;
-                }
-
-                continue;
-            }
-
             $selectedActions = [];
 
             foreach ($definition['actions'] as $action) {
@@ -357,7 +285,9 @@ class RoleResource extends Resource
                 }
             }
 
-            $state[PermissionCatalog::fieldName($resource)] = $selectedActions;
+            $state[
+                PermissionCatalog::fieldName($resource)
+            ] = $selectedActions;
         }
 
         return $state;
@@ -369,13 +299,9 @@ class RoleResource extends Resource
 
         self::ensureKnownPermissionsExist($guard);
 
-        $knownPermissions = PermissionCatalog::permissionNames();
-
         if ($role->name === 'admin') {
             $role->syncPermissions(
-                Permission::query()
-                    ->where('guard_name', $guard)
-                    ->whereIn('name', $knownPermissions)
+                Permission::where('guard_name', $guard)
                     ->pluck('name')
                     ->toArray()
             );
@@ -395,30 +321,6 @@ class RoleResource extends Resource
             PermissionCatalog::resources()
             as $resource => $definition
         ) {
-            if (PermissionCatalog::isOperationTypeScoped($resource)) {
-                foreach (PermissionCatalog::operationTypeIds() as $operationTypeId) {
-                    $field = PermissionCatalog::operationTypeFieldName(
-                        $resource,
-                        $operationTypeId,
-                    );
-
-                    foreach ($data[$field] ?? [] as $action) {
-                        if (! in_array($action, $definition['actions'], true)) {
-                            continue;
-                        }
-
-                        $permissionNames[] =
-                            PermissionCatalog::operationTypePermissionName(
-                                $resource,
-                                $operationTypeId,
-                                $action,
-                            );
-                    }
-                }
-
-                continue;
-            }
-
             $field = PermissionCatalog::fieldName($resource);
             $selectedActions = $data[$field] ?? [];
 
@@ -435,7 +337,9 @@ class RoleResource extends Resource
             }
         }
 
-        $role->syncPermissions(array_values(array_unique($permissionNames)));
+        $permissionNames = array_values(array_unique($permissionNames));
+
+        $role->syncPermissions($permissionNames);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }

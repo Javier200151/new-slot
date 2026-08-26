@@ -3,8 +3,6 @@
 namespace App\Filament\Resources\Operations\Schemas;
 
 use App\Models\GameMap;
-use App\Models\OperationType;
-use App\Support\OperationTypeAccess;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -34,23 +32,7 @@ class OperationForm
 
                 Select::make('operation_type_id')
                     ->label('Tipo')
-                    ->options(
-                        function ($record): array {
-                            $action = $record ? 'update' : 'create';
-                            $allowedTypeIds =
-                                OperationTypeAccess::allowedTypeIds(
-                                    auth()->user(),
-                                    'operations',
-                                    $action,
-                                );
-
-                            return OperationType::query()
-                                ->whereIn('id', $allowedTypeIds)
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all();
-                        }
-                    )
+                    ->relationship('operationType', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),

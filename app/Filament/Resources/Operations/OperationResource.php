@@ -8,8 +8,6 @@ use App\Filament\Resources\Operations\Pages\ListOperations;
 use App\Filament\Resources\Operations\Schemas\OperationForm;
 use App\Filament\Resources\Operations\Tables\OperationsTable;
 use App\Models\Operation;
-use App\Support\OperationTypeAccess;
-use Illuminate\Support\Facades\Auth;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -58,26 +56,6 @@ class OperationResource extends Resource
         ];
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery();
-        $user = Auth::user();
-        $allowedTypeIds = OperationTypeAccess::allowedTypeIds(
-            $user,
-            'operations',
-            'view',
-        );
-
-        if ($allowedTypeIds === []) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query->whereIn(
-            'operation_type_id',
-            $allowedTypeIds,
-        );
-    }
-
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()
@@ -88,6 +66,6 @@ class OperationResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getEloquentQuery()->count();
+        return (string) static::getModel()::count();
     }
 }
