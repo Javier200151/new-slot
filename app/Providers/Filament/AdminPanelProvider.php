@@ -40,7 +40,12 @@ class AdminPanelProvider extends PanelProvider
             ->assets([
                 Css::make(
                     'filament-custom',
-                    asset('css/filament-custom.css')
+                    '/css/filament-custom.css?v='
+                        . filemtime(
+                            public_path(
+                                'css/filament-custom.css'
+                            )
+                        )
                 ),
             ])
             ->navigationGroups([

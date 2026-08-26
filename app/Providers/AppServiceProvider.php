@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Listeners\AuditPermissionRelationChange;
+use App\Models\GameMap;
 use App\Models\Role;
+use App\Policies\ActivityPolicy;
+use App\Policies\MapPolicy;
 use App\Policies\RolePolicy;
 use App\Services\AuditLogger;
 use App\Support\AuditContext;
@@ -20,6 +23,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Contracts\Activity as ActivityContract;
+use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Facades\Activity as ActivityFacade;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
@@ -54,6 +58,22 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(
             Role::class,
             RolePolicy::class
+        );
+
+        /*
+         * Policies que Laravel no puede descubrir por convención:
+         *
+         * - GameMap usa MapPolicy por compatibilidad con el modelo histórico Map.
+         * - Activity pertenece al paquete spatie/laravel-activitylog.
+         */
+        Gate::policy(
+            GameMap::class,
+            MapPolicy::class
+        );
+
+        Gate::policy(
+            Activity::class,
+            ActivityPolicy::class
         );
 
         $this->registerActivityEnrichment();

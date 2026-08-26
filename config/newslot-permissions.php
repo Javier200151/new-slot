@@ -104,6 +104,9 @@ return [
             'label' => 'Organización militar',
             'icon' => 'heroicon-o-shield-check',
             'resources' => [
+                'countries' => [
+                    'label' => 'Países',
+                ],
                 'armies' => [
                     'label' => 'Ejércitos',
                 ],
@@ -164,6 +167,10 @@ return [
             'label' => 'Sistema',
             'icon' => 'heroicon-o-command-line',
             'resources' => [
+                'pages' => [
+                    'label' => 'Páginas',
+                ],
+
                 /*
                  * El registro de actividad debería ser de solo lectura.
                  * Añade "delete" si realmente quieres permitir eliminar logs.
