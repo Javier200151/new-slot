@@ -15,7 +15,7 @@ use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\Country;
 use App\Models\Faction;
-use App\Models\Side;
+use App\Models\Army;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
 
@@ -126,7 +126,7 @@ class OperationForm
                 Hidden::make('enemy_faction_country_filter')
                     ->dehydrated(false),
 
-                Hidden::make('enemy_faction_side_filter')
+                Hidden::make('enemy_faction_army_filter')
                     ->dehydrated(false),
 
                 Select::make('enemyFactions')
@@ -157,9 +157,9 @@ class OperationForm
                                     'enemy_faction_country_filter'
                                 );
 
-                            $sideId =
+                            $armyId =
                                 $get(
-                                    'enemy_faction_side_filter'
+                                    'enemy_faction_army_filter'
                                 );
 
                             $selectedIds =
@@ -187,19 +187,19 @@ class OperationForm
 
                             if (
                                 filled($countryId)
-                                || filled($sideId)
+                                || filled($armyId)
                             ) {
                                 $query->where(
                                     function ($query) use (
                                         $countryId,
-                                        $sideId,
+                                        $armyId,
                                         $selectedIds
                                     ): void {
 
                                         $query->where(
                                             function ($query) use (
                                                 $countryId,
-                                                $sideId
+                                                $armyId
                                             ): void {
 
                                                 /*
@@ -225,13 +225,13 @@ class OperationForm
 
 
                                                 /*
-                                                * Bando.
+                                                * Ejército.
                                                 */
 
-                                                if (filled($sideId)) {
+                                                if (filled($armyId)) {
                                                     $query->where(
-                                                        'side_id',
-                                                        $sideId
+                                                        'army_id',
+                                                        $armyId
                                                     );
                                                 }
                                             }
@@ -282,7 +282,7 @@ class OperationForm
                             )
                             ->iconButton()
                             ->tooltip(
-                                'Filtrar por país o bando'
+                                'Filtrar por país o ejército'
                             )
                             ->color(
                                 function (
@@ -296,9 +296,9 @@ class OperationForm
                                         )
                                         || filled(
                                             $schemaGet(
-                                                'enemy_faction_side_filter'
+                                                'enemy_faction_army_filter'
                                             )
-                                        )
+                                        )                                  
                                     )
                                         ? 'primary'
                                         : 'gray';
@@ -321,9 +321,9 @@ class OperationForm
                                                 'enemy_faction_country_filter'
                                             ),
 
-                                        'side_id' =>
+                                        'army_id' =>
                                             $schemaGet(
-                                                'enemy_faction_side_filter'
+                                                'enemy_faction_army_filter'
                                             ),
                                     ];
                                 }
@@ -355,26 +355,46 @@ class OperationForm
                                     ->preload()
                                     ->placeholder(
                                         'Todos los países'
+                                    )
+                                    ->live()
+                                    ->afterStateUpdated(
+                                        fn (Set $set) =>
+                                            $set('army_id', null)
                                     ),
 
                                 Select::make(
-                                    'side_id'
+                                    'army_id'
                                 )
-                                    ->label('Bando')
+                                    ->label('Ejército')
                                     ->options(
-                                        fn (): array =>
-                                            Side::query()
-                                                ->orderBy('name')
+                                        function (Get $get): array {
+                                            $query =
+                                                Army::query()
+                                                    ->orderBy('name');
+
+                                            if (
+                                                filled(
+                                                    $get('country_id')
+                                                )
+                                            ) {
+                                                $query->where(
+                                                    'country_id',
+                                                    $get('country_id')
+                                                );
+                                            }
+
+                                            return $query
                                                 ->pluck(
                                                     'name',
                                                     'id'
                                                 )
-                                                ->all()
+                                                ->all();
+                                        }
                                     )
                                     ->searchable()
                                     ->preload()
                                     ->placeholder(
-                                        'Todos los bandos'
+                                        'Todos los ejércitos'
                                     ),
                             ])
 
@@ -382,7 +402,7 @@ class OperationForm
                                 'Filtrar facciones'
                             )
                             ->modalDescription(
-                                'Puedes filtrar por país, por bando o por ambos.'
+                                'Puedes filtrar por país, por ejército o por ambos.'
                             )
                             ->modalSubmitActionLabel(
                                 'Aplicar filtros'
@@ -408,8 +428,8 @@ class OperationForm
                                     );
 
                                     $schemaSet(
-                                        'enemy_faction_side_filter',
-                                        $data['side_id']
+                                        'enemy_faction_army_filter',
+                                        $data['army_id']
                                         ?? null
                                     );
                                 }

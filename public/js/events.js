@@ -1555,7 +1555,7 @@ document.addEventListener(
         | Primera comprobación
         |--------------------------------------------------------------------------
         |
-        | No esperamos 3 segundos al cargar.
+        | No esperamos 10 segundos al cargar.
         |
         */
 
@@ -1571,9 +1571,8 @@ document.addEventListener(
         const liveStatusInterval =
             window.setInterval(
                 checkEventLiveStatus,
-                3000
+                10000
             );
-
 
         /*
         |--------------------------------------------------------------------------

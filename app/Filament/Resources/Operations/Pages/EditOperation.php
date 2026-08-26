@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Operations\Pages;
 
+use Illuminate\Validation\ValidationException;
 use App\Filament\Resources\Operations\OperationResource;
 use App\Models\Addon;
 use App\Models\AddonPreset;
@@ -29,19 +30,241 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
 use App\Models\Country;
-use App\Models\Side;
+use App\Models\Army;
 use Filament\Schemas\Components\Grid;
-
+use App\Services\AuditLogger;
+use App\Models\OperationStatus;
 
 class EditOperation extends EditRecord
 {
     protected static string $resource = OperationResource::class;
+    
+    protected array $auditDaysBefore = [];
+
+    protected array $auditEnemyFactionsBefore = [];
+
+    protected function mutateFormDataBeforeSave(
+        array $data
+    ): array {
+        /*
+        |--------------------------------------------------------------------------
+        | Estado al que queremos pasar el operativo
+        |--------------------------------------------------------------------------
+        */
+
+        $targetStatus =
+            OperationStatus::query()
+                ->whereKey(
+                    $data['operation_status_id']
+                    ?? null
+                )
+                ->value('name');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Solo necesitamos comprobarlo al pasar a BORRADOR
+        |--------------------------------------------------------------------------
+        */
+
+        if ($targetStatus !== 'BORRADOR') {
+            return $data;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Comprobar eventos publicados
+        |--------------------------------------------------------------------------
+        |
+        | Un operativo BORRADOR puede tener eventos BORRADOR preparados.
+        |
+        | Pero si ya existe un evento ACTIVO, FINALIZADO o cualquier otro
+        | estado público, el operativo no puede volver a BORRADOR.
+        |
+        */
+
+        $hasPublishedEvents =
+            $this->record
+                ->events()
+                ->whereHas(
+                    'eventStatus',
+                    fn ($query) =>
+                        $query->where(
+                            'name',
+                            '!=',
+                            'BORRADOR'
+                        )
+                )
+                ->exists();
+
+        if ($hasPublishedEvents) {
+            throw ValidationException::withMessages([
+                'data.operation_status_id' =>
+                    'No puedes pasar este operativo a BORRADOR '
+                    . 'porque tiene uno o más eventos publicados. '
+                    . 'Los eventos deben permanecer en BORRADOR '
+                    . 'antes de poder cambiar el estado del operativo.',
+            ]);
+        }
+
+        return $data;
+    }
+
+    protected function beforeSave(): void
+    {
+        $this->auditDaysBefore =
+            $this->record
+                ->days()
+                ->orderBy('name')
+                ->pluck('name')
+                ->values()
+                ->all();
+
+        $this->auditEnemyFactionsBefore =
+            $this->record
+                ->enemyFactions()
+                ->orderBy('name')
+                ->pluck('name')
+                ->values()
+                ->all();
+    }
+
+    protected function afterSave(): void
+    {
+        $daysAfter =
+            $this->record
+                ->days()
+                ->orderBy('name')
+                ->pluck('name')
+                ->values()
+                ->all();
+
+        if (
+            $this->auditDaysBefore
+            !== $daysAfter
+        ) {
+            app(AuditLogger::class)
+                ->change(
+                    subject: $this->record,
+
+                    event: 'operation_days_updated',
+
+                    old: [
+                        'days' =>
+                            $this->auditDaysBefore,
+                    ],
+
+                    new: [
+                        'days' =>
+                            $daysAfter,
+                    ],
+
+                    properties: [
+                        'relation' => 'days',
+
+                        'table' =>
+                            'operation_operation_day',
+                    ],
+                );
+        }
+
+
+        $enemyFactionsAfter =
+            $this->record
+                ->enemyFactions()
+                ->orderBy('name')
+                ->pluck('name')
+                ->values()
+                ->all();
+
+        if (
+            $this->auditEnemyFactionsBefore
+            !== $enemyFactionsAfter
+        ) {
+            app(AuditLogger::class)
+                ->change(
+                    subject: $this->record,
+
+                    event:
+                        'operation_enemy_factions_updated',
+
+                    old: [
+                        'enemy_factions' =>
+                            $this
+                                ->auditEnemyFactionsBefore,
+                    ],
+
+                    new: [
+                        'enemy_factions' =>
+                            $enemyFactionsAfter,
+                    ],
+
+                    properties: [
+                        'relation' =>
+                            'enemyFactions',
+
+                        'table' =>
+                            'enemy_faction_operation',
+                    ],
+                );
+        }
+    }
+
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getSaveFormAction()
+                ->label('Guardar'),
+
+            $this->getCancelFormAction()
+                ->label('Cancelar'),
+        ];
+    }
 
     protected function getHeaderActions(): array
     {
         return [
+            $this->getSaveFormAction()
+                ->submit(null)
+                ->action('save')
+                ->label('Guardar')
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--primary',
+                ]),
+
+            $this->getCancelFormAction()
+                ->label('Cancelar')
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--primary',
+                ]),
+
+            DeleteAction::make()
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--primary',
+                ]),
+
+            ForceDeleteAction::make()
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--primary',
+                ]),
+
+            RestoreAction::make()
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--primary',
+                ]),
+
             Action::make('editDescription')
             ->label('Editar descripción')
+            ->extraAttributes([
+                'class' =>
+                    'operation-header-action--secondary',
+            ])
             ->modalHeading('Editor de descripción')
             ->modalSubmitActionLabel('Guardar descripción')
             ->modalWidth('7xl')
@@ -349,6 +572,10 @@ class EditOperation extends EditRecord
             }),
             Action::make('editOrbat')
                 ->label('Editar ORBAT')
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--secondary',
+                ])
                 ->modalHeading('Editor de ORBAT')
                 ->modalSubmitActionLabel('Guardar ORBAT')
                 ->modalWidth('7xl')
@@ -409,8 +636,8 @@ class EditOperation extends EditRecord
                                         $countryId =
                                             $get('faction_country_filter');
 
-                                        $sideId =
-                                            $get('faction_side_filter');
+                                        $armyId =
+                                            $get('faction_army_filter');
 
                                         $selectedId =
                                             $get('faction_id');
@@ -426,19 +653,19 @@ class EditOperation extends EditRecord
 
                                         if (
                                             filled($countryId)
-                                            || filled($sideId)
+                                            || filled($armyId)
                                         ) {
                                             $query->where(
                                                 function ($query) use (
                                                     $countryId,
-                                                    $sideId,
+                                                    $armyId,
                                                     $selectedId
                                                 ): void {
 
                                                     $query->where(
                                                         function ($query) use (
                                                             $countryId,
-                                                            $sideId
+                                                            $armyId
                                                         ): void {
 
                                                             /*
@@ -457,13 +684,13 @@ class EditOperation extends EditRecord
                                                             }
 
                                                             /*
-                                                            * Bando
+                                                            * Ejército
                                                             */
 
-                                                            if (filled($sideId)) {
+                                                            if (filled($armyId)) {
                                                                 $query->where(
-                                                                    'side_id',
-                                                                    $sideId
+                                                                    'army_id',
+                                                                    $armyId
                                                                 );
                                                             }
                                                         }
@@ -513,7 +740,7 @@ class EditOperation extends EditRecord
                                         ->label('Filtrar facciones')
                                         ->icon('heroicon-o-funnel')
                                         ->iconButton()
-                                        ->tooltip('Filtrar por país o bando')
+                                        ->tooltip('Filtrar por país o ejército')
 
                                         /*
                                         * Naranja cuando existe algún
@@ -530,7 +757,7 @@ class EditOperation extends EditRecord
                                                     )
                                                     || filled(
                                                         $get(
-                                                            'faction_side_filter'
+                                                            'faction_army_filter'
                                                         )
                                                     )
                                                 )
@@ -578,20 +805,51 @@ class EditOperation extends EditRecord
                                     ->preload()
                                     ->placeholder('Todos los países')
                                     ->live()
+                                    ->afterStateUpdated(
+                                        fn (Set $set) =>
+                                            $set(
+                                                'faction_army_filter',
+                                                null
+                                            )
+                                    )
                                     ->dehydrated(false),
 
-                                Select::make('faction_side_filter')
-                                    ->label('Filtrar por bando')
+                                Select::make('faction_army_filter')
+                                    ->label('Filtrar por ejército')
                                     ->options(
-                                        fn (): array =>
-                                            Side::query()
-                                                ->orderBy('name')
-                                                ->pluck('name', 'id')
-                                                ->all()
+                                        function (Get $get): array {
+                                            $query =
+                                                Army::query()
+                                                    ->orderBy('name');
+
+                                            if (
+                                                filled(
+                                                    $get(
+                                                        'faction_country_filter'
+                                                    )
+                                                )
+                                            ) {
+                                                $query->where(
+                                                    'country_id',
+                                                    $get(
+                                                        'faction_country_filter'
+                                                    )
+                                                );
+                                            }
+
+                                            return $query
+                                                ->pluck(
+                                                    'name',
+                                                    'id'
+                                                )
+                                                ->all();
+                                        }
                                     )
                                     ->searchable()
                                     ->preload()
-                                    ->placeholder('Todos los bandos')
+                                    ->placeholder(
+                                        'Todos los ejércitos'
+                                    )
                                     ->live()
                                     ->dehydrated(false),
                             ])
@@ -632,28 +890,46 @@ class EditOperation extends EditRecord
 
                                     Select::make('slot_type_id')
                                         ->label('Tipo de slot')
-                                        ->options(fn (): array => SlotType::query()
-                                            ->orderBy('name')
-                                            ->pluck('name', 'id')
-                                            ->all())
+                                        ->options(
+                                            fn (): array =>
+                                                SlotType::query()
+                                                    ->orderBy('name')
+                                                    ->get()
+                                                    ->mapWithKeys(
+                                                        fn (SlotType $slotType): array => [
+                                                            $slotType->id =>
+                                                                self::slotTypeOptionLabel(
+                                                                    $slotType
+                                                                ),
+                                                        ]
+                                                    )
+                                                    ->all()
+                                        )
+                                        ->getSearchResultsUsing(
+                                            fn (string $search): array =>
+                                                SlotType::query()
+                                                    ->where(
+                                                        'name',
+                                                        'like',
+                                                        "%{$search}%"
+                                                    )
+                                                    ->orderBy('name')
+                                                    ->limit(50)
+                                                    ->get()
+                                                    ->mapWithKeys(
+                                                        fn (SlotType $slotType): array => [
+                                                            $slotType->id =>
+                                                                self::slotTypeOptionLabel(
+                                                                    $slotType
+                                                                ),
+                                                        ]
+                                                    )
+                                                    ->all()
+                                        )
+                                        ->allowHtml()
                                         ->searchable()
-                                        ->live()
-                                        ->afterStateUpdated(function ($state, Set $set): void {
-                                            $slotType = SlotType::query()->find($state);
-
-                                            $set('name', $slotType?->name);
-                                        })
+                                        ->preload()
                                         ->required(),
-
-                                    TextInput::make('name')
-                                        ->label('Nombre')
-                                        ->required()
-                                        ->maxLength(255),
-
-                                    Toggle::make('visible')
-                                        ->label('Visible')
-                                        ->inline(false)
-                                        ->default(true),
                                     
                                 ])
                                 ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
@@ -716,6 +992,10 @@ class EditOperation extends EditRecord
 
             Action::make('editRadio')
                 ->label('Editar radios')
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--secondary',
+                ])
                 ->modalHeading('Editor de radios')
                 ->modalSubmitActionLabel('Guardar radios')
                 ->modalWidth('7xl')
@@ -989,6 +1269,10 @@ class EditOperation extends EditRecord
 
             Action::make('editAddons')
                 ->label('Editar addons')
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--secondary',
+                ])
                 ->modalHeading('Editor de addons')
                 ->modalSubmitActionLabel('Guardar addons')
                 ->modalWidth('3xl')
@@ -1162,6 +1446,10 @@ class EditOperation extends EditRecord
 
             Action::make('duplicateOperation')
                 ->label('Duplicar')
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--primary',
+                ])
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Duplicar operativo')
@@ -1173,9 +1461,77 @@ class EditOperation extends EditRecord
                     $duplicate->orbat = static::regenerateOrbatSlotKeys($this->record->orbat ?? []);
                     $duplicate->save();
 
-                    $duplicate->enemyFactions()->sync(
-                        $this->record->enemyFactions()->pluck('factions.id')->all()
-                    );
+                    $enemyFactions = $this->record
+                        ->enemyFactions()
+                        ->orderBy('name')
+                        ->get([
+                            'factions.id',
+                            'factions.name',
+                        ]);
+
+                    $enemyFactionIds = $enemyFactions
+                        ->pluck('id')
+                        ->all();
+
+                    $duplicate
+                        ->enemyFactions()
+                        ->sync($enemyFactionIds);
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Auditoría de la duplicación
+                    |--------------------------------------------------------------------------
+                    |
+                    | El modelo Operation ya registra su creación mediante Auditable.
+                    | Aquí registramos específicamente:
+                    |
+                    | - de qué operativo procede;
+                    | - las facciones enemigas copiadas;
+                    | - la modificación de enemy_faction_operation.
+                    |
+                    */
+
+                    app(AuditLogger::class)
+                        ->change(
+                            subject: $duplicate,
+
+                            event: 'operation_duplicated',
+
+                            old: [],
+
+                            new: [
+                                'source_operation_id' =>
+                                    $this->record->getKey(),
+
+                                'source_operation_name' =>
+                                    $this->record->name,
+
+                                'enemy_factions' =>
+                                    $enemyFactions
+                                        ->map(
+                                            fn (Faction $faction): array => [
+                                                'id' => $faction->id,
+                                                'name' => $faction->name,
+                                            ]
+                                        )
+                                        ->values()
+                                        ->all(),
+                            ],
+
+                            properties: [
+                                'action' => 'duplicate',
+
+                                'source_operation_id' =>
+                                    $this->record->getKey(),
+
+                                'relation' =>
+                                    'enemyFactions',
+
+                                'table' =>
+                                    'enemy_faction_operation',
+                            ],
+                        );
 
                     Notification::make()
                         ->title('Operativo duplicado.')
@@ -1184,10 +1540,6 @@ class EditOperation extends EditRecord
 
                     $this->redirect(OperationResource::getUrl('edit', ['record' => $duplicate]));
                 }),
-
-            DeleteAction::make(),
-            ForceDeleteAction::make(),
-            RestoreAction::make(),
         ];
     }
 
@@ -1267,5 +1619,41 @@ HTML;
             'notes' => null,
             'visible' => true,
         ];
+    }
+    private static function slotTypeOptionLabel(
+        SlotType $slotType
+    ): string {
+
+        $name =
+            e($slotType->name);
+
+        $description =
+            trim(
+                strip_tags(
+                    (string) $slotType->description
+                )
+            );
+
+        $description =
+            filled($description)
+                ? e(
+                    \Illuminate\Support\Str::limit(
+                        $description,
+                        105
+                    )
+                )
+                : 'Sin descripción.';
+
+        return <<<HTML
+            <div class="slot-type-select-option">
+                <div class="slot-type-select-option__name">
+                    {$name}
+                </div>
+
+                <div class="slot-type-select-option__description">
+                    {$description}
+                </div>
+            </div>
+        HTML;
     }
 }

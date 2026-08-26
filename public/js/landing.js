@@ -781,14 +781,16 @@ document.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
-        | Comprobación cada 3 segundos
+        | Consultamos cada 10 segundos si han cambiado
+        | las notificaciones del usuario.
         |--------------------------------------------------------------------------
         */
 
-        window.setInterval(
-            pollNotifications,
-            3000
-        );
+        const notificationPollInterval =
+            window.setInterval(
+                pollNotifications,
+                10000
+            );
 
 
         /*
@@ -813,6 +815,21 @@ document.addEventListener(
                 ) {
                     pollNotifications();
                 }
+            }
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Limpieza
+        |--------------------------------------------------------------------------
+        */
+
+        window.addEventListener(
+            'pagehide',
+            () => {
+                window.clearInterval(
+                    notificationPollInterval
+                );
             }
         );
     }

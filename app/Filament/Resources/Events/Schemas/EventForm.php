@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Events\Schemas;
 
+use App\Models\EventStatus;
 use App\Models\Operation;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -20,15 +21,65 @@ class EventForm
         return $schema
             ->components([
                 Select::make('operation_id')
-                    ->label('Operativo')
-                    ->relationship('operation', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->live()
-                    ->afterStateUpdated(function ($state, Set $set): void {
-                        $set('name', Operation::query()->whereKey($state)->value('name'));
-                    })
-                    ->required(),
+                ->label('Operativo')
+                ->relationship('operation', 'name')
+                ->searchable()
+                ->preload()
+                ->live()
+                ->afterStateUpdated(
+                    function ($state, Get $get, Set $set): void {
+                        $operation =
+                            Operation::query()
+                                ->with('operationStatus')
+                                ->find($state);
+
+                        $set(
+                            'name',
+                            $operation?->name
+                        );
+
+                        /*
+                        * Si el nuevo operativo está en BORRADOR
+                        * y actualmente el evento tenía un estado
+                        * público, limpiamos el estado para obligar
+                        * al usuario a seleccionar uno válido.
+                        */
+                        if (
+                            $operation?->operationStatus?->name
+                            === 'BORRADOR'
+                        ) {
+                            $currentEventStatusId =
+                                $get('event_status_id');
+
+                            if (filled($currentEventStatusId)) {
+                                $currentEventStatus =
+                                    EventStatus::query()
+                                        ->find(
+                                            $currentEventStatusId
+                                        );
+
+                                if (
+                                    in_array(
+                                        $currentEventStatus?->name,
+                                        [
+                                            'ACTIVO',
+                                            'FINALIZADO',
+                                        ],
+                                        true
+                                    )
+                                ) {
+                                    $set(
+                                        'event_status_id',
+                                        null
+                                    );
+                                }
+                            }
+                        }
+                    }
+                )
+                ->disabledOn('edit')
+                ->dehydrated()
+                ->required(),
 
                 TextInput::make('name')
                     ->label('Nombre')
@@ -37,10 +88,85 @@ class EventForm
 
                 Select::make('event_status_id')
                     ->label('Estado')
-                    ->relationship('eventStatus', 'name')
+                    ->options(
+                        function (Get $get): array {
+                            $query =
+                                EventStatus::query()
+                                    ->orderBy('name');
+
+                            $operationId =
+                                $get('operation_id');
+
+                            if (filled($operationId)) {
+                                $operationStatus =
+                                    Operation::query()
+                                        ->whereKey($operationId)
+                                        ->with('operationStatus')
+                                        ->first()
+                                        ?->operationStatus
+                                        ?->name;
+
+                                /*
+                                * Un operativo BORRADOR puede tener
+                                * un evento preparado en BORRADOR,
+                                * pero ese evento todavía no puede
+                                * publicarse.
+                                */
+                                if (
+                                    $operationStatus
+                                    === 'BORRADOR'
+                                ) {
+                                    $query->where(
+                                        'name',
+                                        'BORRADOR'
+                                    );
+                                }
+                            }
+
+                            return $query
+                                ->pluck(
+                                    'name',
+                                    'id'
+                                )
+                                ->all();
+                        }
+                    )
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->live()
+                    ->required()
+                    ->helperText(
+                        function (Get $get): ?string {
+                            $operationId =
+                                $get('operation_id');
+
+                            if (blank($operationId)) {
+                                return null;
+                            }
+
+                            $isDraft =
+                                Operation::query()
+                                    ->whereKey($operationId)
+                                    ->whereHas(
+                                        'operationStatus',
+                                        fn ($query) =>
+                                            $query->where(
+                                                'name',
+                                                'BORRADOR'
+                                            )
+                                    )
+                                    ->exists();
+
+                            if (! $isDraft) {
+                                return null;
+                            }
+
+                            return 'El operativo está en BORRADOR. '
+                                . 'El evento también debe permanecer '
+                                . 'en BORRADOR hasta que el operativo '
+                                . 'esté activo.';
+                        }
+                    ),
 
                 
 
@@ -59,11 +185,17 @@ class EventForm
                     ->nullable(),   
 
                 DateTimePicker::make('end_date')
-                    ->label('Fecha fin')
+                    ->label('Fecha de finalización')
                     ->seconds(false)
                     ->live()
-                    ->afterStateUpdated(fn (Get $get, Set $set): null => static::updateDuration($get, $set))
-                    ->nullable(),
+                    ->minDate(
+                        fn (Get $get) => $get('date')
+                    )
+                    ->afterOrEqual('date')
+                    ->afterStateUpdated(
+                        fn (Get $get, Set $set) =>
+                            self::updateDuration($get, $set)
+                    ),
 
                 TextInput::make('ocap_url')
                     ->label('URL OCAP')

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class EventMedia extends Model
 {
+    use Auditable;
     /*
     |--------------------------------------------------------------------------
     | Tabla
