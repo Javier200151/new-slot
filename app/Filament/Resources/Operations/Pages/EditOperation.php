@@ -702,7 +702,8 @@ class EditOperation extends EditRecord
                                                     */
 
                                                     if (filled($selectedId)) {
-                                                        $query->orWhereKey(
+                                                        $query->orWhere(
+                                                            'factions.id',
                                                             $selectedId
                                                         );
                                                     }
@@ -806,11 +807,35 @@ class EditOperation extends EditRecord
                                     ->placeholder('Todos los países')
                                     ->live()
                                     ->afterStateUpdated(
-                                        fn (Set $set) =>
-                                            $set(
-                                                'faction_army_filter',
-                                                null
-                                            )
+                                        function ($state, Get $get, Set $set): void {
+                                            $armyId =
+                                                $get('faction_army_filter');
+
+                                            /*
+                                            * Si se quita el país, el ejército puede
+                                            * seguir utilizándose como filtro independiente.
+                                            */
+                                            if (blank($state) || blank($armyId)) {
+                                                return;
+                                            }
+
+                                            /*
+                                            * Si el ejército seleccionado no pertenece
+                                            * al nuevo país, se limpia automáticamente.
+                                            */
+                                            $armyBelongsToCountry =
+                                                Army::query()
+                                                    ->whereKey($armyId)
+                                                    ->where('country_id', $state)
+                                                    ->exists();
+
+                                            if (! $armyBelongsToCountry) {
+                                                $set(
+                                                    'faction_army_filter',
+                                                    null
+                                                );
+                                            }
+                                        }
                                     )
                                     ->dehydrated(false),
 
@@ -887,6 +912,11 @@ class EditOperation extends EditRecord
                                 ->schema([
                                     Hidden::make('slot_key')
                                         ->default(fn (): string => (string) Str::ulid()),
+
+                                    TextInput::make('name')
+                                        ->label('Nombre')
+                                        ->required()
+                                        ->maxLength(255),
 
                                     Select::make('slot_type_id')
                                         ->label('Tipo de slot')
