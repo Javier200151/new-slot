@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Operations\Pages;
 use App\Filament\Resources\Operations\OperationResource;
 use Filament\Resources\Pages\CreateRecord;
 use App\Services\AuditLogger;
+use App\Support\OperationTypeAccess;
+use Illuminate\Validation\ValidationException;
 
 class CreateOperation extends CreateRecord
 {
@@ -22,6 +24,25 @@ class CreateOperation extends CreateRecord
             $this->getCancelFormAction()
                 ->label('Cancelar'),
         ];
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $operationTypeId = $data['operation_type_id'] ?? null;
+
+        if (! OperationTypeAccess::can(
+            auth()->user(),
+            'operations',
+            'create',
+            $operationTypeId,
+        )) {
+            throw ValidationException::withMessages([
+                'data.operation_type_id' =>
+                    'No tienes permiso para crear operativos de este tipo.',
+            ]);
+        }
+
+        return $data;
     }
 
     protected function afterCreate(): void

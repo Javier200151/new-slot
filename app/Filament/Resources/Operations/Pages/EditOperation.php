@@ -34,6 +34,7 @@ use App\Models\Army;
 use Filament\Schemas\Components\Grid;
 use App\Services\AuditLogger;
 use App\Models\OperationStatus;
+use App\Support\OperationTypeAccess;
 
 class EditOperation extends EditRecord
 {
@@ -46,6 +47,21 @@ class EditOperation extends EditRecord
     protected function mutateFormDataBeforeSave(
         array $data
     ): array {
+        $targetOperationTypeId =
+            $data['operation_type_id'] ?? null;
+
+        if (! OperationTypeAccess::can(
+            auth()->user(),
+            'operations',
+            'update',
+            $targetOperationTypeId,
+        )) {
+            throw ValidationException::withMessages([
+                'data.operation_type_id' =>
+                    'No tienes permiso para modificar operativos de este tipo.',
+            ]);
+        }
+
         /*
         |--------------------------------------------------------------------------
         | Estado al que queremos pasar el operativo
@@ -959,6 +975,22 @@ class EditOperation extends EditRecord
                                         ->allowHtml()
                                         ->searchable()
                                         ->preload()
+                                        ->live()
+                                        ->afterStateUpdated(
+                                            function ($state, Set $set): void {
+                                                if (blank($state)) {
+                                                    return;
+                                                }
+
+                                                $slotTypeName = SlotType::query()
+                                                    ->whereKey($state)
+                                                    ->value('name');
+
+                                                if (filled($slotTypeName)) {
+                                                    $set('name', $slotTypeName);
+                                                }
+                                            }
+                                        )
                                         ->required(),
                                     
                                 ])
