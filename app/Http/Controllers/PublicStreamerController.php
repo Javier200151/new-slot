@@ -9,44 +9,87 @@ use App\Services\StreamEmbedService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class PublicStreamerController extends Controller
 {
     public function status(): JsonResponse
     {
-        $streams = Stream::query()
-            ->where('enabled', true)
-            ->whereHas(
-                'streamer',
-                fn ($query) =>
-                    $query->where(
-                        'enable',
-                        true
-                    )
-            )
-            ->orderBy('id')
-            ->get([
-                'id',
-                'event_id',
-                'streamer_id',
-                'updated_at',
-            ]);
+        $payload = Cache::remember(
+            'public_streams_status',
+            now()->addSeconds(5),
+            function (): array {
 
-        return response()->json([
-            'streams' => $streams
-                ->map(
-                    fn (Stream $stream): array => [
-                        'id' => $stream->id,
-                        'event_id' => $stream->event_id,
-                        'streamer_id' =>
-                            $stream->streamer_id,
-                        'updated_at' =>
-                            $stream->updated_at
-                                ?->timestamp,
-                    ]
-                )
-                ->values(),
-        ]);
+                $streams = Stream::query()
+                    ->where('enabled', true)
+                    ->whereHas(
+                        'streamer',
+                        fn ($query) =>
+                            $query->where(
+                                'enable',
+                                true
+                            )
+                    )
+                    ->whereHas(
+                        'event',
+                        function ($query): void {
+                            $query
+                                ->whereHas(
+                                    'eventStatus',
+                                    fn ($statusQuery) =>
+                                        $statusQuery->where(
+                                            'name',
+                                            'ACTIVO'
+                                        )
+                                )
+                                ->where(
+                                    'date',
+                                    '>=',
+                                    now()->subHours(12)
+                                )
+                                ->where(
+                                    'date',
+                                    '<=',
+                                    now()->addDays(30)
+                                );
+                        }
+                    )
+                    ->orderBy('id')
+                    ->get([
+                        'id',
+                        'event_id',
+                        'streamer_id',
+                        'updated_at',
+                    ]);
+
+                return [
+                    'streams' => $streams
+                        ->map(
+                            fn (Stream $stream): array => [
+                                'id' =>
+                                    $stream->id,
+
+                                'event_id' =>
+                                    $stream->event_id,
+
+                                'streamer_id' =>
+                                    $stream->streamer_id,
+
+                                'updated_at' =>
+                                    $stream
+                                        ->updated_at
+                                        ?->timestamp,
+                            ]
+                        )
+                        ->values()
+                        ->all(),
+                ];
+            }
+        );
+
+        return response()->json(
+            $payload
+        );
     }
     
     public function index(
@@ -80,6 +123,30 @@ class PublicStreamerController extends Controller
                         'enable',
                         true
                     )
+            )
+            ->whereHas(
+                'event',
+                function ($query): void {
+                    $query
+                        ->whereHas(
+                            'eventStatus',
+                            fn ($statusQuery) =>
+                                $statusQuery->where(
+                                    'name',
+                                    'ACTIVO'
+                                )
+                        )
+                        ->where(
+                            'date',
+                            '>=',
+                            now()->subHours(12)
+                        )
+                        ->where(
+                            'date',
+                            '<=',
+                            now()->addDays(30)
+                        );
+                }
             )
             ->with([
                 'event.slots',
@@ -165,6 +232,14 @@ class PublicStreamerController extends Controller
             && $myStreamer->enable
         ) {
             $availableEvents = Event::query()
+                ->whereHas(
+                    'eventStatus',
+                    fn ($query) =>
+                        $query->where(
+                            'name',
+                            'ACTIVO'
+                        )
+                )
                 ->where(
                     'date',
                     '>=',

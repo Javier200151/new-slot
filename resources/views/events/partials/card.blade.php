@@ -1,7 +1,26 @@
 @php
     $operation = $event->operation;
-    $occupiedSlots = (int) $event->occupied_slots_count;
-    $totalSlots = $event->getOrbatSlotsCount();
+
+    $totalSlots =
+        $event->getOrbatSlotsCount();
+
+    /*
+     * El controlador nos proporcionará el número exacto
+     * de slots VISIBLES ocupados.
+     *
+     * Dejamos occupied_slots_count como fallback temporal
+     * para que la tarjeta siga funcionando en cualquier
+     * contexto donde todavía no venga el nuevo contador.
+     */
+    $occupiedSlots = min(
+        $totalSlots,
+        (int) (
+            $event->visible_occupied_slots_count
+            ?? $event->occupied_slots_count
+            ?? 0
+        )
+    );
+
     $occupancyPercentage = $totalSlots > 0
         ? min(100, (int) round(($occupiedSlots / $totalSlots) * 100))
         : 0;

@@ -20,6 +20,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationItem;
+use Filament\Support\Assets\Css;
 //use Pxlrbt\FilamentActivityLog\FilamentActivityLogPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -35,6 +36,12 @@ class AdminPanelProvider extends PanelProvider
             ->registration(\App\Filament\Pages\Auth\Register::class)
             ->colors([
                 'primary' => Color::Amber,
+            ])
+            ->assets([
+                Css::make(
+                    'filament-custom',
+                    asset('css/filament-custom.css')
+                ),
             ])
             ->navigationGroups([
                 NavigationGroup::make('Operativos'),

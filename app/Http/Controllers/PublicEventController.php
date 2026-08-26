@@ -64,6 +64,7 @@ class PublicEventController extends Controller
                 'operation.period',
                 'operation.platform',
                 'operation.map',
+                'slots:id,event_id,slot_key,user_id,ally_id',
             ])
             ->withCount([
                 'slots as occupied_slots_count' => fn ($query) => $query
@@ -77,6 +78,9 @@ class PublicEventController extends Controller
             ->orderBy('date')
             ->get();
 
+        $this->setVisibleOccupiedSlotsCount(
+            $calendarEvents
+        );
         $eventsByDate = $calendarEvents->groupBy(
             fn (Event $event): string => $event->date->toDateString(),
         );
@@ -108,6 +112,10 @@ class PublicEventController extends Controller
             )
             ->orderByDesc('date')
             ->get();
+
+        $this->setVisibleOccupiedSlotsCount(
+            $listedEvents
+        );
 
         $operationTypes = OperationType::query()
             ->orderBy('name')
@@ -2556,5 +2564,89 @@ class PublicEventController extends Controller
 
             'created_at' => now(),
         ]);
+    }
+    private function setVisibleOccupiedSlotsCount(
+        iterable $events
+    ): void {
+        foreach ($events as $event) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Slot keys visibles del ORBAT
+            |--------------------------------------------------------------------------
+            */
+
+            $visibleSlotKeys = collect(
+                $event->orbat['groups'] ?? []
+            )
+                ->filter(
+                    fn (array $group): bool =>
+                        (bool) (
+                            $group['visible']
+                            ?? true
+                        )
+                )
+                ->flatMap(
+                    fn (array $group) =>
+                        collect(
+                            $group['slots']
+                            ?? []
+                        )
+                            ->filter(
+                                fn (array $slot): bool =>
+                                    (bool) (
+                                        $slot['visible']
+                                        ?? true
+                                    )
+                            )
+                            ->pluck('slot_key')
+                )
+                ->filter()
+                ->map(
+                    fn ($slotKey): string =>
+                        (string) $slotKey
+                )
+                ->unique()
+                ->values();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Slots visibles realmente ocupados
+            |--------------------------------------------------------------------------
+            */
+
+            $visibleOccupiedSlotsCount =
+                $event->slots
+                    ->filter(
+                        fn (EventSlot $slot): bool =>
+                            $visibleSlotKeys->contains(
+                                (string) $slot->slot_key
+                            )
+                            && (
+                                $slot->user_id !== null
+                                || $slot->ally_id !== null
+                            )
+                    )
+                    ->pluck('slot_key')
+                    ->map(
+                        fn ($slotKey): string =>
+                            (string) $slotKey
+                    )
+                    ->unique()
+                    ->count();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Atributo temporal para la tarjeta
+            |--------------------------------------------------------------------------
+            */
+
+            $event->setAttribute(
+                'visible_occupied_slots_count',
+                $visibleOccupiedSlotsCount
+            );
+        }
     }
 }

@@ -1,0 +1,293 @@
+/* =========================================================
+   TIPO DE SLOT - ORBAT
+========================================================= */
+
+
+/*
+|--------------------------------------------------------------------------
+| Contenedor
+|--------------------------------------------------------------------------
+*/
+
+.slot-type-select-option {
+    min-width: 0;
+    max-width: 100%;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Nombre
+|--------------------------------------------------------------------------
+*/
+
+.slot-type-select-option__name {
+    min-width: 0;
+
+    overflow: hidden;
+
+    color: inherit;
+
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2rem;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Descripción oculta por defecto
+|--------------------------------------------------------------------------
+|
+| Fundamental:
+|
+| cuando el SELECT está cerrado solo queremos:
+|
+|   Mando Global
+|
+| NO:
+|
+|   Mando Global
+|   HQ, también Líder de Pelotón...
+|
+*/
+
+.slot-type-select-option__description {
+    display: none !important;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Descripción SOLO dentro del listado desplegado
+|--------------------------------------------------------------------------
+*/
+
+.choices__list--dropdown
+.slot-type-select-option__description,
+[role="listbox"]
+[role="option"]
+.slot-type-select-option__description {
+    display: block !important;
+
+    margin-top: 1px;
+
+    overflow: hidden;
+
+    color: #8b95a5;
+
+    font-size: 0.66rem;
+    font-weight: 400;
+    line-height: 0.95rem;
+
+    opacity: 0.72;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Opciones del desplegable
+|--------------------------------------------------------------------------
+*/
+
+.choices__list--dropdown
+.slot-type-select-option,
+[role="listbox"]
+[role="option"]
+.slot-type-select-option {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+/* =========================================================
+   ACCIONES SUPERIORES - EDITAR OPERATIVO
+========================================================= */
+
+
+/*
+|--------------------------------------------------------------------------
+| Contenedor real de acciones de Filament
+|--------------------------------------------------------------------------
+*/
+
+.fi-header-actions-ctn:has(.operation-header-action--primary) {
+    flex: 1;
+    margin-left: auto;
+}
+
+.fi-header-actions-ctn:has(.operation-header-action--primary)
+    > .fi-ac {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center;
+    justify-content: flex-end;
+
+    width: 100%;
+
+    gap: 0.45rem 0.55rem;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Primera fila
+|--------------------------------------------------------------------------
+|
+| Guardar
+| Cancelar
+| Duplicar
+| Delete
+|
+*/
+
+.fi-header-actions-ctn
+    > .fi-ac
+    > .operation-header-action--primary {
+    order: 1;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Salto obligatorio
+|--------------------------------------------------------------------------
+*/
+
+.fi-header-actions-ctn:has(.operation-header-action--secondary)
+    > .fi-ac::before {
+    content: "";
+
+    order: 2;
+
+    flex-basis: 100%;
+    width: 100%;
+    height: 0;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Segunda fila
+|--------------------------------------------------------------------------
+|
+| Editar descripción
+| Editar ORBAT
+| Editar radios
+| Editar addons
+|
+*/
+
+.fi-header-actions-ctn
+    > .fi-ac
+    > .operation-header-action--secondary {
+    order: 3;
+
+    min-height: 1.9rem !important;
+
+    padding: 0.3rem 0.6rem !important;
+
+    font-size: 0.75rem !important;
+    line-height: 1rem !important;
+}
+
+/* =========================================================
+   ACCIONES SUPERIORES - EDITAR EVENTO
+========================================================= */
+
+
+/*
+|--------------------------------------------------------------------------
+| Contenedor general
+|--------------------------------------------------------------------------
+*/
+
+.fi-header-actions-ctn:has(.event-header-action--primary) {
+    flex: 1;
+    margin-left: auto;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Contenedor de botones
+|--------------------------------------------------------------------------
+*/
+
+.fi-header-actions-ctn:has(.event-header-action--primary)
+    > .fi-ac {
+    display: flex !important;
+    flex-wrap: wrap !important;
+
+    align-items: center;
+    justify-content: flex-end;
+
+    width: 100%;
+
+    gap: 0.45rem 0.55rem;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Primera fila
+|--------------------------------------------------------------------------
+|
+| Guardar
+| Cancelar
+| Delete
+|
+*/
+
+.fi-header-actions-ctn
+    > .fi-ac
+    > .event-header-action--primary {
+    order: 1;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Salto de línea
+|--------------------------------------------------------------------------
+*/
+
+.fi-header-actions-ctn:has(.event-header-action--secondary)
+    > .fi-ac::before {
+    content: "";
+
+    order: 2;
+
+    flex-basis: 100%;
+
+    width: 100%;
+    height: 0;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Segunda fila
+|--------------------------------------------------------------------------
+|
+| Editar ORBAT
+| Recuperar ORBAT original
+|
+*/
+
+.fi-header-actions-ctn
+    > .fi-ac
+    > .event-header-action--secondary {
+    order: 3;
+
+    min-height: 1.9rem !important;
+
+    padding: 0.3rem 0.6rem !important;
+
+    font-size: 0.75rem !important;
+    line-height: 1rem !important;
+}

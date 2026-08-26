@@ -99,9 +99,39 @@ class Event extends Model
 
     public function getOrbatSlotsCount(): int
     {
-        return collect($this->orbat['groups'] ?? [])->sum(
-            fn (array $group): int => count($group['slots'] ?? []),
-        );
+        return collect(
+            $this->orbat['groups'] ?? []
+        )
+            /*
+            * Solo grupos visibles.
+            */
+            ->filter(
+                fn (array $group): bool =>
+                    (bool) (
+                        $group['visible']
+                        ?? true
+                    )
+            )
+
+            /*
+            * Contamos únicamente los slots
+            * visibles de esos grupos.
+            */
+            ->sum(
+                fn (array $group): int =>
+                    collect(
+                        $group['slots']
+                        ?? []
+                    )
+                        ->filter(
+                            fn (array $slot): bool =>
+                                (bool) (
+                                    $slot['visible']
+                                    ?? true
+                                )
+                        )
+                        ->count()
+            );
     }
 
     public function getOrbatSummaryHtml(): HtmlString
