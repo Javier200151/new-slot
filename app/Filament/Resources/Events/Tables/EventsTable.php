@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Events\Tables;
 
+use App\Models\Operation;
+use App\Support\OperationTypeAccess;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -119,7 +121,20 @@ class EventsTable
                 SelectFilter::make('operation_id')
                     ->label('Operativo')
                     ->multiple()
-                    ->relationship('operation', 'name'),
+                    ->options(
+                        fn (): array => Operation::query()
+                            ->whereIn(
+                                'operation_type_id',
+                                OperationTypeAccess::allowedTypeIds(
+                                    auth()->user(),
+                                    'events',
+                                    'view',
+                                )
+                            )
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all()
+                    ),
 
                 SelectFilter::make('event_status_id')
                     ->label('Estado')

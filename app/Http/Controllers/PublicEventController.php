@@ -319,14 +319,27 @@ class PublicEventController extends Controller
             $canAccessFilament
             && (
                 $isAdmin
-                || $user?->can('operations.update')
+                || (
+                    $user
+                    && $event->operation
+                    && $user->can(
+                        'update',
+                        $event->operation
+                    )
+                )
             );
 
         $canEditEvent =
             $canAccessFilament
             && (
                 $isAdmin
-                || $user?->can('events.update')
+                || (
+                    $user
+                    && $user->can(
+                        'update',
+                        $event
+                    )
+                )
             );
 
         /*
@@ -374,6 +387,7 @@ class PublicEventController extends Controller
 
         $canModerateEventMedia =
             $this->canModerateEventMedia(
+                $event,
                 $user
             );
 
@@ -760,7 +774,7 @@ class PublicEventController extends Controller
         *
         * - quien añadió el contenido;
         * - admin;
-        * - events.update.
+        * - permiso de modificar el tipo de este evento.
         */
 
         abort_unless(
@@ -2400,6 +2414,7 @@ class PublicEventController extends Controller
     }
 
     private function canModerateEventMedia(
+        Event $event,
         ?User $user,
     ): bool {
 
@@ -2410,7 +2425,8 @@ class PublicEventController extends Controller
         return
             $user->hasRole('admin')
             || $user->can(
-                'events.update'
+                'update',
+                $event
             );
     }
 
@@ -2441,8 +2457,11 @@ class PublicEventController extends Controller
         * Moderador.
         */
 
+        $eventMedia->loadMissing('event.operation');
+
         return $this
             ->canModerateEventMedia(
+                $eventMedia->event,
                 $user
             );
     }
