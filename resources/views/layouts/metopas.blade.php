@@ -123,7 +123,7 @@
                             Mi perfil
                         </a>
 
-                        @if(auth()->user()->hasRole('admin'))
+                        @if(auth()->user()->hasRole('admin') || auth()->user()->can('filament.access'))
                             <a href="{{ url('/admin') }}" class="btn btn-outline">
                                 Administración
                             </a>

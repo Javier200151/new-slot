@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Events\Schemas;
 
 use App\Models\EventStatus;
 use App\Models\Operation;
+use App\Support\OperationTypeAccess;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -21,8 +22,27 @@ class EventForm
         return $schema
             ->components([
                 Select::make('operation_id')
-                ->label('Operativo')
-                ->relationship('operation', 'name')
+                ->label('Tipo de evento')
+                ->options(
+                    function ($record): array {
+                        $action = $record ? 'update' : 'create';
+                        $allowedTypeIds =
+                            OperationTypeAccess::allowedTypeIds(
+                                auth()->user(),
+                                'events',
+                                $action,
+                            );
+
+                        return Operation::query()
+                            ->whereIn(
+                                'operation_type_id',
+                                $allowedTypeIds,
+                            )
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all();
+                    }
+                )
                 ->searchable()
                 ->preload()
                 ->live()

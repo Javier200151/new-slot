@@ -24,7 +24,7 @@ class ListEvents extends ListRecords
     {
         return [
             'todos' => Tab::make('Todos')
-                ->badge(Event::query()->count()),
+                ->badge(EventResource::getEloquentQuery()->count()),
 
             'activo' => Tab::make('Activos')
                 ->badge(static::countByStatus('ACTIVO'))
@@ -46,7 +46,7 @@ class ListEvents extends ListRecords
 
     protected static function countByStatus(string $status): int
     {
-        return Event::query()
+        return EventResource::getEloquentQuery()
             ->whereHas('eventStatus', fn (Builder $query) => $query->where('name', $status))
             ->count();
     }

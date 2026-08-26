@@ -8,6 +8,9 @@ use App\Filament\Resources\Events\Pages\ListEvents;
 use App\Filament\Resources\Events\Schemas\EventForm;
 use App\Filament\Resources\Events\Tables\EventsTable;
 use App\Models\Event;
+use App\Models\Operation;
+use App\Support\OperationTypeAccess;
+use Illuminate\Support\Facades\Auth;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -61,6 +64,32 @@ class EventResource extends Resource
         ];
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = Auth::user();
+        $allowedTypeIds = OperationTypeAccess::allowedTypeIds(
+            $user,
+            'events',
+            'view',
+        );
+
+        if ($allowedTypeIds === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn(
+            'operation_id',
+            Operation::query()
+                ->withTrashed()
+                ->whereIn(
+                    'operation_type_id',
+                    $allowedTypeIds,
+                )
+                ->select('id')
+        );
+    }
+
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()
@@ -71,6 +100,6 @@ class EventResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::count();
+        return (string) static::getEloquentQuery()->count();
     }
 }

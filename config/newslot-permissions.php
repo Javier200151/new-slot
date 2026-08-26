@@ -52,6 +52,7 @@ return [
                 ],
                 'operations' => [
                     'label' => 'Operaciones',
+                    'scope' => 'operation_type',
                 ],
                 'operation-days' => [
                     'label' => 'Días de operación',
@@ -75,6 +76,7 @@ return [
             'resources' => [
                 'events' => [
                     'label' => 'Eventos',
+                    'scope' => 'operation_type',
                 ],
 
                 'event-comments' => [
