@@ -1508,6 +1508,14 @@ class EditOperation extends EditRecord
 
             Action::make('duplicateOperation')
                 ->label('Duplicar')
+                ->visible(
+                    fn (): bool => OperationTypeAccess::can(
+                        auth()->user(),
+                        'operations',
+                        'create',
+                        $this->record->operation_type_id,
+                    )
+                )
                 ->extraAttributes([
                     'class' =>
                         'operation-header-action--primary',
@@ -1517,6 +1525,16 @@ class EditOperation extends EditRecord
                 ->modalHeading('Duplicar operativo')
                 ->modalDescription('Se creará una copia del operativo actual sin duplicar sus eventos.')
                 ->action(function (): void {
+                    abort_unless(
+                        OperationTypeAccess::can(
+                            auth()->user(),
+                            'operations',
+                            'create',
+                            $this->record->operation_type_id,
+                        ),
+                        403
+                    );
+
                     $duplicate = $this->record->replicate();
 
                     $duplicate->name = trim($this->record->name . ' (copia)');
