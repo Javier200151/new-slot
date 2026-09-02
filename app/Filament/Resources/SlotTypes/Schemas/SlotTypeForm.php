@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SlotTypes\Schemas;
 
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -20,6 +21,17 @@ class SlotTypeForm
                     ->label('Descripción')
                     ->required()
                     ->maxLength(255),
+
+                FileUpload::make('image')
+                    ->label('Icono')
+                    ->image()
+                    ->disk('public')
+                    ->directory('slot-types')
+                    ->visibility('public')
+                    ->imageResizeMode('contain')
+                    ->imageResizeTargetWidth('256')
+                    ->imageResizeTargetHeight('256')
+                    ->helperText('Se mostrará como un icono pequeño en el selector de ORBAT.'),
             ]);
     }
 }

@@ -7,7 +7,7 @@
 @section('body-class', 'campaign-page-body')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/events.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/events.css') }}?v={{ filemtime(public_path('css/events.css')) }}">
 @endpush
 
 @section('content')

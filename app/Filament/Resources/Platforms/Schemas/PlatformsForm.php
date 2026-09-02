@@ -19,6 +19,9 @@ class PlatformsForm
                     ->disk('public')
                     ->directory('platforms')
                     ->visibility('public')
+                    ->imageResizeMode('contain')
+                    ->imageResizeTargetWidth('256')
+                    ->imageResizeTargetHeight('256')
                     ->preserveFilenames(),
             ]);
     }

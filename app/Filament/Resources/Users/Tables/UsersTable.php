@@ -10,6 +10,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\User;
 use Filament\Tables\Filters\SelectFilter;
 
 class UsersTable
@@ -24,7 +25,14 @@ class UsersTable
                 //     ->toggleable(),
 
                 TextColumn::make('nick')
-                    ->searchable(),
+                    ->label('Nick')
+                    ->searchable()
+                    ->sortable()
+                    ->extraAttributes(
+                        fn (User $record): array => [
+                            'style' => 'color: ' . $record->getFrontendColor() . '; font-weight: 700;',
+                        ]
+                    ),
                 
                 // TextColumn::make('tagname')
                 //     ->searchable(),
@@ -63,8 +71,25 @@ class UsersTable
                         'style' => 'object-fit: contain;',
                     ]),       
                 TextColumn::make('email')
-                    ->label('Email address')
+                    ->label('Email')
                     ->searchable(),
+
+                TextColumn::make('email_verified_at')
+                    ->label('Verificación')
+                    ->formatStateUsing(
+                        fn (mixed $state): string =>
+                            filled($state)
+                                ? 'Verificado'
+                                : 'Sin verificar'
+                    )
+                    ->badge()
+                    ->color(
+                        fn (User $record): string =>
+                            $record->hasVerifiedEmail()
+                                ? 'success'
+                                : 'danger'
+                    )
+                    ->sortable(),
                       
                 TextColumn::make('firma')
                     ->searchable(),
@@ -125,7 +150,23 @@ class UsersTable
                 SelectFilter::make('Rol')
                     ->multiple()                 
                     ->attribute('roles_id') 
-                    ->relationship('roles', 'name'),           
+                    ->relationship('roles', 'name'),
+
+                SelectFilter::make('email_verification')
+                    ->label('Verificación')
+                    ->options([
+                        'verified' => 'Verificados',
+                        'unverified' => 'Sin verificar',
+                    ])
+                    ->query(
+                        function (Builder $query, array $data): Builder {
+                            return match ($data['value'] ?? null) {
+                                'verified' => $query->whereNotNull('email_verified_at'),
+                                'unverified' => $query->whereNull('email_verified_at'),
+                                default => $query,
+                            };
+                        }
+                    ),
                     
             ])
             ->recordActions([

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SqaGroup;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,6 +22,16 @@ class PublicUserController extends Controller
         $search = trim(
             (string) ($validated['q'] ?? '')
         );
+
+        $sqaGroups = SqaGroup::query()
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'large_name',
+                'color',
+            ]);
 
         $users = User::query()
             ->with([
@@ -44,6 +55,7 @@ class PublicUserController extends Controller
             compact(
                 'users',
                 'search',
+                'sqaGroups',
             )
         );
     }

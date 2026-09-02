@@ -21,7 +21,7 @@
 @section('body-class', 'event-detail-body')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/events.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/events.css') }}?v={{ filemtime(public_path('css/events.css')) }}">
 @endpush
 
 @push('scripts')
@@ -208,6 +208,9 @@
                                 <img
                                     src="{{ asset('storage/' . $operation->platform->image) }}"
                                     alt=""
+                                    width="28"
+                                    height="28"
+                                    style="width:28px;height:28px;max-width:28px;max-height:28px;object-fit:contain;"
                                 >
                             @endif
                             <span>{{ $operation->platform->name }}</span>

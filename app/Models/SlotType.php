@@ -15,6 +15,7 @@ class SlotType extends Model
     protected $fillable = [
         'name',
         'description',
+        'image',
         'picker_column',
         'picker_order',
     ];

@@ -30,6 +30,8 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 use App\Models\Country;
 use App\Models\Army;
 use Filament\Schemas\Components\Grid;
@@ -263,6 +265,7 @@ class EditOperation extends EditRecord
     {
         $groups = SlotQuickSelection::pickerGroups();
         $pickerColumns = SlotQuickSelection::pickerColumns();
+        $pickerImages = SlotQuickSelection::pickerImages();
 
         $fieldNames = collect(array_keys($groups))
             ->mapWithKeys(
@@ -287,7 +290,8 @@ class EditOperation extends EditRecord
             string $slotTypeName
         ) use (
             $fieldNames,
-            $normalizeSearch
+            $normalizeSearch,
+            $pickerImages
         ): Section {
             $fieldName = $fieldNames[$slotTypeName];
 
@@ -323,7 +327,20 @@ class EditOperation extends EditRecord
                     ->all();
             };
 
-            return Section::make($slotTypeName)
+            $slotTypeImage = $pickerImages[$slotTypeName] ?? null;
+
+            $heading = filled($slotTypeImage)
+                ? new HtmlString(
+                    '<span style="display:inline-flex;align-items:center;gap:8px;min-width:0;">'
+                    . '<img src="' . e(Storage::disk('public')->url($slotTypeImage)) . '" '
+                    . 'alt="" width="24" height="24" '
+                    . 'style="display:block;width:24px;height:24px;max-width:24px;max-height:24px;object-fit:contain;flex:0 0 24px;">'
+                    . '<span style="min-width:0;">' . e($slotTypeName) . '</span>'
+                    . '</span>'
+                )
+                : $slotTypeName;
+
+            return Section::make($heading)
                 ->visible(
                     function (Get $get) use (
                         $filteredOptions

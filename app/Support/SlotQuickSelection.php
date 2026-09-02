@@ -14,6 +14,8 @@ class SlotQuickSelection
 
     private static ?array $pickerColumnsCache = null;
 
+    private static ?array $pickerImagesCache = null;
+
     public static function pickerGroups(): array
     {
         self::buildPickerCache();
@@ -28,11 +30,19 @@ class SlotQuickSelection
         return self::$pickerColumnsCache ?? [1 => [], 2 => [], 3 => [], 4 => []];
     }
 
+    public static function pickerImages(): array
+    {
+        self::buildPickerCache();
+
+        return self::$pickerImagesCache ?? [];
+    }
+
     public static function clearCache(): void
     {
         self::$pickerGroupsCache = null;
         self::$choiceMetadataCache = null;
         self::$pickerColumnsCache = null;
+        self::$pickerImagesCache = null;
     }
 
     public static function pickerFieldName(string $slotTypeName): string
@@ -210,12 +220,14 @@ class SlotQuickSelection
             self::$pickerGroupsCache !== null
             && self::$choiceMetadataCache !== null
             && self::$pickerColumnsCache !== null
+            && self::$pickerImagesCache !== null
         ) {
             return;
         }
 
         $groups = [];
         $metadata = [];
+        $images = [];
         $columns = [
             1 => [],
             2 => [],
@@ -244,8 +256,9 @@ class SlotQuickSelection
             ->orderBy('name')
             ->get()
             ->each(
-                function (SlotType $slotType) use (&$groups, &$metadata, &$columns): void {
+                function (SlotType $slotType) use (&$groups, &$metadata, &$columns, &$images): void {
                     $slotTypeName = $slotType->name;
+                    $images[$slotTypeName] = $slotType->image;
                     $pickerColumn = max(
                         1,
                         min(4, (int) ($slotType->picker_column ?: 1))
@@ -280,5 +293,6 @@ class SlotQuickSelection
         self::$pickerGroupsCache = $groups;
         self::$choiceMetadataCache = $metadata;
         self::$pickerColumnsCache = $columns;
+        self::$pickerImagesCache = $images;
     }
 }

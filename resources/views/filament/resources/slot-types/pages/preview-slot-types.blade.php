@@ -127,6 +127,15 @@
                         >
                             <header class="slot-picker-preview__card-header">
                                 <span class="slot-picker-preview__drag">⋮⋮</span>
+                                <template x-if="slotType.image">
+                                    <img
+                                        :src="slotType.image"
+                                        alt=""
+                                        width="26"
+                                        height="26"
+                                        class="slot-picker-preview__icon"
+                                    >
+                                </template>
                                 <strong x-text="slotType.name"></strong>
                             </header>
 
@@ -203,6 +212,15 @@
             align-items: center;
             padding: .65rem .75rem;
             border-bottom: 1px solid rgba(148, 163, 184, .18);
+        }
+
+        .slot-picker-preview__icon {
+            width: 26px;
+            height: 26px;
+            max-width: 26px;
+            max-height: 26px;
+            object-fit: contain;
+            flex: 0 0 26px;
         }
 
         .slot-picker-preview__drag {

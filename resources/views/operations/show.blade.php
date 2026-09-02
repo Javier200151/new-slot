@@ -29,7 +29,7 @@
 @push('styles')
     <link
         rel="stylesheet"
-        href="{{ asset('css/events.css') }}"
+        href="{{ asset('css/events.css') }}?v={{ filemtime(public_path('css/events.css')) }}"
     >
 
     <link
@@ -196,6 +196,9 @@
                                 <img
                                     src="{{ asset('storage/' . $operation->platform->image) }}"
                                     alt=""
+                                    width="28"
+                                    height="28"
+                                    style="width:28px;height:28px;max-width:28px;max-height:28px;object-fit:contain;"
                                 >
                             @endif
                             <span>{{ $operation->platform->name }}</span>
@@ -1153,6 +1156,9 @@
                                                             ->period
                                                             ->name
                                                         }}"
+                                                        width="56"
+                                                        height="56"
+                                                        style="width:56px;height:56px;max-width:56px;max-height:56px;object-fit:contain;"
                                                     >
 
                                                 @endif
@@ -1175,6 +1181,9 @@
                                                             ->platform
                                                             ->name
                                                         }}"
+                                                        width="56"
+                                                        height="56"
+                                                        style="width:56px;height:56px;max-width:56px;max-height:56px;object-fit:contain;"
                                                     >
 
                                                 @endif
@@ -1327,6 +1336,9 @@
                                                                             src="{{ asset('storage/' . $ally->image) }}"
                                                                             alt="{{ $ally->name }}"
                                                                             loading="lazy"
+                                                                            width="44"
+                                                                            height="44"
+                                                                            style="width:44px;height:44px;max-width:44px;max-height:44px;object-fit:contain;"
                                                                         >
                                                                     @else
                                                                         <strong>{{ strtoupper(substr($ally->name, 0, 2)) }}</strong>
@@ -1502,6 +1514,9 @@
                                                             ->period
                                                             ->name
                                                         }}"
+                                                        width="56"
+                                                        height="56"
+                                                        style="width:56px;height:56px;max-width:56px;max-height:56px;object-fit:contain;"
                                                     >
 
                                                 @endif
@@ -1524,6 +1539,9 @@
                                                             ->platform
                                                             ->name
                                                         }}"
+                                                        width="56"
+                                                        height="56"
+                                                        style="width:56px;height:56px;max-width:56px;max-height:56px;object-fit:contain;"
                                                     >
 
                                                 @endif
@@ -1676,6 +1694,9 @@
                                                                             src="{{ asset('storage/' . $ally->image) }}"
                                                                             alt="{{ $ally->name }}"
                                                                             loading="lazy"
+                                                                            width="44"
+                                                                            height="44"
+                                                                            style="width:44px;height:44px;max-width:44px;max-height:44px;object-fit:contain;"
                                                                         >
                                                                     @else
                                                                         <strong>{{ strtoupper(substr($ally->name, 0, 2)) }}</strong>
