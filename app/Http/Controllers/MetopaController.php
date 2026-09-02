@@ -7,11 +7,14 @@ use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
+use Illuminate\Http\Request;
 
 class MetopaController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search = trim((string) $request->query('q', ''));
+
         $metopas = Metopa::query()
             ->leftJoin('sqa_groups', function ($join): void {
                 $join
@@ -26,12 +29,24 @@ class MetopaController extends Controller
                 'metopas.sqa_group_id',
             ])
             ->with('sqaGroup:id,name,display_order')
+            ->when(
+                filled($search),
+                function ($query) use ($search): void {
+                    $like = '%' . $search . '%';
+
+                    $query->where(function ($query) use ($like): void {
+                        $query
+                            ->where('metopas.name', 'like', $like)
+                            ->orWhere('metopas.description', 'like', $like);
+                    });
+                }
+            )
             ->orderByRaw('sqa_groups.display_order IS NULL')
             ->orderBy('sqa_groups.display_order')
             ->orderBy('metopas.name')
             ->get();
 
-        return view('metopas.index', compact('metopas'));
+        return view('metopas.index', compact('metopas', 'search'));
     }
 
     public function show(Metopa $metopa): View

@@ -22,6 +22,25 @@
 
     <section class="metopas-catalogue" aria-labelledby="metopas-list-title">
         <div class="container">
+            <form method="GET" action="{{ route('metopas.index') }}" class="metopas-search" role="search">
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ $search }}"
+                    placeholder="Buscar metopa por nombre..."
+                    aria-label="Buscar metopa por nombre"
+                >
+
+                <button type="submit" class="btn btn-primary">
+                    Buscar
+                </button>
+
+                @if(filled($search))
+                    <a href="{{ route('metopas.index') }}" class="metopas-search__clear">
+                        Limpiar
+                    </a>
+                @endif
+            </form>
             {{--<header class="metopas-section-heading">
                  <div>
                     <span class="metopas-section-heading__index">01</span>

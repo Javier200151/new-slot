@@ -35,6 +35,8 @@ use Filament\Schemas\Components\Grid;
 use App\Services\AuditLogger;
 use App\Models\OperationStatus;
 use App\Support\OperationTypeAccess;
+use App\Support\OperationEditorSelection;
+use App\Support\FactionOptionLabel;
 
 class EditOperation extends EditRecord
 {
@@ -44,9 +46,16 @@ class EditOperation extends EditRecord
 
     protected array $auditEnemyFactionsBefore = [];
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        return OperationEditorSelection::addChoiceToFormData($data);
+    }
+
     protected function mutateFormDataBeforeSave(
         array $data
     ): array {
+        $data = OperationEditorSelection::resolveChoice($data);
+
         $targetOperationTypeId =
             $data['operation_type_id'] ?? null;
 
@@ -728,14 +737,24 @@ class EditOperation extends EditRecord
                                         }
 
                                         return $query
+                                            ->with([
+                                                'side',
+                                                'army.country',
+                                            ])
                                             ->orderBy('name')
-                                            ->pluck(
-                                                'name',
-                                                'id'
+                                            ->get()
+                                            ->mapWithKeys(
+                                                fn (Faction $faction): array => [
+                                                    $faction->id =>
+                                                        FactionOptionLabel::make(
+                                                            $faction
+                                                        ),
+                                                ]
                                             )
                                             ->all();
                                     }
                                 )
+                                ->allowHtml()
 
                                 /*
                                 |--------------------------------------------------------------------------

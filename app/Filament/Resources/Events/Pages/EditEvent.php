@@ -11,6 +11,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -20,6 +21,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use App\Services\CommunityNotificationService;
 use App\Models\EventStatus;
 use App\Models\Operation;
+use App\Support\FactionOptionLabel;
 
 class EditEvent extends EditRecord
 {
@@ -103,8 +105,39 @@ class EditEvent extends EditRecord
                                 ->disabled()
                                 ->dehydrated(),
 
-                            TextInput::make('faction_name')
+                            Select::make('faction_id')
                                 ->label('Facción')
+                                ->options(
+                                    function (Get $get): array {
+                                        $factionId =
+                                            $get('faction_id');
+
+                                        if (blank($factionId)) {
+                                            return [];
+                                        }
+
+                                        $faction =
+                                            Faction::query()
+                                                ->with([
+                                                    'side',
+                                                    'army.country',
+                                                ])
+                                                ->find($factionId);
+
+                                        if (! $faction) {
+                                            return [];
+                                        }
+
+                                        return [
+                                            $faction->id =>
+                                                FactionOptionLabel::make(
+                                                    $faction
+                                                ),
+                                        ];
+                                    }
+                                )
+                                ->allowHtml()
+                                ->placeholder('Sin facción')
                                 ->disabled()
                                 ->dehydrated(false),
 
@@ -355,6 +388,13 @@ class EditEvent extends EditRecord
             ]);
         }
 
+        if (
+            $operation?->editor_ally_id
+            || $this->record->slots()->whereNotNull('ally_id')->exists()
+        ) {
+            $data['multiclans'] = true;
+        }
+
         return $data;
     }
 
@@ -521,10 +561,6 @@ class EditEvent extends EditRecord
     {
         $groups = $orbat['groups'] ?? [];
 
-        $factionNames = Faction::query()
-            ->whereIn('id', collect($groups)->pluck('faction_id')->filter()->unique())
-            ->pluck('name', 'id');
-
         $slotTypeNames = SlotType::query()
             ->whereIn(
                 'id',
@@ -541,7 +577,9 @@ class EditEvent extends EditRecord
                 ->map(fn (array $group): array => [
                     'visible' => (bool) ($group['visible'] ?? true),
                     'name' => $group['name'] ?? '',
-                    'faction_name' => $factionNames[(int) ($group['faction_id'] ?? 0)] ?? 'Sin facción',
+                    'faction_id' => isset($group['faction_id'])
+                        ? (int) $group['faction_id']
+                        : null,
                     'slots' => collect($group['slots'] ?? [])
                         ->map(fn (array $slot): array => [
                             'visible' => (bool) ($slot['visible'] ?? true),

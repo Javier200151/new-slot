@@ -37,21 +37,35 @@
         . ' '
         . $event->date->format('d/m/y H:i')
         . 'H';
+
+    $isCancelled = $event->isCancelled();
+
+    $participatingAllies = $event->slots
+        ->pluck('ally')
+        ->filter()
+        ->unique('id')
+        ->values();
 @endphp
 
 <article
     id="evento-{{ $event->id }}"
-    class="event-card"
+    @class([
+        'event-card',
+        'is-cancelled' => $isCancelled,
+    ])
     @style([
         '--event-color: ' . ($operation?->operationType?->color ?? '') => filled($operation?->operationType?->color),
         '--slot-occupancy: ' . $occupancyPercentage . '%',
+        'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;' => $isCancelled,
     ])
 >
-    <a
-        href="{{ route('events.show', $event) }}"
-        class="event-card__detail-link"
-        aria-label="Ver evento {{ $event->name ?: $operation?->name }}"
-    ></a>
+    @unless($isCancelled)
+        <a
+            href="{{ route('events.show', $event) }}"
+            class="event-card__detail-link"
+            aria-label="Ver evento {{ $event->name ?: $operation?->name }}"
+        ></a>
+    @endunless
 
     <div class="event-card__period">
         @if($operation?->period?->ico)
@@ -85,9 +99,16 @@
             <span @class([
                 'event-card__status',
                 'is-active' => $event->eventStatus?->name === 'ACTIVO',
+                'is-cancelled' => $isCancelled,
             ])>
                 {{ $event->eventStatus?->name }}
             </span>
+
+            @if($event->multiclans)
+                <span class="event-card__multiclans">
+                    Multiclán
+                </span>
+            @endif
 
             @if(
                 $event->eventStatus?->name === 'FINALIZADO'
@@ -109,9 +130,13 @@
 
         <div class="event-card__title-row">
             <h3>
-                <a href="{{ route('events.show', $event) }}">
-                    {{ $event->name ?: $operation?->name }}
-                </a>
+                @if($isCancelled)
+                    <span>{{ $event->name ?: $operation?->name }}</span>
+                @else
+                    <a href="{{ route('events.show', $event) }}">
+                        {{ $event->name ?: $operation?->name }}
+                    </a>
+                @endif
             </h3>
 
             <time datetime="{{ $event->date->toIso8601String() }}">
@@ -141,7 +166,16 @@
             @if($operation?->platform)
                 <div>
                     <dt>Plataforma</dt>
-                    <dd>{{ $operation->platform->name }}</dd>
+                    <dd class="event-card__fact-with-icon">
+                        @if($operation->platform->image)
+                            <img
+                                src="{{ asset('storage/' . $operation->platform->image) }}"
+                                alt=""
+                                loading="lazy"
+                            >
+                        @endif
+                        <span>{{ $operation->platform->name }}</span>
+                    </dd>
                 </div>
             @endif
 
@@ -170,6 +204,28 @@
                 </div>
             @endif
         </dl>
+
+        @if($participatingAllies->isNotEmpty())
+            <div class="event-card__allies" aria-label="Aliados participantes">
+                <span>Aliados</span>
+
+                <div>
+                    @foreach($participatingAllies as $ally)
+                        <span class="event-card__ally" title="{{ $ally->name }}">
+                            @if($ally->image)
+                                <img
+                                    src="{{ asset('storage/' . $ally->image) }}"
+                                    alt="{{ $ally->name }}"
+                                    loading="lazy"
+                                >
+                            @else
+                                <strong>{{ strtoupper(substr($ally->name, 0, 2)) }}</strong>
+                            @endif
+                        </span>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <div class="event-card__slots">
             <div>

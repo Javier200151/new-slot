@@ -55,7 +55,7 @@ class PublicEventController extends Controller
 
         $eventsQuery = Event::query()
             ->whereHas('eventStatus', fn ($query) => $query
-                ->whereIn('name', ['ACTIVO', 'FINALIZADO']))
+                ->whereIn('name', ['ACTIVO', 'FINALIZADO', 'CANCELADO']))
             ->with([
                 'eventStatus',
                 'eventResult',
@@ -65,6 +65,7 @@ class PublicEventController extends Controller
                 'operation.platform',
                 'operation.map',
                 'slots:id,event_id,slot_key,user_id,ally_id',
+                'slots.ally:id,name,image,url',
             ])
             ->withCount([
                 'slots as occupied_slots_count' => fn ($query) => $query
@@ -166,6 +167,7 @@ class PublicEventController extends Controller
             'operation.map',
             'operation.days',
             'operation.editor',
+            'operation.editorAlly',
             'operation.enemyFactions.army',
             'operation.enemyFactions.side',
             'slots.user.mainSqaGroup',
@@ -176,6 +178,9 @@ class PublicEventController extends Controller
             in_array($event->eventStatus?->name, ['ACTIVO', 'FINALIZADO'], true),
             404,
         );
+
+        // Compatibilidad con eventos creados antes de que el ORBAT usase slot_key.
+        $event->ensureOrbatSlotKeys();
 
         $operation = $event->operation;
         abort_if($operation === null, 404);
@@ -402,6 +407,7 @@ class PublicEventController extends Controller
                     ->filter(fn (array $slot): bool => (bool) ($slot['visible'] ?? true))
                     ->map(function (array $slot) use ($assignments, $currentUserSlot, $isRegistrationOpen, $slotTypes): array {
                         $slotKey = $slot['slot_key'] ?? null;
+                        $slot['slot_key'] = $slotKey;
                         $slot['slot_type'] = $slotTypes->get((int) ($slot['slot_type_id'] ?? 0));
                         $slot['assignment'] = filled($slotKey) ? $assignments->get($slotKey) : null;
                         $slot['is_occupied'] = (bool) ($slot['assignment']?->user_id || $slot['assignment']?->ally_id);
@@ -1417,6 +1423,16 @@ class PublicEventController extends Controller
 
                             ...$assignmentData,
                         ]);
+            }
+
+
+            if (
+                $assignedAlly
+                && ! $lockedEvent->multiclans
+            ) {
+                $lockedEvent->forceFill([
+                    'multiclans' => true,
+                ])->save();
             }
 
 
@@ -2588,6 +2604,7 @@ class PublicEventController extends Controller
         iterable $events
     ): void {
         foreach ($events as $event) {
+            $event->ensureOrbatSlotKeys();
 
             /*
             |--------------------------------------------------------------------------

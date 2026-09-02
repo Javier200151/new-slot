@@ -199,16 +199,30 @@
             </header>
 
             <section id="datos-evento" class="event-detail__facts" aria-label="Datos del evento y del operativo">
+                @if($operation->platform)
+                    <div>
+                        <dt>Plataforma</dt>
+                        <dd class="event-detail__fact-with-icon">
+                            @if($operation->platform->image)
+                                <img
+                                    src="{{ asset('storage/' . $operation->platform->image) }}"
+                                    alt=""
+                                >
+                            @endif
+                            <span>{{ $operation->platform->name }}</span>
+                        </dd>
+                    </div>
+                @endif
+
                 @foreach([
                     // ['Tipo', $operation->operationType?->name],
                     // ['Estado del evento', $event->eventStatus?->name],
-                    ['Plataforma', $operation->platform?->name],
                     ['Periodo', $operation->period?->name],
                     ['Mapa', $operation->map?->name],
                     ['Ambientación', $dayOrNight],
                     ['Duración', $event->duration ? $event->duration . ' min' : null],
                     ['Resultado', $event->eventResult?->name],
-                    ['Editor', $operation->editor?->nick],
+                    ['Editor', $operation->editor_display_name],
                 ] as [$label, $value])
                     @if(filled($value))
                         <div>
@@ -234,6 +248,12 @@
             </section>
 
             <section class="event-detail__options" aria-label="Opciones del operativo">
+
+                @if($event->multiclans)
+                    <span class="is-enabled event-detail__option--multiclans">
+                        Multiclán
+                    </span>
+                @endif
 
                 @if(
                     $event->eventStatus?->name === 'FINALIZADO'
@@ -1160,9 +1180,12 @@
                                                     $assignment?->user?->nick
                                                     ?? $assignment?->ally?->name;
 
+                                                $slotKey = $slot['slot_key'] ?? null;
+
                                                 $isOrbatManager =
                                                     $canManageOrbat
-                                                    && $event->eventStatus?->name === 'ACTIVO';
+                                                    && $event->eventStatus?->name === 'ACTIVO'
+                                                    && filled($slotKey);
                                             @endphp
 
                                             <div
@@ -1174,12 +1197,12 @@
 
                                                 @if($isOrbatManager)
                                                     data-orbat-slot
-                                                    data-slot-key="{{ $slot['slot_key'] }}"
+                                                    data-slot-key="{{ $slotKey }}"
                                                     data-manage-url="{{ route(
                                                         'events.slots.manage',
                                                         [
                                                             $event,
-                                                            $slot['slot_key'],
+                                                            $slotKey,
                                                         ]
                                                     ) }}"
                                                     data-occupant-user-id="{{ $assignment?->user_id }}"
@@ -1211,7 +1234,7 @@
                                                                 data-orbat-player
                                                                 data-user-id="{{ $assignment->user->id }}"
                                                                 data-user-name="{{ $assignment->user->nick }}"
-                                                                data-source-slot-key="{{ $slot['slot_key'] }}"
+                                                                data-source-slot-key="{{ $slotKey }}"
                                                             >
                                                                 <span
                                                                     class="event-orbat__drag-handle"
@@ -1300,7 +1323,7 @@
                                                                 type="button"
                                                                 class="event-orbat__assign-player"
                                                                 data-orbat-assign
-                                                                data-slot-key="{{ $slot['slot_key'] }}"
+                                                                data-slot-key="{{ $slotKey }}"
                                                                 data-slot-name="{{ $slot['name'] ?? 'Slot sin nombre' }}"
                                                                 data-group-name="{{ $group['name'] ?? 'Grupo sin nombre' }}"
                                                             >
@@ -1331,7 +1354,7 @@
                                                                         'events.slots.unregister',
                                                                         [
                                                                             $event,
-                                                                            $slot['slot_key'],
+                                                                            $slotKey,
                                                                         ]
                                                                     ) }}"
                                                                 >
@@ -1359,7 +1382,7 @@
                                                                     'events.slots.register',
                                                                     [
                                                                         $event,
-                                                                        $slot['slot_key'],
+                                                                        $slotKey,
                                                                     ]
                                                                 ) }}"
                                                             >

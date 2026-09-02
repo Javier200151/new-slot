@@ -82,10 +82,12 @@ class OperationsTable
                 ->separator(',')
                 ->placeholder('Cualquier día'),
 
-                TextColumn::make('editor.nick')
+                TextColumn::make('editor_display_name')
                     ->label('Editor')
-                    ->searchable()
-                    ->sortable(),
+                    ->state(
+                        fn ($record): ?string =>
+                            $record->editor_display_name
+                    ),
 
                 IconColumn::make('ocap')
                     ->label('OCAP')

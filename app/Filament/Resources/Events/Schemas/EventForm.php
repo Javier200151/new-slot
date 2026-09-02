@@ -8,6 +8,7 @@ use App\Support\OperationTypeAccess;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -58,6 +59,10 @@ class EventForm
                             $operation?->name
                         );
 
+                        if ($operation?->editor_ally_id) {
+                            $set('multiclans', true);
+                        }
+
                         /*
                         * Si el nuevo operativo está en BORRADOR
                         * y actualmente el evento tenía un estado
@@ -105,6 +110,46 @@ class EventForm
                     ->label('Nombre')
                     ->required()
                     ->maxLength(255),
+
+                Toggle::make('multiclans')
+                    ->label('Multiclán')
+                    ->afterStateHydrated(
+                        function (
+                            Toggle $component,
+                            Get $get
+                        ): void {
+                            $externalEditor = Operation::query()
+                                ->whereKey($get('operation_id'))
+                                ->whereNotNull('editor_ally_id')
+                                ->exists();
+
+                            if ($externalEditor) {
+                                $component->state(true);
+                            }
+                        }
+                    )
+                    ->helperText(
+                        function (Get $get): string {
+                            $externalEditor = Operation::query()
+                                ->whereKey($get('operation_id'))
+                                ->whereNotNull('editor_ally_id')
+                                ->exists();
+
+                            return $externalEditor
+                                ? 'Obligatorio: el editor de esta actividad es un aliado.'
+                                : 'Actívalo cuando participen otros clanes o comunidades en este evento.';
+                        }
+                    )
+                    ->disabled(
+                        fn (Get $get): bool =>
+                            Operation::query()
+                                ->whereKey($get('operation_id'))
+                                ->whereNotNull('editor_ally_id')
+                                ->exists()
+                    )
+                    ->dehydrated()
+                    ->inline(false)
+                    ->default(false),
 
                 Select::make('event_status_id')
                     ->label('Estado')

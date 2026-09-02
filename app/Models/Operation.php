@@ -34,6 +34,7 @@ class Operation extends Model
         'map_id',
         'period_id',
         'editor_id',
+        'editor_ally_id',
         'day_or_night',
     ];
 
@@ -119,6 +120,22 @@ class Operation extends Model
     public function editor()
     {
         return $this->belongsTo(User::class, 'editor_id');
+    }
+
+    public function editorAlly()
+    {
+        return $this->belongsTo(Ally::class, 'editor_ally_id');
+    }
+
+    public function getEditorDisplayNameAttribute(): ?string
+    {
+        return $this->editor?->nick
+            ?? $this->editorAlly?->name;
+    }
+
+    public function hasExternalEditor(): bool
+    {
+        return $this->editor_ally_id !== null;
     }
 
     public function createdBy()

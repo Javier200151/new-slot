@@ -118,6 +118,10 @@ class CreateEvent extends CreateRecord
         $data['orbat'] =
             $operation?->orbat;
 
+        if ($operation?->editor_ally_id) {
+            $data['multiclans'] = true;
+        }
+
         return $data;
     }
 

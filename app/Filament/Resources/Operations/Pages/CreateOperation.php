@@ -6,6 +6,7 @@ use App\Filament\Resources\Operations\OperationResource;
 use Filament\Resources\Pages\CreateRecord;
 use App\Services\AuditLogger;
 use App\Support\OperationTypeAccess;
+use App\Support\OperationEditorSelection;
 use Illuminate\Validation\ValidationException;
 
 class CreateOperation extends CreateRecord
@@ -28,6 +29,8 @@ class CreateOperation extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $data = OperationEditorSelection::resolveChoice($data);
+
         $operationTypeId = $data['operation_type_id'] ?? null;
 
         if (! OperationTypeAccess::can(

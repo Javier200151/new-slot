@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Operations\Schemas;
 use App\Models\GameMap;
 use App\Models\OperationType;
 use App\Support\OperationTypeAccess;
+use App\Support\OperationEditorSelection;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -459,12 +460,19 @@ class OperationForm
                     ->preload()
                     ->nullable(),
 
-                Select::make('editor_id')
+                Select::make('editor_choice')
                     ->label('Editor')
-                    ->relationship('editor', 'nick')
+                    ->options(
+                        fn (): array =>
+                            OperationEditorSelection::options()
+                    )
                     ->searchable()
                     ->preload()
-                    ->nullable(),
+                    ->nullable()
+                    ->helperText(
+                        'Puedes seleccionar un miembro SQA o un aliado. ' .
+                        'Si el editor es un aliado, sus eventos serán multiclán.'
+                    ),
 
                 Select::make('day_or_night')
                     ->label('Día o noche')

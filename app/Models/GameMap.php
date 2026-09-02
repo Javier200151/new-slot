@@ -22,4 +22,9 @@ class GameMap extends Model
     {
         return $this->belongsTo(Platform::class);
     }
+
+    public function operations()
+    {
+        return $this->hasMany(Operation::class, 'map_id');
+    }
 }

@@ -98,22 +98,39 @@
                                 <div class="events-calendar__items">
                                     @foreach($calendarDay['events'] as $event)
 
+                                        @php
+                                            $isCancelled =
+                                                $event->isCancelled();
+                                        @endphp
+
                                         <div
-                                            class="events-calendar__event"
+                                            @class([
+                                                'events-calendar__event',
+                                                'is-cancelled' => $isCancelled,
+                                            ])
                                             @style([
                                                 '--event-color: '
                                                 . ($event->operation?->operationType?->color ?? '')
                                                 => filled(
                                                     $event->operation?->operationType?->color
                                                 ),
+                                                'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;'
+                                                    => $isCancelled,
                                             ])
                                         >
 
-                                            <a
-                                                href="{{ route('events.show', $event) }}"
-                                                class="events-calendar__event-main"
-                                                title="{{ $event->name ?: $event->operation?->name }}"
-                                            >
+                                            @if($isCancelled)
+                                                <div
+                                                    class="events-calendar__event-main"
+                                                    title="Evento cancelado: {{ $event->name ?: $event->operation?->name }}"
+                                                >
+                                            @else
+                                                <a
+                                                    href="{{ route('events.show', $event) }}"
+                                                    class="events-calendar__event-main"
+                                                    title="{{ $event->name ?: $event->operation?->name }}"
+                                                >
+                                            @endif
 
                                                 @if(
                                                     $event->operation?->period?->ico
@@ -159,7 +176,11 @@
                                                     {{ $event->name ?: $event->operation?->name }}
                                                 </span>
 
-                                            </a>
+                                            @if($isCancelled)
+                                                </div>
+                                            @else
+                                                </a>
+                                            @endif
 
 
                                         </div>

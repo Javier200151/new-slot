@@ -59,6 +59,45 @@
                     @endif
                 </section>
             @endif
+
+            <section class="map-page__operations" aria-labelledby="map-operations-title">
+                <header class="map-page__operations-header">
+                    <span>Historial del mapa</span>
+                    <h2 id="map-operations-title">
+                        {{ $map->operations->count() }}
+                        {{ $map->operations->count() === 1 ? 'actividad creada' : 'actividades creadas' }}
+                        en {{ $map->name }}
+                    </h2>
+                </header>
+
+                @if($map->operations->isEmpty())
+                    <div class="map-page__operations-empty">
+                        Todavía no hay actividades asociadas a este mapa.
+                    </div>
+                @else
+                    <div class="map-page__operations-grid">
+                        @foreach($map->operations as $operation)
+                            <a
+                                href="{{ route('operations.show', $operation) }}"
+                                class="map-page__operation-card"
+                                @style([
+                                    '--operation-color: ' . ($operation->operationType?->color ?? '')
+                                        => filled($operation->operationType?->color),
+                                ])
+                            >
+                                <span>{{ $operation->operationType?->name ?? 'Actividad' }}</span>
+                                <strong>{{ $operation->name }}</strong>
+                                <small>
+                                    {{ $operation->operationStatus?->name ?? 'Sin estado' }}
+                                    @if($operation->editor)
+                                        · {{ $operation->editor->nick }}
+                                    @endif
+                                </small>
+                            </a>
+                        @endforeach
+                    </div>
+                @endif
+            </section>
         </div>
     </article>
 @endsection

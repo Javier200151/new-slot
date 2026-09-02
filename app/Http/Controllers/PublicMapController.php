@@ -9,7 +9,19 @@ class PublicMapController extends Controller
 {
     public function show(GameMap $map): View
     {
-        $map->load('platform');
+        $map->load([
+            'platform',
+            'operations' => fn ($query) => $query
+                ->with([
+                    'operationType',
+                    'operationStatus',
+                    'platform',
+                    'period',
+                    'editor.status',
+                    'editor.mainSqaGroup',
+                ])
+                ->orderBy('name'),
+        ]);
 
         return view('maps.show', compact('map'));
     }

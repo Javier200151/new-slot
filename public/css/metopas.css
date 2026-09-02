@@ -768,3 +768,44 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================================================
+   BUSCADOR DE METOPAS
+========================================================= */
+
+.metopas-search {
+    display: flex;
+    gap: 10px;
+    max-width: 620px;
+    margin: 0 0 28px;
+}
+
+.metopas-search input {
+    flex: 1;
+    min-width: 0;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: #fff;
+    background: rgba(10, 14, 20, 0.9);
+}
+
+.metopas-search input:focus {
+    outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent);
+    border-color: var(--primary);
+}
+
+.metopas-search__clear {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 750;
+}
+
+@media (max-width: 620px) {
+    .metopas-search {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
