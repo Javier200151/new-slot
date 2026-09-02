@@ -84,6 +84,7 @@
                                 Editar evento
                             </a>
                         @endif
+
                     </div>
                 </div>
             @endif
@@ -221,7 +222,7 @@
                     ['Mapa', $operation->map?->name],
                     ['Ambientación', $dayOrNight],
                     ['Duración', $event->duration ? $event->duration . ' min' : null],
-                    ['Resultado', $event->eventResult?->name],
+                    ['Resultado', ($operation->operationType?->usesEventResult() ?? true) ? $event->eventResult?->name : null],
                     ['Editor', $operation->editor_display_name],
                 ] as [$label, $value])
                     @if(filled($value))
@@ -239,6 +240,20 @@
 
                 @endforeach
 
+                @if(
+                    ($operation->operationType?->usesEnemyFactions() ?? true)
+                    && $operation->enemyFactions->isNotEmpty()
+                )
+                    <div>
+                        <dt>Facciones enemigas</dt>
+                        <dd style="display:grid;gap:8px;">
+                            @foreach($operation->enemyFactions as $enemyFaction)
+                                {!! \App\Support\FactionOptionLabel::make($enemyFaction) !!}
+                            @endforeach
+                        </dd>
+                    </div>
+                @endif
+
                 @if($operation->campaign)
                     <div>
                         <dt>Campaña</dt>
@@ -247,50 +262,77 @@
                 @endif
             </section>
 
-            <section class="event-detail__options" aria-label="Opciones del operativo">
+            @if(
+                $event->multiclans
+                || ($operation->operationType?->supportsOcap() ?? false)
+                || ($operation->operationType?->supportsRespawn() ?? false)
+                || ($operation->operationType?->supportsJip() ?? false)
+            )
+                <section class="event-detail__options" aria-label="Opciones de la actividad">
 
-                @if($event->multiclans)
-                    <span class="is-enabled event-detail__option--multiclans">
-                        Multiclán
-                    </span>
-                @endif
+                    @if($event->multiclans)
+                        <span class="is-enabled event-detail__option--multiclans">
+                            Multiclán
+                        </span>
+                    @endif
 
-                @if(
-                    $event->eventStatus?->name === 'FINALIZADO'
-                    && filled($event->ocap_url)
-                )
-                    <a
-                        href="{{ $event->ocap_url }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="event-detail__ocap-link"
-                        title="Abrir OCAP"
-                    >
-                        OCAP ↗
+                    @if($operation->operationType?->supportsOcap())
+                        @if(
+                            $event->eventStatus?->name === 'FINALIZADO'
+                            && filled($event->ocap_url)
+                        )
+                            <a
+                                href="{{ $event->ocap_url }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="event-detail__ocap-link"
+                                title="Abrir OCAP"
+                            >
+                                OCAP ↗
+                            </a>
+                        @elseif($operation->ocap)
+                            <span class="is-enabled">OCAP</span>
+                        @else
+                            <span>OCAP</span>
+                        @endif
+                    @endif
+
+                    @if($operation->operationType?->supportsRespawn())
+                        <span @class(['is-enabled' => $operation->respawn])>Respawn</span>
+                    @endif
+
+                    @if($operation->operationType?->supportsJip())
+                        <span @class(['is-enabled' => $operation->jip])>JIP</span>
+                    @endif
+                </section>
+            @endif
+
+            @if(
+                ($operation->operationType?->awardsMetopa() ?? false)
+                && $operation->metopa
+            )
+                <section class="event-detail__course-metopa" aria-label="Metopa del curso">
+                    <span>Metopa del curso</span>
+                    <a href="{{ route('metopas.show', $operation->metopa) }}">
+                        @if($operation->metopa->image)
+                            <img
+                                src="{{ asset('storage/' . $operation->metopa->image) }}"
+                                alt=""
+                            >
+                        @endif
+                        <strong>{{ $operation->metopa->name }}</strong>
                     </a>
-                @elseif($operation->ocap)
-                    <span class="is-enabled">
-                        OCAP
-                    </span>
-                @else
-                    <span>
-                        OCAP
-                    </span>
-                @endif
 
-                <span @class([
-                    'is-enabled' => $operation->respawn,
-                ])>
-                    Respawn
-                </span>
-
-                <span @class([
-                    'is-enabled' => $operation->jip,
-                ])>
-                    JIP
-                </span>
-
-            </section>
+                    @if($canAwardCourseMetopa && $courseMetopaAwardUrl)
+                        <a
+                            href="{{ $courseMetopaAwardUrl }}"
+                            class="btn btn-outline event-course-metopa-action"
+                        >
+                            🏅 Entregar a los alumnos
+                        </a>
+                    @endif
+                </section>
+            @endif
 
             {{-- =========================================================
                 MULTIMEDIA

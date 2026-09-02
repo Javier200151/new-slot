@@ -21,16 +21,17 @@ use UnitEnum;
 
 class OperationResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Operativos';
+    protected static string | UnitEnum | null $navigationGroup = 'Actividades';
     protected static ?int $navigationSort = 1;
     protected static ?string $model = Operation::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboard;
 
-    protected static ?string $recordTitleAttribute = 'Operativo';
-    protected static ?string $pluralModelLabel = 'Operativos';
+    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $modelLabel = 'Actividad';
+    protected static ?string $pluralModelLabel = 'Actividades';
 
-    protected static ?string $navigationLabel = 'Operativos';
+    protected static ?string $navigationLabel = 'Actividades';
 
     public static function form(Schema $schema): Schema
     {

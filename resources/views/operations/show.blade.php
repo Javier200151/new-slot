@@ -218,6 +218,24 @@
                 @endif
 
 
+                @if(
+                    ($operation->operationType?->usesEnemyFactions() ?? true)
+                    && $operation->enemyFactions->isNotEmpty()
+                )
+
+                    <div>
+                        <dt>Facciones enemigas</dt>
+
+                        <dd style="display:grid;gap:8px;">
+                            @foreach($operation->enemyFactions as $enemyFaction)
+                                {!! \App\Support\FactionOptionLabel::make($enemyFaction) !!}
+                            @endforeach
+                        </dd>
+                    </div>
+
+                @endif
+
+
                 @if($operation->map)
 
                     <div>
@@ -310,36 +328,46 @@
                 OPCIONES
             ====================================================== --}}
 
-            <section
-                class="event-detail__options"
-                aria-label="Opciones del operativo"
-            >
-
-                <span
-                    @class([
-                        'is-enabled' => $operation->ocap,
-                    ])
+            @if(
+                ($operation->operationType?->supportsOcap() ?? false)
+                || ($operation->operationType?->supportsRespawn() ?? false)
+                || ($operation->operationType?->supportsJip() ?? false)
+            )
+                <section
+                    class="event-detail__options"
+                    aria-label="Opciones de la actividad"
                 >
-                    OCAP
-                </span>
+                    @if($operation->operationType?->supportsOcap())
+                        <span @class(['is-enabled' => $operation->ocap])>OCAP</span>
+                    @endif
 
-                <span
-                    @class([
-                        'is-enabled' => $operation->respawn,
-                    ])
-                >
-                    Respawn
-                </span>
+                    @if($operation->operationType?->supportsRespawn())
+                        <span @class(['is-enabled' => $operation->respawn])>Respawn</span>
+                    @endif
 
-                <span
-                    @class([
-                        'is-enabled' => $operation->jip,
-                    ])
-                >
-                    JIP
-                </span>
+                    @if($operation->operationType?->supportsJip())
+                        <span @class(['is-enabled' => $operation->jip])>JIP</span>
+                    @endif
+                </section>
+            @endif
 
-            </section>
+            @if(
+                ($operation->operationType?->awardsMetopa() ?? false)
+                && $operation->metopa
+            )
+                <section class="event-detail__course-metopa" aria-label="Metopa de la actividad">
+                    <span>Metopa asociada</span>
+                    <a href="{{ route('metopas.show', $operation->metopa) }}">
+                        @if($operation->metopa->image)
+                            <img
+                                src="{{ asset('storage/' . $operation->metopa->image) }}"
+                                alt=""
+                            >
+                        @endif
+                        <strong>{{ $operation->metopa->name }}</strong>
+                    </a>
+                </section>
+            @endif
 
 
             {{-- =====================================================
@@ -1186,6 +1214,7 @@
 
                                                     @if(
                                                         $event->eventStatus?->name === 'FINALIZADO'
+                                                        && ($operation->operationType?->supportsOcap() ?? false)
                                                         && filled($event->ocap_url)
                                                     )
 
@@ -1267,7 +1296,7 @@
                                                     @endif
 
 
-                                                    @if($event->eventResult)
+                                                    @if(($operation->operationType?->usesEventResult() ?? true) && $event->eventResult)
 
                                                         <div>
                                                             <dt>
@@ -1534,6 +1563,7 @@
 
                                                     @if(
                                                         $event->eventStatus?->name === 'FINALIZADO'
+                                                        && ($operation->operationType?->supportsOcap() ?? false)
                                                         && filled($event->ocap_url)
                                                     )
 
@@ -1615,7 +1645,7 @@
                                                     @endif
 
 
-                                                    @if($event->eventResult)
+                                                    @if(($operation->operationType?->usesEventResult() ?? true) && $event->eventResult)
 
                                                         <div>
                                                             <dt>

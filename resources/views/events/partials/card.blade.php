@@ -112,6 +112,7 @@
 
             @if(
                 $event->eventStatus?->name === 'FINALIZADO'
+                && ($operation?->operationType?->supportsOcap() ?? false)
                 && filled($event->ocap_url)
             )
                 <a
@@ -186,7 +187,7 @@
                 </div>
             @endif
 
-            @if($event->eventResult)
+            @if(($operation?->operationType?->usesEventResult() ?? true) && $event->eventResult)
                 <div>
                     <dt>Resultado</dt>
                     <dd>{{ $event->eventResult->name }}</dd>

@@ -23,6 +23,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Actions;
@@ -32,11 +33,15 @@ use Illuminate\Support\Str;
 use App\Models\Country;
 use App\Models\Army;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Support\Enums\VerticalAlignment;
 use App\Services\AuditLogger;
 use App\Models\OperationStatus;
 use App\Support\OperationTypeAccess;
 use App\Support\OperationEditorSelection;
 use App\Support\FactionOptionLabel;
+use App\Support\OperationTypeConfiguration;
+use App\Support\SlotQuickSelection;
 
 class EditOperation extends EditRecord
 {
@@ -55,6 +60,7 @@ class EditOperation extends EditRecord
         array $data
     ): array {
         $data = OperationEditorSelection::resolveChoice($data);
+        $data = OperationTypeConfiguration::normalizeOperationData($data);
 
         $targetOperationTypeId =
             $data['operation_type_id'] ?? null;
@@ -67,7 +73,7 @@ class EditOperation extends EditRecord
         )) {
             throw ValidationException::withMessages([
                 'data.operation_type_id' =>
-                    'No tienes permiso para modificar operativos de este tipo.',
+                    'No tienes permiso para modificar actividades de este tipo.',
             ]);
         }
 
@@ -126,10 +132,10 @@ class EditOperation extends EditRecord
         if ($hasPublishedEvents) {
             throw ValidationException::withMessages([
                 'data.operation_status_id' =>
-                    'No puedes pasar este operativo a BORRADOR '
+                    'No puedes pasar esta actividad a BORRADOR '
                     . 'porque tiene uno o más eventos publicados. '
                     . 'Los eventos deben permanecer en BORRADOR '
-                    . 'antes de poder cambiar el estado del operativo.',
+                    . 'antes de poder cambiar el estado de la actividad.',
             ]);
         }
 
@@ -157,6 +163,12 @@ class EditOperation extends EditRecord
 
     protected function afterSave(): void
     {
+        $this->record->loadMissing('operationType');
+
+        if (! ($this->record->operationType?->usesEnemyFactions() ?? false)) {
+            $this->record->enemyFactions()->detach();
+        }
+
         $daysAfter =
             $this->record
                 ->days()
@@ -244,6 +256,174 @@ class EditOperation extends EditRecord
 
             $this->getCancelFormAction()
                 ->label('Cancelar'),
+        ];
+    }
+
+    private static function slotPickerSchema(): array
+    {
+        $groups = SlotQuickSelection::pickerGroups();
+        $pickerColumns = SlotQuickSelection::pickerColumns();
+
+        $fieldNames = collect(array_keys($groups))
+            ->mapWithKeys(
+                fn (string $slotTypeName): array => [
+                    $slotTypeName => SlotQuickSelection::pickerFieldName(
+                        $slotTypeName
+                    ),
+                ]
+            )
+            ->all();
+
+        $normalizeSearch = static function (mixed $value): string {
+            return Str::lower(
+                Str::ascii(
+                    trim((string) ($value ?? ''))
+                )
+            );
+        };
+
+        $buildSection = function (
+            array $options,
+            string $slotTypeName
+        ) use (
+            $fieldNames,
+            $normalizeSearch
+        ): Section {
+            $fieldName = $fieldNames[$slotTypeName];
+
+            $filteredOptions = static function (
+                Get $get
+            ) use (
+                $options,
+                $slotTypeName,
+                $normalizeSearch
+            ): array {
+                $query = $normalizeSearch($get('slot_search'));
+
+                if ($query === '') {
+                    return $options;
+                }
+
+                if (
+                    str_contains(
+                        $normalizeSearch($slotTypeName),
+                        $query
+                    )
+                ) {
+                    return $options;
+                }
+
+                return collect($options)
+                    ->filter(
+                        fn (mixed $label): bool => str_contains(
+                            $normalizeSearch($label),
+                            $query
+                        )
+                    )
+                    ->all();
+            };
+
+            return Section::make($slotTypeName)
+                ->visible(
+                    function (Get $get) use (
+                        $filteredOptions
+                    ): bool {
+                        return $filteredOptions($get) !== [];
+                    }
+                )
+                ->schema([
+                    ToggleButtons::make($fieldName)
+                        ->hiddenLabel()
+                        ->options($filteredOptions)
+                        ->columns(1)
+                        ->live()
+                        ->afterStateUpdated(
+                            function (
+                                $state,
+                                Set $set,
+                                $livewire
+                            ) use (
+                                $fieldName,
+                                $fieldNames
+                            ): void {
+                                if (blank($state)) {
+                                    return;
+                                }
+
+                                foreach ($fieldNames as $otherFieldName) {
+                                    if ($otherFieldName !== $fieldName) {
+                                        $set($otherFieldName, null);
+                                    }
+                                }
+
+                                $set(
+                                    'selected_slot_choice',
+                                    is_string($state) ? $state : null
+                                );
+
+                                /*
+                                |----------------------------------------------
+                                | Selección inmediata
+                                |----------------------------------------------
+                                |
+                                | Al pulsar una opción se aplica directamente
+                                | al slot y se cierra el modal.
+                                |
+                                */
+                                $livewire->callMountedAction();
+                            }
+                        ),
+                ])
+                ->compact();
+        };
+
+        $columns = collect($pickerColumns)
+            ->map(
+                fn (array $columnGroups): array => collect($columnGroups)
+                    ->map(
+                        fn (
+                            array $options,
+                            string $slotTypeName
+                        ): Section => $buildSection(
+                            $options,
+                            $slotTypeName
+                        )
+                    )
+                    ->values()
+                    ->all()
+            )
+            ->values();
+
+        return [
+            TextInput::make('slot_search')
+                ->label('Buscar')
+                ->placeholder('Buscar tipo o nombre de slot...')
+                ->live(debounce: 200)
+                ->dehydrated(false)
+                ->extraInputAttributes([
+                    'autocomplete' => 'off',
+                ])
+                ->columnSpanFull(),
+
+            Hidden::make('selected_slot_choice')
+                ->required(),
+
+            Grid::make([
+                'default' => 1,
+                'md' => 2,
+                'xl' => 4,
+            ])
+                ->schema(
+                    $columns
+                        ->map(
+                            fn (array $columnSections): Grid =>
+                                Grid::make(1)
+                                    ->schema($columnSections)
+                                    ->columnSpan(1)
+                        )
+                        ->all()
+                )
+                ->columnSpanFull(),
         ];
     }
 
@@ -604,7 +784,9 @@ class EditOperation extends EditRecord
                 ->modalHeading('Editor de ORBAT')
                 ->modalSubmitActionLabel('Guardar ORBAT')
                 ->modalWidth('7xl')
-                ->fillForm(fn (): array => $this->record->orbat ?? ['groups' => []])
+                ->fillForm(fn (): array => SlotQuickSelection::prepareOrbat(
+                    $this->record->orbat ?? ['groups' => []]
+                ))
                 ->form([
                     Repeater::make('groups')
                         ->label('Grupos')
@@ -953,64 +1135,82 @@ class EditOperation extends EditRecord
                                         ->required()
                                         ->maxLength(255),
 
-                                    Select::make('slot_type_id')
-                                        ->label('Tipo de slot')
-                                        ->options(
-                                            fn (): array =>
-                                                SlotType::query()
-                                                    ->orderBy('name')
-                                                    ->get()
-                                                    ->mapWithKeys(
-                                                        fn (SlotType $slotType): array => [
-                                                            $slotType->id =>
-                                                                self::slotTypeOptionLabel(
-                                                                    $slotType
-                                                                ),
-                                                        ]
-                                                    )
-                                                    ->all()
-                                        )
-                                        ->getSearchResultsUsing(
-                                            fn (string $search): array =>
-                                                SlotType::query()
-                                                    ->where(
-                                                        'name',
-                                                        'like',
-                                                        "%{$search}%"
-                                                    )
-                                                    ->orderBy('name')
-                                                    ->limit(50)
-                                                    ->get()
-                                                    ->mapWithKeys(
-                                                        fn (SlotType $slotType): array => [
-                                                            $slotType->id =>
-                                                                self::slotTypeOptionLabel(
-                                                                    $slotType
-                                                                ),
-                                                        ]
-                                                    )
-                                                    ->all()
-                                        )
-                                        ->allowHtml()
-                                        ->searchable()
-                                        ->preload()
-                                        ->live()
-                                        ->afterStateUpdated(
-                                            function ($state, Set $set): void {
-                                                if (blank($state)) {
-                                                    return;
-                                                }
+                                    Hidden::make('slot_type_id'),
 
-                                                $slotTypeName = SlotType::query()
-                                                    ->whereKey($state)
-                                                    ->value('name');
+                                    Hidden::make('slot_quick_name_id'),
 
-                                                if (filled($slotTypeName)) {
-                                                    $set('name', $slotTypeName);
-                                                }
-                                            }
-                                        )
+                                    Hidden::make('slot_choice')
                                         ->required(),
+
+                                    Actions::make([
+                                        Action::make('chooseSlot')
+                                            ->label(
+                                                fn (Get $get): string =>
+                                                    filled($get('slot_choice'))
+                                                        ? 'Cambiar slot · ' . (
+                                                            SlotQuickSelection::selectedSummary(
+                                                                $get('slot_choice')
+                                                            ) ?? 'seleccionado'
+                                                        )
+                                                        : 'Escoger slot'
+                                            )
+                                            ->icon('heroicon-o-squares-2x2')
+                                            ->color('primary')
+                                            ->button()
+                                            ->modalHeading('Escoger slot')
+                                            ->modalDescription(
+                                                'Selecciona un nombre rápido. El nombre se copiará al slot y podrás editarlo después si lo necesitas.'
+                                            )
+                                            ->modalWidth('7xl')
+                                            ->modalSubmitAction(false)
+                                            ->fillForm(
+                                                fn (mixed $schemaState): array =>
+                                                    SlotQuickSelection::pickerFormData(
+                                                        is_array($schemaState)
+                                                            && is_string($schemaState['slot_choice'] ?? null)
+                                                                ? $schemaState['slot_choice']
+                                                                : null
+                                                    )
+                                            )
+                                            ->schema(
+                                                fn (): array => self::slotPickerSchema()
+                                            )
+                                            ->action(
+                                                function (
+                                                    array $data,
+                                                    Set $schemaSet
+                                                ): void {
+                                                    $choice = is_string(
+                                                        $data['selected_slot_choice'] ?? null
+                                                    )
+                                                        ? $data['selected_slot_choice']
+                                                        : null;
+
+                                                    $resolved = SlotQuickSelection::resolveChoice(
+                                                        $choice
+                                                    );
+
+                                                    $schemaSet('slot_choice', $choice);
+                                                    $schemaSet(
+                                                        'slot_type_id',
+                                                        $resolved['slot_type_id']
+                                                    );
+                                                    $schemaSet(
+                                                        'slot_quick_name_id',
+                                                        $resolved['slot_quick_name_id']
+                                                    );
+
+                                                    if (filled($resolved['name'])) {
+                                                        $schemaSet(
+                                                            'name',
+                                                            $resolved['name']
+                                                        );
+                                                    }
+                                                }
+                                            ),
+                                    ])
+                                        ->verticalAlignment(VerticalAlignment::End)
+                                        ->columnSpan(2),
                                     
                                 ])
                                 ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
@@ -1046,10 +1246,23 @@ class EditOperation extends EditRecord
 
                                     $usedSlotKeys[] = $slotKey;
 
+                                    $resolved = SlotQuickSelection::resolveChoice(
+                                        isset($slot['slot_choice']) && is_string($slot['slot_choice'])
+                                            ? $slot['slot_choice']
+                                            : null
+                                    );
+
+                                    $slotTypeId = $resolved['slot_type_id']
+                                        ?? (isset($slot['slot_type_id']) ? (int) $slot['slot_type_id'] : null);
+
+                                    $quickNameId = $resolved['slot_quick_name_id']
+                                        ?? (isset($slot['slot_quick_name_id']) ? (int) $slot['slot_quick_name_id'] : null);
+
                                     return [
                                         'slot_key' => $slotKey,
-                                        'name' => $slot['name'] ?? '',
-                                        'slot_type_id' => isset($slot['slot_type_id']) ? (int) $slot['slot_type_id'] : null,
+                                        'name' => $slot['name'] ?? ($resolved['name'] ?? ''),
+                                        'slot_type_id' => $slotTypeId,
+                                        'slot_quick_name_id' => $quickNameId,
                                         'visible' => (bool) ($slot['visible'] ?? true),
                                     ];
                                 })
@@ -1541,8 +1754,8 @@ class EditOperation extends EditRecord
                 ])
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Duplicar operativo')
-                ->modalDescription('Se creará una copia del operativo actual sin duplicar sus eventos.')
+                ->modalHeading('Duplicar actividad')
+                ->modalDescription('Se creará una copia de la actividad actual sin duplicar sus eventos.')
                 ->action(function (): void {
                     abort_unless(
                         OperationTypeAccess::can(
@@ -1633,7 +1846,7 @@ class EditOperation extends EditRecord
                         );
 
                     Notification::make()
-                        ->title('Operativo duplicado.')
+                        ->title('Actividad duplicada.')
                         ->success()
                         ->send();
 

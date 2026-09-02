@@ -26,11 +26,13 @@ class OperationStatusResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'Estado operativo';
+    protected static ?string $recordTitleAttribute = 'name';
 
-    protected static ?string $pluralModelLabel = 'Estados operativo';
+    protected static ?string $modelLabel = 'Estado de actividad';
 
-    protected static ?string $navigationLabel = 'Estados operativo';
+    protected static ?string $pluralModelLabel = 'Estados de actividad';
+
+    protected static ?string $navigationLabel = 'Estados de actividad';
 
     public static function form(Schema $schema): Schema
     {

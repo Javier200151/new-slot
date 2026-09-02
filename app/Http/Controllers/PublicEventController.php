@@ -27,6 +27,9 @@ use App\Notifications\EventSlotChangedNotification;
 use App\Models\Ally;
 use App\Models\Stream;
 use App\Models\EventMedia;
+use App\Filament\Resources\Events\EventResource;
+use App\Services\CourseMetopaAwardService;
+use App\Support\OperationTypeAccess;
 
 class PublicEventController extends Controller
 {
@@ -168,7 +171,8 @@ class PublicEventController extends Controller
             'operation.days',
             'operation.editor',
             'operation.editorAlly',
-            'operation.enemyFactions.army',
+            'operation.metopa',
+            'operation.enemyFactions.army.country',
             'operation.enemyFactions.side',
             'slots.user.mainSqaGroup',
             'slots.ally',
@@ -249,7 +253,8 @@ class PublicEventController extends Controller
             : null;
         $isRegistrationOpen = $event->eventStatus?->name === 'ACTIVO';
         $canManageOrbat = $this->canManageOrbat(
-            auth()->user()
+            auth()->user(),
+            $event,
         );
         /*
         |--------------------------------------------------------------------------
@@ -346,6 +351,25 @@ class PublicEventController extends Controller
                     )
                 )
             );
+
+        $courseMetopaService = app(CourseMetopaAwardService::class);
+
+        $canAwardCourseMetopa =
+            $canEditEvent
+            && $courseMetopaService->canAwardForUser(
+                $event,
+                $user,
+            );
+
+        $courseMetopaAwardUrl = $canAwardCourseMetopa
+            ? EventResource::getUrl(
+                'edit',
+                [
+                    'record' => $event,
+                    'awardCourseMetopa' => 1,
+                ],
+            )
+            : null;
 
         /*
         |--------------------------------------------------------------------------
@@ -567,6 +591,8 @@ class PublicEventController extends Controller
             'eventVods',
             'canAddEventMedia',
             'canModerateEventMedia',
+            'canAwardCourseMetopa',
+            'courseMetopaAwardUrl',
         ));
     }
 
@@ -1013,7 +1039,10 @@ class PublicEventController extends Controller
     $manager = $request->user();
 
     abort_unless(
-        $this->canManageOrbat($manager),
+        $this->canManageOrbat(
+            $manager,
+            $event,
+        ),
         403,
     );
 
@@ -2482,19 +2511,16 @@ class PublicEventController extends Controller
             );
     }
 
-    private function canManageOrbat(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        /*
-        * Dejamos admin como respaldo para no bloquearlo
-        * aunque todavía no se haya ejecutado el seeder
-        * de este nuevo permiso.
-        */
-        return $user->hasRole('admin')
-            || $user->can('event-orbat.manage');
+    private function canManageOrbat(
+        ?User $user,
+        Event $event,
+    ): bool {
+        return OperationTypeAccess::can(
+            $user,
+            'event-orbat',
+            'manage',
+            $event->operation?->operation_type_id,
+        );
     }
 
     private function recordSlotUnassignment(

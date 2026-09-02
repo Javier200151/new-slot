@@ -15,6 +15,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Filament\Support\Colors\Color;
+use App\Support\FactionOptionLabel;
 use App\Models\OperationDay;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -32,13 +34,28 @@ class OperationsTable
                 TextColumn::make('operationStatus.name')
                     ->label('Estado')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'ACTIVO' => 'success',
-                        'ARCHIVADO' => 'warning',
-                        'FINALIZADO' => 'info',
-                        'BORRADOR' => 'gray',
-                        default => 'gray',
-                    })
+                    ->color(
+                        function ($record): array|string {
+                            $configuredColor =
+                                $record->operationStatus?->color;
+
+                            if (filled($configuredColor)) {
+                                return Color::hex(
+                                    $configuredColor
+                                );
+                            }
+
+                            return match (
+                                $record->operationStatus?->name
+                            ) {
+                                'ACTIVO' => 'success',
+                                'ARCHIVADO' => 'warning',
+                                'FINALIZADO' => 'info',
+                                'BORRADOR' => 'gray',
+                                default => 'gray',
+                            };
+                        }
+                    )
                     ->searchable()
                     ->sortable(),
 
@@ -64,12 +81,38 @@ class OperationsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('enemyFactions.name')
+                TextColumn::make('enemy_factions_visual')
                     ->label('Facciones enemigas')
-                    ->listWithLineBreaks()
-                    ->bulleted()
-                    ->searchable()
-                    ->sortable(),
+                    ->state(
+                        fn ($record): string =>
+                            $record->enemyFactions
+                                ->map(
+                                    fn ($faction): string =>
+                                        FactionOptionLabel::make(
+                                            $faction
+                                                ->loadMissing([
+                                                    'side',
+                                                    'army.country',
+                                                ])
+                                        )
+                                )
+                                ->implode(
+                                    '<div style="height:6px"></div>'
+                                )
+                    )
+                    ->html()
+                    ->searchable(
+                        query: fn (Builder $query, string $search): Builder =>
+                            $query->whereHas(
+                                'enemyFactions',
+                                fn (Builder $factionQuery): Builder =>
+                                    $factionQuery->where(
+                                        'name',
+                                        'like',
+                                        "%{$search}%"
+                                    )
+                            )
+                    ),
 
                 TextColumn::make('period.name')
                     ->label('Periodo')

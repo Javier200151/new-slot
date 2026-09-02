@@ -2,10 +2,14 @@
 
 namespace App\Filament\Resources\Factions\Tables;
 
+use App\Models\Country;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class FactionsTable
@@ -23,6 +27,23 @@ class FactionsTable
                     ->searchable()
                     ->sortable(),
 
+                ImageColumn::make('army.country.image')
+                    ->label('País')
+                    ->state(
+                        fn ($record): ?string =>
+                            $record->army?->country?->image
+                                ? url(
+                                    'storage/'
+                                    . $record->army->country->image
+                                )
+                                : null
+                    )
+                    ->imageWidth(42)
+                    ->imageHeight(28)
+                    ->extraImgAttributes([
+                        'style' => 'object-fit: contain;',
+                    ]),
+
                 TextColumn::make('side.name')
                     ->label('Bando')
                     ->searchable()
@@ -38,7 +59,37 @@ class FactionsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('country_id')
+                    ->label('País')
+                    ->options(
+                        fn (): array => Country::query()
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all()
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->query(
+                        function (
+                            Builder $query,
+                            array $data,
+                        ): Builder {
+                            $countryId = $data['value'] ?? null;
+
+                            if (blank($countryId)) {
+                                return $query;
+                            }
+
+                            return $query->whereHas(
+                                'army',
+                                fn (Builder $armyQuery): Builder =>
+                                    $armyQuery->where(
+                                        'country_id',
+                                        $countryId
+                                    )
+                            );
+                        }
+                    ),
             ])
             ->recordActions([
                 EditAction::make(),

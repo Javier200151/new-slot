@@ -6,6 +6,9 @@ use App\Models\GameMap;
 use App\Models\OperationType;
 use App\Support\OperationTypeAccess;
 use App\Support\OperationEditorSelection;
+use App\Support\OperationTypeConfiguration;
+use App\Support\FactionOptionLabel;
+use App\Models\Metopa;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -34,7 +37,7 @@ class OperationForm
                     ->required(),
 
                 Select::make('operation_type_id')
-                    ->label('Tipo')
+                    ->label('Tipo de actividad')
                     ->options(
                         function ($record): array {
                             $action = $record ? 'update' : 'create';
@@ -54,6 +57,36 @@ class OperationForm
                     )
                     ->searchable()
                     ->preload()
+                    ->live()
+                    ->afterStateUpdated(
+                        function ($state, Set $set): void {
+                            $type = OperationTypeConfiguration::find($state);
+
+                            if (! $type) {
+                                return;
+                            }
+
+                            if (! $type->supportsOcap()) {
+                                $set('ocap', false);
+                            }
+
+                            if (! $type->supportsRespawn()) {
+                                $set('respawn', false);
+                            }
+
+                            if (! $type->supportsJip()) {
+                                $set('jip', false);
+                            }
+
+                            if (! $type->usesEnemyFactions()) {
+                                $set('enemyFactions', []);
+                            }
+
+                            if (! $type->awardsMetopa()) {
+                                $set('metopa_id', null);
+                            }
+                        }
+                    )
                     ->required(),
 
                 Select::make('operation_status_id')
@@ -101,16 +134,45 @@ class OperationForm
                 Section::make('Opciones')
                     ->inlineLabel(false)
                     ->columns(3)
+                    ->visible(
+                        function (Get $get): bool {
+                            $type = OperationTypeConfiguration::find(
+                                $get('operation_type_id')
+                            );
+
+                            return $type !== null
+                                && (
+                                    $type->supportsOcap()
+                                    || $type->supportsRespawn()
+                                    || $type->supportsJip()
+                                );
+                        }
+                    )
                     ->schema([
                         Toggle::make('ocap')
                             ->inline(false)
-                            ->label('OCAP'),
+                            ->label('OCAP')
+                            ->visible(
+                                fn (Get $get): bool =>
+                                    OperationTypeConfiguration::find($get('operation_type_id'))?->supportsOcap()
+                                    ?? false
+                            ),
                         Toggle::make('respawn')
                             ->inline(false)
-                            ->label('Respawn'),
+                            ->label('Respawn')
+                            ->visible(
+                                fn (Get $get): bool =>
+                                    OperationTypeConfiguration::find($get('operation_type_id'))?->supportsRespawn()
+                                    ?? false
+                            ),
                         Toggle::make('jip')
                             ->inline(false)
-                            ->label('JIP'),
+                            ->label('JIP')
+                            ->visible(
+                                fn (Get $get): bool =>
+                                    OperationTypeConfiguration::find($get('operation_type_id'))?->supportsJip()
+                                    ?? false
+                            ),
                     ]),
 
                 // Toggle::make('ocap')
@@ -274,14 +336,24 @@ class OperationForm
                             }
 
                             return $query
+                                ->with([
+                                    'side',
+                                    'army.country',
+                                ])
                                 ->orderBy('name')
-                                ->pluck(
-                                    'name',
-                                    'id'
+                                ->get()
+                                ->mapWithKeys(
+                                    fn (Faction $faction): array => [
+                                        $faction->id =>
+                                            FactionOptionLabel::make(
+                                                $faction
+                                            ),
+                                    ]
                                 )
                                 ->all();
                         }
                     )
+                    ->allowHtml()
 
                     /*
                     |--------------------------------------------------------------------------
@@ -458,6 +530,29 @@ class OperationForm
                     ->multiple()
                     ->searchable()
                     ->preload()
+                    ->visible(
+                        fn (Get $get): bool =>
+                            OperationTypeConfiguration::find($get('operation_type_id'))?->usesEnemyFactions()
+                            ?? false
+                    )
+                    ->nullable(),
+
+                Select::make('metopa_id')
+                    ->label('Metopa del curso')
+                    ->options(
+                        fn (): array => Metopa::query()
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all()
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->visible(
+                        fn (Get $get): bool =>
+                            OperationTypeConfiguration::find($get('operation_type_id'))?->awardsMetopa()
+                            ?? false
+                    )
+                    ->helperText('Se propondrá automáticamente al finalizar un evento de esta actividad.')
                     ->nullable(),
 
                 Select::make('editor_choice')

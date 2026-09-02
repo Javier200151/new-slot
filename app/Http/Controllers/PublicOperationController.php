@@ -208,6 +208,7 @@ class PublicOperationController extends Controller
                 'editor.status',
                 'editor.mainSqaGroup',
                 'editorAlly',
+                'metopa',
             ])
 
             /*
@@ -960,8 +961,9 @@ class PublicOperationController extends Controller
             'editor.status',
             'editor.mainSqaGroup',
             'editorAlly',
+            'metopa',
 
-            'enemyFactions.army',
+            'enemyFactions.army.country',
             'enemyFactions.side',
         ]);
         /*

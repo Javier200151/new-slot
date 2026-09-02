@@ -35,6 +35,7 @@ class Operation extends Model
         'period_id',
         'editor_id',
         'editor_ally_id',
+        'metopa_id',
         'day_or_night',
     ];
 
@@ -125,6 +126,11 @@ class Operation extends Model
     public function editorAlly()
     {
         return $this->belongsTo(Ally::class, 'editor_ally_id');
+    }
+
+    public function metopa()
+    {
+        return $this->belongsTo(Metopa::class, 'metopa_id');
     }
 
     public function getEditorDisplayNameAttribute(): ?string

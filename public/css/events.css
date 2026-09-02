@@ -4834,3 +4834,44 @@ a.event-comment__author:hover {
     background: color-mix(in srgb, var(--status-color, #3b82f6) 14%, transparent);
     border: 1px solid color-mix(in srgb, var(--status-color, #3b82f6) 28%, transparent);
 }
+
+/* =========================================================
+   METOPA ASOCIADA A CURSO / ACTIVIDAD
+========================================================= */
+
+.event-detail__course-metopa {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 12px 16px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 12px;
+    background: rgba(255, 159, 10, 0.05);
+}
+
+.event-detail__course-metopa > span {
+    color: var(--muted, #8b95a5);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.event-detail__course-metopa a {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.event-detail__course-metopa img {
+    width: 72px;
+    height: 26px;
+    object-fit: contain;
+}
+
+.event-course-metopa-action {
+    border-color: rgba(34, 197, 94, 0.45) !important;
+}

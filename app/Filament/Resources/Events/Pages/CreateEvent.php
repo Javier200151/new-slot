@@ -9,6 +9,7 @@ use App\Services\CommunityNotificationService;
 use App\Models\EventStatus;
 use Illuminate\Validation\ValidationException;
 use App\Support\OperationTypeAccess;
+use App\Support\OperationTypeConfiguration;
 
 class CreateEvent extends CreateRecord
 {
@@ -122,7 +123,10 @@ class CreateEvent extends CreateRecord
             $data['multiclans'] = true;
         }
 
-        return $data;
+        return OperationTypeConfiguration::normalizeEventData(
+            $data,
+            $operation?->id,
+        );
     }
 
     protected function afterCreate(): void

@@ -26,11 +26,13 @@ class OperationTypeResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'Tipo operativo';
+    protected static ?string $recordTitleAttribute = 'name';
 
-    protected static ?string $pluralModelLabel = 'Tipos operativo';
+    protected static ?string $modelLabel = 'Tipo de actividad';
 
-    protected static ?string $navigationLabel = 'Tipos operativo';
+    protected static ?string $pluralModelLabel = 'Tipos de actividad';
+
+    protected static ?string $navigationLabel = 'Tipos de actividad';
 
     public static function form(Schema $schema): Schema
     {
