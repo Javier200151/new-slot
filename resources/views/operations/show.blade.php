@@ -98,11 +98,10 @@
                         @if($operation->operationStatus)
 
                             <span
-                                @class([
-                                    'is-active' =>
-                                        $operation
-                                            ->operationStatus
-                                            ?->name === 'ACTIVO',
+                                class="operation-status-badge"
+                                @style([
+                                    '--status-color: ' . $operation->operationStatus?->color
+                                        => filled($operation->operationStatus?->color),
                                 ])
                             >
                                 {{ $operation
@@ -192,8 +191,14 @@
                     <div>
                         <dt>Plataforma</dt>
 
-                        <dd>
-                            {{ $operation->platform->name }}
+                        <dd class="event-detail__fact-with-icon">
+                            @if($operation->platform->image)
+                                <img
+                                    src="{{ asset('storage/' . $operation->platform->image) }}"
+                                    alt=""
+                                >
+                            @endif
+                            <span>{{ $operation->platform->name }}</span>
                         </dd>
                     </div>
 
@@ -207,6 +212,24 @@
 
                         <dd>
                             {{ $operation->period->name }}
+                        </dd>
+                    </div>
+
+                @endif
+
+
+                @if(
+                    ($operation->operationType?->usesEnemyFactions() ?? true)
+                    && $operation->enemyFactions->isNotEmpty()
+                )
+
+                    <div>
+                        <dt>Facciones enemigas</dt>
+
+                        <dd style="display:grid;gap:8px;">
+                            @foreach($operation->enemyFactions as $enemyFaction)
+                                {!! \App\Support\FactionOptionLabel::make($enemyFaction) !!}
+                            @endforeach
                         </dd>
                     </div>
 
@@ -259,16 +282,20 @@
                 @endif
 
 
-                @if($operation->editor)
+                @if($operation->editor || $operation->editorAlly)
 
                     <div>
                         <dt>Editor</dt>
 
                         <dd>
-                            <x-user-link
-                                :user="$operation->editor"
-                                style="color: {{ $operation->editor->getFrontendColor() }};"
-                            />
+                            @if($operation->editor)
+                                <x-user-link
+                                    :user="$operation->editor"
+                                    style="color: {{ $operation->editor->getFrontendColor() }};"
+                                />
+                            @else
+                                <span>{{ $operation->editorAlly->name }}</span>
+                            @endif
                         </dd>
                     </div>
 
@@ -301,36 +328,46 @@
                 OPCIONES
             ====================================================== --}}
 
-            <section
-                class="event-detail__options"
-                aria-label="Opciones del operativo"
-            >
-
-                <span
-                    @class([
-                        'is-enabled' => $operation->ocap,
-                    ])
+            @if(
+                ($operation->operationType?->supportsOcap() ?? false)
+                || ($operation->operationType?->supportsRespawn() ?? false)
+                || ($operation->operationType?->supportsJip() ?? false)
+            )
+                <section
+                    class="event-detail__options"
+                    aria-label="Opciones de la actividad"
                 >
-                    OCAP
-                </span>
+                    @if($operation->operationType?->supportsOcap())
+                        <span @class(['is-enabled' => $operation->ocap])>OCAP</span>
+                    @endif
 
-                <span
-                    @class([
-                        'is-enabled' => $operation->respawn,
-                    ])
-                >
-                    Respawn
-                </span>
+                    @if($operation->operationType?->supportsRespawn())
+                        <span @class(['is-enabled' => $operation->respawn])>Respawn</span>
+                    @endif
 
-                <span
-                    @class([
-                        'is-enabled' => $operation->jip,
-                    ])
-                >
-                    JIP
-                </span>
+                    @if($operation->operationType?->supportsJip())
+                        <span @class(['is-enabled' => $operation->jip])>JIP</span>
+                    @endif
+                </section>
+            @endif
 
-            </section>
+            @if(
+                ($operation->operationType?->awardsMetopa() ?? false)
+                && $operation->metopa
+            )
+                <section class="event-detail__course-metopa" aria-label="Metopa de la actividad">
+                    <span>Metopa asociada</span>
+                    <a href="{{ route('metopas.show', $operation->metopa) }}">
+                        @if($operation->metopa->image)
+                            <img
+                                src="{{ asset('storage/' . $operation->metopa->image) }}"
+                                alt=""
+                            >
+                        @endif
+                        <strong>{{ $operation->metopa->name }}</strong>
+                    </a>
+                </section>
+            @endif
 
 
             {{-- =====================================================
@@ -1044,11 +1081,23 @@
                                                         'd/m/Y H:i'
                                                     )
                                                 . 'H';
+
+                                            $isCancelled =
+                                                $event->isCancelled();
+
+                                            $participatingAllies = $event->slots
+                                                ->pluck('ally')
+                                                ->filter()
+                                                ->unique('id')
+                                                ->values();
                                         @endphp
 
 
                                         <article
-                                            class="event-card"
+                                            @class([
+                                                'event-card',
+                                                'is-cancelled' => $isCancelled,
+                                            ])
                                             @style([
                                                 '--event-color: '
                                                 . (
@@ -1062,19 +1111,23 @@
                                                         ->operationType
                                                         ?->color
                                                 ),
+                                                'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;'
+                                                    => $isCancelled,
                                             ])
                                         >
 
-                                            <a
-                                                href="{{ route(
-                                                    'events.show',
-                                                    $event
-                                                ) }}"
-                                                class="
-                                                    event-card__detail-link
-                                                "
-                                                aria-label="Ver evento {{ $event->name ?: $operation->name }}"
-                                            ></a>
+                                            @unless($isCancelled)
+                                                <a
+                                                    href="{{ route(
+                                                        'events.show',
+                                                        $event
+                                                    ) }}"
+                                                    class="
+                                                        event-card__detail-link
+                                                    "
+                                                    aria-label="Ver evento {{ $event->name ?: $operation->name }}"
+                                                ></a>
+                                            @endunless
 
 
                                             <div
@@ -1144,6 +1197,8 @@
                                                                 'event-card__status',
                                                                 'is-active' =>
                                                                     $event->eventStatus?->name === 'ACTIVO',
+                                                                'is-cancelled' =>
+                                                                    $isCancelled,
                                                             ])
                                                         >
                                                             {{ $event->eventStatus->name }}
@@ -1151,8 +1206,15 @@
 
                                                     @endif
 
+                                                    @if($event->multiclans)
+                                                        <span class="event-card__multiclans">
+                                                            Multiclán
+                                                        </span>
+                                                    @endif
+
                                                     @if(
                                                         $event->eventStatus?->name === 'FINALIZADO'
+                                                        && ($operation->operationType?->supportsOcap() ?? false)
                                                         && filled($event->ocap_url)
                                                     )
 
@@ -1179,16 +1241,22 @@
                                                 >
 
                                                     <h3>
-                                                        <a
-                                                            href="{{ route(
-                                                                'events.show',
-                                                                $event
-                                                            ) }}"
-                                                        >
-                                                            {{ $event->name
-                                                                ?: $operation->name
-                                                            }}
-                                                        </a>
+                                                        @if($isCancelled)
+                                                            <span>
+                                                                {{ $event->name ?: $operation->name }}
+                                                            </span>
+                                                        @else
+                                                            <a
+                                                                href="{{ route(
+                                                                    'events.show',
+                                                                    $event
+                                                                ) }}"
+                                                            >
+                                                                {{ $event->name
+                                                                    ?: $operation->name
+                                                                }}
+                                                            </a>
+                                                        @endif
                                                     </h3>
 
 
@@ -1228,7 +1296,7 @@
                                                     @endif
 
 
-                                                    @if($event->eventResult)
+                                                    @if(($operation->operationType?->usesEventResult() ?? true) && $event->eventResult)
 
                                                         <div>
                                                             <dt>
@@ -1246,6 +1314,28 @@
                                                     @endif
 
                                                 </dl>
+
+                                                @if($participatingAllies->isNotEmpty())
+                                                    <div class="event-card__allies" aria-label="Aliados participantes">
+                                                        <span>Aliados</span>
+
+                                                        <div>
+                                                            @foreach($participatingAllies as $ally)
+                                                                <span class="event-card__ally" title="{{ $ally->name }}">
+                                                                    @if($ally->image)
+                                                                        <img
+                                                                            src="{{ asset('storage/' . $ally->image) }}"
+                                                                            alt="{{ $ally->name }}"
+                                                                            loading="lazy"
+                                                                        >
+                                                                    @else
+                                                                        <strong>{{ strtoupper(substr($ally->name, 0, 2)) }}</strong>
+                                                                    @endif
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
 
                                             </div>
 
@@ -1340,11 +1430,23 @@
                                                         'd/m/Y H:i'
                                                     )
                                                 . 'H';
+
+                                            $isCancelled =
+                                                $event->isCancelled();
+
+                                            $participatingAllies = $event->slots
+                                                ->pluck('ally')
+                                                ->filter()
+                                                ->unique('id')
+                                                ->values();
                                         @endphp
 
 
                                         <article
-                                            class="event-card"
+                                            @class([
+                                                'event-card',
+                                                'is-cancelled' => $isCancelled,
+                                            ])
                                             @style([
                                                 '--event-color: '
                                                 . (
@@ -1358,19 +1460,23 @@
                                                         ->operationType
                                                         ?->color
                                                 ),
+                                                'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;'
+                                                    => $isCancelled,
                                             ])
                                         >
 
-                                            <a
-                                                href="{{ route(
-                                                    'events.show',
-                                                    $event
-                                                ) }}"
-                                                class="
-                                                    event-card__detail-link
-                                                "
-                                                aria-label="Ver evento {{ $event->name ?: $operation->name }}"
-                                            ></a>
+                                            @unless($isCancelled)
+                                                <a
+                                                    href="{{ route(
+                                                        'events.show',
+                                                        $event
+                                                    ) }}"
+                                                    class="
+                                                        event-card__detail-link
+                                                    "
+                                                    aria-label="Ver evento {{ $event->name ?: $operation->name }}"
+                                                ></a>
+                                            @endunless
 
 
                                             <div
@@ -1440,6 +1546,8 @@
                                                                 'event-card__status',
                                                                 'is-active' =>
                                                                     $event->eventStatus?->name === 'ACTIVO',
+                                                                'is-cancelled' =>
+                                                                    $isCancelled,
                                                             ])
                                                         >
                                                             {{ $event->eventStatus->name }}
@@ -1447,8 +1555,15 @@
 
                                                     @endif
 
+                                                    @if($event->multiclans)
+                                                        <span class="event-card__multiclans">
+                                                            Multiclán
+                                                        </span>
+                                                    @endif
+
                                                     @if(
                                                         $event->eventStatus?->name === 'FINALIZADO'
+                                                        && ($operation->operationType?->supportsOcap() ?? false)
                                                         && filled($event->ocap_url)
                                                     )
 
@@ -1475,16 +1590,22 @@
                                                 >
 
                                                     <h3>
-                                                        <a
-                                                            href="{{ route(
-                                                                'events.show',
-                                                                $event
-                                                            ) }}"
-                                                        >
-                                                            {{ $event->name
-                                                                ?: $operation->name
-                                                            }}
-                                                        </a>
+                                                        @if($isCancelled)
+                                                            <span>
+                                                                {{ $event->name ?: $operation->name }}
+                                                            </span>
+                                                        @else
+                                                            <a
+                                                                href="{{ route(
+                                                                    'events.show',
+                                                                    $event
+                                                                ) }}"
+                                                            >
+                                                                {{ $event->name
+                                                                    ?: $operation->name
+                                                                }}
+                                                            </a>
+                                                        @endif
                                                     </h3>
 
 
@@ -1524,7 +1645,7 @@
                                                     @endif
 
 
-                                                    @if($event->eventResult)
+                                                    @if(($operation->operationType?->usesEventResult() ?? true) && $event->eventResult)
 
                                                         <div>
                                                             <dt>
@@ -1542,6 +1663,28 @@
                                                     @endif
 
                                                 </dl>
+
+                                                @if($participatingAllies->isNotEmpty())
+                                                    <div class="event-card__allies" aria-label="Aliados participantes">
+                                                        <span>Aliados</span>
+
+                                                        <div>
+                                                            @foreach($participatingAllies as $ally)
+                                                                <span class="event-card__ally" title="{{ $ally->name }}">
+                                                                    @if($ally->image)
+                                                                        <img
+                                                                            src="{{ asset('storage/' . $ally->image) }}"
+                                                                            alt="{{ $ally->name }}"
+                                                                            loading="lazy"
+                                                                        >
+                                                                    @else
+                                                                        <strong>{{ strtoupper(substr($ally->name, 0, 2)) }}</strong>
+                                                                    @endif
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
 
                                             </div>
 

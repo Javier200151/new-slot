@@ -4725,3 +4725,153 @@ a.event-comment__author:hover {
         transition: none;
     }
 }
+/* =========================================================
+   EVENTOS - ESTADOS, MULTICLÁN, ALIADOS E ICONOS
+========================================================= */
+
+.events-calendar__event.is-cancelled,
+.event-card.is-cancelled {
+    opacity: 0.62;
+    filter: saturate(0.35);
+}
+
+.events-calendar__event.is-cancelled {
+    cursor: not-allowed;
+}
+
+.event-card.is-cancelled:hover {
+    transform: none;
+}
+
+.event-card__status.is-cancelled {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.event-card__multiclans,
+.event-detail__option--multiclans {
+    color: #facc15;
+    background: rgba(250, 204, 21, 0.09);
+    border-color: rgba(250, 204, 21, 0.3);
+}
+
+.event-card__multiclans {
+    padding: 4px 8px;
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    border-radius: 999px;
+    font-size: 0.58rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.event-card__fact-with-icon,
+.event-detail__fact-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.event-card__fact-with-icon img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.event-detail__fact-with-icon img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.event-card__allies {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.event-card__allies > span {
+    color: var(--text-muted);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.event-card__allies > div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.event-card__ally {
+    width: 30px;
+    height: 30px;
+    display: inline-grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.event-card__ally img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.event-card__ally strong {
+    color: #fff;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+}
+
+.event-detail__eyebrow .operation-status-badge {
+    color: color-mix(in srgb, var(--status-color, #93c5fd) 80%, #fff);
+    background: color-mix(in srgb, var(--status-color, #3b82f6) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--status-color, #3b82f6) 28%, transparent);
+}
+
+/* =========================================================
+   METOPA ASOCIADA A CURSO / ACTIVIDAD
+========================================================= */
+
+.event-detail__course-metopa {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 12px 16px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 12px;
+    background: rgba(255, 159, 10, 0.05);
+}
+
+.event-detail__course-metopa > span {
+    color: var(--muted, #8b95a5);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.event-detail__course-metopa a {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.event-detail__course-metopa img {
+    width: 72px;
+    height: 26px;
+    object-fit: contain;
+}
+
+.event-course-metopa-action {
+    border-color: rgba(34, 197, 94, 0.45) !important;
+}

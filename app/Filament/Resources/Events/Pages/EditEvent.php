@@ -6,11 +6,13 @@ use Illuminate\Validation\ValidationException;
 use App\Filament\Resources\Events\EventResource;
 use App\Models\Faction;
 use App\Models\SlotType;
+use App\Models\SlotTypeQuickName;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -20,10 +22,32 @@ use Filament\Schemas\Components\Utilities\Set;
 use App\Services\CommunityNotificationService;
 use App\Models\EventStatus;
 use App\Models\Operation;
+use App\Models\User;
+use App\Support\FactionOptionLabel;
+use App\Support\OperationTypeConfiguration;
+use App\Services\CourseMetopaAwardService;
 
 class EditEvent extends EditRecord
 {
     protected static string $resource = EventResource::class;
+
+    public function mount(int | string $record): void
+    {
+        parent::mount($record);
+
+        if (request()->boolean('awardCourseMetopa')) {
+            $service = app(CourseMetopaAwardService::class);
+
+            if (
+                $service->canAwardForUser(
+                    $this->record,
+                    auth()->user(),
+                )
+            ) {
+                $this->mountAction('awardCourseMetopa');
+            }
+        }
+    }
 
     protected function getHeaderActions(): array
     {
@@ -61,6 +85,89 @@ class EditEvent extends EditRecord
                     'class' =>
                         'event-header-action--primary',
                 ]),
+
+            Action::make('awardCourseMetopa')
+                ->label('Entregar metopa del curso')
+                ->icon('heroicon-o-trophy')
+                ->color('success')
+                ->visible(
+                    fn (): bool =>
+                        app(CourseMetopaAwardService::class)
+                            ->canAwardForUser(
+                                $this->record,
+                                auth()->user(),
+                            )
+                )
+                ->fillForm(
+                    function (): array {
+                        $studentIds = app(CourseMetopaAwardService::class)
+                            ->students($this->record)
+                            ->pluck('id')
+                            ->map(fn ($id): int => (int) $id)
+                            ->all();
+
+                        return [
+                            'user_ids' => $studentIds,
+                        ];
+                    }
+                )
+                ->form([
+                    Select::make('user_ids')
+                        ->label('Alumnos / destinatarios')
+                        ->multiple()
+                        ->options(
+                            User::query()
+                                ->orderBy('nick')
+                                ->pluck('nick', 'id')
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->helperText(
+                            'Se precargan los alumnos detectados en el ORBAT. '
+                            .'Puedes quitar usuarios o añadir otros antes de entregar.'
+                        ),
+                ])
+                ->modalHeading('Entregar metopa del curso')
+                ->modalDescription(
+                    function (): string {
+                        $service = app(CourseMetopaAwardService::class);
+                        $students = $service->students($this->record);
+                        $metopa = $this->record->operation?->metopa;
+
+                        return 'Metopa: "'
+                            . ($metopa?->name ?? 'Sin metopa')
+                            . '". Se han precargado '
+                            . $students->count()
+                            . ' alumno(s) desde el ORBAT. '
+                            . 'Las asignaciones que ya existan conservarán su fecha.';
+                    }
+                )
+                ->modalSubmitActionLabel('Aceptar y entregar')
+                ->requiresConfirmation()
+                ->action(
+                    function (array $data): void {
+                        $result = app(CourseMetopaAwardService::class)
+                            ->award(
+                                $this->record,
+                                $data['user_ids'] ?? [],
+                            );
+
+                        $counts = $result['results'];
+                        $newAwards = $counts['created'] + $counts['restored'];
+
+                        Notification::make()
+                            ->title('Metopa del curso procesada')
+                            ->body(
+                                $newAwards
+                                . ' nueva(s) asignación(es); '
+                                . $counts['already_exists']
+                                . ' ya existían y conservaron su fecha.'
+                            )
+                            ->success()
+                            ->send();
+                    }
+                ),
 
             Action::make('editOrbatVisibility')
                 ->label('Editar ORBAT')
@@ -103,8 +210,39 @@ class EditEvent extends EditRecord
                                 ->disabled()
                                 ->dehydrated(),
 
-                            TextInput::make('faction_name')
+                            Select::make('faction_id')
                                 ->label('Facción')
+                                ->options(
+                                    function (Get $get): array {
+                                        $factionId =
+                                            $get('faction_id');
+
+                                        if (blank($factionId)) {
+                                            return [];
+                                        }
+
+                                        $faction =
+                                            Faction::query()
+                                                ->with([
+                                                    'side',
+                                                    'army.country',
+                                                ])
+                                                ->find($factionId);
+
+                                        if (! $faction) {
+                                            return [];
+                                        }
+
+                                        return [
+                                            $faction->id =>
+                                                FactionOptionLabel::make(
+                                                    $faction
+                                                ),
+                                        ];
+                                    }
+                                )
+                                ->allowHtml()
+                                ->placeholder('Sin facción')
                                 ->disabled()
                                 ->dehydrated(false),
 
@@ -355,7 +493,17 @@ class EditEvent extends EditRecord
             ]);
         }
 
-        return $data;
+        if (
+            $operation?->editor_ally_id
+            || $this->record->slots()->whereNotNull('ally_id')->exists()
+        ) {
+            $data['multiclans'] = true;
+        }
+
+        return OperationTypeConfiguration::normalizeEventData(
+            $data,
+            $originalOperationId,
+        );
     }
 
     protected function findAssignedSlotsUnavailableInOrbat(
@@ -521,32 +669,45 @@ class EditEvent extends EditRecord
     {
         $groups = $orbat['groups'] ?? [];
 
-        $factionNames = Faction::query()
-            ->whereIn('id', collect($groups)->pluck('faction_id')->filter()->unique())
-            ->pluck('name', 'id');
+        $allSlots = collect($groups)
+            ->flatMap(fn (array $group): array => $group['slots'] ?? []);
 
         $slotTypeNames = SlotType::query()
             ->whereIn(
                 'id',
-                collect($groups)
-                    ->flatMap(fn (array $group): array => $group['slots'] ?? [])
+                $allSlots
                     ->pluck('slot_type_id')
                     ->filter()
                     ->unique()
             )
             ->pluck('name', 'id');
 
+        $quickCategories = SlotTypeQuickName::query()
+            ->whereIn(
+                'id',
+                $allSlots
+                    ->pluck('slot_quick_name_id')
+                    ->filter()
+                    ->unique()
+            )
+            ->pluck('category', 'id');
+
         return [
             'groups' => collect($groups)
                 ->map(fn (array $group): array => [
                     'visible' => (bool) ($group['visible'] ?? true),
                     'name' => $group['name'] ?? '',
-                    'faction_name' => $factionNames[(int) ($group['faction_id'] ?? 0)] ?? 'Sin facción',
+                    'faction_id' => isset($group['faction_id'])
+                        ? (int) $group['faction_id']
+                        : null,
                     'slots' => collect($group['slots'] ?? [])
                         ->map(fn (array $slot): array => [
                             'visible' => (bool) ($slot['visible'] ?? true),
                             'name' => $slot['name'] ?? '',
-                            'slot_type_name' => $slotTypeNames[(int) ($slot['slot_type_id'] ?? 0)] ?? 'Sin tipo',
+                            'slot_type_name' =>
+                                $quickCategories[(int) ($slot['slot_quick_name_id'] ?? 0)]
+                                ?? $slotTypeNames[(int) ($slot['slot_type_id'] ?? 0)]
+                                ?? 'Sin tipo',
                         ])
                         ->values()
                         ->all(),

@@ -986,6 +986,10 @@
 
                                             <span
                                                 class="operation-card__status"
+                                                @style([
+                                                    '--status-color: ' . $operation->operationStatus?->color
+                                                        => filled($operation->operationStatus?->color),
+                                                ])
                                             >
                                                 {{
                                                     $operation
@@ -1199,7 +1203,7 @@
 
                                             {{-- Editor --}}
 
-                                            @if($operation->editor)
+                                            @if($operation->editor || $operation->editorAlly)
 
                                                 <div>
 
@@ -1209,27 +1213,29 @@
 
                                                     <dd>
 
-                                                        <a
-                                                            href="{{ route(
-                                                                'users.show',
-                                                                $operation->editor
-                                                            ) }}"
-                                                            class="operation-card__editor"
-                                                            style="
-                                                                --member-group-color:
-                                                                {{
-                                                                    $operation
-                                                                        ->editor
-                                                                        ->getFrontendColor()
-                                                                }};
-                                                            "
-                                                        >
-                                                            {{
-                                                                $operation
-                                                                    ->editor
-                                                                    ->nick
-                                                            }}
-                                                        </a>
+                                                        @if($operation->editor)
+                                                            <a
+                                                                href="{{ route(
+                                                                    'users.show',
+                                                                    $operation->editor
+                                                                ) }}"
+                                                                class="operation-card__editor"
+                                                                style="
+                                                                    --member-group-color:
+                                                                    {{
+                                                                        $operation
+                                                                            ->editor
+                                                                            ->getFrontendColor()
+                                                                    }};
+                                                                "
+                                                            >
+                                                                {{ $operation->editor->nick }}
+                                                            </a>
+                                                        @else
+                                                            <span class="operation-card__editor">
+                                                                {{ $operation->editorAlly->name }}
+                                                            </span>
+                                                        @endif
 
                                                     </dd>
 
@@ -1240,38 +1246,25 @@
                                         </dl>
 
 
-                                        <div
-                                            class="operation-card__options"
-                                        >
+                                        @if(
+                                            ($operation->operationType?->supportsOcap() ?? false)
+                                            || ($operation->operationType?->supportsRespawn() ?? false)
+                                            || ($operation->operationType?->supportsJip() ?? false)
+                                        )
+                                            <div class="operation-card__options">
+                                                @if($operation->operationType?->supportsOcap())
+                                                    <span @class(['is-enabled' => $operation->ocap])>OCAP</span>
+                                                @endif
 
-                                            <span
-                                                @class([
-                                                    'is-enabled' =>
-                                                        $operation->ocap,
-                                                ])
-                                            >
-                                                OCAP
-                                            </span>
+                                                @if($operation->operationType?->supportsRespawn())
+                                                    <span @class(['is-enabled' => $operation->respawn])>Respawn</span>
+                                                @endif
 
-                                            <span
-                                                @class([
-                                                    'is-enabled' =>
-                                                        $operation->respawn,
-                                                ])
-                                            >
-                                                Respawn
-                                            </span>
-
-                                            <span
-                                                @class([
-                                                    'is-enabled' =>
-                                                        $operation->jip,
-                                                ])
-                                            >
-                                                JIP
-                                            </span>
-
-                                        </div>
+                                                @if($operation->operationType?->supportsJip())
+                                                    <span @class(['is-enabled' => $operation->jip])>JIP</span>
+                                                @endif
+                                            </div>
+                                        @endif
 
                                     </div>
 

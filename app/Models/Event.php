@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use App\Models\Concerns\Auditable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Event extends Model
 {
@@ -22,6 +24,7 @@ class Event extends Model
         'event_status_id',
         'event_result_id',
         'ocap_url',
+        'multiclans',
         'created_by',
         'updated_by',
     ];
@@ -33,6 +36,7 @@ class Event extends Model
             'end_date' => 'datetime',
             'duration' => 'integer',
             'orbat' => 'array',
+            'multiclans' => 'boolean',
         ];
     }
 
@@ -95,6 +99,122 @@ class Event extends Model
     public function slots()
     {
         return $this->hasMany(EventSlot::class);
+    }
+
+    public function isCancelled(): bool
+    {
+        return mb_strtoupper(
+            trim((string) $this->eventStatus?->name)
+        ) === 'CANCELADO';
+    }
+
+    /**
+     * Repara snapshots ORBAT antiguos que todavía no tenían slot_key.
+     *
+     * Primero reutiliza la clave de un EventSlot existente con los mismos
+     * datos para no perder asignaciones; solo genera una ULID nueva para los
+     * slots que nunca tuvieron un registro asociado.
+     */
+    public function ensureOrbatSlotKeys(): bool
+    {
+        $orbat = $this->orbat ?? ['groups' => []];
+        $groups = $orbat['groups'] ?? [];
+
+        if ($groups === []) {
+            return false;
+        }
+
+        $seenKeys = collect();
+        $needsRepair = false;
+
+        foreach ($groups as $group) {
+            foreach (($group['slots'] ?? []) as $slot) {
+                $slotKey = trim((string) ($slot['slot_key'] ?? ''));
+
+                if ($slotKey === '' || $seenKeys->contains($slotKey)) {
+                    $needsRepair = true;
+                    break 2;
+                }
+
+                $seenKeys->push($slotKey);
+            }
+        }
+
+        if (! $needsRepair) {
+            return false;
+        }
+
+        $existingSlots = $this->slots()
+            ->get([
+                'id',
+                'event_id',
+                'slot_key',
+                'name',
+                'slot_type_id',
+                'slot_group',
+                'faction_id',
+            ]);
+
+        $usedKeys = collect();
+        $changed = false;
+
+        foreach ($groups as $groupIndex => $group) {
+            $groupName = (string) ($group['name'] ?? '');
+            $factionId = (int) ($group['faction_id'] ?? 0);
+
+            foreach (($group['slots'] ?? []) as $slotIndex => $slot) {
+                $slotKey = trim((string) ($slot['slot_key'] ?? ''));
+
+                if ($slotKey !== '' && ! $usedKeys->contains($slotKey)) {
+                    $usedKeys->push($slotKey);
+                    continue;
+                }
+
+                $slotName = (string) ($slot['name'] ?? '');
+                $slotTypeId = (int) ($slot['slot_type_id'] ?? 0);
+
+                $matched = $existingSlots
+                    ->first(
+                        fn ($candidate): bool =>
+                            ! $usedKeys->contains((string) $candidate->slot_key)
+                            && (string) $candidate->slot_group === $groupName
+                            && (string) $candidate->name === $slotName
+                            && (int) $candidate->slot_type_id === $slotTypeId
+                            && (
+                                $factionId < 1
+                                || (int) $candidate->faction_id === $factionId
+                            )
+                    );
+
+                $slotKey = $matched?->slot_key
+                    ?: (string) Str::ulid();
+
+                $groups[$groupIndex]['slots'][$slotIndex]['slot_key'] =
+                    (string) $slotKey;
+
+                $usedKeys->push((string) $slotKey);
+                $changed = true;
+            }
+        }
+
+        if (! $changed) {
+            return false;
+        }
+
+        $orbat['groups'] = $groups;
+
+        DB::table($this->getTable())
+            ->where('id', $this->getKey())
+            ->update([
+                'orbat' => json_encode(
+                    $orbat,
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
+            ]);
+
+        $this->setAttribute('orbat', $orbat);
+
+        return true;
     }
 
     public function getOrbatSlotsCount(): int

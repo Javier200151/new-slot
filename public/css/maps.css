@@ -167,3 +167,82 @@
         padding-top: 38px;
     }
 }
+
+/* =========================================================
+   OPERATIVOS DEL MAPA
+========================================================= */
+
+.map-page__operations {
+    margin-top: 58px;
+    padding-top: 46px;
+    border-top: 1px solid var(--border-orange);
+}
+
+.map-page__operations-header span {
+    color: var(--primary);
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.map-page__operations-header h2 {
+    margin: 9px 0 0;
+    color: #fff;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    letter-spacing: -0.035em;
+}
+
+.map-page__operations-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 24px;
+}
+
+.map-page__operation-card {
+    display: grid;
+    gap: 9px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--operation-color, var(--primary));
+    border-radius: 10px;
+    background: rgba(12, 17, 24, 0.9);
+    transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.map-page__operation-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--operation-color, var(--primary)) 55%, var(--border));
+}
+
+.map-page__operation-card > span {
+    color: var(--operation-color, var(--primary));
+    font-size: 0.62rem;
+    font-weight: 850;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.map-page__operation-card strong {
+    color: #fff;
+    font-size: 1rem;
+}
+
+.map-page__operation-card small {
+    color: var(--text-muted);
+}
+
+.map-page__operations-empty {
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+}
+
+@media (max-width: 850px) {
+    .map-page__operations-grid {
+        grid-template-columns: 1fr;
+    }
+}

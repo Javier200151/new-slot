@@ -22,6 +22,12 @@ class OperationType extends Model
         'description',
         'oficial',
         'color',
+        'uses_enemy_factions',
+        'uses_event_result',
+        'supports_ocap',
+        'supports_respawn',
+        'supports_jip',
+        'awards_metopa',
     ];
 
 
@@ -40,7 +46,11 @@ class OperationType extends Model
             $guard = PermissionCatalog::guard();
             $permissionNames = [];
 
-            foreach (['operations', 'events'] as $resource) {
+            foreach (PermissionCatalog::resources() as $resource => $definition) {
+                if (! PermissionCatalog::isOperationTypeScoped($resource)) {
+                    continue;
+                }
+
                 foreach (PermissionCatalog::actionsFor($resource) as $action) {
                     $permissionName =
                         PermissionCatalog::operationTypePermissionName(
@@ -72,10 +82,51 @@ class OperationType extends Model
         });
     }
 
+    public function operations()
+    {
+        return $this->hasMany(Operation::class, 'operation_type_id');
+    }
+
+    public function usesEnemyFactions(): bool
+    {
+        return (bool) $this->uses_enemy_factions;
+    }
+
+    public function usesEventResult(): bool
+    {
+        return (bool) $this->uses_event_result;
+    }
+
+    public function supportsOcap(): bool
+    {
+        return (bool) $this->supports_ocap;
+    }
+
+    public function supportsRespawn(): bool
+    {
+        return (bool) $this->supports_respawn;
+    }
+
+    public function supportsJip(): bool
+    {
+        return (bool) $this->supports_jip;
+    }
+
+    public function awardsMetopa(): bool
+    {
+        return (bool) $this->awards_metopa;
+    }
+
     protected function casts(): array
     {
         return [
             'oficial' => 'boolean',
+            'uses_enemy_factions' => 'boolean',
+            'uses_event_result' => 'boolean',
+            'supports_ocap' => 'boolean',
+            'supports_respawn' => 'boolean',
+            'supports_jip' => 'boolean',
+            'awards_metopa' => 'boolean',
         ];
     }
 }

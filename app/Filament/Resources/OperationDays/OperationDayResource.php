@@ -26,11 +26,13 @@ class OperationDayResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDateRange;
 
-    protected static ?string $recordTitleAttribute = 'Día operativo';
+    protected static ?string $recordTitleAttribute = 'name';
     
-    protected static ?string $pluralModelLabel = 'Días operativo';
+    protected static ?string $modelLabel = 'Día de actividad';
 
-    protected static ?string $navigationLabel = 'Días operativo';
+    protected static ?string $pluralModelLabel = 'Días de actividad';
+
+    protected static ?string $navigationLabel = 'Días de actividad';
 
     public static function form(Schema $schema): Schema
     {

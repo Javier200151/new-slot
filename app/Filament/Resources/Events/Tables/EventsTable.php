@@ -26,7 +26,7 @@ class EventsTable
                     ->sortable(),
 
                 TextColumn::make('operation.name')
-                    ->label('Operativo')
+                    ->label('Actividad')
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
@@ -119,7 +119,7 @@ class EventsTable
             ])
             ->filters([
                 SelectFilter::make('operation_id')
-                    ->label('Operativo')
+                    ->label('Actividad')
                     ->multiple()
                     ->options(
                         fn (): array => Operation::query()

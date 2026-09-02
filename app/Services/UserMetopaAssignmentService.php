@@ -28,6 +28,7 @@ class UserMetopaAssignmentService
         int $metopaId,
         CarbonInterface|string $assignedAt,
         bool $updateExisting = false,
+        bool $preserveAssignedAtOnRestore = false,
     ): string {
         $this->validateIds(
             $userId,
@@ -45,6 +46,7 @@ class UserMetopaAssignmentService
                 $metopaId,
                 $assignedAt,
                 $updateExisting,
+                $preserveAssignedAtOnRestore,
             ): string {
                 /*
                 |--------------------------------------------------------------------------
@@ -174,6 +176,22 @@ class UserMetopaAssignmentService
                     $now = now();
 
 
+                    $restoreValues = [
+                        'deleted_at' => null,
+                        'updated_by' => Auth::id(),
+                        'updated_at' => $now,
+                    ];
+
+                    /*
+                     * Para entregas desde un curso podemos restaurar una
+                     * asignación antigua sin cambiar la fecha histórica que
+                     * ya tenía. El resto de usos conserva el comportamiento
+                     * anterior por defecto.
+                     */
+                    if (! $preserveAssignedAtOnRestore) {
+                        $restoreValues['assigned_at'] = $assignedAt;
+                    }
+
                     DB::table('metopa_user')
                         ->where(
                             'user_id',
@@ -183,19 +201,7 @@ class UserMetopaAssignmentService
                             'metopa_id',
                             $metopaId
                         )
-                        ->update([
-                            'assigned_at' =>
-                                $assignedAt,
-
-                            'deleted_at' =>
-                                null,
-
-                            'updated_by' =>
-                                Auth::id(),
-
-                            'updated_at' =>
-                                $now,
-                        ]);
+                        ->update($restoreValues);
 
 
                     /*

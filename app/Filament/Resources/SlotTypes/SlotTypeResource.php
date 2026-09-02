@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\SlotTypes;
 
-use App\Filament\Clusters\EventConfiguration;
+use App\Filament\Clusters\Configuration;
 use App\Filament\Resources\SlotTypes\Pages\CreateSlotType;
 use App\Filament\Resources\SlotTypes\Pages\EditSlotType;
 use App\Filament\Resources\SlotTypes\Pages\ListSlotTypes;
+use App\Filament\Resources\SlotTypes\Pages\PreviewSlotTypes;
 use App\Filament\Resources\SlotTypes\RelationManagers\StatusesRelationManager;
+use App\Filament\Resources\SlotTypes\RelationManagers\QuickNamesRelationManager;
 use App\Filament\Resources\SlotTypes\Schemas\SlotTypeForm;
 use App\Filament\Resources\SlotTypes\Tables\SlotTypesTable;
 use App\Models\SlotType;
@@ -19,7 +21,7 @@ use UnitEnum;
 
 class SlotTypeResource extends Resource
 {
-    protected static ?string $cluster = EventConfiguration::class;
+    protected static ?string $cluster = Configuration::class;
 
     protected static string | UnitEnum | null $navigationGroup = null;
 
@@ -50,6 +52,7 @@ class SlotTypeResource extends Resource
     public static function getRelations(): array
     {
         return [
+            QuickNamesRelationManager::class,
             StatusesRelationManager::class,
         ];
     }
@@ -59,6 +62,7 @@ class SlotTypeResource extends Resource
         return [
             'index' => ListSlotTypes::route('/'),
             'create' => CreateSlotType::route('/create'),
+            'preview' => PreviewSlotTypes::route('/preview'),
             'edit' => EditSlotType::route('/{record}/edit'),
         ];
     }

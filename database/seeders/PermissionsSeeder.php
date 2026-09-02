@@ -48,7 +48,11 @@ class PermissionsSeeder extends Seeder
                         return;
                     }
 
-                    foreach (['operations', 'events'] as $resource) {
+                    foreach (PermissionCatalog::resources() as $resource => $definition) {
+                        if (! PermissionCatalog::isOperationTypeScoped($resource)) {
+                            continue;
+                        }
+
                         foreach (PermissionCatalog::actionsFor($resource) as $action) {
                             $legacyPermissionName = "{$resource}.{$action}";
 

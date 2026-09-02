@@ -44,24 +44,24 @@ return [
         ],
 
         'operations' => [
-            'label' => 'Operaciones',
+            'label' => 'Actividades',
             'icon' => 'heroicon-o-map',
             'resources' => [
                 'campaigns' => [
                     'label' => 'Campañas',
                 ],
                 'operations' => [
-                    'label' => 'Operaciones',
+                    'label' => 'Actividades',
                     'scope' => 'operation_type',
                 ],
                 'operation-days' => [
-                    'label' => 'Días de operación',
+                    'label' => 'Días de actividad',
                 ],
                 'operation-types' => [
-                    'label' => 'Tipos de operación',
+                    'label' => 'Tipos de actividad',
                 ],
                 'operation-statuses' => [
-                    'label' => 'Estados de operación',
+                    'label' => 'Estados de actividad',
                 ],
                 'periods' => [
                     'label' => 'Periodos',
@@ -93,6 +93,7 @@ return [
 
                 'event-orbat' => [
                     'label' => 'ORBAT',
+                    'scope' => 'operation_type',
                     'actions' => [
                         'manage' => 'Manejar ORBAT',
                     ],

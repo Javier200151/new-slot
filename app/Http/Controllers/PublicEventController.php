@@ -27,6 +27,9 @@ use App\Notifications\EventSlotChangedNotification;
 use App\Models\Ally;
 use App\Models\Stream;
 use App\Models\EventMedia;
+use App\Filament\Resources\Events\EventResource;
+use App\Services\CourseMetopaAwardService;
+use App\Support\OperationTypeAccess;
 
 class PublicEventController extends Controller
 {
@@ -55,7 +58,7 @@ class PublicEventController extends Controller
 
         $eventsQuery = Event::query()
             ->whereHas('eventStatus', fn ($query) => $query
-                ->whereIn('name', ['ACTIVO', 'FINALIZADO']))
+                ->whereIn('name', ['ACTIVO', 'FINALIZADO', 'CANCELADO']))
             ->with([
                 'eventStatus',
                 'eventResult',
@@ -65,6 +68,7 @@ class PublicEventController extends Controller
                 'operation.platform',
                 'operation.map',
                 'slots:id,event_id,slot_key,user_id,ally_id',
+                'slots.ally:id,name,image,url',
             ])
             ->withCount([
                 'slots as occupied_slots_count' => fn ($query) => $query
@@ -166,7 +170,9 @@ class PublicEventController extends Controller
             'operation.map',
             'operation.days',
             'operation.editor',
-            'operation.enemyFactions.army',
+            'operation.editorAlly',
+            'operation.metopa',
+            'operation.enemyFactions.army.country',
             'operation.enemyFactions.side',
             'slots.user.mainSqaGroup',
             'slots.ally',
@@ -176,6 +182,9 @@ class PublicEventController extends Controller
             in_array($event->eventStatus?->name, ['ACTIVO', 'FINALIZADO'], true),
             404,
         );
+
+        // Compatibilidad con eventos creados antes de que el ORBAT usase slot_key.
+        $event->ensureOrbatSlotKeys();
 
         $operation = $event->operation;
         abort_if($operation === null, 404);
@@ -244,7 +253,8 @@ class PublicEventController extends Controller
             : null;
         $isRegistrationOpen = $event->eventStatus?->name === 'ACTIVO';
         $canManageOrbat = $this->canManageOrbat(
-            auth()->user()
+            auth()->user(),
+            $event,
         );
         /*
         |--------------------------------------------------------------------------
@@ -342,6 +352,25 @@ class PublicEventController extends Controller
                 )
             );
 
+        $courseMetopaService = app(CourseMetopaAwardService::class);
+
+        $canAwardCourseMetopa =
+            $canEditEvent
+            && $courseMetopaService->canAwardForUser(
+                $event,
+                $user,
+            );
+
+        $courseMetopaAwardUrl = $canAwardCourseMetopa
+            ? EventResource::getUrl(
+                'edit',
+                [
+                    'record' => $event,
+                    'awardCourseMetopa' => 1,
+                ],
+            )
+            : null;
+
         /*
         |--------------------------------------------------------------------------
         | Multimedia del evento
@@ -402,6 +431,7 @@ class PublicEventController extends Controller
                     ->filter(fn (array $slot): bool => (bool) ($slot['visible'] ?? true))
                     ->map(function (array $slot) use ($assignments, $currentUserSlot, $isRegistrationOpen, $slotTypes): array {
                         $slotKey = $slot['slot_key'] ?? null;
+                        $slot['slot_key'] = $slotKey;
                         $slot['slot_type'] = $slotTypes->get((int) ($slot['slot_type_id'] ?? 0));
                         $slot['assignment'] = filled($slotKey) ? $assignments->get($slotKey) : null;
                         $slot['is_occupied'] = (bool) ($slot['assignment']?->user_id || $slot['assignment']?->ally_id);
@@ -561,6 +591,8 @@ class PublicEventController extends Controller
             'eventVods',
             'canAddEventMedia',
             'canModerateEventMedia',
+            'canAwardCourseMetopa',
+            'courseMetopaAwardUrl',
         ));
     }
 
@@ -1007,7 +1039,10 @@ class PublicEventController extends Controller
     $manager = $request->user();
 
     abort_unless(
-        $this->canManageOrbat($manager),
+        $this->canManageOrbat(
+            $manager,
+            $event,
+        ),
         403,
     );
 
@@ -1417,6 +1452,16 @@ class PublicEventController extends Controller
 
                             ...$assignmentData,
                         ]);
+            }
+
+
+            if (
+                $assignedAlly
+                && ! $lockedEvent->multiclans
+            ) {
+                $lockedEvent->forceFill([
+                    'multiclans' => true,
+                ])->save();
             }
 
 
@@ -2466,19 +2511,16 @@ class PublicEventController extends Controller
             );
     }
 
-    private function canManageOrbat(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        /*
-        * Dejamos admin como respaldo para no bloquearlo
-        * aunque todavía no se haya ejecutado el seeder
-        * de este nuevo permiso.
-        */
-        return $user->hasRole('admin')
-            || $user->can('event-orbat.manage');
+    private function canManageOrbat(
+        ?User $user,
+        Event $event,
+    ): bool {
+        return OperationTypeAccess::can(
+            $user,
+            'event-orbat',
+            'manage',
+            $event->operation?->operation_type_id,
+        );
     }
 
     private function recordSlotUnassignment(
@@ -2588,6 +2630,7 @@ class PublicEventController extends Controller
         iterable $events
     ): void {
         foreach ($events as $event) {
+            $event->ensureOrbatSlotKeys();
 
             /*
             |--------------------------------------------------------------------------

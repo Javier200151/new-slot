@@ -5,9 +5,11 @@ namespace App\Filament\Resources\Events\Schemas;
 use App\Models\EventStatus;
 use App\Models\Operation;
 use App\Support\OperationTypeAccess;
+use App\Support\OperationTypeConfiguration;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -50,13 +52,28 @@ class EventForm
                     function ($state, Get $get, Set $set): void {
                         $operation =
                             Operation::query()
-                                ->with('operationStatus')
+                                ->with(['operationStatus', 'operationType'])
                                 ->find($state);
 
                         $set(
                             'name',
                             $operation?->name
                         );
+
+                        if ($operation?->editor_ally_id) {
+                            $set('multiclans', true);
+                        }
+
+                        if (! ($operation?->operationType?->usesEventResult() ?? true)) {
+                            $set('event_result_id', null);
+                        }
+
+                        if (
+                            ! ($operation?->operationType?->supportsOcap() ?? true)
+                            || ! $operation?->ocap
+                        ) {
+                            $set('ocap_url', null);
+                        }
 
                         /*
                         * Si el nuevo operativo está en BORRADOR
@@ -105,6 +122,46 @@ class EventForm
                     ->label('Nombre')
                     ->required()
                     ->maxLength(255),
+
+                Toggle::make('multiclans')
+                    ->label('Multiclán')
+                    ->afterStateHydrated(
+                        function (
+                            Toggle $component,
+                            Get $get
+                        ): void {
+                            $externalEditor = Operation::query()
+                                ->whereKey($get('operation_id'))
+                                ->whereNotNull('editor_ally_id')
+                                ->exists();
+
+                            if ($externalEditor) {
+                                $component->state(true);
+                            }
+                        }
+                    )
+                    ->helperText(
+                        function (Get $get): string {
+                            $externalEditor = Operation::query()
+                                ->whereKey($get('operation_id'))
+                                ->whereNotNull('editor_ally_id')
+                                ->exists();
+
+                            return $externalEditor
+                                ? 'Obligatorio: el editor de esta actividad es un aliado.'
+                                : 'Actívalo cuando participen otros clanes o comunidades en este evento.';
+                        }
+                    )
+                    ->disabled(
+                        fn (Get $get): bool =>
+                            Operation::query()
+                                ->whereKey($get('operation_id'))
+                                ->whereNotNull('editor_ally_id')
+                                ->exists()
+                    )
+                    ->dehydrated()
+                    ->inline(false)
+                    ->default(false),
 
                 Select::make('event_status_id')
                     ->label('Estado')
@@ -181,10 +238,10 @@ class EventForm
                                 return null;
                             }
 
-                            return 'El operativo está en BORRADOR. '
+                            return 'La actividad está en BORRADOR. '
                                 . 'El evento también debe permanecer '
-                                . 'en BORRADOR hasta que el operativo '
-                                . 'esté activo.';
+                                . 'en BORRADOR hasta que la actividad '
+                                . 'esté activa.';
                         }
                     ),
 
@@ -202,6 +259,16 @@ class EventForm
                     ->relationship('eventResult', 'name')
                     ->searchable()
                     ->preload()
+                    ->visible(
+                        function (Get $get): bool {
+                            $typeId = Operation::query()
+                                ->whereKey($get('operation_id'))
+                                ->value('operation_type_id');
+
+                            return OperationTypeConfiguration::find($typeId)?->usesEventResult()
+                                ?? false;
+                        }
+                    )
                     ->nullable(),   
 
                 DateTimePicker::make('end_date')
@@ -221,9 +288,16 @@ class EventForm
                     ->label('URL OCAP')
                     ->url()
                     ->maxLength(255)
-                    ->visible(fn (Get $get): bool => (bool) Operation::query()
-                        ->whereKey($get('operation_id'))
-                        ->value('ocap')),
+                    ->visible(
+                        function (Get $get): bool {
+                            $operation = Operation::query()
+                                ->with('operationType')
+                                ->find($get('operation_id'));
+
+                            return (bool) $operation?->ocap
+                                && ($operation?->operationType?->supportsOcap() ?? false);
+                        }
+                    ),
 
                 TextInput::make('duration')
                     ->label('Duración')

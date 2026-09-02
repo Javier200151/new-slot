@@ -207,6 +207,8 @@ class PublicOperationController extends Controller
 
                 'editor.status',
                 'editor.mainSqaGroup',
+                'editorAlly',
+                'metopa',
             ])
 
             /*
@@ -253,6 +255,16 @@ class PublicOperationController extends Controller
                                 fn ($query) =>
                                     $query->where(
                                         'nick',
+                                        'like',
+                                        $like
+                                    )
+                            );
+
+                            $searchQuery->orWhereHas(
+                                'editorAlly',
+                                fn ($query) =>
+                                    $query->where(
+                                        'name',
                                         'like',
                                         $like
                                     )
@@ -948,8 +960,10 @@ class PublicOperationController extends Controller
 
             'editor.status',
             'editor.mainSqaGroup',
+            'editorAlly',
+            'metopa',
 
-            'enemyFactions.army',
+            'enemyFactions.army.country',
             'enemyFactions.side',
         ]);
         /*
@@ -969,6 +983,7 @@ class PublicOperationController extends Controller
             ->with([
                 'eventStatus',
                 'eventResult',
+                'slots.ally:id,name,image,url',
             ])
             ->whereDoesntHave(
                 'eventStatus',

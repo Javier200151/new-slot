@@ -6,6 +6,8 @@ use App\Filament\Resources\Operations\OperationResource;
 use Filament\Resources\Pages\CreateRecord;
 use App\Services\AuditLogger;
 use App\Support\OperationTypeAccess;
+use App\Support\OperationEditorSelection;
+use App\Support\OperationTypeConfiguration;
 use Illuminate\Validation\ValidationException;
 
 class CreateOperation extends CreateRecord
@@ -28,6 +30,9 @@ class CreateOperation extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $data = OperationEditorSelection::resolveChoice($data);
+        $data = OperationTypeConfiguration::normalizeOperationData($data);
+
         $operationTypeId = $data['operation_type_id'] ?? null;
 
         if (! OperationTypeAccess::can(
@@ -38,7 +43,7 @@ class CreateOperation extends CreateRecord
         )) {
             throw ValidationException::withMessages([
                 'data.operation_type_id' =>
-                    'No tienes permiso para crear operativos de este tipo.',
+                    'No tienes permiso para crear actividades de este tipo.',
             ]);
         }
 
@@ -93,6 +98,12 @@ class CreateOperation extends CreateRecord
         | Facciones enemigas
         |--------------------------------------------------------------------------
         */
+
+        $this->record->loadMissing('operationType');
+
+        if (! ($this->record->operationType?->usesEnemyFactions() ?? false)) {
+            $this->record->enemyFactions()->detach();
+        }
 
         $enemyFactions =
             $this->record

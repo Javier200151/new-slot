@@ -17,7 +17,7 @@ use UnitEnum;
 
 class CampaignResource extends Resource
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Operativos';
+    protected static string | UnitEnum | null $navigationGroup = 'Actividades';
     protected static ?int $navigationSort = 2;
 
     protected static ?string $modelLabel = 'Campaña';
