@@ -1,6 +1,12 @@
 <?php
 
 use App\Http\Controllers\MetopaController;
+use App\Http\Controllers\CommunityController;
+use App\Http\Controllers\CommunityDiaryController;
+use App\Http\Controllers\CommunityForumController;
+use App\Http\Controllers\CommunityPollController;
+use App\Http\Controllers\CommunityProcessController;
+use App\Http\Controllers\CommunitySubscriptionController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicCampaignController;
@@ -272,6 +278,9 @@ Route::middleware([
 Route::get('/mapas/{map}', [PublicMapController::class, 'show'])
     ->name('maps.show');
 
+Route::get('/campanas', [PublicCampaignController::class, 'index'])
+    ->name('campaigns.index');
+
 Route::get('/campanas/{campaign}', [PublicCampaignController::class, 'show'])
     ->name('campaigns.show');
 
@@ -338,6 +347,224 @@ Route::middleware([
         [StreamerBroadcastController::class, 'destroy']
     )->name('streams.mine.destroy');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Comunidad y Área privada
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/comunidad/organigrama',
+    [CommunityController::class, 'organization']
+)->name('community.organization');
+
+Route::middleware('auth')->group(function (): void {
+    Route::get(
+        '/area/foro',
+        [CommunityForumController::class, 'forum']
+    )->name('community.forum.home');
+
+    Route::get(
+        '/area/diario',
+        [CommunityDiaryController::class, 'index']
+    )
+        ->name('community.diary.index');
+
+    Route::post(
+        '/area/diario/iniciar',
+        [CommunityDiaryController::class, 'start']
+    )
+        ->name('community.diary.start');
+
+    Route::get(
+        '/area/diario/eventos/{event}/escuadra',
+        [CommunityDiaryController::class, 'eventSquad']
+    )
+        ->whereNumber('event')
+        ->name('community.diary.event-squad');
+
+    Route::get(
+        '/area/diario/{diary}',
+        [CommunityDiaryController::class, 'show']
+    )
+        ->whereNumber('diary')
+        ->name('community.diary.show');
+
+    Route::post(
+        '/area/diario',
+        [CommunityDiaryController::class, 'store']
+    )
+        ->name('community.diary.store');
+
+    Route::patch(
+        '/area/diario/entradas/{entry}',
+        [CommunityDiaryController::class, 'update']
+    )
+        ->name('community.diary.update');
+
+    Route::delete(
+        '/area/diario/entradas/{entry}',
+        [CommunityDiaryController::class, 'destroy']
+    )
+        ->name('community.diary.destroy');
+
+    Route::post(
+        '/area/diario/{diary}/respuestas',
+        [CommunityDiaryController::class, 'comment']
+    )
+        ->whereNumber('diary')
+        ->name('community.diary.comments.store');
+
+    Route::patch(
+        '/area/diario/{diary}/respuestas/{comment}',
+        [CommunityDiaryController::class, 'updateComment']
+    )
+        ->whereNumber('diary')
+        ->whereNumber('comment')
+        ->name('community.diary.comments.update');
+
+    Route::delete(
+        '/area/diario/{diary}/respuestas/{comment}',
+        [CommunityDiaryController::class, 'destroyComment']
+    )
+        ->whereNumber('diary')
+        ->whereNumber('comment')
+        ->name('community.diary.comments.destroy');
+
+    Route::get(
+        '/area/foro/{channel}',
+        [CommunityForumController::class, 'index']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.index');
+
+    Route::post(
+        '/area/foro/{channel}',
+        [CommunityForumController::class, 'store']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.store');
+
+    Route::get(
+        '/area/foro/categoria/{category}',
+        [CommunityForumController::class, 'category']
+    )
+        ->whereIn('category', ['debate', 'convocatoria', 'propuesta', 'consulta'])
+        ->name('community.forum.category');
+
+    Route::post(
+        '/area/foro/categoria/{category}',
+        [CommunityForumController::class, 'storeCategory']
+    )
+        ->whereIn('category', ['debate', 'convocatoria', 'propuesta', 'consulta'])
+        ->name('community.forum.category.store');
+
+    Route::get(
+        '/area/foro/{channel}/{post}',
+        [CommunityForumController::class, 'show']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.show');
+
+    Route::patch(
+        '/area/foro/{channel}/{post}',
+        [CommunityForumController::class, 'update']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.update');
+
+    Route::delete(
+        '/area/foro/{channel}/{post}',
+        [CommunityForumController::class, 'destroy']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.destroy');
+
+    Route::patch(
+        '/area/foro/{channel}/{post}/estado',
+        [CommunityForumController::class, 'toggleLock']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.lock');
+
+    Route::patch(
+        '/area/foro/{channel}/{post}/fijado',
+        [CommunityForumController::class, 'togglePin']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.pin');
+
+    Route::post(
+        '/area/foro/{channel}/{post}/respuestas',
+        [CommunityForumController::class, 'comment']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.comments.store');
+
+    Route::patch(
+        '/area/foro/{channel}/{post}/respuestas/{comment}',
+        [CommunityForumController::class, 'updateComment']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.comments.update');
+
+    Route::delete(
+        '/area/foro/{channel}/{post}/respuestas/{comment}',
+        [CommunityForumController::class, 'destroyComment']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.comments.destroy');
+
+    Route::patch(
+        '/area/personal/procesos/{process}',
+        [CommunityProcessController::class, 'update']
+    )
+        ->whereNumber('process')
+        ->name('community.processes.update');
+
+    Route::post(
+        '/area/personal/procesos/{process}/postulacion',
+        [CommunityProcessController::class, 'apply']
+    )
+        ->whereNumber('process')
+        ->name('community.processes.apply');
+
+    Route::delete(
+        '/area/personal/procesos/{process}/postulacion',
+        [CommunityProcessController::class, 'withdraw']
+    )
+        ->whereNumber('process')
+        ->name('community.processes.withdraw');
+
+    Route::post(
+        '/area/foro/personal/{post}/votacion',
+        [CommunityPollController::class, 'storeForPost']
+    )
+        ->whereNumber('post')
+        ->name('community.polls.store-for-post');
+
+    Route::post(
+        '/area/suscripciones/{type}/{id}',
+        [CommunitySubscriptionController::class, 'toggle']
+    )
+        ->whereIn('type', ['hilo', 'diario'])
+        ->whereNumber('id')
+        ->name('community.subscriptions.toggle');
+
+    Route::get(
+        '/area/votaciones',
+        [CommunityPollController::class, 'index']
+    )
+        ->name('community.polls.index');
+
+    Route::post(
+        '/area/votaciones/{poll}/votar',
+        [CommunityPollController::class, 'vote']
+    )
+        ->name('community.polls.vote');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Páginas públicas

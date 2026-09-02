@@ -52,6 +52,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Operativos'),
                 NavigationGroup::make('Eventos'),
                 NavigationGroup::make('Streams'),
+                NavigationGroup::make('Comunidad'),
                 NavigationGroup::make('Usuarios'),
                 NavigationGroup::make('Sistema'),    
             ])

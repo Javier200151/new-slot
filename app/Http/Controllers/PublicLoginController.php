@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Services\BirthdayNotificationService;
 
 class PublicLoginController extends Controller
 {
@@ -43,6 +44,15 @@ class PublicLoginController extends Controller
         RateLimiter::clear($key);
 
         $request->session()->regenerate();
+
+        $birthdayService = app(BirthdayNotificationService::class);
+        $birthdayService->notifyToday();
+
+        if ($birthdayService->isBirthdayToday($request->user())) {
+            $request->session()->flash('birthday_celebration', [
+                'nick' => $request->user()->nick,
+            ]);
+        }
 
         return redirect('/');
     }

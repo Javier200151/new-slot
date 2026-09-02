@@ -164,6 +164,64 @@ return [
             ],
         ],
 
+
+        'community' => [
+            'label' => 'Comunidad',
+            'icon' => 'heroicon-o-chat-bubble-left-right',
+            'resources' => [
+                'community-forum-cantina' => [
+                    'label' => 'Foro · Cantina',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+                'community-forum-debate' => [
+                    'label' => 'Foro · Debates',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+                'community-forum-convocatoria' => [
+                    'label' => 'Foro · Convocatorias',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+                'community-forum-propuesta' => [
+                    'label' => 'Foro · Propuestas',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+                'community-forum-consulta' => [
+                    'label' => 'Foro · Consultas',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+            ],
+        ],
+
         'system' => [
             'label' => 'Sistema',
             'icon' => 'heroicon-o-command-line',

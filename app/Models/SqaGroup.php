@@ -17,12 +17,14 @@ class SqaGroup extends Model
         'image',
         'color',
         'display_order',
+        'show_in_organization',
     ];
 
     protected function casts(): array
     {
         return [
             'display_order' => 'integer',
+            'show_in_organization' => 'boolean',
         ];
     }
 

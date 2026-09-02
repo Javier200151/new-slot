@@ -219,6 +219,21 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         return $this->hasMany(EventComment::class);
     }
 
+    public function communityPosts()
+    {
+        return $this->hasMany(CommunityPost::class);
+    }
+
+    public function communityPostComments()
+    {
+        return $this->hasMany(CommunityPostComment::class);
+    }
+
+    public function communityProcessApplications()
+    {
+        return $this->hasMany(CommunityProcessApplication::class);
+    }
+
     public function pupils()
     {
         return $this->hasMany(User::class, 'tutor_id');

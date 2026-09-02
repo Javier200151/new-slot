@@ -31,124 +31,15 @@
     class="landing-body"
     data-open-auth-modal="{{ $authModal }}"
 >
-    <header class="landing-header">
-        <div class="container nav-wrapper">
-
-            <a href="#inicio" class="brand brand--image" aria-label="Squad ALPHA">
-                <img
-                    src="{{ asset('images/sqa-header-logo.png') }}"
-                    alt="Squad Alpha"
-                    class="brand-logo-image"
-                >
-            </a>
-
-            <button
-                type="button"
-                class="nav-toggle"
-                aria-label="Mostrar menú"
-                aria-controls="public-navigation"
-                aria-expanded="false"
-                data-nav-toggle
-            >
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-
-            <div id="public-navigation" class="nav-menu" data-nav-menu>
-                <nav
-                    class="landing-nav"
-                    aria-label="Navegación principal"
-                >
-
-                    <a
-                        href="{{ route('home') }}"
-                        class="is-active"
-                    >
-                        Inicio
-                    </a>
-
-                    <a href="{{ route('pages.show', 'normativa') }}">
-                        Normativa
-                    </a>
-
-                    <a href="{{ route('events.index') }}">
-                        Eventos
-                    </a>
-
-                    <a href="{{ route('operations.index') }}">
-                        Operativos
-                    </a>
-
-                    <a href="{{ route('metopas.index') }}">
-                        Metopas
-                    </a>
-
-                    <a href="{{ route('streams.index') }}">
-                        Directos
-                    </a>
-
-                </nav>
-
-                <div class="nav-actions">
-                    @guest
-                        <a
-                            href="{{ route('login') }}"
-                            class="btn btn-outline"
-                            data-open-modal="login-modal"
-                        >
-                            Iniciar sesión
-                        </a>
-
-                        <a
-                            href="{{ route('public.register') }}"
-                            class="btn btn-primary"
-                            data-open-modal="register-modal"
-                        >
-                            Crear cuenta
-                        </a>
-                    @else
-
-                        @include(
-                            'partials.notification-bell'
-                        )
-
-                        <a
-                            href="{{ route('profile.show') }}"
-                            class="btn btn-outline"
-                        >
-                            Mi perfil
-                        </a>
-
-                        @if(auth()->user()->hasRole('admin') || auth()->user()->can('filament.access'))
-                            <a
-                                href="{{ url('/admin') }}"
-                                class="btn btn-outline"
-                            >
-                                Administración
-                            </a>
-                        @endif
-
-                        <form
-                            method="POST"
-                            action="{{ route('logout') }}"
-                            class="logout-form"
-                        >
-                            @csrf
-
-                            <button
-                                type="submit"
-                                class="btn btn-primary"
-                            >
-                                Cerrar sesión
-                            </button>
-                        </form>
-                    @endguest
-                </div>
+    @if(session('birthday_celebration'))
+        <div class="birthday-celebration" data-birthday-celebration>
+            <div class="birthday-message">
+                <strong>🎂 Feliz cumpleaños, {{ session('birthday_celebration')['nick'] ?? auth()->user()?->nick }}</strong>
+                <span>Squad Alpha te desea un gran día.</span>
             </div>
-
         </div>
-    </header>
+    @endif
+    @include('partials.public-header')
 
     <main>
 

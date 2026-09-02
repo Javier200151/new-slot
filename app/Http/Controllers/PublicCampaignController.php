@@ -9,6 +9,28 @@ use Illuminate\View\View;
 
 class PublicCampaignController extends Controller
 {
+    public function index(): View
+    {
+        $campaigns = Campaign::query()
+            ->withCount([
+                'operations',
+                'events',
+            ])
+            ->orderBy('name')
+            ->get();
+
+        foreach ($campaigns as $campaign) {
+            $campaign->setAttribute(
+                'summary',
+                trim(strip_tags(
+                    RichContentRenderer::make($campaign->description)->toHtml()
+                )),
+            );
+        }
+
+        return view('campaigns.index', compact('campaigns'));
+    }
+
     public function show(Campaign $campaign): View
     {
         $campaign->load([

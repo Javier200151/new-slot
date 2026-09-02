@@ -6,6 +6,7 @@ use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Checkbox;
 use Filament\Schemas\Schema;
 
 class SqaGroupForm
@@ -30,6 +31,11 @@ class SqaGroupForm
                     ->label('Orden')
                     ->numeric()
                     ->minValue(0),
+
+                Checkbox::make('show_in_organization')
+                    ->label('Mostrar en el organigrama')
+                    ->helperText('Si se desactiva, el grupo seguirá existiendo y mantendrá sus miembros, pero no aparecerá en /comunidad/organigrama.')
+                    ->default(true),
 
                 Textarea::make('description')
                     ->label('Descripción')
