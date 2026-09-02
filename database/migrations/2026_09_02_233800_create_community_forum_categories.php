@@ -39,17 +39,39 @@ return new class extends Migration
 
         if (! Schema::hasTable('community_forum_category_status')) {
             Schema::create('community_forum_category_status', function (Blueprint $table): void {
-                $table->foreignId('community_forum_category_id')
-                    ->constrained('community_forum_categories')
-                    ->cascadeOnDelete();
-                $table->foreignId('status_id')
-                    ->constrained('status')
-                    ->cascadeOnDelete();
+                // No usamos ->constrained() aquí porque Laravel generaría
+                // `community_forum_category_status_community_forum_category_id_foreign`,
+                // que supera el límite de 64 caracteres de MySQL para nombres
+                // de constraints.
+                $table->unsignedBigInteger('community_forum_category_id');
+                $table->unsignedBigInteger('status_id');
 
                 $table->primary(
                     ['community_forum_category_id', 'status_id'],
                     'community_forum_category_status_primary'
                 );
+            });
+        }
+
+        // Una ejecución fallida de MySQL puede haber dejado creada la tabla
+        // pivote pero sin sus claves foráneas. Las añadimos por separado con
+        // nombres cortos y solo si todavía no existen, haciendo la migración
+        // segura para reintentar en ese estado parcial.
+        if (! $this->foreignKeyExists('community_forum_category_status', 'community_forum_category_id')) {
+            Schema::table('community_forum_category_status', function (Blueprint $table): void {
+                $table->foreign('community_forum_category_id', 'cfcs_category_fk')
+                    ->references('id')
+                    ->on('community_forum_categories')
+                    ->cascadeOnDelete();
+            });
+        }
+
+        if (! $this->foreignKeyExists('community_forum_category_status', 'status_id')) {
+            Schema::table('community_forum_category_status', function (Blueprint $table): void {
+                $table->foreign('status_id', 'cfcs_status_fk')
+                    ->references('id')
+                    ->on('status')
+                    ->cascadeOnDelete();
             });
         }
 
@@ -302,6 +324,20 @@ return new class extends Migration
 
             app(PermissionRegistrar::class)->forgetCachedPermissions();
         }
+    }
+
+    private function foreignKeyExists(string $table, string $column): bool
+    {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, $column)) {
+            return false;
+        }
+
+        return DB::table('information_schema.KEY_COLUMN_USAGE')
+            ->whereRaw('TABLE_SCHEMA = DATABASE()')
+            ->where('TABLE_NAME', $table)
+            ->where('COLUMN_NAME', $column)
+            ->whereNotNull('REFERENCED_TABLE_NAME')
+            ->exists();
     }
 
     public function down(): void
