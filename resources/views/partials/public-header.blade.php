@@ -84,18 +84,7 @@
                     <details @class(['nav-dropdown', 'nav-dropdown--area', 'is-active' => $areaActive])>
                         <summary>{{ $areaLabel }}</summary>
                         <div class="nav-dropdown__menu">
-                            @if(\App\Support\CommunityArea::can($navUser, \App\Support\CommunityArea::DIARY))
-                                <a href="{{ route('community.diary.index') }}">Diario</a>
-                            @endif
-
-                            @if(\App\Support\CommunityArea::can($navUser, \App\Support\CommunityArea::CANTINA))
-                                <a href="{{ route('community.forum.index', 'cantina') }}">Cantina</a>
-                            @endif
-
-                            @if(\App\Support\CommunityArea::can($navUser, \App\Support\CommunityArea::FORUM))
-                                <a href="{{ route('community.forum.home') }}">Foro</a>
-                            @endif
-
+                            <a href="{{ route('community.forum.home') }}">Foro</a>
                         </div>
                     </details>
                 @endif
@@ -125,7 +114,13 @@
                         Mi perfil
                     </a>
 
-                    @if($navUser->hasRole('admin') || $navUser->can('filament.access'))
+                    @if(
+                        $navUser->hasRole('admin')
+                        || $navUser->can('filament.access')
+                        || $navUser->can('event-calendar.view')
+                        || $navUser->can('event-calendar.reserve')
+                        || $navUser->can('event-calendar.manage')
+                    )
                         <a href="{{ url('/admin') }}" class="btn btn-outline">
                             Administración
                         </a>

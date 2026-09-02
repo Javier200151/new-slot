@@ -10,6 +10,8 @@
     <script src="{{ asset('js/community-forum.js') }}?v={{ filemtime(public_path('js/community-forum.js')) }}" defer></script>
 @endpush
 
+@section('body-class', 'forum-body')
+
 @section('content')
 <div class="community-shell forum-thread-page">
     <a class="community-kicker" href="{{ $channel === 'personal' ? route('community.forum.category', $categoryKey) : route('community.forum.index', $channel) }}">← {{ $channel === 'personal' ? ($category['label'] ?? 'Foro') : $channelTitle }}</a>
@@ -112,16 +114,27 @@
 
             <div class="forum-message__actions">
                 <button
-                    class="community-btn community-btn--ghost forum-quote-btn"
+                    class="forum-message-action forum-quote-btn"
                     type="button"
                     data-forum-quote-source="quote-post-{{ $post->id }}"
                     data-forum-quote-author="{{ $post->author?->nick ?? 'Usuario' }}"
                     data-forum-quote-target="reply-body"
-                >Citar</button>
+                    title="Citar mensaje"
+                >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H6.75A3.75 3.75 0 0 0 3 12v4.5m6-8.25L6 5.25m3 3-3 3M11.25 18.75h6A3.75 3.75 0 0 0 21 15v-3a3.75 3.75 0 0 0-3.75-3.75H12"/>
+                    </svg>
+                    <span>Citar</span>
+                </button>
 
                 @if($canManageThread)
                     <details class="forum-inline-editor">
-                        <summary class="community-btn community-btn--ghost">Editar</summary>
+                        <summary class="forum-message-action" title="Editar mensaje">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.651 2.651M18.375 3a1.875 1.875 0 0 1 2.652 2.652L8.25 18.429 3.75 19.5l1.071-4.5L17.598 2.223"/>
+                            </svg>
+                            <span>Editar</span>
+                        </summary>
                         <form method="POST" action="{{ route('community.forum.update', [$channel, $post]) }}" class="community-form">
                             @csrf @method('PATCH')
                             <div class="forum-field">
@@ -143,7 +156,12 @@
                 @if($post->user_id === auth()->id() && !$canDeleteAny)
                     <form method="POST" action="{{ route('community.forum.destroy', [$channel, $post]) }}" onsubmit="return confirm('¿Eliminar tu hilo?')">
                         @csrf @method('DELETE')
-                        <button class="community-btn community-btn--danger" type="submit">Eliminar</button>
+                        <button class="forum-message-action forum-message-action--danger" type="submit" title="Eliminar mensaje">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9 14.4 18m-4.8 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M19.228 5.79 18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.327L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-10.978.397c-.34.059-.68.114-1.022.165m1.022-.165a48.11 48.11 0 0 1 3.478-.397m7.5 0V4.477c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                            </svg>
+                            <span>Eliminar</span>
+                        </button>
                     </form>
                 @endif
             </div>
@@ -210,17 +228,28 @@
                         <div class="forum-message__actions">
                             @if(!$post->is_locked && $canReply)
                                 <button
-                                    class="community-btn community-btn--ghost forum-quote-btn"
+                                    class="forum-message-action forum-quote-btn"
                                     type="button"
                                     data-forum-quote-source="quote-comment-{{ $comment->id }}"
                                     data-forum-quote-author="{{ $comment->author?->nick ?? 'Usuario' }}"
                                     data-forum-quote-target="reply-body"
-                                >Citar</button>
+                                    title="Citar respuesta"
+                                >
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H6.75A3.75 3.75 0 0 0 3 12v4.5m6-8.25L6 5.25m3 3-3 3M11.25 18.75h6A3.75 3.75 0 0 0 21 15v-3a3.75 3.75 0 0 0-3.75-3.75H12"/>
+                                    </svg>
+                                    <span>Citar</span>
+                                </button>
                             @endif
 
                             @if($comment->user_id === auth()->id() || auth()->user()->hasRole('admin'))
                                 <details class="forum-inline-editor">
-                                    <summary class="community-btn community-btn--ghost">Editar</summary>
+                                    <summary class="forum-message-action" title="Editar mensaje">
+                                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.651 2.651M18.375 3a1.875 1.875 0 0 1 2.652 2.652L8.25 18.429 3.75 19.5l1.071-4.5L17.598 2.223"/>
+                                        </svg>
+                                        <span>Editar</span>
+                                    </summary>
                                     <form method="POST" action="{{ route('community.forum.comments.update', [$channel, $post, $comment]) }}" class="community-form">
                                         @csrf @method('PATCH')
                                         @include('community.partials.editor', [
@@ -238,7 +267,12 @@
                             @if($comment->user_id === auth()->id() || $canDeleteAny)
                                 <form method="POST" action="{{ route('community.forum.comments.destroy', [$channel, $post, $comment]) }}" onsubmit="return confirm('¿Eliminar esta respuesta?')">
                                     @csrf @method('DELETE')
-                                    <button class="community-btn community-btn--danger" type="submit">Eliminar</button>
+                                    <button class="forum-message-action forum-message-action--danger" type="submit" title="Eliminar mensaje">
+                                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9 14.4 18m-4.8 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M19.228 5.79 18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.327L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-10.978.397c-.34.059-.68.114-1.022.165m1.022-.165a48.11 48.11 0 0 1 3.478-.397m7.5 0V4.477c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                                        </svg>
+                                        <span>Eliminar</span>
+                                    </button>
                                 </form>
                             @endif
                         </div>

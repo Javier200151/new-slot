@@ -98,6 +98,15 @@ return [
                         'manage' => 'Manejar ORBAT',
                     ],
                 ],
+
+                'event-calendar' => [
+                    'label' => 'Calendario de eventos',
+                    'actions' => [
+                        'view' => 'Ver calendario',
+                        'reserve' => 'Reservar fechas',
+                        'manage' => 'Editor del calendario',
+                    ],
+                ],
             ],
         ],
 
@@ -169,8 +178,12 @@ return [
             'label' => 'Comunidad',
             'icon' => 'heroicon-o-chat-bubble-left-right',
             'resources' => [
+                'community-forum-categories' => [
+                    'label' => 'Categorías del foro',
+                ],
+
                 'community-forum-cantina' => [
-                    'label' => 'Foro · Cantina',
+                    'label' => 'Foro · WHISKEY (Enguarrinando)',
                     'actions' => [
                         'create' => 'Publicar nuevos hilos',
                         'reply' => 'Responder a hilos',

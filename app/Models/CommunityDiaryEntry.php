@@ -41,4 +41,12 @@ class CommunityDiaryEntry extends Model
     {
         return $this->belongsTo(Event::class)->withTrashed();
     }
+
+    public function comments()
+    {
+        return $this->hasMany(
+            CommunityDiaryComment::class,
+            'community_diary_entry_id',
+        )->oldest('created_at')->oldest('id');
+    }
 }

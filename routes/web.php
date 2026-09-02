@@ -410,10 +410,11 @@ Route::middleware('auth')->group(function (): void {
         ->name('community.diary.destroy');
 
     Route::post(
-        '/area/diario/{diary}/respuestas',
+        '/area/diario/{diary}/entradas/{entry}/respuestas',
         [CommunityDiaryController::class, 'comment']
     )
         ->whereNumber('diary')
+        ->whereNumber('entry')
         ->name('community.diary.comments.store');
 
     Route::patch(
@@ -450,14 +451,14 @@ Route::middleware('auth')->group(function (): void {
         '/area/foro/categoria/{category}',
         [CommunityForumController::class, 'category']
     )
-        ->whereIn('category', ['debate', 'convocatoria', 'propuesta', 'consulta'])
+        ->where('category', '[A-Za-z0-9-]+')
         ->name('community.forum.category');
 
     Route::post(
         '/area/foro/categoria/{category}',
         [CommunityForumController::class, 'storeCategory']
     )
-        ->whereIn('category', ['debate', 'convocatoria', 'propuesta', 'consulta'])
+        ->where('category', '[A-Za-z0-9-]+')
         ->name('community.forum.category.store');
 
     Route::get(

@@ -10,6 +10,8 @@
     <script src="{{ asset('js/community-forum.js') }}?v={{ filemtime(public_path('js/community-forum.js')) }}" defer></script>
 @endpush
 
+@section('body-class', 'forum-body')
+
 @section('content')
 <div class="community-shell forum-shell">
     <span class="community-kicker">{{ \App\Support\CommunityArea::label(auth()->user()) }}</span>
@@ -28,7 +30,11 @@
 
         <section class="forum-category-grid" aria-label="Categorías del Foro">
             @foreach($categories as $item)
-                <a class="forum-category-card" href="{{ route('community.forum.category', $item['key']) }}">
+                <a
+                    class="forum-category-card"
+                    href="{{ $item['url'] }}"
+                    style="--forum-category-color: {{ $item['color'] ?? '#f59e0b' }}"
+                >
                     <span class="forum-category-card__icon">{{ $item['icon'] }}</span>
                     <div class="forum-category-card__body">
                         <div class="forum-category-card__title-row">
@@ -42,10 +48,10 @@
                             <span><strong>{{ $item['threads_count'] }}</strong> hilos</span>
                             <span><strong>{{ $item['replies_count'] }}</strong> respuestas</span>
                         </div>
-                        @if($item['last_post'])
+                        @if($item['last_activity'])
                             <small>
-                                Última actividad: {{ $item['last_post']->title }}
-                                · {{ $item['last_post']->updated_at->format('d/m/Y H:i') }}
+                                Última actividad: {{ $item['last_title'] }}
+                                · {{ $item['last_activity']->format('d/m/Y H:i') }}
                             </small>
                         @else
                             <small>Todavía no hay publicaciones.</small>

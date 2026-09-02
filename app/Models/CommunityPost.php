@@ -20,6 +20,7 @@ class CommunityPost extends Model
         'locked_at',
         'locked_by',
         'community_process_id',
+        'forum_category_id',
     ];
 
 
@@ -52,6 +53,11 @@ class CommunityPost extends Model
     public function comments()
     {
         return $this->hasMany(CommunityPostComment::class)->oldest();
+    }
+
+    public function forumCategory()
+    {
+        return $this->belongsTo(ForumCategory::class, 'forum_category_id');
     }
 
     public function process()

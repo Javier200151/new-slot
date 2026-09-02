@@ -94,6 +94,12 @@ class CommunityPollController extends Controller
     ): RedirectResponse {
         $this->authorizePolls($request);
 
+        $poll->loadMissing('post');
+        if ($poll->post) {
+            $categoryKey = CommunityForumCategory::keyForPost($poll->post);
+            abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403);
+        }
+
         if (! $poll->isOpen()) {
             return back()->with('status', 'poll-closed');
         }
@@ -188,6 +194,7 @@ class CommunityPollController extends Controller
     private function authorizeManageThread(Request $request, CommunityPost $post): void
     {
         $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403);
 
         abort_unless(
             $request->user()->hasRole('admin')

@@ -21,8 +21,9 @@ class CommunityArea
     public static function hasArea(User $user): bool
     {
         return $user->hasRole('admin')
-            || self::isForumModerator($user)
-            || in_array(self::status($user), ['RECLUTA', 'RESERVA', 'ACTIVO'], true);
+            || CommunityForumCategory::hasVisibleForumCategory($user)
+            || $user->can('community-forum.moderate')
+            || $user->can('community-forum.delete');
     }
 
     public static function label(User $user): ?string
@@ -36,20 +37,20 @@ class CommunityArea
             : 'Área 51';
     }
 
-
     public static function isForumModerator(User $user): bool
     {
-        foreach (CommunityForumCategory::personal() as $category) {
-            $key = $category['key'];
+        foreach (CommunityForumCategory::landing() as $key => $category) {
+            if (($category['permission_resource'] ?? null) === null) {
+                continue;
+            }
+
             if (CommunityForumCategory::can($user, $key, 'moderate')
                 || CommunityForumCategory::can($user, $key, 'delete')) {
                 return true;
             }
         }
 
-        return CommunityForumCategory::can($user, CommunityForumCategory::CANTINA, 'moderate')
-            || CommunityForumCategory::can($user, CommunityForumCategory::CANTINA, 'delete')
-            || $user->can('community-forum.moderate')
+        return $user->can('community-forum.moderate')
             || $user->can('community-forum.delete');
     }
 
@@ -59,19 +60,20 @@ class CommunityArea
             return true;
         }
 
-        if (self::isForumModerator($user) && in_array($section, [self::CANTINA, self::FORUM], true)) {
-            return true;
-        }
-
-        $status = self::status($user);
-
         return match ($section) {
-            self::DIARY,
-            self::CANTINA => in_array($status, ['RECLUTA', 'RESERVA', 'ACTIVO'], true),
+            self::DIARY => CommunityForumCategory::canView(
+                $user,
+                CommunityForumCategory::DIARY,
+            ),
 
-            self::FORUM => in_array($status, ['RESERVA', 'ACTIVO'], true),
+            self::CANTINA => CommunityForumCategory::canView(
+                $user,
+                CommunityForumCategory::CANTINA,
+            ),
 
-            self::POLLS => $status === 'ACTIVO',
+            self::FORUM => CommunityForumCategory::hasVisiblePersonalCategory($user),
+
+            self::POLLS => self::status($user) === 'ACTIVO',
 
             default => false,
         };

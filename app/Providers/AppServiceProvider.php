@@ -482,6 +482,7 @@ class AppServiceProvider extends ServiceProvider
         foreach (
             [
                 'nick',
+                'reserved_for_nick',
                 'name',
                 'title',
                 'slug',

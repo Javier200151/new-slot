@@ -41,6 +41,7 @@
     <p class="event-comment__body">{{ $comment->comment }}</p>
 
     @auth
+        @unless($isReadOnly ?? false)
         <div class="event-comment__actions">
             <details class="event-comment__reply">
                 <summary>Responder</summary>
@@ -81,6 +82,7 @@
                 </details>
             @endif
         </div>
+        @endunless
     @endauth
 
     @if($author?->firma && ! $author->trashed())

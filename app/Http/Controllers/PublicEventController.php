@@ -58,7 +58,7 @@ class PublicEventController extends Controller
 
         $eventsQuery = Event::query()
             ->whereHas('eventStatus', fn ($query) => $query
-                ->whereIn('name', ['ACTIVO', 'FINALIZADO', 'CANCELADO']))
+                ->whereIn('name', ['ACTIVO', 'FINALIZADO', 'CANCELADO', 'BORRADOR']))
             ->with([
                 'eventStatus',
                 'eventResult',
@@ -178,13 +178,25 @@ class PublicEventController extends Controller
             'slots.ally',
         ]);
 
+        // MySQL suele comparar los estados sin distinguir mayúsculas/minúsculas,
+        // pero PHP sí lo hace. Normalizamos aquí para que un BORRADOR (aunque
+        // el nombre haya sido guardado como "Borrador" o con espacios) no termine
+        // en un 404 al abrir su ficha pública.
+        $eventStatusName = strtoupper(trim((string) $event->eventStatus?->name));
+
         abort_unless(
-            in_array($event->eventStatus?->name, ['ACTIVO', 'FINALIZADO'], true),
+            in_array($eventStatusName, ['ACTIVO', 'FINALIZADO', 'CANCELADO', 'BORRADOR'], true),
             404,
         );
 
+        // Los borradores se pueden consultar, pero la ficha es completamente
+        // informativa: nada del ORBAT, comentarios o edición queda habilitado.
+        $isReadOnly = $eventStatusName === 'BORRADOR';
+
         // Compatibilidad con eventos creados antes de que el ORBAT usase slot_key.
-        $event->ensureOrbatSlotKeys();
+        if (! $isReadOnly) {
+            $event->ensureOrbatSlotKeys();
+        }
 
         $operation = $event->operation;
         abort_if($operation === null, 404);
@@ -251,8 +263,9 @@ class PublicEventController extends Controller
         $currentUserSlot = auth()->check()
             ? $event->slots->firstWhere('user_id', auth()->id())
             : null;
-        $isRegistrationOpen = $event->eventStatus?->name === 'ACTIVO';
-        $canManageOrbat = $this->canManageOrbat(
+        $isRegistrationOpen = ! $isReadOnly
+            && $eventStatusName === 'ACTIVO';
+        $canManageOrbat = ! $isReadOnly && $this->canManageOrbat(
             auth()->user(),
             $event,
         );
@@ -325,7 +338,7 @@ class PublicEventController extends Controller
             $isAdmin
             || ($user?->can('filament.access') ?? false);
 
-        $canEditOperation =
+        $canEditOperation = ! $isReadOnly &&
             $canAccessFilament
             && (
                 $isAdmin
@@ -339,7 +352,7 @@ class PublicEventController extends Controller
                 )
             );
 
-        $canEditEvent =
+        $canEditEvent = ! $isReadOnly &&
             $canAccessFilament
             && (
                 $isAdmin
@@ -593,6 +606,7 @@ class PublicEventController extends Controller
             'canModerateEventMedia',
             'canAwardCourseMetopa',
             'courseMetopaAwardUrl',
+            'isReadOnly',
         ));
     }
 
@@ -796,6 +810,10 @@ class PublicEventController extends Controller
             404
         );
 
+
+        $event->loadMissing('eventStatus');
+
+        abort_unless($event->eventStatus?->name === 'FINALIZADO', 404);
 
         $user =
             $request->user();
@@ -2467,6 +2485,12 @@ class PublicEventController extends Controller
             return false;
         }
 
+        $event->loadMissing('eventStatus');
+
+        if (strtoupper(trim((string) $event->eventStatus?->name)) !== 'FINALIZADO') {
+            return false;
+        }
+
         return
             $user->hasRole('admin')
             || $user->can(
@@ -2485,6 +2509,11 @@ class PublicEventController extends Controller
             return false;
         }
 
+        $eventMedia->loadMissing('event.eventStatus');
+
+        if (strtoupper(trim((string) $eventMedia->event?->eventStatus?->name)) !== 'FINALIZADO') {
+            return false;
+        }
 
         /*
         * Propietario.

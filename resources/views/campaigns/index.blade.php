@@ -15,6 +15,17 @@
         Archivo de campañas de Squad Alpha. Entra en una campaña para consultar sus eventos y actividad asociada.
     </p>
 
+    <form method="GET" action="{{ route('campaigns.index') }}" class="campaign-sort-form">
+        <label for="campaign-sort">Ordenar campañas</label>
+        <select id="campaign-sort" name="sort" onchange="this.form.submit()">
+            <option value="published_desc" @selected($selectedSort === 'published_desc')>Últimas publicadas</option>
+            <option value="published_asc" @selected($selectedSort === 'published_asc')>Primeras publicadas</option>
+            <option value="name_asc" @selected($selectedSort === 'name_asc')>Nombre A–Z</option>
+            <option value="name_desc" @selected($selectedSort === 'name_desc')>Nombre Z–A</option>
+        </select>
+        <noscript><button class="community-btn" type="submit">Ordenar</button></noscript>
+    </form>
+
     <div class="campaign-community-grid">
         @forelse($campaigns as $campaign)
             <a href="{{ route('campaigns.show', $campaign) }}" class="campaign-community-card">

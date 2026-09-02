@@ -17,6 +17,7 @@ class CommunityProcessController extends Controller
     {
         $this->authorizePersonal($request);
         $process->loadMissing('post');
+        $this->authorizeProcessCategory($request, $process);
         $this->authorizeManage($request, $process);
 
         $validated = $request->validate([
@@ -60,6 +61,7 @@ class CommunityProcessController extends Controller
     {
         $this->authorizePersonal($request);
         $process->loadMissing('poll', 'post');
+        $this->authorizeProcessCategory($request, $process);
 
         abort_unless($process->canApply($request->user()), 403, 'Las postulaciones no están abiertas para tu estado actual.');
 
@@ -98,6 +100,8 @@ class CommunityProcessController extends Controller
     public function withdraw(Request $request, CommunityProcess $process, CommunitySubscriptionService $subscriptions): RedirectResponse
     {
         $this->authorizePersonal($request);
+        $process->loadMissing('post');
+        $this->authorizeProcessCategory($request, $process);
         abort_unless($process->allow_application_withdraw && $process->applicationsAreOpen(), 403);
 
         $application = CommunityProcessApplication::query()
@@ -112,6 +116,18 @@ class CommunityProcessController extends Controller
         }
 
         return back()->with('status', 'application-withdrawn');
+    }
+
+    private function authorizeProcessCategory(Request $request, CommunityProcess $process): void
+    {
+        $post = $process->post;
+
+        if (! $post) {
+            return;
+        }
+
+        $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403);
     }
 
     private function authorizeManage(Request $request, CommunityProcess $process): void

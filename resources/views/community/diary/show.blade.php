@@ -11,6 +11,8 @@
     <script src="{{ asset('js/community-diary.js') }}?v={{ filemtime(public_path('js/community-diary.js')) }}" defer></script>
 @endpush
 
+@section('body-class', 'forum-body')
+
 @section('content')
 @php
     $author = $diary->author;
@@ -111,9 +113,10 @@
         <div class="community-notice">No tienes eventos pendientes de añadir al diario.</div>
     @endif
 
-    <section class="diary-thread forum-comments">
+    <section class="diary-thread">
         @forelse($diary->entries as $entry)
-            <article class="community-panel forum-message diary-thread-entry" id="entrada-{{ $entry->id }}">
+            <section class="diary-conversation" id="entrada-{{ $entry->id }}">
+            <article class="community-panel forum-message diary-thread-entry">
                 <div class="forum-message__content">
                     <div class="forum-post__meta thread-originator">
                         <span class="thread-author-label">ENTRADA DE</span>
@@ -151,8 +154,8 @@
                             type="button"
                             data-forum-quote-source="quote-diary-entry-{{ $entry->id }}"
                             data-forum-quote-author="{{ $authorName }}"
-                            data-forum-quote-target="diary-reply-body"
-                        >Citar</button>
+                            data-forum-quote-target="diary-reply-body-{{ $entry->id }}"
+                        >Citar y comentar</button>
 
                     @if($entry->user_id === auth()->id())
                             <details class="forum-inline-editor">
@@ -178,7 +181,7 @@
                                 </form>
                             </details>
 
-                            <form method="POST" action="{{ route('community.diary.destroy', $entry) }}" onsubmit="return confirm('¿Eliminar esta entrada del diario?')">
+                            <form method="POST" action="{{ route('community.diary.destroy', $entry) }}" onsubmit="return confirm('¿Eliminar esta entrada y sus comentarios?')">
                                 @csrf
                                 @method('DELETE')
                                 <button class="community-btn community-btn--danger" type="submit">Eliminar</button>
@@ -191,90 +194,84 @@
                 @include('community.partials.author-card', ['author' => $author])
                 @include('community.partials.signature', ['author' => $author])
             </article>
+
+            <div class="diary-entry-comments">
+                <div class="diary-entry-comments__head">
+                    <span>Conversación de esta entrada</span>
+                    <strong>{{ $entry->comments->count() }}</strong>
+                </div>
+
+                @foreach($entry->comments as $comment)
+                    <article class="community-panel forum-message forum-comment diary-entry-comment" id="comentario-{{ $comment->id }}">
+                        <div class="forum-message__content">
+                            <div class="forum-post__meta">
+                                <span class="thread-reply-label">COMENTARIO DE</span>
+                                <span style="color: {{ $comment->author?->getFrontendColor() ?? '#fff' }}; font-weight:900">
+                                    {{ $comment->author?->nick ?? 'Usuario eliminado' }}
+                                </span>
+                                · {{ $comment->created_at->format('d/m/Y H:i') }}
+                                @if($comment->updated_at->gt($comment->created_at->copy()->addMinute()))
+                                    · editado {{ $comment->updated_at->format('d/m/Y H:i') }}
+                                @endif
+                            </div>
+
+                            <div class="forum-comment__body forum-rich">{!! \App\Support\ForumMarkup::render($comment->body) !!}</div>
+
+                            <div class="forum-message__actions">
+                                <button
+                                    class="community-btn community-btn--ghost forum-quote-btn"
+                                    type="button"
+                                    data-forum-quote-source="quote-diary-comment-{{ $comment->id }}"
+                                    data-forum-quote-author="{{ $comment->author?->nick ?? 'Usuario' }}"
+                                    data-forum-quote-target="diary-reply-body-{{ $entry->id }}"
+                                >Citar</button>
+
+                                @if($comment->user_id === auth()->id() || auth()->user()->hasRole('admin'))
+                                    <details class="forum-inline-editor">
+                                        <summary class="community-btn community-btn--ghost">Editar</summary>
+                                        <form method="POST" action="{{ route('community.diary.comments.update', [$diary, $comment]) }}" class="community-form">
+                                            @csrf @method('PATCH')
+                                            @include('community.partials.editor', [
+                                                'id' => 'edit-diary-comment-' . $comment->id,
+                                                'name' => 'body',
+                                                'label' => 'Editar comentario',
+                                                'value' => $comment->body,
+                                                'rows' => 7,
+                                            ])
+                                            <button class="community-btn" type="submit">Guardar</button>
+                                        </form>
+                                    </details>
+
+                                    <form method="POST" action="{{ route('community.diary.comments.destroy', [$diary, $comment]) }}" onsubmit="return confirm('¿Eliminar este comentario?')">
+                                        @csrf @method('DELETE')
+                                        <button class="community-btn community-btn--danger" type="submit">Eliminar</button>
+                                    </form>
+                                @endif
+                            </div>
+                            <template id="quote-diary-comment-{{ $comment->id }}">{{ $comment->body }}</template>
+                        </div>
+
+                        @include('community.partials.author-card', ['author' => $comment->author])
+                        @include('community.partials.signature', ['author' => $comment->author])
+                    </article>
+                @endforeach
+
+                <form method="POST" action="{{ route('community.diary.comments.store', [$diary, $entry]) }}" class="community-form forum-reply-form diary-entry-comment-form">
+                    @csrf
+                    @include('community.partials.editor', [
+                        'id' => 'diary-reply-body-' . $entry->id,
+                        'name' => 'body',
+                        'label' => 'Comentar esta entrada',
+                        'value' => null,
+                        'rows' => 6,
+                    ])
+                    <button class="community-btn" type="submit">Publicar comentario</button>
+                </form>
+            </div>
+            </section>
         @empty
             <div class="community-empty">Este diario todavía no tiene entradas.</div>
         @endforelse
-    </section>
-
-    <section id="respuestas" class="community-panel diary-replies-panel">
-        <div class="forum-section-head">
-            <div>
-                <span class="community-kicker">HILO DEL DIARIO</span>
-                <h2>Respuestas y comentarios</h2>
-                <p>Los usuarios con acceso al Área pueden comentar el diario sin modificar las entradas de su autor.</p>
-            </div>
-        </div>
-
-        <div class="forum-comments">
-            @forelse($diary->comments as $comment)
-                <article class="community-panel forum-message forum-comment" id="comentario-{{ $comment->id }}">
-                    <div class="forum-message__content">
-                        <div class="forum-post__meta">
-                            <span class="thread-reply-label">RESPUESTA DE</span>
-                            <span style="color: {{ $comment->author?->getFrontendColor() ?? '#fff' }}; font-weight:900">
-                                {{ $comment->author?->nick ?? 'Usuario eliminado' }}
-                            </span>
-                            · {{ $comment->created_at->format('d/m/Y H:i') }}
-                            @if($comment->updated_at->gt($comment->created_at->copy()->addMinute()))
-                                · editada {{ $comment->updated_at->format('d/m/Y H:i') }}
-                            @endif
-                        </div>
-
-                        <div class="forum-comment__body forum-rich">{!! \App\Support\ForumMarkup::render($comment->body) !!}</div>
-
-                        <div class="forum-message__actions">
-                            <button
-                                class="community-btn community-btn--ghost forum-quote-btn"
-                                type="button"
-                                data-forum-quote-source="quote-diary-comment-{{ $comment->id }}"
-                                data-forum-quote-author="{{ $comment->author?->nick ?? 'Usuario' }}"
-                                data-forum-quote-target="diary-reply-body"
-                            >Citar</button>
-
-                            @if($comment->user_id === auth()->id() || auth()->user()->hasRole('admin'))
-                                <details class="forum-inline-editor">
-                                    <summary class="community-btn community-btn--ghost">Editar</summary>
-                                    <form method="POST" action="{{ route('community.diary.comments.update', [$diary, $comment]) }}" class="community-form">
-                                        @csrf @method('PATCH')
-                                        @include('community.partials.editor', [
-                                            'id' => 'edit-diary-comment-' . $comment->id,
-                                            'name' => 'body',
-                                            'label' => 'Editar respuesta',
-                                            'value' => $comment->body,
-                                            'rows' => 7,
-                                        ])
-                                        <button class="community-btn" type="submit">Guardar</button>
-                                    </form>
-                                </details>
-
-                                <form method="POST" action="{{ route('community.diary.comments.destroy', [$diary, $comment]) }}" onsubmit="return confirm('¿Eliminar esta respuesta?')">
-                                    @csrf @method('DELETE')
-                                    <button class="community-btn community-btn--danger" type="submit">Eliminar</button>
-                                </form>
-                            @endif
-                        </div>
-                        <template id="quote-diary-comment-{{ $comment->id }}">{{ $comment->body }}</template>
-                    </div>
-
-                    @include('community.partials.author-card', ['author' => $comment->author])
-                    @include('community.partials.signature', ['author' => $comment->author])
-                </article>
-            @empty
-                <div class="community-empty">Todavía no hay respuestas.</div>
-            @endforelse
-        </div>
-
-        <form id="responder" method="POST" action="{{ route('community.diary.comments.store', $diary) }}" class="community-form forum-reply-form">
-            @csrf
-            @include('community.partials.editor', [
-                'id' => 'diary-reply-body',
-                'name' => 'body',
-                'label' => 'Responder al diario de ' . $authorName,
-                'value' => old('body'),
-                'rows' => 9,
-            ])
-            <button class="community-btn" type="submit">Publicar respuesta</button>
-        </form>
     </section>
 </div>
 @endsection

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class CommunityPollOption extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'community_poll_id',
         'candidate_user_id',

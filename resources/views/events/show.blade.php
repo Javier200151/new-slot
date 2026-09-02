@@ -41,6 +41,12 @@
                 <span aria-hidden="true">/</span>
                 <span>{{ $event->name ?: $operation->name }}</span>
             </nav>
+            @if($isReadOnly)
+                <div class="event-detail__readonly" role="status">
+                    <strong>Vista previa en solo lectura</strong>
+                    <span>Este evento está en borrador. Puede consultarse, pero no admite inscripciones, comentarios, multimedia ni cambios desde la web pública.</span>
+                </div>
+            @endif
             @if($canUseEditorMode)
                 <div class="event-editor-mode">
                     <button
@@ -127,28 +133,30 @@
                             EVENTO EN DIRECTO
                         ======================================================= --}}
 
-                        <a
-                            href="{{ route('streams.index') }}"
-                            class="event-detail__live"
-                            title="Ver retransmisiones en directo"
+                        @unless($isReadOnly)
+                            <a
+                                href="{{ route('streams.index') }}"
+                                class="event-detail__live"
+                                title="Ver retransmisiones en directo"
 
-                            data-event-live
-                            data-event-id="{{ $event->id }}"
-                            data-stream-status-url="{{ route('streams.status') }}"
+                                data-event-live
+                                data-event-id="{{ $event->id }}"
+                                data-stream-status-url="{{ route('streams.status') }}"
 
-                            @if($activeEventStreams->isEmpty())
-                                hidden
-                            @endif
-                        >
-                            <span
-                                class="event-detail__live-dot"
-                                aria-hidden="true"
-                            ></span>
+                                @if($activeEventStreams->isEmpty())
+                                    hidden
+                                @endif
+                            >
+                                <span
+                                    class="event-detail__live-dot"
+                                    aria-hidden="true"
+                                ></span>
 
-                            <span>
-                                EN DIRECTO
-                            </span>
-                        </a>
+                                <span>
+                                    EN DIRECTO
+                                </span>
+                            </a>
+                        @endunless
 
                     </div>
 
@@ -1909,7 +1917,9 @@
                     <div class="event-comments__notice" role="status">{{ session('comment_status') }}</div>
                 @endif
 
-                @auth
+                @if($isReadOnly)
+                    <p class="event-comments__login">Los comentarios están desactivados mientras el evento permanezca en borrador.</p>
+                @elseif(auth()->check())
                     <form method="POST" action="{{ route('events.comments.store', $event) }}" class="event-comment-form">
                         @csrf
                         <label for="event-comment-new">Añadir un comentario</label>
@@ -1930,7 +1940,7 @@
                     <p class="event-comments__login">
                         <a href="{{ route('login') }}">Inicia sesión</a> para publicar un comentario.
                     </p>
-                @endauth
+                @endif
 
                 @if($eventComments->isEmpty())
                     <div class="events-empty">

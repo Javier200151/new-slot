@@ -407,7 +407,7 @@ class PublicEventsPageTest extends TestCase
         ]);
     }
 
-    public function test_calendar_lists_only_active_and_finished_events_for_the_selected_month(): void
+    public function test_calendar_lists_active_finished_and_read_only_draft_events_for_the_selected_month(): void
     {
         $response = $this->get('/eventos?month=8&year=2026');
 
@@ -416,7 +416,7 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('Agosto 2026')
             ->assertSee('Evento activo')
             ->assertSee('Evento finalizado')
-            ->assertDontSee('Evento borrador')
+            ->assertSee('BORRADOR · Evento borrador')
             ->assertSee('Resultado')
             ->assertSee('ÉXITO')
             ->assertSee('Campaña')
@@ -432,7 +432,7 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('storage/periods/moderna.png', escape: false)
             ->assertSee('storage/platforms/arma-3.png', escape: false)
             ->assertSee('Plataforma Arma 3')
-            ->assertSeeInOrder(['id="evento-2"', 'id="evento-1"'], escape: false);
+            ->assertSeeInOrder(['id="evento-3"', 'id="evento-2"', 'id="evento-1"'], escape: false);
     }
 
     public function test_event_list_can_be_filtered_by_operation_type_and_date(): void
@@ -712,9 +712,30 @@ class PublicEventsPageTest extends TestCase
         );
     }
 
-    public function test_draft_event_page_is_not_public(): void
+    public function test_draft_event_page_is_public_but_strictly_read_only(): void
     {
-        $this->get('/eventos/3')->assertNotFound();
+        DB::table('users')->insert(['id' => 24, 'nick' => 'Autor del borrador']);
+
+        $response = $this->actingAs(User::query()->findOrFail(24))
+            ->get('/eventos/3');
+
+        $response
+            ->assertOk()
+            ->assertSee('Vista previa en solo lectura')
+            ->assertSee('Los comentarios están desactivados mientras el evento permanezca en borrador.')
+            ->assertDontSee('Publicar comentario')
+            ->assertDontSee('Apuntarme')
+            ->assertDontSee('Modo edición')
+            ->assertDontSee('data-event-live', escape: false);
+
+        $this->post('/eventos/3/comentarios', [
+            'comment' => 'No debe publicarse.',
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('event_comments', [
+            'event_id' => 3,
+            'comment' => 'No debe publicarse.',
+        ]);
     }
 
     public function test_authenticated_user_can_publish_and_edit_own_event_comments(): void

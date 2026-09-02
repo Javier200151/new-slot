@@ -136,6 +136,16 @@
 
                     </div>
 
+                    <div class="operations-filter-field operations-filter-field--sort">
+                        <label for="operations-sort">Ordenar</label>
+                        <select id="operations-sort" name="sort">
+                            <option value="published_desc" @selected($selectedSort === 'published_desc')>Últimos publicados</option>
+                            <option value="published_asc" @selected($selectedSort === 'published_asc')>Primeros publicados</option>
+                            <option value="name_asc" @selected($selectedSort === 'name_asc')>Nombre A–Z</option>
+                            <option value="name_desc" @selected($selectedSort === 'name_desc')>Nombre Z–A</option>
+                        </select>
+                    </div>
+
                     <button
                         type="button"
                         class="operations-filters-toggle"

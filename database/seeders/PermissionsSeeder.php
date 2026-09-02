@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\CommunityForumCategory;
 use App\Support\PermissionCatalog;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\PermissionRegistrar;
@@ -96,13 +97,9 @@ class PermissionsSeeder extends Seeder
                 ->all()
         );
 
-        $forumCategoryResources = [
-            'community-forum-cantina',
-            'community-forum-debate',
-            'community-forum-convocatoria',
-            'community-forum-propuesta',
-            'community-forum-consulta',
-        ];
+        $forumCategoryResources = array_keys(
+            CommunityForumCategory::permissionResources()
+        );
 
         /*
          * Los usuarios normales conservan la posibilidad de abrir hilos en

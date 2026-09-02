@@ -6,6 +6,8 @@
     <link rel="stylesheet" href="{{ asset('css/community.css') }}?v={{ filemtime(public_path('css/community.css')) }}">
 @endpush
 
+@section('body-class', 'forum-body')
+
 @section('content')
 <div class="community-shell forum-shell diary-forum-shell">
     <span class="community-kicker">{{ \App\Support\CommunityArea::label(auth()->user()) }}</span>

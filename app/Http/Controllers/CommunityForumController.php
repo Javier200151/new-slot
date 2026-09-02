@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\CommunityPoll;
+use App\Models\CommunityDiary;
+use App\Models\CommunityDiaryComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityPostComment;
 use App\Models\CommunityProcess;
@@ -22,7 +24,7 @@ class CommunityForumController extends Controller
 {
     public function forum(Request $request): View
     {
-        $this->authorizeChannel($request, 'personal');
+        $this->authorizeForumHome($request);
 
         return $this->personalLanding($request);
     }
@@ -41,7 +43,10 @@ class CommunityForumController extends Controller
     public function category(Request $request, string $category): View
     {
         $this->authorizeChannel($request, 'personal');
-        abort_unless(array_key_exists($category, CommunityForumCategory::personal()), 404);
+
+        $definition = CommunityForumCategory::get($category);
+        abort_unless($definition && ($definition['channel'] ?? null) === 'personal', 404);
+        abort_unless(CommunityForumCategory::canView($request->user(), $category), 403, 'No tienes acceso a esta categoría.');
 
         return $this->forumList($request, 'personal', $category);
     }
@@ -52,6 +57,7 @@ class CommunityForumController extends Controller
         abort_unless($post->channel === $channel, 404);
 
         $post->load([
+            'forumCategory',
             'author.status',
             'author.mainSqaGroup',
             'lockedBy:id,nick',
@@ -63,6 +69,13 @@ class CommunityForumController extends Controller
             'poll.options',
             'poll.process.post',
         ]);
+
+        $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(
+            CommunityForumCategory::canView($request->user(), $categoryKey),
+            403,
+            'No tienes acceso a esta categoría.',
+        );
 
         $authors = collect([$post->author])
             ->merge($post->comments->pluck('author'))
@@ -85,7 +98,6 @@ class CommunityForumController extends Controller
             ? app(CommunityPollViewService::class)->forPoll($post->poll, $request->user())
             : null;
 
-        $categoryKey = CommunityForumCategory::keyForPost($post);
         $category = CommunityForumCategory::get($categoryKey);
         $canModerate = $this->canModerate($request, $categoryKey);
         $canDeleteAny = $this->canDeleteAny($request, $categoryKey);
@@ -142,7 +154,10 @@ class CommunityForumController extends Controller
         CommunityPollManager $pollManager,
     ): RedirectResponse {
         $this->authorizeChannel($request, 'personal');
-        abort_unless(array_key_exists($category, CommunityForumCategory::personal()), 404);
+
+        $definition = CommunityForumCategory::get($category);
+        abort_unless($definition && ($definition['channel'] ?? null) === 'personal', 404);
+        abort_unless(CommunityForumCategory::canView($request->user(), $category), 403, 'No tienes acceso a esta categoría.');
 
         return $this->storeThread($request, 'personal', $category, $pollManager);
     }
@@ -155,6 +170,8 @@ class CommunityForumController extends Controller
     ): RedirectResponse {
         $this->authorizeChannel($request, $channel);
         abort_unless($post->channel === $channel, 404);
+        $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403);
         abort_unless(
             $post->user_id === $request->user()->id || $request->user()->hasRole('admin'),
             403
@@ -187,6 +204,7 @@ class CommunityForumController extends Controller
         abort_unless($post->channel === $channel, 404);
 
         $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403);
         abort_unless(
             $post->user_id === $request->user()->id || $this->canDeleteAny($request, $categoryKey),
             403
@@ -279,6 +297,8 @@ class CommunityForumController extends Controller
         $this->authorizeChannel($request, $channel);
         abort_unless($post->channel === $channel, 404);
         abort_unless($comment->community_post_id === $post->id, 404);
+        $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403);
         abort_unless(
             $comment->user_id === $request->user()->id || $request->user()->hasRole('admin'),
             403
@@ -305,6 +325,7 @@ class CommunityForumController extends Controller
         abort_unless($post->channel === $channel, 404);
         abort_unless($comment->community_post_id === $post->id, 404);
         $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403);
         abort_unless(
             $comment->user_id === $request->user()->id || $this->canDeleteAny($request, $categoryKey),
             403
@@ -318,8 +339,42 @@ class CommunityForumController extends Controller
 
     private function personalLanding(Request $request): View
     {
-        $categories = collect(CommunityForumCategory::personal())
+        $user = $request->user();
+
+        $categories = collect(CommunityForumCategory::landing())
+            ->filter(
+                fn (array $category, string $key): bool =>
+                    CommunityForumCategory::canView($user, $key)
+            )
             ->map(function (array $category, string $key) use ($request): array {
+                if ($key === CommunityForumCategory::DIARY) {
+                    $lastDiary = CommunityDiary::query()
+                        ->with('author:id,nick')
+                        ->latest('updated_at')
+                        ->first();
+                    $myDiaryExists = CommunityDiary::query()
+                        ->where('user_id', $request->user()->id)
+                        ->exists();
+                    $canStartDiary = $request->user()->hasRole('admin')
+                        || in_array(
+                            CommunityArea::status($request->user()),
+                            ['RECLUTA', 'ACTIVO'],
+                            true,
+                        );
+
+                    return [
+                        ...$category,
+                        'url' => route('community.diary.index'),
+                        'threads_count' => CommunityDiary::query()->count(),
+                        'replies_count' => CommunityDiaryComment::query()->count(),
+                        'last_activity' => $lastDiary?->updated_at,
+                        'last_title' => $lastDiary
+                            ? 'Diario de ' . ($lastDiary->author?->nick ?: $lastDiary->author_nick)
+                            : null,
+                        'can_create' => $myDiaryExists || $canStartDiary,
+                    ];
+                }
+
                 $query = CommunityForumCategory::applyToQuery(CommunityPost::query(), $key);
                 $lastPost = (clone $query)
                     ->with('author:id,nick')
@@ -328,11 +383,15 @@ class CommunityForumController extends Controller
 
                 return [
                     ...$category,
+                    'url' => ($category['channel'] ?? 'personal') === 'cantina'
+                        ? route('community.forum.index', 'cantina')
+                        : route('community.forum.category', $key),
                     'threads_count' => (clone $query)->count(),
                     'replies_count' => CommunityPostComment::query()
                         ->whereHas('post', fn ($post) => CommunityForumCategory::applyToQuery($post, $key))
                         ->count(),
-                    'last_post' => $lastPost,
+                    'last_activity' => $lastPost?->updated_at,
+                    'last_title' => $lastPost?->title,
                     'can_create' => CommunityForumCategory::can($request->user(), $key, 'create'),
                 ];
             });
@@ -357,6 +416,7 @@ class CommunityForumController extends Controller
     {
         $category = CommunityForumCategory::get($categoryKey);
         abort_unless($category, 404);
+        abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403, 'No tienes acceso a esta categoría.');
 
         $query = CommunityForumCategory::applyToQuery(
             CommunityPost::query()
@@ -402,7 +462,10 @@ class CommunityForumController extends Controller
             'channel' => $channel,
             'channelTitle' => $this->channelTitle($channel),
             'channelDescription' => $this->channelDescription($channel),
-            'categories' => $channel === 'personal' ? collect(CommunityForumCategory::personal()) : collect(),
+            'categories' => $channel === 'personal'
+                ? collect(CommunityForumCategory::personal())
+                    ->filter(fn (array $item, string $key): bool => CommunityForumCategory::canView($request->user(), $key))
+                : collect(),
             'category' => $category,
             'categoryKey' => $categoryKey,
             'posts' => $posts,
@@ -424,6 +487,7 @@ class CommunityForumController extends Controller
 
         $validated = $request->validate($this->threadRules($categoryKey));
         $category = CommunityForumCategory::get($categoryKey);
+        abort_unless($category && ($category['channel'] ?? null) === $channel, 404);
 
         if ($channel === 'personal' && $request->boolean('poll_enabled')) {
             abort_unless(
@@ -464,6 +528,7 @@ class CommunityForumController extends Controller
             $post = CommunityPost::create([
                 'channel' => $channel,
                 'community_process_id' => $process?->id,
+                'forum_category_id' => $category['id'] ?? null,
                 'user_id' => $request->user()->id,
                 'title' => $validated['title'],
                 'body' => $validated['body'],
@@ -627,15 +692,27 @@ class CommunityForumController extends Controller
         );
     }
 
+    private function authorizeForumHome(Request $request): void
+    {
+        abort_unless(
+            CommunityArea::hasArea($request->user()),
+            403,
+            'No tienes acceso al foro.',
+        );
+    }
+
     private function channelTitle(string $channel): string
     {
-        return $channel === 'personal' ? 'Foro' : 'Cantina';
+        return $channel === 'personal'
+            ? 'Foro'
+            : (CommunityForumCategory::get(CommunityForumCategory::CANTINA)['label'] ?? 'WHISKEY — Enguarrinando');
     }
 
     private function channelDescription(string $channel): string
     {
         return $channel === 'personal'
             ? 'Foro interno de la comunidad, organizado por categorías. Entra en una categoría para leer, debatir o publicar.'
-            : 'El rincón informal de Squad Alpha: quedadas, rol, videojuegos, cine y cualquier tema off-topic.';
+            : (CommunityForumCategory::get(CommunityForumCategory::CANTINA)['description']
+                ?? 'El rincón informal de Squad Alpha: quedadas, rol, videojuegos, cine y cualquier tema off-topic.');
     }
 }

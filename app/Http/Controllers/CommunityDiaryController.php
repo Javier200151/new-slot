@@ -90,13 +90,21 @@ class CommunityDiaryController extends Controller
         $diary->load([
             'author.status',
             'author.mainSqaGroup',
+            'entries' => fn ($entries) => $entries
+                ->latest('created_at')
+                ->latest('id'),
             'entries.event.operation.operationType',
             'entries.event.eventStatus',
+            'entries.comments.author.status',
+            'entries.comments.author.mainSqaGroup',
             'comments.author.status',
             'comments.author.mainSqaGroup',
         ]);
 
         $authors = collect([$diary->author])
+            ->merge($diary->entries->flatMap(
+                fn (CommunityDiaryEntry $entry) => $entry->comments->pluck('author')
+            ))
             ->merge($diary->comments->pluck('author'))
             ->filter()
             ->unique('id')
@@ -247,9 +255,11 @@ class CommunityDiaryController extends Controller
     public function comment(
         Request $request,
         CommunityDiary $diary,
+        CommunityDiaryEntry $entry,
         CommunitySubscriptionService $subscriptions,
     ): RedirectResponse {
         $this->authorizeDiary($request);
+        abort_unless((int) $entry->community_diary_id === (int) $diary->id, 404);
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'min:2', 'max:20000'],
@@ -257,6 +267,7 @@ class CommunityDiaryController extends Controller
 
         CommunityDiaryComment::create([
             'community_diary_id' => $diary->id,
+            'community_diary_entry_id' => $entry->id,
             'user_id' => $request->user()->id,
             'body' => $validated['body'],
         ]);
@@ -265,7 +276,7 @@ class CommunityDiaryController extends Controller
         $subscriptions->notifyDiary($diary, $request->user(), 'new_reply');
 
         return redirect()
-            ->to(route('community.diary.show', $diary) . '#respuestas')
+            ->to(route('community.diary.show', $diary) . '#entrada-' . $entry->id)
             ->with('status', 'comment-created');
     }
 
@@ -290,7 +301,13 @@ class CommunityDiaryController extends Controller
         $diary->touch();
         $subscriptions->notifyDiary($diary, $request->user(), 'reply_updated');
 
-        return back()->with('status', 'comment-updated');
+        return redirect()
+            ->to(
+                route('community.diary.show', $diary)
+                . '#entrada-'
+                . ($comment->community_diary_entry_id ?: '')
+            )
+            ->with('status', 'comment-updated');
     }
 
     public function destroyComment(
