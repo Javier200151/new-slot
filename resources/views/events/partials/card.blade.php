@@ -39,6 +39,7 @@
         . 'H';
 
     $isCancelled = $event->isCancelled();
+    $isDraft = $event->eventStatus?->name === 'BORRADOR';
 
     $participatingAllies = $event->slots
         ->pluck('ally')
@@ -52,6 +53,7 @@
     @class([
         'event-card',
         'is-cancelled' => $isCancelled,
+        'is-draft' => $isDraft,
     ])
     @style([
         '--event-color: ' . ($operation?->operationType?->color ?? '') => filled($operation?->operationType?->color),
@@ -106,6 +108,7 @@
                 'event-card__status',
                 'is-active' => $event->eventStatus?->name === 'ACTIVO',
                 'is-cancelled' => $isCancelled,
+                'is-draft' => $isDraft,
             ])>
                 {{ $event->eventStatus?->name }}
             </span>

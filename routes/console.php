@@ -17,3 +17,8 @@ Schedule::command('activitylog:clean --force')
     ->dailyAt('03:30')
     ->timezone('Europe/Madrid')
     ->withoutOverlapping();
+
+Schedule::command('community:birthdays')
+    ->dailyAt('08:00')
+    ->timezone('Europe/Madrid')
+    ->withoutOverlapping();

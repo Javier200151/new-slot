@@ -19,7 +19,31 @@ class PermissionCatalog
 
     public static function groups(): array
     {
-        return config('newslot-permissions.groups', []);
+        $groups = config('newslot-permissions.groups', []);
+
+        if (! isset($groups['community'])) {
+            return $groups;
+        }
+
+        /*
+         * Las categorías del foro ya no son un catálogo fijo. Cada categoría
+         * registrada en Filament añade automáticamente su bloque de permisos a
+         * Roles, manteniendo los nombres históricos de las categorías internas.
+         */
+        foreach (CommunityForumCategory::permissionResources() as $resource => $label) {
+            $groups['community']['resources'][$resource] = [
+                'label' => 'Foro · ' . $label,
+                'actions' => [
+                    'create' => 'Publicar nuevos hilos',
+                    'reply' => 'Responder a hilos',
+                    'poll' => 'Crear y gestionar votaciones',
+                    'moderate' => 'Cerrar, reabrir y fijar hilos',
+                    'delete' => 'Eliminar hilos y respuestas',
+                ],
+            ];
+        }
+
+        return $groups;
     }
 
     public static function resources(): array

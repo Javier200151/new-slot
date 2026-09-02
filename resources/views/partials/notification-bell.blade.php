@@ -173,6 +173,18 @@
 
                         @if(
                             $type
+                            === 'birthday'
+                        )
+                            🎂
+
+                        @elseif(
+                            $type
+                            === 'community_subscription_update'
+                        )
+                            🔔
+
+                        @elseif(
+                            $type
                             === 'metopa_awarded'
                         )
                             ★
@@ -205,6 +217,19 @@
                     <span class="notification-item__content">
 
                         @if(
+                            $type
+                            === 'birthday'
+                        )
+                            <strong>
+                                Hoy celebramos cumpleaños
+                            </strong>
+
+                            <span>
+                                <b>{{ $data['birthday_user_nick'] ?? 'Un miembro' }}</b>
+                                cumple años hoy. ¡Felicidades! 🎉
+                            </span>
+
+                        @elseif(
                             $type
                             === 'event_published'
                         )
@@ -242,6 +267,35 @@
                                         : 'slots libres'
                                     }}
                                 @endif
+                            </small>
+
+                        @elseif(
+                            $type
+                            === 'community_subscription_update'
+                        )
+                            <strong>
+                                {{ ($data['subject_type'] ?? null) === 'diary' ? 'Novedad en un diario' : 'Novedad en el foro' }}
+                            </strong>
+
+                            <span>
+                                <b>{{ $data['actor_nick'] ?? 'Un usuario' }}</b>
+                                ha actualizado
+                                <b>{{ $data['subject_title'] ?? 'un hilo' }}</b>
+                            </span>
+
+                            <small>
+                                @switch($data['update_kind'] ?? '')
+                                    @case('new_reply') Nueva respuesta @break
+                                    @case('new_entry') Nueva entrada @break
+                                    @case('reply_updated') Respuesta editada @break
+                                    @case('entry_updated') Entrada editada @break
+                                    @case('thread_updated') Hilo editado @break
+                                    @case('poll_created') Nueva votación @break
+                                    @case('process_updated') Proceso actualizado @break
+                                    @case('application_saved') Nueva postulación @break
+                                    @case('application_withdrawn') Candidatura retirada @break
+                                    @default Hay nueva actividad
+                                @endswitch
                             </small>
 
                         @elseif(

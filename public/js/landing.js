@@ -834,3 +834,42 @@ document.addEventListener(
         );
     }
 );
+
+/*
+|--------------------------------------------------------------------------
+| Easter egg de cumpleaños
+|--------------------------------------------------------------------------
+*/
+document.addEventListener('DOMContentLoaded', () => {
+    const celebration = document.querySelector('[data-birthday-celebration]');
+
+    if (!celebration) {
+        return;
+    }
+
+    const balloonCount = window.matchMedia('(max-width: 700px)').matches ? 8 : 14;
+
+    for (let index = 0; index < balloonCount; index += 1) {
+        const balloon = document.createElement('span');
+        balloon.className = 'birthday-balloon';
+        balloon.style.left = `${4 + Math.random() * 92}%`;
+        balloon.style.setProperty('--duration', `${4.2 + Math.random() * 2.8}s`);
+        balloon.style.animationDelay = `${Math.random() * 1.6}s`;
+        balloon.style.opacity = `${0.58 + Math.random() * 0.4}`;
+
+        if (index % 3 === 1) {
+            balloon.style.background = '#ffffff';
+        } else if (index % 3 === 2) {
+            balloon.style.background = '#fbbf24';
+        }
+
+        celebration.appendChild(balloon);
+    }
+
+    window.setTimeout(() => {
+        celebration.style.transition = 'opacity 600ms ease';
+        celebration.style.opacity = '0';
+    }, 6500);
+
+    window.setTimeout(() => celebration.remove(), 7200);
+});

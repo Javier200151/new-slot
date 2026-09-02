@@ -1966,3 +1966,176 @@ input:focus-visible {
             calc(100vh - 95px);
     }
 }
+/* =========================================================
+   NAVEGACIÓN DESPLEGABLE
+========================================================= */
+
+.nav-dropdown {
+    position: relative;
+}
+
+.nav-dropdown > summary {
+    position: relative;
+    list-style: none;
+    padding: 11px 18px 11px 0;
+    color: var(--text-soft);
+    font-size: 0.88rem;
+    font-weight: 650;
+    cursor: pointer;
+    user-select: none;
+    transition: color 180ms ease;
+}
+
+.nav-dropdown > summary::-webkit-details-marker {
+    display: none;
+}
+
+.nav-dropdown > summary::before {
+    content: "";
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-65%) rotate(45deg);
+    transition: transform 160ms ease;
+}
+
+.nav-dropdown[open] > summary::before {
+    transform: translateY(-30%) rotate(225deg);
+}
+
+.nav-dropdown:hover > summary,
+.nav-dropdown[open] > summary,
+.nav-dropdown.is-active > summary {
+    color: var(--primary-light);
+}
+
+.nav-dropdown__menu {
+    position: absolute;
+    z-index: 210;
+    top: calc(100% + 8px);
+    left: 50%;
+    min-width: 190px;
+    display: grid;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--primary);
+    border-radius: 10px;
+    background: rgba(7, 10, 15, 0.99);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+    transform: translateX(-50%);
+}
+
+.nav-dropdown__menu a {
+    padding: 10px 11px;
+    border-radius: 7px;
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.nav-dropdown__menu a::after {
+    display: none;
+}
+
+.nav-dropdown__menu a:hover {
+    color: #111;
+    background: var(--primary);
+}
+
+@media (max-width: 1000px) {
+    .nav-dropdown {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-dropdown > summary {
+        padding: 10px 28px 10px 8px;
+    }
+
+    .nav-dropdown > summary::before {
+        right: 12px;
+    }
+
+    .nav-dropdown__menu {
+        position: static;
+        min-width: 0;
+        margin: 0 6px 8px;
+        padding: 5px;
+        border-top-width: 1px;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .nav-dropdown__menu a {
+        padding: 9px 12px 9px 18px;
+    }
+}
+
+/* =========================================================
+   CUMPLEAÑOS
+========================================================= */
+
+.birthday-celebration {
+    position: fixed;
+    z-index: 400;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.birthday-message {
+    position: fixed;
+    z-index: 402;
+    top: calc(var(--header-height) + 24px);
+    left: 50%;
+    min-width: min(420px, calc(100vw - 30px));
+    padding: 18px 22px;
+    border: 1px solid rgba(245, 158, 11, 0.6);
+    border-radius: 12px;
+    color: #fff;
+    background: rgba(7, 10, 15, 0.96);
+    box-shadow: 0 18px 55px rgba(245, 158, 11, 0.24);
+    text-align: center;
+    transform: translateX(-50%);
+    animation: birthday-message-in 420ms ease both;
+}
+
+.birthday-message strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--primary-light);
+    font-size: 1.05rem;
+}
+
+.birthday-balloon {
+    position: absolute;
+    bottom: -90px;
+    width: 28px;
+    height: 36px;
+    border-radius: 50% 50% 46% 46%;
+    background: var(--primary);
+    box-shadow: inset -6px -7px 0 rgba(0, 0, 0, 0.12);
+    animation: birthday-balloon-rise var(--duration, 5s) ease-in forwards;
+}
+
+.birthday-balloon::after {
+    content: "";
+    position: absolute;
+    top: 35px;
+    left: 50%;
+    width: 1px;
+    height: 55px;
+    background: rgba(255,255,255,.38);
+}
+
+@keyframes birthday-balloon-rise {
+    to { transform: translateY(calc(-100vh - 150px)) rotate(10deg); }
+}
+
+@keyframes birthday-message-in {
+    from { opacity: 0; transform: translate(-50%, -15px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}

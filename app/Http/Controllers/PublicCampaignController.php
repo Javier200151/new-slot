@@ -5,10 +5,45 @@ namespace App\Http\Controllers;
 use App\Models\Campaign;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Support\HtmlString;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PublicCampaignController extends Controller
 {
+    public function index(Request $request): View
+    {
+        $filters = $request->validate([
+            'sort' => ['nullable', 'in:published_desc,published_asc,name_asc,name_desc'],
+        ]);
+        $selectedSort = $filters['sort'] ?? 'published_desc';
+
+        $campaignsQuery = Campaign::query()
+            ->withCount([
+                'operations',
+                'events',
+            ]);
+
+        match ($selectedSort) {
+            'published_asc' => $campaignsQuery->orderBy('id'),
+            'name_asc' => $campaignsQuery->orderBy('name')->orderBy('id'),
+            'name_desc' => $campaignsQuery->orderByDesc('name')->orderByDesc('id'),
+            default => $campaignsQuery->orderByDesc('id'),
+        };
+
+        $campaigns = $campaignsQuery->get();
+
+        foreach ($campaigns as $campaign) {
+            $campaign->setAttribute(
+                'summary',
+                trim(strip_tags(
+                    RichContentRenderer::make($campaign->description)->toHtml()
+                )),
+            );
+        }
+
+        return view('campaigns.index', compact('campaigns', 'selectedSort'));
+    }
+
     public function show(Campaign $campaign): View
     {
         $campaign->load([

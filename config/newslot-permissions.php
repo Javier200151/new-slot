@@ -98,6 +98,15 @@ return [
                         'manage' => 'Manejar ORBAT',
                     ],
                 ],
+
+                'event-calendar' => [
+                    'label' => 'Calendario de eventos',
+                    'actions' => [
+                        'view' => 'Ver calendario',
+                        'reserve' => 'Reservar fechas',
+                        'manage' => 'Editor del calendario',
+                    ],
+                ],
             ],
         ],
 
@@ -160,6 +169,68 @@ return [
                 ],
                 'streamers' => [
                     'label' => 'Streamers',
+                ],
+            ],
+        ],
+
+
+        'community' => [
+            'label' => 'Comunidad',
+            'icon' => 'heroicon-o-chat-bubble-left-right',
+            'resources' => [
+                'community-forum-categories' => [
+                    'label' => 'Categorías del foro',
+                ],
+
+                'community-forum-cantina' => [
+                    'label' => 'Foro · WHISKEY (Enguarrinando)',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+                'community-forum-debate' => [
+                    'label' => 'Foro · Debates',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+                'community-forum-convocatoria' => [
+                    'label' => 'Foro · Convocatorias',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+                'community-forum-propuesta' => [
+                    'label' => 'Foro · Propuestas',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
+                ],
+                'community-forum-consulta' => [
+                    'label' => 'Foro · Consultas',
+                    'actions' => [
+                        'create' => 'Publicar nuevos hilos',
+                        'reply' => 'Responder a hilos',
+                        'poll' => 'Crear y gestionar votaciones',
+                        'moderate' => 'Cerrar, reabrir y fijar hilos',
+                        'delete' => 'Eliminar hilos y respuestas',
+                    ],
                 ],
             ],
         ],

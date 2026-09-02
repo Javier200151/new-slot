@@ -115,6 +115,11 @@ class PublicOperationController extends Controller
                 'date_format:Y-m-d',
                 'after_or_equal:date_from',
             ],
+
+            'sort' => [
+                'nullable',
+                'in:published_desc,published_asc,name_asc,name_desc',
+            ],
         ]);
 
         $search =
@@ -194,8 +199,10 @@ class PublicOperationController extends Controller
             $filters['date_to']
             ?? null;
 
+        $selectedSort = $filters['sort'] ?? 'published_desc';
 
-        $operations = Operation::query()
+
+        $operationsQuery = Operation::query()
 
             ->with([
                 'operationType',
@@ -638,11 +645,24 @@ class PublicOperationController extends Controller
                         }
                     );
                 }
-            )
+            );
 
-            ->orderBy('name')
+        match ($selectedSort) {
+            'published_asc' => $operationsQuery
+                ->orderBy('created_at')
+                ->orderBy('id'),
+            'name_asc' => $operationsQuery
+                ->orderBy('name')
+                ->orderBy('id'),
+            'name_desc' => $operationsQuery
+                ->orderByDesc('name')
+                ->orderByDesc('id'),
+            default => $operationsQuery
+                ->orderByDesc('created_at')
+                ->orderByDesc('id'),
+        };
 
-            ->get();
+        $operations = $operationsQuery->get();
 
         /*
         |--------------------------------------------------------------------------
@@ -941,6 +961,7 @@ class PublicOperationController extends Controller
                 'selectedJip',
                 'selectedDateFrom',
                 'selectedDateTo',
+                'selectedSort',
 
                 'hasFilters',
             )

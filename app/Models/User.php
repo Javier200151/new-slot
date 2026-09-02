@@ -69,7 +69,11 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole('admin') || $this->can('filament.access');
+        return $this->hasRole('admin')
+            || $this->can('filament.access')
+            || $this->can('event-calendar.view')
+            || $this->can('event-calendar.reserve')
+            || $this->can('event-calendar.manage');
     }
     
     public function sendEmailVerificationNotification(): void
@@ -217,6 +221,21 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function eventComments()
     {
         return $this->hasMany(EventComment::class);
+    }
+
+    public function communityPosts()
+    {
+        return $this->hasMany(CommunityPost::class);
+    }
+
+    public function communityPostComments()
+    {
+        return $this->hasMany(CommunityPostComment::class);
+    }
+
+    public function communityProcessApplications()
+    {
+        return $this->hasMany(CommunityProcessApplication::class);
     }
 
     public function pupils()

@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CommunityDiary;
+use App\Models\CommunityPost;
 use App\Models\Event;
 use App\Models\Metopa;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -56,6 +59,16 @@ class NotificationController extends Controller
                         $data['metopa_id'] ?? 0
                     )
                 ),
+
+            'birthday' =>
+                $this->redirectToUser(
+                    (int) (
+                        $data['birthday_user_id'] ?? 0
+                    )
+                ),
+
+            'community_subscription_update' =>
+                $this->redirectToCommunitySubscription($data),
 
             default =>
                 redirect()->route('home'),
@@ -219,4 +232,46 @@ class NotificationController extends Controller
                 $metopa
             );
     }
+
+    private function redirectToUser(
+        int $userId,
+    ): RedirectResponse {
+        $user = User::query()->find($userId);
+
+        if (! $user) {
+            return redirect()->route('users.index');
+        }
+
+        return redirect()->route('users.show', ['user' => $user->nick]);
+    }
+    private function redirectToCommunitySubscription(array $data): RedirectResponse
+    {
+        $subjectType = (string) ($data['subject_type'] ?? '');
+        $subjectId = (int) ($data['subject_id'] ?? 0);
+
+        if ($subjectType === 'forum') {
+            $post = CommunityPost::query()->find($subjectId);
+
+            if (! $post) {
+                return redirect()->route('community.forum.home');
+            }
+
+            return redirect()->to(
+                route('community.forum.show', [$post->channel, $post]) . '#respuestas'
+            );
+        }
+
+        if ($subjectType === 'diary') {
+            $diary = CommunityDiary::query()->find($subjectId);
+
+            if (! $diary) {
+                return redirect()->route('community.diary.index');
+            }
+
+            return redirect()->route('community.diary.show', $diary);
+        }
+
+        return redirect()->route('home');
+    }
+
 }
