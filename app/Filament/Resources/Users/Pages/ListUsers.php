@@ -20,7 +20,6 @@ class ListUsers extends ListRecords
         ];
     }
 
-
     public function getTabs(): array
     {
         return [

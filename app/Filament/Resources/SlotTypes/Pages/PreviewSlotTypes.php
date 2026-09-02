@@ -155,6 +155,9 @@ class PreviewSlotTypes extends Page
                     $columns[$column][] = [
                         'id' => (int) $slotType->id,
                         'name' => (string) $slotType->name,
+                        'image' => filled($slotType->image)
+                            ? asset('storage/' . $slotType->image)
+                            : null,
                         'quick_names' => $quickNames,
                     ];
                 }

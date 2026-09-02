@@ -7,7 +7,7 @@
 @section('body-class', 'events-body')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/events.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/events.css') }}?v={{ filemtime(public_path('css/events.css')) }}">
 @endpush
 
 @section('content')
@@ -150,6 +150,9 @@
                                                                     . $event->operation->period->ico
                                                                 ) }}"
                                                                 alt=""
+                                                                width="17"
+                                                                height="17"
+                                                                style="width:17px;height:17px;max-width:17px;max-height:17px;object-fit:contain;"
                                                             >
 
                                                         @endif
@@ -163,6 +166,9 @@
                                                                     . $event->operation->platform->image
                                                                 ) }}"
                                                                 alt=""
+                                                                width="17"
+                                                                height="17"
+                                                                style="width:17px;height:17px;max-width:17px;max-height:17px;object-fit:contain;"
                                                             >
 
                                                         @endif

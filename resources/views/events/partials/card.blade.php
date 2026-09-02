@@ -73,6 +73,9 @@
                 src="{{ asset('storage/' . $operation->period->ico) }}"
                 alt="Periodo {{ $operation->period->name }}"
                 loading="lazy"
+                width="56"
+                height="56"
+                style="width:56px;height:56px;max-width:56px;max-height:56px;object-fit:contain;"
             >
         @endif
 
@@ -81,6 +84,9 @@
                 src="{{ asset('storage/' . $operation->platform->image) }}"
                 alt="Plataforma {{ $operation->platform->name }}"
                 loading="lazy"
+                width="56"
+                height="56"
+                style="width:56px;height:56px;max-width:56px;max-height:56px;object-fit:contain;"
             >
         @endif
 
@@ -173,6 +179,9 @@
                                 src="{{ asset('storage/' . $operation->platform->image) }}"
                                 alt=""
                                 loading="lazy"
+                                width="20"
+                                height="20"
+                                style="width:20px;height:20px;max-width:20px;max-height:20px;object-fit:contain;"
                             >
                         @endif
                         <span>{{ $operation->platform->name }}</span>
@@ -218,6 +227,9 @@
                                     src="{{ asset('storage/' . $ally->image) }}"
                                     alt="{{ $ally->name }}"
                                     loading="lazy"
+                                    width="44"
+                                    height="44"
+                                    style="width:44px;height:44px;max-width:44px;max-height:44px;object-fit:contain;"
                                 >
                             @else
                                 <strong>{{ strtoupper(substr($ally->name, 0, 2)) }}</strong>

@@ -10,7 +10,7 @@
 @push('styles')
     <link
         rel="stylesheet"
-        href="{{ asset('css/users.css') }}"
+        href="{{ asset('css/users.css') }}?v={{ filemtime(public_path('css/users.css')) }}"
     >
 @endpush
 
@@ -35,6 +35,49 @@
                     </p>
                 </div>
             </header>
+
+
+            @if($sqaGroups->isNotEmpty())
+                <details class="users-group-legend">
+                    <summary>
+                        <span
+                            class="users-group-legend__swatches"
+                            aria-hidden="true"
+                        >
+                            @foreach($sqaGroups->take(4) as $group)
+                                <span
+                                    style="--legend-color: {{ $group->color ?: '#94a3b8' }};"
+                                ></span>
+                            @endforeach
+                        </span>
+
+                        <span>Leyenda de colores</span>
+                    </summary>
+
+                    <div class="users-group-legend__panel">
+                        <span class="users-group-legend__title">
+                            Grupos SQA
+                        </span>
+
+                        <div class="users-group-legend__items">
+                            @foreach($sqaGroups as $group)
+                                <span
+                                    class="users-group-legend__item"
+                                    style="--legend-color: {{ $group->color ?: '#94a3b8' }};"
+                                >
+                                    <i aria-hidden="true"></i>
+                                    {{ $group->name }}
+                                </span>
+                            @endforeach
+                        </div>
+
+                        <small>
+                            El color del nick corresponde al grupo principal.
+                            Si no tiene uno, se utiliza el color de su estado.
+                        </small>
+                    </div>
+                </details>
+            @endif
 
 
             <form

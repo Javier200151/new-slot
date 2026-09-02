@@ -365,9 +365,10 @@
 }
 
 .event-card__period img {
-    width: auto;
-    max-width: 68px;
-    max-height: 68px;
+    width: 56px !important;
+    height: 56px !important;
+    max-width: 56px !important;
+    max-height: 56px !important;
     object-fit: contain;
     filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.35));
 }
@@ -4773,14 +4774,18 @@ a.event-comment__author:hover {
 }
 
 .event-card__fact-with-icon img {
-    width: 20px;
-    height: 20px;
+    width: 20px !important;
+    height: 20px !important;
+    max-width: 20px !important;
+    max-height: 20px !important;
     object-fit: contain;
 }
 
 .event-detail__fact-with-icon img {
-    width: 24px;
-    height: 24px;
+    width: 28px !important;
+    height: 28px !important;
+    max-width: 28px !important;
+    max-height: 28px !important;
     object-fit: contain;
 }
 

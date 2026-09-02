@@ -27,7 +27,7 @@
                     @if($map->platform)
                         <div class="map-page__platform">
                             @if($map->platform->image)
-                                <img src="{{ asset('storage/' . $map->platform->image) }}" alt="">
+                                <img src="{{ asset('storage/' . $map->platform->image) }}" alt="" width="32" height="32" style="width:32px;height:32px;max-width:32px;max-height:32px;object-fit:contain;">
                             @endif
                             <span>Plataforma</span>
                             <strong>{{ $map->platform->name }}</strong>

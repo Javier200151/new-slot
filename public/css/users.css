@@ -39,6 +39,116 @@
 
 
 /* =========================================================
+   LEYENDA DE GRUPOS SQA
+========================================================= */
+
+.users-group-legend {
+    width: fit-content;
+    max-width: min(100%, 760px);
+    margin: -8px 0 22px;
+    position: relative;
+}
+
+.users-group-legend > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-muted);
+    background: rgba(10, 14, 20, 0.72);
+    font-size: 0.68rem;
+    font-weight: 750;
+    cursor: pointer;
+    list-style: none;
+    transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.users-group-legend > summary::-webkit-details-marker {
+    display: none;
+}
+
+.users-group-legend > summary:hover,
+.users-group-legend[open] > summary {
+    border-color: rgba(245, 158, 11, 0.38);
+    color: var(--primary-light);
+    background: rgba(245, 158, 11, 0.04);
+}
+
+.users-group-legend__swatches {
+    display: inline-flex;
+    align-items: center;
+}
+
+.users-group-legend__swatches span {
+    width: 9px;
+    height: 9px;
+    margin-left: -2px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    background: var(--legend-color);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--legend-color) 35%, transparent);
+}
+
+.users-group-legend__swatches span:first-child {
+    margin-left: 0;
+}
+
+.users-group-legend__panel {
+    width: min(680px, calc(100vw - 40px));
+    margin-top: 9px;
+    padding: 14px 15px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(8, 12, 18, 0.97);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.users-group-legend__title {
+    display: block;
+    margin-bottom: 9px;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.users-group-legend__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 12px;
+}
+
+.users-group-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--legend-color);
+    font-size: 0.7rem;
+    font-weight: 750;
+}
+
+.users-group-legend__item i {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: var(--legend-color);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--legend-color) 40%, transparent);
+}
+
+.users-group-legend__panel small {
+    display: block;
+    margin-top: 11px;
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
    BUSCADOR
 ========================================================= */
 
