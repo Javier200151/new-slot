@@ -178,6 +178,16 @@ return new class extends Migration
             ],
         ];
 
+        // `artisan migrate --pretend` no ejecuta INSERT/UPDATE: solo registra
+        // las consultas que se ejecutarían. Esta migración necesita leer los IDs
+        // de categorías que acaba de crear para reasignar publicaciones y estados.
+        // En modo pretend esos registros todavía no existen y acceder a claves como
+        // `cantina` provocaría un falso "Undefined array key". Las operaciones de
+        // datos se ejecutan únicamente en una migración real.
+        if (DB::connection()->pretending()) {
+            return;
+        }
+
         $statusIds = DB::table('status')
             ->whereIn('name', ['ACTIVO', 'RESERVA', 'RECLUTA', 'CESADO'])
             ->pluck('id', 'name');
