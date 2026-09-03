@@ -95,6 +95,15 @@
             </nav>
 
             <div class="nav-actions">
+                <a
+                    href="https://foro.squadalpha.es/"
+                    class="legacy-forum-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Foro antiguo <span aria-hidden="true">↗</span>
+                </a>
+
                 @guest
                     <a
                         href="{{ route('login') }}"

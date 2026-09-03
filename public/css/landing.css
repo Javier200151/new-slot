@@ -282,6 +282,27 @@ form {
     font-size: 0.78rem;
 }
 
+.legacy-forum-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 4px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: color 160ms ease;
+}
+
+.legacy-forum-link:hover {
+    color: var(--primary-light);
+}
+
+.legacy-forum-link span {
+    color: var(--primary);
+    font-size: 0.7rem;
+}
+
 .logout-form {
     display: inline-flex;
 }
@@ -1063,6 +1084,12 @@ form {
     fill: currentColor;
     stroke: none;
 }
+.footer-utility-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .footer-users-link {
     display: inline-flex;
     align-items: center;
@@ -1483,6 +1510,14 @@ input:focus-visible {
         flex-wrap: wrap;
     }
 
+    .legacy-forum-link {
+        min-height: 36px;
+        flex: 1 1 100%;
+        justify-content: center;
+        padding-inline: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
     .nav-actions .btn,
     .logout-form {
         flex: 1;
@@ -1553,6 +1588,10 @@ input:focus-visible {
     .footer-content {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .footer-utility-links {
+        flex-wrap: wrap;
     }
 
     .auth-modal {
