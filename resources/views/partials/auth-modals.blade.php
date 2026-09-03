@@ -294,7 +294,7 @@
                         id="register-nick"
                         type="text"
                         name="nick"
-                        value="{{ old('auth_form') === 'register' ? old('nick') : '' }}"
+                        value="{{ old('auth_form') === 'register' ? old('nick') : session('recruitment_register_nick', '') }}"
                         autocomplete="username"
                         required
                     >
@@ -306,7 +306,7 @@
                         id="register-email"
                         type="email"
                         name="email"
-                        value="{{ old('auth_form') === 'register' ? old('email') : '' }}"
+                        value="{{ old('auth_form') === 'register' ? old('email') : session('recruitment_register_email', '') }}"
                         autocomplete="email"
                         required
                     >

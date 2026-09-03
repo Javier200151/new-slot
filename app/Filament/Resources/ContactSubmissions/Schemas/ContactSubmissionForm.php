@@ -15,10 +15,11 @@ class ContactSubmissionForm
     {
         return $schema->components([
             Section::make('Solicitud')->schema([
+                TextInput::make('nickname')->label('Nickname')->disabled(),
                 TextInput::make('email')->label('Email')->disabled(),
                 Toggle::make('is_recruitment')->label('Alistamiento')->disabled(),
-                Textarea::make('message')->label('Mensaje')->rows(8)->disabled()->columnSpanFull(),
                 DateTimePicker::make('read_at')->label('Marcada como leída')->seconds(false),
+                Textarea::make('message')->label('Mensaje')->rows(8)->disabled()->columnSpanFull(),
             ])->columns(2),
             Section::make('Datos de alistamiento')->schema([
                 Toggle::make('accepted_rules')->label('Normativa')->disabled(),

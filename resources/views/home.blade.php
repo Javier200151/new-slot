@@ -384,6 +384,19 @@
 
                         <div class="form-grid">
                             <label class="form-field">
+                                <span>Nickname</span>
+                                <input
+                                    type="text"
+                                    name="nickname"
+                                    value="{{ old('nickname', auth()->user()?->nick) }}"
+                                    maxlength="80"
+                                    required
+                                    autocomplete="nickname"
+                                    placeholder="Cómo te conocemos en la comunidad"
+                                >
+                            </label>
+
+                            <label class="form-field">
                                 <span>Email</span>
                                 <input type="email" name="email" value="{{ old('email', auth()->user()?->email) }}" required autocomplete="email">
                             </label>

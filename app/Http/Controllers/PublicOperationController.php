@@ -105,6 +105,11 @@ class PublicOperationController extends Controller
                 'in:0,1',
             ],
 
+            'multiclans' => [
+                'nullable',
+                'in:0,1',
+            ],
+
             'date_from' => [
                 'nullable',
                 'date_format:Y-m-d',
@@ -189,6 +194,10 @@ class PublicOperationController extends Controller
 
         $selectedJip =
             $filters['jip']
+            ?? null;
+
+        $selectedMulticlans =
+            $filters['multiclans']
             ?? null;
 
         $selectedDateFrom =
@@ -601,6 +610,38 @@ class PublicOperationController extends Controller
 
             /*
             |--------------------------------------------------------------------------
+            | Multiclanes
+            |--------------------------------------------------------------------------
+            |
+            | La marca multiclanes pertenece al evento, no al operativo. Un operativo
+            | se considera multiclan si al menos uno de sus eventos está marcado como
+            | tal. Al filtrar por "No" mostramos los operativos que no tienen ningún
+            | evento multiclan.
+            |
+            */
+
+            ->when(
+                $selectedMulticlans !== null,
+
+                function ($query) use ($selectedMulticlans): void {
+                    if ($selectedMulticlans === '1') {
+                        $query->whereHas(
+                            'events',
+                            fn ($eventQuery) => $eventQuery->where('multiclans', true)
+                        );
+
+                        return;
+                    }
+
+                    $query->whereDoesntHave(
+                        'events',
+                        fn ($eventQuery) => $eventQuery->where('multiclans', true)
+                    );
+                }
+            )
+
+            /*
+            |--------------------------------------------------------------------------
             | Fecha de eventos
             |--------------------------------------------------------------------------
             |
@@ -924,6 +965,7 @@ class PublicOperationController extends Controller
             || $selectedOcap !== null
             || $selectedRespawn !== null
             || $selectedJip !== null
+            || $selectedMulticlans !== null
             || $selectedDateFrom
             || $selectedDateTo;
 
@@ -959,6 +1001,7 @@ class PublicOperationController extends Controller
                 'selectedOcap',
                 'selectedRespawn',
                 'selectedJip',
+                'selectedMulticlans',
                 'selectedDateFrom',
                 'selectedDateTo',
                 'selectedSort',
