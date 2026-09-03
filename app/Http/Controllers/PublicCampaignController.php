@@ -19,7 +19,7 @@ class PublicCampaignController extends Controller
 
         $campaignsQuery = Campaign::query()
             ->withCount([
-                'operations',
+                'activities as operations_count',
                 'events',
             ]);
 
@@ -53,11 +53,11 @@ class PublicCampaignController extends Controller
                 ->with([
                     'eventStatus',
                     'eventResult',
-                    'operation.operationType',
-                    'operation.campaign',
-                    'operation.period',
-                    'operation.platform',
-                    'operation.map',
+                    'activity.operationType',
+                    'activity.campaign',
+                    'activity.period',
+                    'activity.platform',
+                    'activity.map',
                     'slots:id,event_id,slot_key,user_id,ally_id',
                 ])
                 ->withCount([

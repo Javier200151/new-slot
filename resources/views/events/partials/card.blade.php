@@ -1,5 +1,5 @@
 @php
-    $operation = $event->operation;
+    $operation = $event->activity;
 
     $totalSlots =
         $event->getOrbatSlotsCount();

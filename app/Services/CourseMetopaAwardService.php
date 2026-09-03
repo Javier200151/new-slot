@@ -18,8 +18,8 @@ class CourseMetopaAwardService
     {
         $event->loadMissing([
             'eventStatus',
-            'operation.operationType',
-            'operation.metopa',
+            'activity.operationType',
+            'activity.metopa',
             'slots.user',
         ]);
 
@@ -100,13 +100,13 @@ class CourseMetopaAwardService
     {
         $event->loadMissing([
             'eventStatus',
-            'operation.operationType',
-            'operation.metopa',
+            'activity.operationType',
+            'activity.metopa',
         ]);
 
         return $event->eventStatus?->name === 'FINALIZADO'
-            && ($event->operation?->operationType?->awardsMetopa() ?? false)
-            && $event->operation?->metopa_id !== null;
+            && ($event->activity?->operationType?->awardsMetopa() ?? false)
+            && $event->activity?->metopa_id !== null;
     }
 
     public function canAwardForUser(Event $event, ?User $user): bool
@@ -162,7 +162,7 @@ class CourseMetopaAwardService
             ]);
         }
 
-        $metopaId = (int) $event->operation->metopa_id;
+        $metopaId = (int) $event->activity->metopa_id;
         $assignedAt = $event->end_date
             ?? $event->date
             ?? now();
@@ -192,7 +192,7 @@ class CourseMetopaAwardService
 
         return [
             'students' => $recipients,
-            'metopa' => $event->operation->metopa,
+            'metopa' => $event->activity->metopa,
             'results' => $results,
         ];
     }

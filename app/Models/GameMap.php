@@ -23,8 +23,15 @@ class GameMap extends Model
         return $this->belongsTo(Platform::class);
     }
 
+    /** Relación canónica con actividades. */
+    public function activities()
+    {
+        return $this->hasMany(Activity::class, 'map_id');
+    }
+
+    /** Alias histórico durante la transición Operation -> Activity. */
     public function operations()
     {
-        return $this->hasMany(Operation::class, 'map_id');
+        return $this->hasMany(Activity::class, 'map_id');
     }
 }

@@ -16,7 +16,7 @@ use App\Http\Controllers\PublicEventController;
 use App\Http\Controllers\PublicLoginController;
 use App\Http\Controllers\PublicMapController;
 use App\Http\Controllers\PublicRegisterController;
-use App\Http\Controllers\PublicOperationController;
+use App\Http\Controllers\PublicActivityController;
 use App\Models\User;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
@@ -212,19 +212,107 @@ Route::get('/eventos/{event}', [PublicEventController::class, 'show'])
 
 /*
 |--------------------------------------------------------------------------
-| Operativos públicos
+| Actividades públicas
 |--------------------------------------------------------------------------
 */
 
 Route::get(
-    '/operativos',
-    [PublicOperationController::class, 'index']
-)->name('operations.index');
+    '/actividades',
+    [PublicActivityController::class, 'index']
+)->name('activities.index');
 
 Route::get(
-    '/operativos/{operation}',
-    [PublicOperationController::class, 'show']
-)->name('operations.show');
+    '/actividades/{operation}',
+    [PublicActivityController::class, 'show']
+)->name('activities.show');
+
+/*
+|--------------------------------------------------------------------------
+| Compatibilidad con URLs históricas de Operativos
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/operativos', function () {
+    return redirect()->route(
+        'activities.index',
+        request()->query(),
+        301,
+    );
+})->name('operations.index');
+
+Route::get('/operativos/{operation}', function (string $operation) {
+    return redirect()->route(
+        'activities.show',
+        ['operation' => $operation],
+        301,
+    );
+})->name('operations.show');
+
+/*
+|--------------------------------------------------------------------------
+| Compatibilidad con URLs históricas de Filament
+|--------------------------------------------------------------------------
+*/
+
+Route::redirect('/admin/operations', '/admin/activities', 301);
+Route::redirect('/admin/operations/create', '/admin/activities/create', 301);
+Route::get('/admin/operations/{record}/edit', fn (string $record) =>
+    redirect("/admin/activities/{$record}/edit", 301)
+);
+
+Route::redirect(
+    '/admin/configuration/operation-types',
+    '/admin/configuration/activity-types',
+    301,
+);
+Route::redirect(
+    '/admin/configuration/operation-types/create',
+    '/admin/configuration/activity-types/create',
+    301,
+);
+Route::get(
+    '/admin/configuration/operation-types/{record}/edit',
+    fn (string $record) => redirect(
+        "/admin/configuration/activity-types/{$record}/edit",
+        301,
+    ),
+);
+
+Route::redirect(
+    '/admin/configuration/operation-statuses',
+    '/admin/configuration/activity-statuses',
+    301,
+);
+Route::redirect(
+    '/admin/configuration/operation-statuses/create',
+    '/admin/configuration/activity-statuses/create',
+    301,
+);
+Route::get(
+    '/admin/configuration/operation-statuses/{record}/edit',
+    fn (string $record) => redirect(
+        "/admin/configuration/activity-statuses/{$record}/edit",
+        301,
+    ),
+);
+
+Route::redirect(
+    '/admin/configuration/operation-days',
+    '/admin/configuration/activity-days',
+    301,
+);
+Route::redirect(
+    '/admin/configuration/operation-days/create',
+    '/admin/configuration/activity-days/create',
+    301,
+);
+Route::get(
+    '/admin/configuration/operation-days/{record}/edit',
+    fn (string $record) => redirect(
+        "/admin/configuration/activity-days/{$record}/edit",
+        301,
+    ),
+);
 
 /*
 |--------------------------------------------------------------------------

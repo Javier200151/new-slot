@@ -32,7 +32,7 @@ class EventSlotChangedNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $this->event->loadMissing('operation');
+        $this->event->loadMissing('activity');
 
         return [
             'type' => 'event_slot_changed',
@@ -43,7 +43,7 @@ class EventSlotChangedNotification extends Notification
 
             'event_name' =>
                 $this->event->name
-                ?: $this->event->operation?->name
+                ?: $this->event->activity?->name
                 ?: 'Evento',
 
             'changed_by_user_id' =>

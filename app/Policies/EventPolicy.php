@@ -4,13 +4,13 @@ namespace App\Policies;
 
 use App\Models\Event;
 use App\Models\User;
-use App\Support\OperationTypeAccess;
+use App\Support\ActivityTypeAccess;
 
 class EventPolicy
 {
     public function viewAny(User $user): bool
     {
-        return OperationTypeAccess::canAny(
+        return ActivityTypeAccess::canAny(
             $user,
             'events',
             'view',
@@ -19,17 +19,17 @@ class EventPolicy
 
     public function view(User $user, Event $event): bool
     {
-        return OperationTypeAccess::can(
+        return ActivityTypeAccess::can(
             $user,
             'events',
             'view',
-            $event->operation?->operation_type_id,
+            $event->activity?->operation_type_id,
         );
     }
 
     public function create(User $user): bool
     {
-        return OperationTypeAccess::canAny(
+        return ActivityTypeAccess::canAny(
             $user,
             'events',
             'create',
@@ -38,21 +38,21 @@ class EventPolicy
 
     public function update(User $user, Event $event): bool
     {
-        return OperationTypeAccess::can(
+        return ActivityTypeAccess::can(
             $user,
             'events',
             'update',
-            $event->operation?->operation_type_id,
+            $event->activity?->operation_type_id,
         );
     }
 
     public function delete(User $user, Event $event): bool
     {
-        return OperationTypeAccess::can(
+        return ActivityTypeAccess::can(
             $user,
             'events',
             'delete',
-            $event->operation?->operation_type_id,
+            $event->activity?->operation_type_id,
         );
     }
 

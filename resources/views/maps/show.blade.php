@@ -78,7 +78,7 @@
                     <div class="map-page__operations-grid">
                         @foreach($map->operations as $operation)
                             <a
-                                href="{{ route('operations.show', $operation) }}"
+                                href="{{ route('activities.show', $operation) }}"
                                 class="map-page__operation-card"
                                 @style([
                                     '--operation-color: ' . ($operation->operationType?->color ?? '')

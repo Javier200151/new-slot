@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use App\Listeners\AuditPermissionRelationChange;
+use App\Models\Activity as NewSlotActivity;
+use App\Models\Operation;
 use App\Models\GameMap;
 use App\Models\Role;
 use App\Policies\ActivityPolicy;
+use App\Policies\AuditLogPolicy;
+use App\Policies\OperationPolicy;
 use App\Policies\MapPolicy;
 use App\Policies\RolePolicy;
 use App\Services\AuditLogger;
@@ -23,7 +27,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Contracts\Activity as ActivityContract;
-use Spatie\Activitylog\Models\Activity;
+use Spatie\Activitylog\Models\Activity as SpatieActivity;
 use Spatie\Activitylog\Facades\Activity as ActivityFacade;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
@@ -64,7 +68,9 @@ class AppServiceProvider extends ServiceProvider
          * Policies que Laravel no puede descubrir por convención:
          *
          * - GameMap usa MapPolicy por compatibilidad con el modelo histórico Map.
-         * - Activity pertenece al paquete spatie/laravel-activitylog.
+         * - NewSlotActivity es el nuevo modelo canónico del dominio.
+         * - Operation permanece temporalmente como alias compatible.
+         * - SpatieActivity es exclusivamente el registro de auditoría.
          */
         Gate::policy(
             GameMap::class,
@@ -72,8 +78,18 @@ class AppServiceProvider extends ServiceProvider
         );
 
         Gate::policy(
-            Activity::class,
+            NewSlotActivity::class,
             ActivityPolicy::class
+        );
+
+        Gate::policy(
+            Operation::class,
+            OperationPolicy::class
+        );
+
+        Gate::policy(
+            SpatieActivity::class,
+            AuditLogPolicy::class
         );
 
         $this->registerActivityEnrichment();

@@ -112,9 +112,9 @@
                                             ])
                                             @style([
                                                 '--event-color: '
-                                                . ($event->operation?->operationType?->color ?? '')
+                                                . ($event->activity?->operationType?->color ?? '')
                                                 => filled(
-                                                    $event->operation?->operationType?->color
+                                                    $event->activity?->operationType?->color
                                                 ),
                                                 'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;'
                                                     => $isCancelled,
@@ -124,19 +124,19 @@
                                             @if($isCancelled)
                                                 <div
                                                     class="events-calendar__event-main"
-                                                    title="Evento cancelado: {{ $event->name ?: $event->operation?->name }}"
+                                                    title="Evento cancelado: {{ $event->name ?: $event->activity?->name }}"
                                                 >
                                             @else
                                                 <a
                                                     href="{{ route('events.show', $event) }}"
                                                     class="events-calendar__event-main"
-                                                    title="{{ $event->name ?: $event->operation?->name }}"
+                                                    title="{{ $event->name ?: $event->activity?->name }}"
                                                 >
                                             @endif
 
                                                 @if(
-                                                    $event->operation?->period?->ico
-                                                    || $event->operation?->platform?->image
+                                                    $event->activity?->period?->ico
+                                                    || $event->activity?->platform?->image
                                                 )
 
                                                     <span
@@ -144,12 +144,12 @@
                                                         aria-hidden="true"
                                                     >
 
-                                                        @if($event->operation?->period?->ico)
+                                                        @if($event->activity?->period?->ico)
 
                                                             <img
                                                                 src="{{ asset(
                                                                     'storage/'
-                                                                    . $event->operation->period->ico
+                                                                    . $event->activity->period->ico
                                                                 ) }}"
                                                                 alt=""
                                                                 width="17"
@@ -160,12 +160,12 @@
                                                         @endif
 
 
-                                                        @if($event->operation?->platform?->image)
+                                                        @if($event->activity?->platform?->image)
 
                                                             <img
                                                                 src="{{ asset(
                                                                     'storage/'
-                                                                    . $event->operation->platform->image
+                                                                    . $event->activity->platform->image
                                                                 ) }}"
                                                                 alt=""
                                                                 width="17"
@@ -181,7 +181,7 @@
 
 
                                                 <span class="events-calendar__event-name">
-                                                    @if($isDraft)<small>BORRADOR · </small>@endif{{ $event->name ?: $event->operation?->name }}
+                                                    @if($isDraft)<small>BORRADOR · </small>@endif{{ $event->name ?: $event->activity?->name }}
                                                 </span>
 
                                             @if($isCancelled)

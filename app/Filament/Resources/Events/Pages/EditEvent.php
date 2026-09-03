@@ -21,10 +21,10 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use App\Services\CommunityNotificationService;
 use App\Models\EventStatus;
-use App\Models\Operation;
+use App\Models\Activity;
 use App\Models\User;
 use App\Support\FactionOptionLabel;
-use App\Support\OperationTypeConfiguration;
+use App\Support\ActivityTypeConfiguration;
 use App\Services\CourseMetopaAwardService;
 
 class EditEvent extends EditRecord
@@ -133,7 +133,7 @@ class EditEvent extends EditRecord
                     function (): string {
                         $service = app(CourseMetopaAwardService::class);
                         $students = $service->students($this->record);
-                        $metopa = $this->record->operation?->metopa;
+                        $metopa = $this->record->activity?->metopa;
 
                         return 'Metopa: "'
                             . ($metopa?->name ?? 'Sin metopa')
@@ -330,7 +330,7 @@ class EditEvent extends EditRecord
                 )
                 ->action(function (): void {
                     $this->record->load(
-                        'operation'
+                        'activity'
                     );
 
                     /*
@@ -341,7 +341,7 @@ class EditEvent extends EditRecord
 
                     $newOrbat =
                         $this->record
-                            ->operation
+                            ->activity
                             ?->orbat
                         ?? [
                             'groups' => [],
@@ -459,7 +459,7 @@ class EditEvent extends EditRecord
         */
 
         $operation =
-            Operation::query()
+            Activity::query()
                 ->with('operationStatus')
                 ->find($data['operation_id']);
 
@@ -500,7 +500,7 @@ class EditEvent extends EditRecord
             $data['multiclans'] = true;
         }
 
-        return OperationTypeConfiguration::normalizeEventData(
+        return ActivityTypeConfiguration::normalizeEventData(
             $data,
             $originalOperationId,
         );

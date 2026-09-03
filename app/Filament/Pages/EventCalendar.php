@@ -194,7 +194,7 @@ class EventCalendar extends Page
             ->whereHas('eventStatus', fn ($query) => $query
                 ->whereIn('name', ['ACTIVO', 'FINALIZADO', 'CANCELADO', 'BORRADOR']))
             ->whereBetween('date', [$calendarStart->startOfDay(), $calendarEnd->endOfDay()])
-            ->with(['eventStatus', 'operation.operationType'])
+            ->with(['eventStatus', 'activity.operationType'])
             ->orderBy('date')
             ->get()
             ->groupBy(fn (Event $event): string => $event->date->toDateString());

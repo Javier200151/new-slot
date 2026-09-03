@@ -81,16 +81,16 @@
                                     <a
                                         class="admin-calendar__event"
                                         href="{{ route('events.show', $event) }}"
-                                        style="--event-color: {{ $event->operation?->operationType?->color ?: '#f59e0b' }}"
+                                        style="--event-color: {{ $event->activity?->operationType?->color ?: '#f59e0b' }}"
                                         target="_blank"
                                     >
                                         <small>{{ $status }}</small>
-                                        <span>{{ $event->name ?: $event->operation?->name }}</span>
+                                        <span>{{ $event->name ?: $event->activity?->name }}</span>
                                     </a>
                                 @else
                                     <div class="admin-calendar__event is-disabled" style="--event-color: #64748b">
                                         <small>{{ $status }}</small>
-                                        <span>{{ $event->name ?: $event->operation?->name }}</span>
+                                        <span>{{ $event->name ?: $event->activity?->name }}</span>
                                     </div>
                                 @endif
                             @endforeach

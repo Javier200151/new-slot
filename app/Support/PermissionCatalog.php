@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Models\OperationType;
+use App\Models\ActivityType;
 use Illuminate\Support\Facades\Schema;
 
 class PermissionCatalog
@@ -79,10 +79,19 @@ class PermissionCatalog
         return self::resources()[$resource]['action_options'] ?? [];
     }
 
+    public static function isActivityTypeScoped(string $resource): bool
+    {
+        return in_array(
+            self::resources()[$resource]['scope'] ?? null,
+            ['activity_type', 'operation_type'],
+            true,
+        );
+    }
+
+    /** Alias histórico durante la transición. */
     public static function isOperationTypeScoped(string $resource): bool
     {
-        return (self::resources()[$resource]['scope'] ?? null)
-            === 'operation_type';
+        return self::isActivityTypeScoped($resource);
     }
 
     public static function permissionNames(
@@ -93,12 +102,12 @@ class PermissionCatalog
             : [];
 
         foreach (self::resources() as $resource => $definition) {
-            if (self::isOperationTypeScoped($resource)) {
-                foreach (self::operationTypeIds() as $operationTypeId) {
+            if (self::isActivityTypeScoped($resource)) {
+                foreach (self::activityTypeIds() as $activityTypeId) {
                     foreach ($definition['actions'] as $action) {
-                        $permissions[] = self::operationTypePermissionName(
+                        $permissions[] = self::activityTypePermissionName(
                             $resource,
-                            $operationTypeId,
+                            $activityTypeId,
                             $action,
                         );
                     }
@@ -120,34 +129,63 @@ class PermissionCatalog
         return 'permissions_' . str_replace('-', '_', $resource);
     }
 
+    public static function activityTypeFieldName(
+        string $resource,
+        int $activityTypeId,
+    ): string {
+        return self::fieldName($resource)
+            . '_type_'
+            . $activityTypeId;
+    }
+
+    /** Alias histórico durante la transición. */
     public static function operationTypeFieldName(
         string $resource,
         int $operationTypeId,
     ): string {
-        return self::fieldName($resource)
-            . '_type_'
-            . $operationTypeId;
+        return self::activityTypeFieldName($resource, $operationTypeId);
     }
 
+    public static function activityTypePermissionName(
+        string $resource,
+        int $activityTypeId,
+        string $action,
+    ): string {
+        // El formato del permiso se conserva durante esta fase para mantener
+        // exactamente los mismos IDs y asignaciones de Spatie.
+        return "{$resource}.type.{$activityTypeId}.{$action}";
+    }
+
+    /** Alias histórico durante la transición. */
     public static function operationTypePermissionName(
         string $resource,
         int $operationTypeId,
         string $action,
     ): string {
-        return "{$resource}.type.{$operationTypeId}.{$action}";
+        return self::activityTypePermissionName(
+            $resource,
+            $operationTypeId,
+            $action,
+        );
     }
 
-    public static function operationTypeIds(): array
+    public static function activityTypeIds(): array
     {
         if (! Schema::hasTable('operations_type')) {
             return [];
         }
 
-        return OperationType::query()
+        return ActivityType::query()
             ->orderBy('id')
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->all();
+    }
+
+    /** Alias histórico durante la transición. */
+    public static function operationTypeIds(): array
+    {
+        return self::activityTypeIds();
     }
 
     private static function normalizeActionOptions(

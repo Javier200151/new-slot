@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\Events\Schemas;
 
 use App\Models\EventStatus;
-use App\Models\Operation;
-use App\Support\OperationTypeAccess;
-use App\Support\OperationTypeConfiguration;
+use App\Models\Activity;
+use App\Support\ActivityTypeAccess;
+use App\Support\ActivityTypeConfiguration;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -29,13 +29,13 @@ class EventForm
                     function ($record): array {
                         $action = $record ? 'update' : 'create';
                         $allowedTypeIds =
-                            OperationTypeAccess::allowedTypeIds(
+                            ActivityTypeAccess::allowedTypeIds(
                                 auth()->user(),
                                 'events',
                                 $action,
                             );
 
-                        return Operation::query()
+                        return Activity::query()
                             ->whereIn(
                                 'operation_type_id',
                                 $allowedTypeIds,
@@ -51,7 +51,7 @@ class EventForm
                 ->afterStateUpdated(
                     function ($state, Get $get, Set $set): void {
                         $operation =
-                            Operation::query()
+                            Activity::query()
                                 ->with(['operationStatus', 'operationType'])
                                 ->find($state);
 
@@ -130,7 +130,7 @@ class EventForm
                             Toggle $component,
                             Get $get
                         ): void {
-                            $externalEditor = Operation::query()
+                            $externalEditor = Activity::query()
                                 ->whereKey($get('operation_id'))
                                 ->whereNotNull('editor_ally_id')
                                 ->exists();
@@ -142,7 +142,7 @@ class EventForm
                     )
                     ->helperText(
                         function (Get $get): string {
-                            $externalEditor = Operation::query()
+                            $externalEditor = Activity::query()
                                 ->whereKey($get('operation_id'))
                                 ->whereNotNull('editor_ally_id')
                                 ->exists();
@@ -154,7 +154,7 @@ class EventForm
                     )
                     ->disabled(
                         fn (Get $get): bool =>
-                            Operation::query()
+                            Activity::query()
                                 ->whereKey($get('operation_id'))
                                 ->whereNotNull('editor_ally_id')
                                 ->exists()
@@ -176,7 +176,7 @@ class EventForm
 
                             if (filled($operationId)) {
                                 $operationStatus =
-                                    Operation::query()
+                                    Activity::query()
                                         ->whereKey($operationId)
                                         ->with('operationStatus')
                                         ->first()
@@ -222,7 +222,7 @@ class EventForm
                             }
 
                             $isDraft =
-                                Operation::query()
+                                Activity::query()
                                     ->whereKey($operationId)
                                     ->whereHas(
                                         'operationStatus',
@@ -261,11 +261,11 @@ class EventForm
                     ->preload()
                     ->visible(
                         function (Get $get): bool {
-                            $typeId = Operation::query()
+                            $typeId = Activity::query()
                                 ->whereKey($get('operation_id'))
                                 ->value('operation_type_id');
 
-                            return OperationTypeConfiguration::find($typeId)?->usesEventResult()
+                            return ActivityTypeConfiguration::find($typeId)?->usesEventResult()
                                 ?? false;
                         }
                     )
@@ -290,7 +290,7 @@ class EventForm
                     ->maxLength(255)
                     ->visible(
                         function (Get $get): bool {
-                            $operation = Operation::query()
+                            $operation = Activity::query()
                                 ->with('operationType')
                                 ->find($get('operation_id'));
 

@@ -5,13 +5,13 @@ namespace App\Console\Commands;
 use App\Models\Addon;
 use App\Models\Faction;
 use App\Models\GameMap;
-use App\Models\OperationDay;
-use App\Models\OperationStatus;
-use App\Models\OperationType;
+use App\Models\ActivityDay;
+use App\Models\ActivityStatus;
+use App\Models\ActivityType;
 use App\Models\Platform;
 use App\Models\User;
 use App\Models\SlotType;
-use App\Models\Operation;
+use App\Models\Activity;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Console\Command;
@@ -308,10 +308,10 @@ class ImportOperations2026 extends Command
         */
 
         $operationType =
-            OperationType::query()
+            ActivityType::query()
                 ->get()
                 ->first(
-                    fn (OperationType $type): bool =>
+                    fn (ActivityType $type): bool =>
                         $this->normalizeLookup($type->name)
                         === $this->normalizeLookup('OPERACIÓN')
                 );
@@ -340,10 +340,10 @@ class ImportOperations2026 extends Command
         */
 
         $operationStatus =
-            OperationStatus::query()
+            ActivityStatus::query()
                 ->get()
                 ->first(
-                    fn (OperationStatus $status): bool =>
+                    fn (ActivityStatus $status): bool =>
                         $this->normalizeLookup($status->name)
                         === $this->normalizeLookup('BORRADOR')
                 );
@@ -375,10 +375,10 @@ class ImportOperations2026 extends Command
 
 
         $dayIndex =
-            OperationDay::query()
+            ActivityDay::query()
                 ->get()
                 ->keyBy(
-                    fn (OperationDay $day): string =>
+                    fn (ActivityDay $day): string =>
                         $this->normalizeLookup(
                             $day->name
                         )
@@ -1286,7 +1286,7 @@ class ImportOperations2026 extends Command
                 */
 
                 $alreadyExists =
-                    Operation::withTrashed()
+                    Activity::withTrashed()
                         ->where(
                             'name',
                             $missionName
@@ -1758,12 +1758,12 @@ class ImportOperations2026 extends Command
 
                 /*
                 |--------------------------------------------------------------------------
-                | Crear Operation
+                | Crear Activity
                 |--------------------------------------------------------------------------
                 */
 
                 $operation =
-                    new Operation([
+                    new Activity([
                         'operation_type_id' =>
                             (int) $operationType->id,
 

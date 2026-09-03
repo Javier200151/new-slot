@@ -56,9 +56,22 @@ class Event extends Model
         });
     }
 
+    /**
+     * Relación canónica con la actividad.
+     *
+     * Durante la transición la FK física continúa siendo `operation_id`.
+     */
+    public function activity()
+    {
+        return $this->belongsTo(Activity::class, 'operation_id');
+    }
+
+    /**
+     * Alias histórico mantenido temporalmente para no romper código existente.
+     */
     public function operation()
     {
-        return $this->belongsTo(Operation::class);
+        return $this->belongsTo(Activity::class, 'operation_id');
     }
 
     public function eventStatus()

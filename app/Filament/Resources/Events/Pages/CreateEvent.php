@@ -3,13 +3,13 @@
 namespace App\Filament\Resources\Events\Pages;
 
 use App\Filament\Resources\Events\EventResource;
-use App\Models\Operation;
+use App\Models\Activity;
 use Filament\Resources\Pages\CreateRecord;
 use App\Services\CommunityNotificationService;
 use App\Models\EventStatus;
 use Illuminate\Validation\ValidationException;
-use App\Support\OperationTypeAccess;
-use App\Support\OperationTypeConfiguration;
+use App\Support\ActivityTypeAccess;
+use App\Support\ActivityTypeConfiguration;
 
 class CreateEvent extends CreateRecord
 {
@@ -37,11 +37,11 @@ class CreateEvent extends CreateRecord
         |--------------------------------------------------------------------------
         */
 
-        $operation = Operation::query()
+        $operation = Activity::query()
             ->with('operationStatus')
             ->find($data['operation_id'] ?? null);
 
-        if (! OperationTypeAccess::can(
+        if (! ActivityTypeAccess::can(
             auth()->user(),
             'events',
             'create',
@@ -123,7 +123,7 @@ class CreateEvent extends CreateRecord
             $data['multiclans'] = true;
         }
 
-        return OperationTypeConfiguration::normalizeEventData(
+        return ActivityTypeConfiguration::normalizeEventData(
             $data,
             $operation?->id,
         );

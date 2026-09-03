@@ -8,8 +8,8 @@ use App\Filament\Resources\Events\Pages\ListEvents;
 use App\Filament\Resources\Events\Schemas\EventForm;
 use App\Filament\Resources\Events\Tables\EventsTable;
 use App\Models\Event;
-use App\Models\Operation;
-use App\Support\OperationTypeAccess;
+use App\Models\Activity;
+use App\Support\ActivityTypeAccess;
 use Illuminate\Support\Facades\Auth;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -68,7 +68,7 @@ class EventResource extends Resource
     {
         $query = parent::getEloquentQuery();
         $user = Auth::user();
-        $allowedTypeIds = OperationTypeAccess::allowedTypeIds(
+        $allowedTypeIds = ActivityTypeAccess::allowedTypeIds(
             $user,
             'events',
             'view',
@@ -80,7 +80,7 @@ class EventResource extends Resource
 
         return $query->whereIn(
             'operation_id',
-            Operation::query()
+            Activity::query()
                 ->withTrashed()
                 ->whereIn(
                     'operation_type_id',

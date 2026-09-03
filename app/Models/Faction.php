@@ -24,10 +24,22 @@ class Faction extends Model
         return $this->belongsTo(Side::class);
     }
 
+    /** Relación canónica con actividades enemigas. */
+    public function enemyActivities()
+    {
+        return $this->belongsToMany(
+            Activity::class,
+            'enemy_faction_operation',
+            'faction_id',
+            'operation_id'
+        );
+    }
+
+    /** Alias histórico durante la transición Operation -> Activity. */
     public function enemyOperations()
     {
         return $this->belongsToMany(
-            Operation::class,
+            Activity::class,
             'enemy_faction_operation',
             'faction_id',
             'operation_id'
