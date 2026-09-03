@@ -374,12 +374,41 @@ form {
 
 .btn-hero {
     min-height: 58px;
-    padding: 17px 32px;
+    padding: 17px 24px;
     border-radius: 12px;
     font-size: 0.98rem;
     letter-spacing: 0.07em;
     text-transform: uppercase;
 }
+
+.btn-hero__status-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, .13), 0 0 16px rgba(34, 197, 94, .5);
+}
+
+
+.btn-hero.is-recruitment-closed {
+    color: #f1f3f6;
+    border-color: rgba(239, 68, 68, .48);
+    background: linear-gradient(135deg, rgba(31, 35, 43, .98), rgba(18, 21, 27, .98));
+    box-shadow: 0 12px 35px rgba(0, 0, 0, .22);
+}
+
+.btn-hero.is-recruitment-closed:hover {
+    border-color: rgba(239, 68, 68, .72);
+    background: linear-gradient(135deg, rgba(37, 41, 50, 1), rgba(21, 24, 31, 1));
+    box-shadow: 0 16px 42px rgba(0, 0, 0, .28);
+}
+
+.btn-hero.is-recruitment-closed .btn-hero__status-dot {
+    background: #ef4444;
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, .11), 0 0 16px rgba(239, 68, 68, .36);
+}
+
 
 /* =========================================================
    PORTADA
@@ -2499,32 +2528,86 @@ input:focus-visible {
 
 .recruitment-state {
     display: flex;
-    gap: 12px;
+    gap: 16px;
     align-items: center;
-    width: fit-content;
+    width: min(100%, 520px);
     margin-top: 28px;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    background: rgba(255,255,255,.018);
+    padding: 18px 20px;
+    border: 1px solid rgba(239,68,68,.44);
+    border-left: 3px solid #ef4444;
+    background: linear-gradient(135deg, rgba(239,68,68,.09), rgba(255,255,255,.018));
+    box-shadow: 0 16px 42px rgba(0,0,0,.14);
 }
 
 .recruitment-state__dot {
-    width: 8px;
-    height: 8px;
+    width: 11px;
+    height: 11px;
+    flex: 0 0 11px;
     border-radius: 50%;
     background: #ef4444;
-    box-shadow: 0 0 0 5px rgba(239,68,68,.08);
+    box-shadow: 0 0 0 6px rgba(239,68,68,.1), 0 0 18px rgba(239,68,68,.32);
+}
+
+.recruitment-state.is-open {
+    border-color: rgba(34,197,94,.42);
+    border-left-color: #22c55e;
+    background: linear-gradient(135deg, rgba(34,197,94,.09), rgba(255,255,255,.018));
 }
 
 .recruitment-state.is-open .recruitment-state__dot {
     background: #22c55e;
-    box-shadow: 0 0 0 5px rgba(34,197,94,.08);
+    box-shadow: 0 0 0 6px rgba(34,197,94,.1), 0 0 18px rgba(34,197,94,.38);
 }
 
 .recruitment-state strong,
 .recruitment-state small { display: block; }
-.recruitment-state strong { font-size: .82rem; }
-.recruitment-state small { margin-top: 2px; color: var(--text-muted); font-size: .72rem; }
+.recruitment-state strong { color: #fff; font-size: 1rem; }
+.recruitment-state small { margin-top: 4px; color: var(--text-soft); font-size: .78rem; }
+
+.home-faq-cta {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 13px;
+    align-items: center;
+    width: min(100%, 520px);
+    margin-top: 14px;
+    padding: 13px 15px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.015);
+    color: var(--text);
+    text-decoration: none;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.home-faq-cta:hover {
+    transform: translateY(-1px);
+    border-color: rgba(245,158,11,.28);
+    background: rgba(245,158,11,.035);
+}
+
+.home-faq-cta__icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(245,158,11,.24);
+    border-radius: 50%;
+    color: var(--primary);
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.home-faq-cta__copy { display: grid; gap: 2px; min-width: 0; }
+.home-faq-cta__copy small {
+    color: var(--text-muted);
+    font-size: .58rem;
+    font-weight: 850;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.home-faq-cta__copy strong { color: #e9ebef; font-size: .88rem; }
+.home-faq-cta__copy span { color: var(--text-muted); font-size: .7rem; }
+.home-faq-cta__arrow { color: rgba(245,158,11,.72); font-size: 1rem; font-weight: 800; }
 
 .home-contact-panel {
     border-top: 2px solid var(--primary);
@@ -2626,6 +2709,9 @@ input:focus-visible {
     .home-section-heading__copy h2,
     .home-contact-intro h2 { font-size: clamp(2.1rem, 11vw, 3.2rem); }
     .recruitment-form { padding: 24px 20px; }
+    .recruitment-state { width: 100%; padding: 16px 17px; }
+    .home-faq-cta { grid-template-columns: 36px minmax(0, 1fr) auto; padding: 12px 13px; }
+    .home-faq-cta__icon { width: 36px; height: 36px; }
     .contact-alert { margin: 20px 20px 0; }
     .form-grid { grid-template-columns: 1fr; }
     .form-field--full { grid-column: auto; }
@@ -2778,4 +2864,148 @@ input:focus-visible {
     .instagram-card__media { aspect-ratio: 4 / 3; }
     .instagram-feed__fallback { align-items: flex-start; flex-wrap: wrap; }
     .instagram-feed__fallback p { min-width: calc(100% - 60px); }
+}
+
+/* Google Fotos integrado en Actualidad */
+.google-photos-feed {
+    margin-top: 58px;
+    padding-top: 34px;
+    border-top: 1px solid var(--border);
+}
+
+.google-photos-feed__heading {
+    display: flex;
+    gap: 28px;
+    align-items: end;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.google-photos-feed__heading h3 {
+    margin: 8px 0 0;
+    color: var(--text);
+    font-size: clamp(1.45rem, 2.2vw, 2.3rem);
+    line-height: 1;
+    letter-spacing: -.035em;
+}
+
+.google-photos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.google-photo-card {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: #07090d;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.google-photo-card:hover {
+    border-color: rgba(245, 158, 11, .34);
+    transform: translateY(-2px);
+}
+
+.google-photo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 280ms ease, opacity 280ms ease;
+}
+
+.google-photo-card:hover img {
+    transform: scale(1.035);
+    opacity: .82;
+}
+
+.google-photo-card__overlay {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    padding: 42px 16px 14px;
+    color: #fff;
+    background: linear-gradient(transparent, rgba(0, 0, 0, .78));
+    font-size: .64rem;
+    letter-spacing: .11em;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.google-photo-card:hover .google-photo-card__overlay,
+.google-photo-card:focus-visible .google-photo-card__overlay {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.google-photo-card__overlay > span {
+    color: var(--primary-light);
+    font-size: 1rem;
+}
+
+.google-photos-feed__fallback {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    padding: 25px 28px;
+    border: 1px dashed rgba(255,255,255,.13);
+    background: rgba(255,255,255,.014);
+}
+
+.google-photos-feed__fallback > span {
+    color: var(--primary);
+    font-size: 1.8rem;
+}
+
+.google-photos-feed__fallback p {
+    flex: 1;
+    margin: 0;
+    color: var(--text-soft);
+}
+
+@media (max-width: 980px) {
+    .google-photos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .google-photos-feed {
+        margin-top: 42px;
+    }
+
+    .google-photos-feed__heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .google-photos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .google-photo-card {
+        aspect-ratio: 1 / 1;
+    }
+
+    .google-photo-card__overlay {
+        display: none;
+    }
+
+    .google-photos-feed__fallback {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .google-photos-feed__fallback p {
+        min-width: calc(100% - 60px);
+    }
 }

@@ -86,9 +86,10 @@
                     @guest
                         <a
                             href="#alistamiento"
-                            class="btn btn-primary btn-hero"
+                            class="btn btn-primary btn-hero {{ $settings->recruitment_open ? 'is-recruitment-open' : 'is-recruitment-closed' }}"
                         >
-                            Alístate
+                            <span class="btn-hero__status-dot" aria-hidden="true"></span>
+                            <span>{{ $settings->recruitment_open ? 'Alístate' : 'Alistamiento cerrado' }}</span>
                             <span aria-hidden="true">→</span>
                         </a>
                     @else
@@ -104,7 +105,7 @@
                     @endguest
                 </div>
 
-                <a href="#comunidad" class="scroll-indicator">
+                <a href="#actualidad" class="scroll-indicator">
                     <span>Conoce Squad ALPHA</span>
                     <span class="scroll-indicator__line"></span>
                 </a>
@@ -265,6 +266,61 @@
                         </div>
                     @endif
                 </div>
+
+                <div class="google-photos-feed">
+                    <div class="google-photos-feed__heading">
+                        <div>
+                            <span class="section-label">Google Fotos</span>
+                            <h3>Últimas fotos de Squad ALPHA</h3>
+                        </div>
+
+                        <a
+                            class="home-text-link"
+                            href="{{ $googlePhotosAlbumUrl }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Ver álbum completo <span aria-hidden="true">↗</span>
+                        </a>
+                    </div>
+
+                    @if($googlePhotos->isNotEmpty())
+                        <div class="google-photos-grid">
+                            @foreach($googlePhotos as $photo)
+                                <a
+                                    class="google-photo-card"
+                                    href="{{ $googlePhotosAlbumUrl }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label="Abrir álbum FOTOS SQUAD ALPHA RRSS en Google Fotos"
+                                >
+                                    <img
+                                        src="{{ $photo['image'] }}"
+                                        alt="Foto reciente de Squad ALPHA"
+                                        loading="lazy"
+                                    >
+                                    <span class="google-photo-card__overlay">
+                                        <span aria-hidden="true">▣</span>
+                                        <strong>VER EN GOOGLE FOTOS ↗</strong>
+                                    </span>
+                                </a>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="google-photos-feed__fallback">
+                            <span aria-hidden="true">▣</span>
+                            <p>Las últimas fotos de Squad ALPHA están disponibles en nuestro álbum público.</p>
+                            <a
+                                class="home-text-link"
+                                href="{{ $googlePhotosAlbumUrl }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Abrir Google Fotos ↗
+                            </a>
+                        </div>
+                    @endif
+                </div>
             </div>
         </section>
 
@@ -356,6 +412,16 @@
                             <small>{{ $settings->recruitment_open ? 'Aceptando nuevas solicitudes' : 'Solo consultas generales' }}</small>
                         </div>
                     </div>
+
+                    <a href="{{ route('pages.show', 'faqs') }}" class="home-faq-cta">
+                        <span class="home-faq-cta__icon" aria-hidden="true">?</span>
+                        <span class="home-faq-cta__copy">
+                            <small>Antes de escribirnos</small>
+                            <strong>Preguntas frecuentes</strong>
+                            <span>Consulta las FAQs de Squad ALPHA</span>
+                        </span>
+                        <span class="home-faq-cta__arrow" aria-hidden="true">→</span>
+                    </a>
                 </div>
 
                 <div class="home-contact-panel">

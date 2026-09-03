@@ -34,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('Administración de Squad Alpha') //Nombre que sale en la parte de arriba de administración
             ->login()
             ->registration(\App\Filament\Pages\Auth\Register::class)
+            ->globalSearch(false)
             ->colors([
                 'primary' => Color::Amber,
             ])

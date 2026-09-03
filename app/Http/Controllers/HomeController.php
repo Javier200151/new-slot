@@ -4,13 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\HomepageNews;
 use App\Models\HomepageSetting;
+use App\Services\HomepageGooglePhotosService;
 use App\Services\HomepageInstagramService;
 use App\Services\HomepageVodService;
 use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function index(HomepageVodService $vodService, HomepageInstagramService $instagramService): View
+    public function index(
+        HomepageVodService $vodService,
+        HomepageInstagramService $instagramService,
+        HomepageGooglePhotosService $googlePhotosService,
+    ): View
     {
         $settings = HomepageSetting::current();
 
@@ -28,7 +33,16 @@ class HomeController extends Controller
 
         $vods = $vodService->latest(6);
         $instagramPosts = $instagramService->latest(3);
+        $googlePhotosAlbumUrl = trim((string) ($settings->google_photos_url ?: config('services.google_photos.album_url')));
+        $googlePhotos = $googlePhotosService->latest(6, $googlePhotosAlbumUrl);
 
-        return view('home', compact('settings', 'news', 'vods', 'instagramPosts'));
+        return view('home', compact(
+            'settings',
+            'news',
+            'vods',
+            'instagramPosts',
+            'googlePhotos',
+            'googlePhotosAlbumUrl',
+        ));
     }
 }

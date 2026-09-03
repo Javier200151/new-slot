@@ -46,4 +46,11 @@ return [
         'access_token' => env('INSTAGRAM_ACCESS_TOKEN'),
         'username' => env('INSTAGRAM_USERNAME', 'squadalpha_es'),
     ],
+
+    'google_photos' => [
+        'album_url' => env(
+            'GOOGLE_PHOTOS_PUBLIC_ALBUM_URL',
+            'https://photos.google.com/share/AF1QipNdq-gzduALgaiw4sLbUdtIhVqnU4BzSBXFqKgTg-PA5rADUy5nzNY9Meg2VY67Kw?key=WG9wYVUzWWxWeEFNR1YwUHctYU8wbjF6OWFkTkJn'
+        ),
+    ],
 ];

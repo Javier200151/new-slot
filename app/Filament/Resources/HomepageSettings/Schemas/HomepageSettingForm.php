@@ -28,6 +28,12 @@ class HomepageSettingForm
                         ->url()
                         ->helperText('Cuenta actual: @squadalpha_es. El feed de las 3 últimas publicaciones usa INSTAGRAM_ACCESS_TOKEN en el .env.')
                         ->maxLength(255),
+                    TextInput::make('google_photos_url')
+                        ->label('Álbum público de Google Fotos')
+                        ->url()
+                        ->helperText('Enlace compartido del álbum del que la portada obtiene automáticamente las 6 últimas fotos.')
+                        ->maxLength(2048)
+                        ->columnSpanFull(),
                 ])
                 ->columns(2),
             Section::make('Bloque de actualidad')->schema([
