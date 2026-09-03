@@ -63,7 +63,7 @@ class PublicContactController extends Controller
 
         // Utiliza exactamente el mismo mailer SMTP y remitente global que ya
         // usa Laravel para verificación de correo y recuperación de contraseña.
-        $to = config('mail.contact_to', 'planamayorsquadalpha@gmail.com');
+        $to = config('mail.contact_to', 'contactosquadalpha@gmail.com');
         $subject = $recruitmentRequested
             ? 'Solicitud de alistamiento ' . $submission->nickname
             : 'Consulta de contacto ' . $submission->nickname;
