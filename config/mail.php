@@ -124,6 +124,6 @@ return [
     | y remitente global de arriba. Este valor define únicamente el destinatario.
     |
     */
-    'contact_to' => env('MAIL_CONTACT_TO', 'planamayorsquadalpha@gmail.com'),
+    'contact_to' => env('MAIL_CONTACT_TO', 'contactosquadalpha@gmail.com'),
 
 ];
