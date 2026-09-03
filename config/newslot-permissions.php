@@ -243,6 +243,21 @@ return [
                     'label' => 'Páginas',
                 ],
 
+                'homepage-settings' => [
+                    'label' => 'Configuración de portada',
+                ],
+                'homepage-news' => [
+                    'label' => 'Noticias de portada',
+                ],
+                'contact-submissions' => [
+                    'label' => 'Contacto y alistamiento',
+                    'actions' => [
+                        'view' => 'Ver',
+                        'update' => 'Marcar / gestionar',
+                        'delete' => 'Eliminar',
+                    ],
+                ],
+
                 /*
                  * El registro de actividad debería ser de solo lectura.
                  * Añade "delete" si realmente quieres permitir eliminar logs.

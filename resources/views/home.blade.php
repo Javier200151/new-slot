@@ -113,213 +113,369 @@
             </div>
         </section>
 
-        {{-- QUIÉNES SOMOS --}}
-        <section id="comunidad" class="about-section">
+        {{-- ACTUALIDAD / NEWSLETTER --}}
+        <section id="actualidad" class="home-news-section">
             <div class="container">
-
-                <header class="section-header">
-                    <span class="section-index">01</span>
-
+                <header class="home-section-heading">
                     <div>
-                        <span class="section-label">Quiénes somos</span>
-
-                        <h2>
-                            Mucho más que entrar a jugar.
-                        </h2>
+                        <span class="section-index">01</span>
+                        <span class="section-label">Actualidad</span>
                     </div>
+
+                    <div class="home-section-heading__copy">
+                        <h2>{{ $settings->news_title }}</h2>
+                        @if($settings->news_intro)
+                            <p>{{ $settings->news_intro }}</p>
+                        @endif
+                    </div>
+
+                    @if($settings->instagram_url)
+                        <a
+                            class="social-link social-link--instagram"
+                            href="{{ $settings->instagram_url }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <span class="social-link__icon" aria-hidden="true">◎</span>
+                            Instagram Squad ALPHA
+                            <span aria-hidden="true">↗</span>
+                        </a>
+                    @endif
                 </header>
 
-                <div class="about-layout">
+                @if($news->isNotEmpty())
+                    <div class="home-news-grid">
+                        @foreach($news as $item)
+                            <article class="home-news-card {{ $loop->first ? 'home-news-card--featured' : '' }}">
+                                @if($item->image)
+                                    <div class="home-news-card__media">
+                                        <img src="{{ asset('storage/' . $item->image) }}" alt="{{ $item->title }}">
+                                    </div>
+                                @endif
 
-                    <div class="about-statement">
-                        <p>
-                            Somos una comunidad de simulación militar construida
-                            alrededor del trabajo en equipo.
-                        </p>
+                                <div class="home-news-card__body">
+                                    <div class="home-news-card__meta">
+                                        <span>{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
+                                        @if($item->published_at)
+                                            <time datetime="{{ $item->published_at->toDateString() }}">
+                                                {{ $item->published_at->format('d · m · Y') }}
+                                            </time>
+                                        @endif
+                                    </div>
+
+                                    <h3>{{ $item->title }}</h3>
+
+                                    @if($item->excerpt)
+                                        <p>{{ $item->excerpt }}</p>
+                                    @endif
+
+                                    @if($item->body)
+                                        <div class="home-news-card__content">
+                                            {!! $item->body !!}
+                                        </div>
+                                    @endif
+
+                                    @if($item->external_url)
+                                        <a href="{{ $item->external_url }}" target="_blank" rel="noopener noreferrer" class="home-text-link">
+                                            Ver publicación <span aria-hidden="true">↗</span>
+                                        </a>
+                                    @endif
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="home-empty-state">
+                        <span>ALPHA / NEWS</span>
+                        <p>La próxima novedad de la comunidad aparecerá aquí.</p>
+                    </div>
+                @endif
+
+                <div class="instagram-feed">
+                    <div class="instagram-feed__heading">
+                        <div>
+                            <span class="section-label">Instagram</span>
+                            <h3>Último en @squadalpha_es</h3>
+                        </div>
+
+                        <a
+                            class="home-text-link"
+                            href="{{ $settings->instagram_url ?: 'https://www.instagram.com/squadalpha_es/' }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Ver perfil <span aria-hidden="true">↗</span>
+                        </a>
                     </div>
 
-                    <div class="about-content">
-                        <p>
-                            Squad ALPHA reúne a personas que comparten una misma forma
-                            de entender la simulación: organización, responsabilidad,
-                            comunicación y respeto por el resto de miembros.
-                        </p>
+                    @if($instagramPosts->isNotEmpty())
+                        <div class="instagram-grid">
+                            @foreach($instagramPosts as $post)
+                                <a
+                                    class="instagram-card"
+                                    href="{{ $post['permalink'] }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label="Abrir publicación de Instagram de Squad ALPHA"
+                                >
+                                    <div class="instagram-card__media">
+                                        @if($post['image'])
+                                            <img
+                                                src="{{ $post['image'] }}"
+                                                alt="{{ $post['caption'] ? \Illuminate\Support\Str::limit($post['caption'], 90) : 'Publicación de @squadalpha_es' }}"
+                                                loading="lazy"
+                                            >
+                                        @else
+                                            <div class="instagram-card__placeholder">@squadalpha_es</div>
+                                        @endif
 
-                        <p>
-                            Cada integrante forma parte de una estructura común.
-                            El objetivo no es competir individualmente, sino aprender,
-                            mejorar y disfrutar de una experiencia coordinada junto al equipo.
-                        </p>
+                                        <div class="instagram-card__overlay">
+                                            <span>◎</span>
+                                            <strong>{{ $post['media_type'] === 'VIDEO' ? 'REEL / VÍDEO' : ($post['media_type'] === 'CAROUSEL_ALBUM' ? 'CARRUSEL' : 'PUBLICACIÓN') }}</strong>
+                                        </div>
+                                    </div>
 
-                        <div class="principles">
+                                    <div class="instagram-card__body">
+                                        @if($post['timestamp'])
+                                            <time datetime="{{ $post['timestamp']->toIso8601String() }}">
+                                                {{ $post['timestamp']->format('d/m/Y') }}
+                                            </time>
+                                        @endif
 
-                            <article class="principle">
-                                <span class="principle__number">01</span>
+                                        <p>
+                                            {{ $post['caption']
+                                                ? \Illuminate\Support\Str::limit($post['caption'], 135)
+                                                : 'Ver publicación de Squad ALPHA en Instagram.' }}
+                                        </p>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="instagram-feed__fallback">
+                            <span>◎</span>
+                            <p>Sigue <strong>@squadalpha_es</strong> para ver las últimas publicaciones de la comunidad.</p>
+                            <a
+                                class="home-text-link"
+                                href="{{ $settings->instagram_url ?: 'https://www.instagram.com/squadalpha_es/' }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Abrir Instagram ↗
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </section>
 
-                                <div>
-                                    <h3>Realismo</h3>
-                                    <p>
-                                        Buscamos una experiencia inmersiva, organizada
-                                        y coherente.
-                                    </p>
+        {{-- VODS DE STREAMERS --}}
+        <section id="vods" class="home-vods-section">
+            <div class="container">
+                <header class="home-section-heading home-section-heading--compact">
+                    <div>
+                        <span class="section-index">02</span>
+                        <span class="section-label">Comunidad en directo</span>
+                    </div>
+
+                    <div class="home-section-heading__copy">
+                        <h2>{{ $settings->streams_title }}</h2>
+                        @if($settings->streams_intro)
+                            <p>{{ $settings->streams_intro }}</p>
+                        @endif
+                    </div>
+
+                    <a class="home-text-link" href="{{ route('streams.index') }}">
+                        Ver directos <span aria-hidden="true">→</span>
+                    </a>
+                </header>
+
+                @if($vods->isNotEmpty())
+                    <div class="vod-grid">
+                        @foreach($vods as $vod)
+                            <article class="vod-card">
+                                <a href="{{ $vod['url'] }}" target="_blank" rel="noopener noreferrer" class="vod-card__media">
+                                    @if($vod['thumbnail'])
+                                        <img src="{{ $vod['thumbnail'] }}" alt="{{ $vod['title'] }}" loading="lazy">
+                                    @else
+                                        <div class="vod-card__placeholder">
+                                            <span>{{ strtoupper($vod['platform'] ?: 'VOD') }}</span>
+                                            <strong>PLAY</strong>
+                                        </div>
+                                    @endif
+                                    <span class="vod-card__play" aria-hidden="true">▶</span>
+                                </a>
+
+                                <div class="vod-card__body">
+                                    <div class="vod-card__meta">
+                                        <span>{{ strtoupper($vod['platform'] ?: 'STREAM') }}</span>
+                                        @if($vod['published_at'])
+                                            <time>{{ $vod['published_at']->format('d/m/Y') }}</time>
+                                        @endif
+                                    </div>
+                                    <h3>{{ $vod['title'] }}</h3>
+                                    <p>{{ $vod['streamer'] }}</p>
                                 </div>
                             </article>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="home-empty-state home-empty-state--vods">
+                        <span>STREAM / ARCHIVE</span>
+                        <p>Cuando nuestros streamers guarden una retransmisión, sus últimos VODs aparecerán aquí.</p>
+                        <a class="home-text-link" href="{{ route('streams.index') }}">Ir a Directos →</a>
+                    </div>
+                @endif
+            </div>
+        </section>
 
-                            <article class="principle">
-                                <span class="principle__number">02</span>
+        {{-- CONTACTO / ALISTAMIENTO --}}
+        <section id="alistamiento" class="home-contact-section">
+            <div class="container home-contact-layout">
+                <div class="home-contact-intro">
+                    <span class="section-index">03</span>
+                    <span class="section-label">Contacto</span>
 
-                                <div>
-                                    <h3>Disciplina</h3>
-                                    <p>
-                                        La preparación y el respeto por la estructura
-                                        hacen posible el trabajo conjunto.
-                                    </p>
-                                </div>
-                            </article>
+                    <h2>
+                        {{ $settings->recruitment_open
+                            ? '¿Quieres formar parte de Squad ALPHA?'
+                            : '¿Quieres hablar con Squad ALPHA?' }}
+                    </h2>
 
-                            <article class="principle">
-                                <span class="principle__number">03</span>
+                    <p>
+                        @if($settings->recruitment_open)
+                            El alistamiento está abierto. Puedes enviarnos una consulta o marcar tu mensaje como solicitud de alistamiento y completar los requisitos.
+                        @else
+                            El alistamiento está cerrado actualmente, pero puedes enviarnos cualquier consulta desde este formulario.
+                        @endif
+                    </p>
 
-                                <div>
-                                    <h3>Compañerismo</h3>
-                                    <p>
-                                        Ningún miembro está por encima del equipo
-                                        ni de la comunidad.
-                                    </p>
-                                </div>
-                            </article>
-
+                    <div class="recruitment-state {{ $settings->recruitment_open ? 'is-open' : 'is-closed' }}">
+                        <span class="recruitment-state__dot"></span>
+                        <div>
+                            <strong>Alistamiento {{ $settings->recruitment_open ? 'abierto' : 'cerrado' }}</strong>
+                            <small>{{ $settings->recruitment_open ? 'Aceptando nuevas solicitudes' : 'Solo consultas generales' }}</small>
                         </div>
                     </div>
-
-                </div>
-            </div>
-        </section>
-
-        {{-- NORMATIVA --}}
-        <section id="normativa" class="rules-section">
-            <div class="container">
-
-                <div class="rules-panel">
-
-                    <div class="rules-introduction">
-                        <span class="section-index">02</span>
-                        <span class="section-label">Normativa</span>
-
-                        <h2>
-                            Una comunidad sólida necesita unas reglas claras.
-                        </h2>
-
-                        <p>
-                            Nuestra normativa establece las bases de convivencia,
-                            participación y comportamiento que todos los miembros
-                            deben conocer y respetar.
-                        </p>
-
-                        <p class="rules-note">
-                            El registro en la plataforma implica el compromiso de
-                            conocer y aceptar estas normas.
-                        </p>
-                    </div>
-
-                    <div class="rules-list">
-
-                        <article class="rule">
-                            <span>01</span>
-
-                            <div>
-                                <h3>Respeto y convivencia</h3>
-
-                                <p>
-                                    Se espera un trato correcto y respetuoso hacia
-                                    cualquier miembro de la comunidad.
-                                </p>
-                            </div>
-                        </article>
-
-                        <article class="rule">
-                            <span>02</span>
-
-                            <div>
-                                <h3>Compromiso</h3>
-
-                                <p>
-                                    La participación requiere responsabilidad,
-                                    puntualidad y comunicación con el grupo.
-                                </p>
-                            </div>
-                        </article>
-
-                        <article class="rule">
-                            <span>03</span>
-
-                            <div>
-                                <h3>Trabajo en equipo</h3>
-
-                                <p>
-                                    Las decisiones individuales nunca deben perjudicar
-                                    al funcionamiento del conjunto.
-                                </p>
-                            </div>
-                        </article>
-
-                        <article class="rule">
-                            <span>04</span>
-
-                            <div>
-                                <h3>Juego limpio</h3>
-
-                                <p>
-                                    No se toleran comportamientos que dañen la experiencia,
-                                    la confianza o el ambiente de la comunidad.
-                                </p>
-                            </div>
-                        </article>
-
-                    </div>
-
-                </div>
-            </div>
-        </section>
-
-        {{-- ALISTAMIENTO --}}
-        <section id="alistamiento" class="join-section">
-            <div class="container join-content">
-
-                <div class="join-emblem" aria-hidden="true">
-                    SA
                 </div>
 
-                <span class="section-label">
-                    Da el primer paso
-                </span>
+                <div class="home-contact-panel">
+                    @if(session('contact_status'))
+                        <div class="contact-alert contact-alert--success">{{ session('contact_status') }}</div>
+                    @endif
 
-                <h2>
-                    Tu lugar en Squad ALPHA comienza aquí.
-                </h2>
+                    @if($errors->any() && old('contact_form'))
+                        <div class="contact-alert contact-alert--error">
+                            <strong>Revisa el formulario.</strong>
+                            <ul>
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
 
-                <p>
-                    Crea tu cuenta y comienza el proceso para formar parte
-                    de nuestra comunidad.
-                </p>
+                    <form action="{{ route('public.contact.store') }}" method="POST" class="recruitment-form" data-recruitment-form>
+                        @csrf
+                        <input type="hidden" name="contact_form" value="1">
+                        <div class="contact-honeypot" aria-hidden="true">
+                            <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+                        </div>
 
-                @guest
-                    <a
-                        href="{{ route('public.register') }}"
-                        class="btn btn-primary btn-hero"
-                        data-open-modal="register-modal"
-                    >
-                        Alístate
-                        <span aria-hidden="true">→</span>
-                    </a>
-                @else
-                    <div class="member-status">
-                        <span class="member-status__indicator"></span>
+                        <div class="form-grid">
+                            <label class="form-field">
+                                <span>Email</span>
+                                <input type="email" name="email" value="{{ old('email', auth()->user()?->email) }}" required autocomplete="email">
+                            </label>
 
-                        Ya formas parte de la plataforma
-                    </div>
-                @endguest
+                            <label class="form-field form-field--full">
+                                <span>Mensaje</span>
+                                <textarea name="message" rows="6" required>{{ old('message') }}</textarea>
+                            </label>
+                        </div>
 
+                        @if($settings->recruitment_open)
+                            <div class="recruitment-toggle-block">
+                                <label class="form-check form-check--primary">
+                                    <input type="checkbox" name="is_recruitment" value="1" @checked(old('is_recruitment')) data-recruitment-toggle>
+                                    <span>
+                                        <strong>Marcar en caso de ser una solicitud de alistamiento</strong>
+                                        <small>Al marcarlo se activan los requisitos de ingreso.</small>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="recruitment-fields" data-recruitment-fields @if(!old('is_recruitment')) hidden @endif>
+                                <div class="requirement-block">
+                                    <h3>Normativa</h3>
+                                    <label class="form-check">
+                                        <input type="checkbox" name="accepted_rules" value="1" @checked(old('accepted_rules')) data-recruitment-required>
+                                        <span>Confirmo haber leído y me comprometo a cumplir la <a href="{{ url('/normativa') }}" target="_blank">Normativa del Squad ALPHA</a>.</span>
+                                    </label>
+                                </div>
+
+                                <div class="requirement-block">
+                                    <h3>Mayoría de edad</h3>
+                                    <label class="form-check">
+                                        <input type="checkbox" name="is_adult" value="1" @checked(old('is_adult')) data-recruitment-required>
+                                        <span>Certifico que soy mayor de edad.</span>
+                                    </label>
+                                </div>
+
+                                <div class="requirement-block">
+                                    <h3>Aportaciones económicas</h3>
+                                    <label class="form-check">
+                                        <input type="checkbox" name="accepts_contributions" value="1" @checked(old('accepts_contributions')) data-recruitment-required>
+                                        <span>Acepto que tendré que realizar aportaciones económicas.</span>
+                                    </label>
+                                </div>
+
+                                <div class="requirement-block">
+                                    <h3>DLCs y ARMA 3 Original</h3>
+                                    <label class="form-check">
+                                        <input type="checkbox" name="has_required_game_content" value="1" @checked(old('has_required_game_content')) data-recruitment-required>
+                                        <span>Confirmo tener Arma 3 original, así como sus DLC "APEX" y sus CDLCs "S.O.G. Prairie Fire" y "Spearhead 1944", o estar dispuesto/a a comprarlos en caso de ser reclutado/a por Squad ALPHA.</span>
+                                    </label>
+                                </div>
+
+                                <div class="requirement-block">
+                                    <h3>Disponibilidad martes</h3>
+                                    <label class="form-radio"><input type="radio" name="tuesday_available" value="1" @checked(old('tuesday_available') === '1') data-recruitment-required> <span>Confirmo tener disponibilidad para participar los martes (de 20:00 a 22:30h).</span></label>
+                                    <label class="form-radio"><input type="radio" name="tuesday_available" value="0" @checked(old('tuesday_available') === '0')> <span>No tengo disponibilidad para participar los martes (de 20:00 a 22:30h).</span></label>
+                                </div>
+
+                                <div class="requirement-block">
+                                    <h3>Disponibilidad viernes</h3>
+                                    <label class="form-radio"><input type="radio" name="friday_available" value="1" @checked(old('friday_available') === '1') data-recruitment-required> <span>Confirmo tener disponibilidad para participar los viernes (a partir de las 22:30h).</span></label>
+                                    <label class="form-radio"><input type="radio" name="friday_available" value="0" @checked(old('friday_available') === '0')> <span>No tengo disponibilidad para participar los viernes (a partir de las 22:30h).</span></label>
+                                </div>
+
+                                <div class="requirement-block">
+                                    <h3>Experiencia previa</h3>
+                                    <label class="form-check"><input type="checkbox" name="has_previous_experience" value="1" @checked(old('has_previous_experience'))> <span>Tengo experiencia previa en simulación en Arma.</span></label>
+                                </div>
+                            </div>
+                        @endif
+
+                        <div class="privacy-block">
+                            <h3>Política de privacidad</h3>
+                            <label class="form-check">
+                                <input type="checkbox" name="accepted_privacy" value="1" required @checked(old('accepted_privacy'))>
+                                <span>He leído y acepto la <a href="{{ url('/politica-de-privacidad') }}" target="_blank">política de privacidad</a>.</span>
+                            </label>
+
+                            <h3>Consentimiento de contacto</h3>
+                            <label class="form-check">
+                                <input type="checkbox" name="accepted_contact" value="1" required @checked(old('accepted_contact'))>
+                                <span>Acepto que mis datos podrán ser usados para informarme o contactarme, siendo la base legal mi consentimiento.</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary contact-submit">
+                            Enviar <span aria-hidden="true">→</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </section>
 

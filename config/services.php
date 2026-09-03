@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+
+
+    'twitch' => [
+        'client_id' => env('TWITCH_CLIENT_ID'),
+        'client_secret' => env('TWITCH_CLIENT_SECRET'),
+    ],
+
+    'instagram' => [
+        'access_token' => env('INSTAGRAM_ACCESS_TOKEN'),
+        'username' => env('INSTAGRAM_USERNAME', 'squadalpha_es'),
+    ],
 ];
