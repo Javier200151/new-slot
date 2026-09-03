@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\MetopaController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PublicContactController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\CommunityDiaryController;
 use App\Http\Controllers\CommunityForumController;
@@ -30,9 +32,11 @@ use App\Http\Controllers\StreamerBroadcastController;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', function () {
-    return view('home');
-})->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+Route::post('/contacto', [PublicContactController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('public.contact.store');
 
 /*
 |--------------------------------------------------------------------------

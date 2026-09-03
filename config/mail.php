@@ -115,4 +115,15 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Contacto público de Squad ALPHA
+    |--------------------------------------------------------------------------
+    |
+    | Los formularios de contacto y alistamiento usan el mismo transporte SMTP
+    | y remitente global de arriba. Este valor define únicamente el destinatario.
+    |
+    */
+    'contact_to' => env('MAIL_CONTACT_TO', 'planamayorsquadalpha@gmail.com'),
+
 ];

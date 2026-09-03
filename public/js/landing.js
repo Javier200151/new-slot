@@ -873,3 +873,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.setTimeout(() => celebration.remove(), 7200);
 });
+
+/* Portada: activa/desactiva los campos de alistamiento sin recargar. */
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.querySelector('[data-recruitment-form]');
+    if (!form) return;
+
+    const toggle = form.querySelector('[data-recruitment-toggle]');
+    const fields = form.querySelector('[data-recruitment-fields]');
+    if (!toggle || !fields) return;
+
+    const requiredInputs = fields.querySelectorAll('[data-recruitment-required]');
+    const scheduleGroups = ['tuesday_available', 'friday_available'];
+
+    const syncRecruitmentFields = () => {
+        const active = toggle.checked;
+        fields.hidden = !active;
+        requiredInputs.forEach((input) => {
+            input.required = active;
+        });
+
+        scheduleGroups.forEach((name) => {
+            const radios = fields.querySelectorAll(`input[name="${name}"]`);
+            radios.forEach((radio, index) => {
+                radio.required = active && index === 0;
+            });
+        });
+    };
+
+    toggle.addEventListener('change', syncRecruitmentFields);
+    syncRecruitmentFields();
+});

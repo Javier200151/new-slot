@@ -30,15 +30,17 @@ class StreamerForm
                     ->label('Habilitado como streamer')
                     ->helperText(
                         'Permite a este usuario aparecer en '
-                        . 'la sección pública de directos.'
+                        . 'la sección pública de directos y en los últimos VODs de portada.'
                     )
                     ->default(false)
                     ->required(),
 
                 TextInput::make('twitch_channel')
                     ->label('Canal de Twitch')
-                    ->placeholder(
-                        'https://www.twitch.tv/usuario'
+                    ->placeholder('https://www.twitch.tv/usuario')
+                    ->helperText(
+                        'Con este enlace es suficiente por streamer. NewSlot obtiene el usuario automáticamente. '
+                        . 'Para consultar sus VODs, Twitch exige las credenciales globales TWITCH_CLIENT_ID y TWITCH_CLIENT_SECRET.'
                     )
                     ->url()
                     ->maxLength(255)
@@ -46,8 +48,10 @@ class StreamerForm
 
                 TextInput::make('youtube_channel')
                     ->label('Canal de YouTube')
-                    ->placeholder(
-                        'https://www.youtube.com/@usuario'
+                    ->placeholder('https://www.youtube.com/@usuario')
+                    ->helperText(
+                        'Con el enlace del canal es suficiente. NewSlot resuelve automáticamente el Channel ID '
+                        . 'y consulta los últimos vídeos mediante el feed público de YouTube, sin API Key.'
                     )
                     ->url()
                     ->maxLength(255)
@@ -55,9 +59,7 @@ class StreamerForm
 
                 TextInput::make('website_url')
                     ->label('Página web')
-                    ->placeholder(
-                        'https://ejemplo.com'
-                    )
+                    ->placeholder('https://ejemplo.com')
                     ->url()
                     ->maxLength(255)
                     ->nullable(),
