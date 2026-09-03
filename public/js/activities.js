@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const catalog =
         document.querySelector(
-            '[data-operations-catalog]'
+            '[data-activities-catalog]'
         );
 
     if (!catalog) {
@@ -24,12 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const viewButtons =
         document.querySelectorAll(
-            '[data-operation-view]'
+            '[data-activity-view]'
         );
 
 
     const viewStorageKey =
-        'newslot.operations.view';
+        'newslot.activities.view';
 
 
     const applyView = (view) => {
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const buttonView =
                     button.dataset
-                        .operationView;
+                        .activityView;
 
 
                 const isActive =
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     applyView(
                         button.dataset
-                            .operationView
+                            .activityView
                     );
 
                 }
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     |
     | Las campañas ya NO utilizan <details>.
     |
-    | La ficha de campaña y todos sus operativos
+    | La ficha de campaña y todos sus actividades
     | son hermanos directos dentro del grid.
     |
     | Al abrir:
@@ -182,12 +182,12 @@ document.addEventListener('DOMContentLoaded', () => {
     |     campaña
     |     hijo
     |     hijo
-    |     operativo normal
+    |     actividad normal
     |
     | Al cerrar:
     |
     |     campaña
-    |     operativo normal
+    |     actividad normal
     |
     | Los elementos con [hidden] desaparecen
     | completamente del layout, por lo que
@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         /*
          * Mostrar / ocultar todos los
-         * operativos de la campaña.
+         * actividades de la campaña.
          */
 
         children.forEach(
@@ -375,21 +375,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 document.addEventListener('DOMContentLoaded', () => {
-    const filters = document.querySelector('[data-operations-filters]');
+    const filters = document.querySelector('[data-activities-filters]');
 
     if (!filters) {
         return;
     }
 
-    const toggle = filters.querySelector('[data-operations-filters-toggle]');
-    const advanced = filters.querySelector('[data-operations-filters-advanced]');
-    const toggleLabel = filters.querySelector('[data-operations-filters-toggle-label]');
+    const toggle = filters.querySelector('[data-activities-filters-toggle]');
+    const advanced = filters.querySelector('[data-activities-filters-advanced]');
+    const toggleLabel = filters.querySelector('[data-activities-filters-toggle-label]');
 
     if (!toggle || !advanced) {
         return;
     }
 
-    const storageKey = 'operationsFiltersExpanded';
+    const storageKey = 'activitiesFiltersExpanded';
     const hasAdvancedFilters = filters.dataset.hasAdvancedFilters === '1';
 
     let expanded =

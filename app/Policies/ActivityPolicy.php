@@ -29,7 +29,7 @@ class ActivityPolicy
             $user,
             'activities',
             'view',
-            $activity->operation_type_id,
+            $activity->activity_type_id,
         );
     }
 
@@ -48,7 +48,7 @@ class ActivityPolicy
             $user,
             'activities',
             'update',
-            $activity->operation_type_id,
+            $activity->activity_type_id,
         );
     }
 
@@ -58,7 +58,7 @@ class ActivityPolicy
             $user,
             'activities',
             'delete',
-            $activity->operation_type_id,
+            $activity->activity_type_id,
         );
     }
 

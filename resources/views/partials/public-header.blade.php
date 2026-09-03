@@ -4,7 +4,7 @@
         ? \App\Support\CommunityArea::label($navUser)
         : null;
 
-    $communityActive = request()->routeIs('operations.*')
+    $communityActive = request()->routeIs('activities.*')
         || request()->routeIs('metopas.*')
         || request()->routeIs('community.organization')
         || request()->routeIs('campaigns.*');

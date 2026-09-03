@@ -65,7 +65,7 @@ class EditActivity extends EditRecord
         $data = ActivityTypeConfiguration::normalizeActivityData($data);
 
         $targetOperationTypeId =
-            $data['operation_type_id'] ?? null;
+            $data['activity_type_id'] ?? null;
 
         if (! ActivityTypeAccess::can(
             auth()->user(),
@@ -74,21 +74,21 @@ class EditActivity extends EditRecord
             $targetOperationTypeId,
         )) {
             throw ValidationException::withMessages([
-                'data.operation_type_id' =>
+                'data.activity_type_id' =>
                     'No tienes permiso para modificar actividades de este tipo.',
             ]);
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Estado al que queremos pasar el operativo
+        | Estado al que queremos pasar el actividad
         |--------------------------------------------------------------------------
         */
 
         $targetStatus =
             ActivityStatus::query()
                 ->whereKey(
-                    $data['operation_status_id']
+                    $data['activity_status_id']
                     ?? null
                 )
                 ->value('name');
@@ -110,10 +110,10 @@ class EditActivity extends EditRecord
         | Comprobar eventos publicados
         |--------------------------------------------------------------------------
         |
-        | Un operativo BORRADOR puede tener eventos BORRADOR preparados.
+        | Un actividad BORRADOR puede tener eventos BORRADOR preparados.
         |
         | Pero si ya existe un evento ACTIVO, FINALIZADO o cualquier otro
-        | estado público, el operativo no puede volver a BORRADOR.
+        | estado público, el actividad no puede volver a BORRADOR.
         |
         */
 
@@ -133,7 +133,7 @@ class EditActivity extends EditRecord
 
         if ($hasPublishedEvents) {
             throw ValidationException::withMessages([
-                'data.operation_status_id' =>
+                'data.activity_status_id' =>
                     'No puedes pasar esta actividad a BORRADOR '
                     . 'porque tiene uno o más eventos publicados. '
                     . 'Los eventos deben permanecer en BORRADOR '
@@ -165,9 +165,9 @@ class EditActivity extends EditRecord
 
     protected function afterSave(): void
     {
-        $this->record->loadMissing('operationType');
+        $this->record->loadMissing('activityType');
 
-        if (! ($this->record->operationType?->usesEnemyFactions() ?? false)) {
+        if (! ($this->record->activityType?->usesEnemyFactions() ?? false)) {
             $this->record->enemyFactions()->detach();
         }
 
@@ -187,7 +187,7 @@ class EditActivity extends EditRecord
                 ->change(
                     subject: $this->record,
 
-                    event: 'operation_days_updated',
+                    event: 'activity_days_updated',
 
                     old: [
                         'days' =>
@@ -203,7 +203,7 @@ class EditActivity extends EditRecord
                         'relation' => 'days',
 
                         'table' =>
-                            'operation_operation_day',
+                            'activity_day_assignments',
                     ],
                 );
         }
@@ -226,7 +226,7 @@ class EditActivity extends EditRecord
                     subject: $this->record,
 
                     event:
-                        'operation_enemy_factions_updated',
+                        'activity_enemy_factions_updated',
 
                     old: [
                         'enemy_factions' =>
@@ -244,7 +244,7 @@ class EditActivity extends EditRecord
                             'enemyFactions',
 
                         'table' =>
-                            'enemy_faction_operation',
+                            'activity_enemy_faction',
                     ],
                 );
         }
@@ -1762,7 +1762,7 @@ class EditActivity extends EditRecord
                         auth()->user(),
                         'activities',
                         'create',
-                        $this->record->operation_type_id,
+                        $this->record->activity_type_id,
                     )
                 )
                 ->extraAttributes([
@@ -1779,7 +1779,7 @@ class EditActivity extends EditRecord
                             auth()->user(),
                             'activities',
                             'create',
-                            $this->record->operation_type_id,
+                            $this->record->activity_type_id,
                         ),
                         403
                     );
@@ -1815,9 +1815,9 @@ class EditActivity extends EditRecord
                     | El modelo Activity ya registra su creación mediante Auditable.
                     | Aquí registramos específicamente:
                     |
-                    | - de qué operativo procede;
+                    | - de qué actividad procede;
                     | - las facciones enemigas copiadas;
-                    | - la modificación de enemy_faction_operation.
+                    | - la modificación de activity_enemy_faction.
                     |
                     */
 
@@ -1825,15 +1825,15 @@ class EditActivity extends EditRecord
                         ->change(
                             subject: $duplicate,
 
-                            event: 'operation_duplicated',
+                            event: 'activity_duplicated',
 
                             old: [],
 
                             new: [
-                                'source_operation_id' =>
+                                'source_activity_id' =>
                                     $this->record->getKey(),
 
-                                'source_operation_name' =>
+                                'source_activity_name' =>
                                     $this->record->name,
 
                                 'enemy_factions' =>
@@ -1851,14 +1851,14 @@ class EditActivity extends EditRecord
                             properties: [
                                 'action' => 'duplicate',
 
-                                'source_operation_id' =>
+                                'source_activity_id' =>
                                     $this->record->getKey(),
 
                                 'relation' =>
                                     'enemyFactions',
 
                                 'table' =>
-                                    'enemy_faction_operation',
+                                    'activity_enemy_faction',
                             ],
                         );
 

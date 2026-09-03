@@ -83,16 +83,11 @@ class PermissionCatalog
     {
         return in_array(
             self::resources()[$resource]['scope'] ?? null,
-            ['activity_type', 'operation_type'],
+            ['activity_type'],
             true,
         );
     }
 
-    /** Alias histórico durante la transición. */
-    public static function isOperationTypeScoped(string $resource): bool
-    {
-        return self::isActivityTypeScoped($resource);
-    }
 
     public static function permissionNames(
         bool $includeFilamentAccess = true
@@ -138,40 +133,19 @@ class PermissionCatalog
             . $activityTypeId;
     }
 
-    /** Alias histórico durante la transición. */
-    public static function operationTypeFieldName(
-        string $resource,
-        int $operationTypeId,
-    ): string {
-        return self::activityTypeFieldName($resource, $operationTypeId);
-    }
 
     public static function activityTypePermissionName(
         string $resource,
         int $activityTypeId,
         string $action,
     ): string {
-        // El formato del permiso se conserva durante esta fase para mantener
-        // exactamente los mismos IDs y asignaciones de Spatie.
         return "{$resource}.type.{$activityTypeId}.{$action}";
     }
 
-    /** Alias histórico durante la transición. */
-    public static function operationTypePermissionName(
-        string $resource,
-        int $operationTypeId,
-        string $action,
-    ): string {
-        return self::activityTypePermissionName(
-            $resource,
-            $operationTypeId,
-            $action,
-        );
-    }
 
     public static function activityTypeIds(): array
     {
-        if (! Schema::hasTable('operations_type')) {
+        if (! Schema::hasTable('activity_types')) {
             return [];
         }
 
@@ -182,11 +156,6 @@ class PermissionCatalog
             ->all();
     }
 
-    /** Alias histórico durante la transición. */
-    public static function operationTypeIds(): array
-    {
-        return self::activityTypeIds();
-    }
 
     private static function normalizeActionOptions(
         ?array $configuredActions

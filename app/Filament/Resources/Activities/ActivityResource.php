@@ -76,7 +76,7 @@ class ActivityResource extends Resource
         }
 
         return $query->whereIn(
-            'operation_type_id',
+            'activity_type_id',
             $allowedTypeIds,
         );
     }

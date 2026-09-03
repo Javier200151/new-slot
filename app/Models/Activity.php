@@ -11,19 +11,18 @@ use App\Models\Concerns\Auditable;
 /**
  * Modelo canónico de las actividades de NewSlot.
  *
- * Durante la transición de nomenclatura sigue apuntando físicamente a la
- * tabla histórica `operations`. El cambio de tabla se realizará en una
- * migración posterior, una vez que todo el código use Activity.
+ * Desde la fase 1.5A apunta a la tabla física canónica `activities`.
+ * Usa la tabla y las relaciones físicas canónicas del dominio Activity.
  */
 class Activity extends Model
 {
     use SoftDeletes, Auditable;
 
-    protected $table = 'operations';
+    protected $table = 'activities';
 
     protected $fillable = [
-        'operation_type_id',
-        'operation_status_id',
+        'activity_type_id',
+        'activity_status_id',
         'campaign_id',
         'name',
         'image',
@@ -61,41 +60,31 @@ class Activity extends Model
 
     protected static function booted(): void
     {
-        static::creating(function ($operation) {
+        static::creating(function ($activity) {
             if (Auth::check()) {
-                $operation->created_by = Auth::id();
-                $operation->updated_by = Auth::id();
+                $activity->created_by = Auth::id();
+                $activity->updated_by = Auth::id();
             }
         });
 
-        static::updating(function ($operation) {
+        static::updating(function ($activity) {
             if (Auth::check()) {
-                $operation->updated_by = Auth::id();
+                $activity->updated_by = Auth::id();
             }
         });
     }
 
     public function activityType()
     {
-        return $this->belongsTo(ActivityType::class, 'operation_type_id');
+        return $this->belongsTo(ActivityType::class, 'activity_type_id');
     }
 
-    /** Alias histórico durante la transición. */
-    public function operationType()
-    {
-        return $this->activityType();
-    }
 
     public function activityStatus()
     {
-        return $this->belongsTo(ActivityStatus::class, 'operation_status_id');
+        return $this->belongsTo(ActivityStatus::class, 'activity_status_id');
     }
 
-    /** Alias histórico durante la transición. */
-    public function operationStatus()
-    {
-        return $this->activityStatus();
-    }
 
     public function campaign()
     {
@@ -106,9 +95,9 @@ class Activity extends Model
     {
         return $this->belongsToMany(
             ActivityDay::class,
-            'operation_operation_day',
-            'operation_id',
-            'operation_day_id'
+            'activity_day_assignments',
+            'activity_id',
+            'activity_day_id'
         );
     }
 
@@ -131,8 +120,8 @@ class Activity extends Model
     {
         return $this->belongsToMany(
             Faction::class,
-            'enemy_faction_operation',
-            'operation_id',
+            'activity_enemy_faction',
+            'activity_id',
             'faction_id'
         );
     }
@@ -175,9 +164,7 @@ class Activity extends Model
 
     public function events()
     {
-        // Durante la transición la FK física sigue siendo operation_id.
-        // Declararla explícitamente evita que Activity intente usar activity_id.
-        return $this->hasMany(Event::class, 'operation_id');
+        return $this->hasMany(Event::class, 'activity_id');
     }
 
     public function getOrbatSummaryHtml(): HtmlString
@@ -185,7 +172,7 @@ class Activity extends Model
         $groups = $this->orbat['groups'] ?? [];
 
         if (blank($groups)) {
-            return new HtmlString('<div class="text-sm text-gray-500 dark:text-gray-400">Esta operación todavía no tiene ORBAT.</div>');
+            return new HtmlString('<div class="text-sm text-gray-500 dark:text-gray-400">Esta actividad todavía no tiene ORBAT.</div>');
         }
 
         $factionNames = Faction::query()

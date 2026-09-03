@@ -79,11 +79,11 @@ class EventResource extends Resource
         }
 
         return $query->whereIn(
-            'operation_id',
+            'activity_id',
             Activity::query()
                 ->withTrashed()
                 ->whereIn(
-                    'operation_type_id',
+                    'activity_type_id',
                     $allowedTypeIds,
                 )
                 ->select('id')

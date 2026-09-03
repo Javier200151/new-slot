@@ -29,20 +29,10 @@ class Faction extends Model
     {
         return $this->belongsToMany(
             Activity::class,
-            'enemy_faction_operation',
+            'activity_enemy_faction',
             'faction_id',
-            'operation_id'
+            'activity_id'
         );
     }
 
-    /** Alias histórico durante la transición Operation -> Activity. */
-    public function enemyOperations()
-    {
-        return $this->belongsToMany(
-            Activity::class,
-            'enemy_faction_operation',
-            'faction_id',
-            'operation_id'
-        );
-    }
 }

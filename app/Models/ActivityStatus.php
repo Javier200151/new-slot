@@ -8,13 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Estado canónico de actividad.
  *
- * Durante la transición sigue usando la tabla histórica `operation_status`.
+ * Usa la tabla física canónica `activity_statuses`.
  */
 class ActivityStatus extends Model
 {
     use Auditable;
 
-    protected $table = 'operation_status';
+    protected $table = 'activity_statuses';
 
     public $timestamps = false;
 
@@ -26,12 +26,7 @@ class ActivityStatus extends Model
 
     public function activities()
     {
-        return $this->hasMany(Activity::class, 'operation_status_id');
+        return $this->hasMany(Activity::class, 'activity_status_id');
     }
 
-    /** Alias histórico durante la transición. */
-    public function operations()
-    {
-        return $this->activities();
-    }
 }

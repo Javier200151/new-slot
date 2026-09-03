@@ -29,9 +29,4 @@ class GameMap extends Model
         return $this->hasMany(Activity::class, 'map_id');
     }
 
-    /** Alias histórico durante la transición Operation -> Activity. */
-    public function operations()
-    {
-        return $this->hasMany(Activity::class, 'map_id');
-    }
 }

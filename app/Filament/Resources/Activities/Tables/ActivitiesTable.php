@@ -26,18 +26,18 @@ class ActivitiesTable
     {
         return $table
             ->columns([
-                TextColumn::make('operationType.name')
+                TextColumn::make('activityType.name')
                     ->label('Tipo')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('operationStatus.name')
+                TextColumn::make('activityStatus.name')
                     ->label('Estado')
                     ->badge()
                     ->color(
                         function ($record): array|string {
                             $configuredColor =
-                                $record->operationStatus?->color;
+                                $record->activityStatus?->color;
 
                             if (filled($configuredColor)) {
                                 return Color::hex(
@@ -46,7 +46,7 @@ class ActivitiesTable
                             }
 
                             return match (
-                                $record->operationStatus?->name
+                                $record->activityStatus?->name
                             ) {
                                 'ACTIVO' => 'success',
                                 'ARCHIVADO' => 'warning',
@@ -200,7 +200,7 @@ class ActivitiesTable
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('operation_type_id')
+                SelectFilter::make('activity_type_id')
                     ->label('Tipo')
                     ->multiple()
                     ->options(
@@ -218,10 +218,10 @@ class ActivitiesTable
                             ->all()
                     ),
 
-                SelectFilter::make('operation_status_id')
+                SelectFilter::make('activity_status_id')
                     ->label('Estado')
                     ->multiple()
-                    ->relationship('operationStatus', 'name'),
+                    ->relationship('activityStatus', 'name'),
 
                 SelectFilter::make('platform_id')
                     ->label('Plataforma')
@@ -270,7 +270,7 @@ class ActivitiesTable
                                     'days',
                                     fn (Builder $daysQuery) =>
                                         $daysQuery->whereIn(
-                                            'operation_day.id',
+                                            'activity_days.id',
                                             $dayIds
                                         )
                                 )

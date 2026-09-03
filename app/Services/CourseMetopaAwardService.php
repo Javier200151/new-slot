@@ -18,7 +18,7 @@ class CourseMetopaAwardService
     {
         $event->loadMissing([
             'eventStatus',
-            'activity.operationType',
+            'activity.activityType',
             'activity.metopa',
             'slots.user',
         ]);
@@ -100,12 +100,12 @@ class CourseMetopaAwardService
     {
         $event->loadMissing([
             'eventStatus',
-            'activity.operationType',
+            'activity.activityType',
             'activity.metopa',
         ]);
 
         return $event->eventStatus?->name === 'FINALIZADO'
-            && ($event->activity?->operationType?->awardsMetopa() ?? false)
+            && ($event->activity?->activityType?->awardsMetopa() ?? false)
             && $event->activity?->metopa_id !== null;
     }
 

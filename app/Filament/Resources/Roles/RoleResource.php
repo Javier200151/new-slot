@@ -76,7 +76,7 @@ class RoleResource extends Resource
     public static function permissionTabs(): Tabs
     {
         $tabs = [];
-        $operationTypes = ActivityType::query()
+        $activityTypes = ActivityType::query()
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -87,14 +87,14 @@ class RoleResource extends Resource
                 if (PermissionCatalog::isActivityTypeScoped($resource)) {
                     $typeCheckboxes = [];
 
-                    foreach ($operationTypes as $operationType) {
+                    foreach ($activityTypes as $activityType) {
                         $typeCheckboxes[] = CheckboxList::make(
                             PermissionCatalog::activityTypeFieldName(
                                 $resource,
-                                (int) $operationType->id,
+                                (int) $activityType->id,
                             )
                         )
-                            ->label($operationType->name)
+                            ->label($activityType->name)
                             ->options(
                                 PermissionCatalog::actionOptionsFor($resource)
                             )
@@ -229,14 +229,14 @@ class RoleResource extends Resource
     public static function permissionFieldNames(): array
     {
         $fields = [];
-        $operationTypeIds = PermissionCatalog::activityTypeIds();
+        $activityTypeIds = PermissionCatalog::activityTypeIds();
 
         foreach (PermissionCatalog::resources() as $resource => $definition) {
             if (PermissionCatalog::isActivityTypeScoped($resource)) {
-                foreach ($operationTypeIds as $operationTypeId) {
+                foreach ($activityTypeIds as $activityTypeId) {
                     $fields[] = PermissionCatalog::activityTypeFieldName(
                         $resource,
-                        $operationTypeId,
+                        $activityTypeId,
                     );
                 }
 
@@ -263,11 +263,11 @@ class RoleResource extends Resource
         $expected = [];
 
         if (PermissionCatalog::isActivityTypeScoped($resource)) {
-            foreach (PermissionCatalog::activityTypeIds() as $operationTypeId) {
+            foreach (PermissionCatalog::activityTypeIds() as $activityTypeId) {
                 foreach ($actions as $action) {
                     $expected[] = PermissionCatalog::activityTypePermissionName(
                         $resource,
-                        $operationTypeId,
+                        $activityTypeId,
                         $action,
                     );
                 }
@@ -320,14 +320,14 @@ class RoleResource extends Resource
             as $resource => $definition
         ) {
             if (PermissionCatalog::isActivityTypeScoped($resource)) {
-                foreach (PermissionCatalog::activityTypeIds() as $operationTypeId) {
+                foreach (PermissionCatalog::activityTypeIds() as $activityTypeId) {
                     $selectedActions = [];
 
                     foreach ($definition['actions'] as $action) {
                         $permissionName =
                             PermissionCatalog::activityTypePermissionName(
                                 $resource,
-                                $operationTypeId,
+                                $activityTypeId,
                                 $action,
                             );
 
@@ -339,7 +339,7 @@ class RoleResource extends Resource
                     $state[
                         PermissionCatalog::activityTypeFieldName(
                             $resource,
-                            $operationTypeId,
+                            $activityTypeId,
                         )
                     ] = $selectedActions;
                 }
@@ -396,10 +396,10 @@ class RoleResource extends Resource
             as $resource => $definition
         ) {
             if (PermissionCatalog::isActivityTypeScoped($resource)) {
-                foreach (PermissionCatalog::activityTypeIds() as $operationTypeId) {
+                foreach (PermissionCatalog::activityTypeIds() as $activityTypeId) {
                     $field = PermissionCatalog::activityTypeFieldName(
                         $resource,
-                        $operationTypeId,
+                        $activityTypeId,
                     );
 
                     foreach ($data[$field] ?? [] as $action) {
@@ -410,7 +410,7 @@ class RoleResource extends Resource
                         $permissionNames[] =
                             PermissionCatalog::activityTypePermissionName(
                                 $resource,
-                                $operationTypeId,
+                                $activityTypeId,
                                 $action,
                             );
                     }

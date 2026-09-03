@@ -26,7 +26,7 @@ class ActivityTypeConfiguration
 
     public static function normalizeActivityData(array $data): array
     {
-        $type = self::find($data['operation_type_id'] ?? null);
+        $type = self::find($data['activity_type_id'] ?? null);
 
         if (! $type) {
             return $data;
@@ -51,17 +51,12 @@ class ActivityTypeConfiguration
         return $data;
     }
 
-    /** Alias temporal para consumidores que aún usan el nombre anterior. */
-    public static function normalizeOperationData(array $data): array
-    {
-        return self::normalizeActivityData($data);
-    }
-
     public static function normalizeEventData(array $data, ?int $activityId = null): array
     {
-        $activityId ??= isset($data['operation_id'])
-            ? (int) $data['operation_id']
-            : null;
+        // `operation_id` se acepta solo como payload legado de compatibilidad.
+        $activityId ??= isset($data['activity_id'])
+            ? (int) $data['activity_id']
+            : (isset($data['operation_id']) ? (int) $data['operation_id'] : null);
 
         if (! $activityId) {
             return $data;

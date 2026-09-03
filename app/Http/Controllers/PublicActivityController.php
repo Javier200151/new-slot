@@ -46,13 +46,13 @@ class PublicActivityController extends Controller
             'type' => [
                 'nullable',
                 'integer',
-                'exists:operations_type,id',
+                'exists:activity_types,id',
             ],
 
             'status' => [
                 'nullable',
                 'integer',
-                'exists:operation_status,id',
+                'exists:activity_statuses,id',
             ],
 
             'map' => [
@@ -82,7 +82,7 @@ class PublicActivityController extends Controller
             'day' => [
                 'nullable',
                 'integer',
-                'exists:operation_day,id',
+                'exists:activity_days,id',
             ],
 
             'day_or_night' => [
@@ -211,11 +211,11 @@ class PublicActivityController extends Controller
         $selectedSort = $filters['sort'] ?? 'published_desc';
 
 
-        $operationsQuery = Activity::query()
+        $activitiesQuery = Activity::query()
 
             ->with([
-                'operationType',
-                'operationStatus',
+                'activityType',
+                'activityStatus',
                 'campaign',
                 'platform',
                 'map',
@@ -356,7 +356,7 @@ class PublicActivityController extends Controller
                             */
 
                             $searchQuery->orWhereHas(
-                                'operationType',
+                                'activityType',
 
                                 fn ($query) =>
                                     $query->where(
@@ -425,7 +425,7 @@ class PublicActivityController extends Controller
 
                 fn ($query) =>
                     $query->where(
-                        'operation_type_id',
+                        'activity_type_id',
                         $selectedTypeId
                     )
             )
@@ -442,7 +442,7 @@ class PublicActivityController extends Controller
 
                 fn ($query) =>
                     $query->where(
-                        'operation_status_id',
+                        'activity_status_id',
                         $selectedStatusId
                     )
             )
@@ -613,9 +613,9 @@ class PublicActivityController extends Controller
             | Multiclanes
             |--------------------------------------------------------------------------
             |
-            | La marca multiclanes pertenece al evento, no al operativo. Un operativo
+            | La marca multiclanes pertenece al evento, no al actividad. Un actividad
             | se considera multiclan si al menos uno de sus eventos está marcado como
-            | tal. Al filtrar por "No" mostramos los operativos que no tienen ningún
+            | tal. Al filtrar por "No" mostramos las actividades que no tienen ningún
             | evento multiclan.
             |
             */
@@ -645,7 +645,7 @@ class PublicActivityController extends Controller
             | Fecha de eventos
             |--------------------------------------------------------------------------
             |
-            | Un operativo no tiene una única fecha.
+            | Un actividad no tiene una única fecha.
             | Puede haberse jugado varias veces.
             |
             | Por tanto filtramos por los eventos asociados.
@@ -689,43 +689,43 @@ class PublicActivityController extends Controller
             );
 
         match ($selectedSort) {
-            'published_asc' => $operationsQuery
+            'published_asc' => $activitiesQuery
                 ->orderBy('created_at')
                 ->orderBy('id'),
-            'name_asc' => $operationsQuery
+            'name_asc' => $activitiesQuery
                 ->orderBy('name')
                 ->orderBy('id'),
-            'name_desc' => $operationsQuery
+            'name_desc' => $activitiesQuery
                 ->orderByDesc('name')
                 ->orderByDesc('id'),
-            default => $operationsQuery
+            default => $activitiesQuery
                 ->orderByDesc('created_at')
                 ->orderByDesc('id'),
         };
 
-        $operations = $operationsQuery->get();
+        $activities = $activitiesQuery->get();
 
         /*
         |--------------------------------------------------------------------------
-        | Agrupar operativos por campaña para la vista pública
+        | Agrupar actividades por campaña para la vista pública
         |--------------------------------------------------------------------------
         |
-        | La consulta anterior ya contiene exclusivamente los operativos que
+        | La consulta anterior ya contiene exclusivamente las actividades que
         | cumplen los filtros actuales.
         |
-        | Aquí NO volvemos a consultar campañas ni operativos.
+        | Aquí NO volvemos a consultar campañas ni actividades.
         |
         | Esto permite que:
         |
-        | - los operativos sin campaña aparezcan normalmente;
+        | - las actividades sin campaña aparezcan normalmente;
         | - cada campaña aparezca una sola vez;
-        | - sus operativos aparezcan dentro de ella;
-        | - los filtros también afecten a los operativos de las campañas;
-        | - una campaña sin operativos después del filtrado no aparezca.
+        | - sus actividades aparezcan dentro de ella;
+        | - los filtros también afecten a las actividades de las campañas;
+        | - una campaña sin actividades después del filtrado no aparezca.
         |
         */
 
-        $operationsByCampaign = $operations
+        $activitiesByCampaign = $activities
             ->whereNotNull('campaign_id')
             ->groupBy('campaign_id');
 
@@ -735,13 +735,13 @@ class PublicActivityController extends Controller
 
         /*
         * Esta será la colección que recorrerá después
-        * operations/index.blade.php.
+        * activities/index.blade.php.
         *
         * Cada elemento tendrá uno de estos formatos:
         *
         * [
-        *     'type' => 'operation',
-        *     'operation' => $operation,
+        *     'type' => 'activity',
+        *     'activity' => $activity,
         * ]
         *
         * o:
@@ -752,22 +752,22 @@ class PublicActivityController extends Controller
         * ]
         */
 
-        $operationItems = collect();
+        $activityItems = collect();
 
 
-        foreach ($operations as $operation) {
+        foreach ($activities as $activity) {
 
             /*
-            * Operativo independiente.
+            * Actividad independiente.
             */
 
             if (
-                ! $operation->campaign_id
-                || ! $operation->campaign
+                ! $activity->campaign_id
+                || ! $activity->campaign
             ) {
-                $operationItems->push([
-                    'type' => 'operation',
-                    'operation' => $operation,
+                $activityItems->push([
+                    'type' => 'activity',
+                    'activity' => $activity,
                 ]);
 
                 continue;
@@ -775,19 +775,19 @@ class PublicActivityController extends Controller
 
 
             /*
-            * Operativo perteneciente a campaña.
+            * Actividad perteneciente a campaña.
             */
 
             $campaignId =
-                (int) $operation->campaign_id;
+                (int) $activity->campaign_id;
 
 
             /*
             * Si ya hemos añadido esta campaña,
             * no volvemos a crear otra tarjeta.
             *
-            * Sus operativos ya estarán dentro
-            * de campaign->operations.
+            * Sus actividades ya estarán dentro
+            * de campaign->activities.
             */
 
             if (
@@ -802,22 +802,22 @@ class PublicActivityController extends Controller
 
 
             $campaign =
-                $operation->campaign;
+                $activity->campaign;
 
 
             /*
             * Sobrescribimos para esta vista la
-            * relación operations de la campaña.
+            * relación activities de la campaña.
             *
-            * Así contiene únicamente los operativos
+            * Así contiene únicamente las actividades
             * que han sobrevivido a los filtros
             * aplicados anteriormente.
             */
 
             $campaign->setRelation(
-                'operations',
+                'activities',
 
-                $operationsByCampaign
+                $activitiesByCampaign
                     ->get(
                         $campaignId,
                         collect()
@@ -826,7 +826,7 @@ class PublicActivityController extends Controller
             );
 
 
-            $operationItems->push([
+            $activityItems->push([
                 'type' => 'campaign',
                 'campaign' => $campaign,
             ]);
@@ -842,7 +842,7 @@ class PublicActivityController extends Controller
         | Plataformas disponibles
         |--------------------------------------------------------------------------
         |
-        | Solo plataformas utilizadas realmente por algún operativo.
+        | Solo plataformas utilizadas realmente por algún actividad.
         |
         */
 
@@ -867,7 +867,7 @@ class PublicActivityController extends Controller
         | Editores disponibles
         |--------------------------------------------------------------------------
         |
-        | Solo usuarios que figuren como editor de al menos un operativo.
+        | Solo usuarios que figuren como editor de al menos un actividad.
         |
         */
 
@@ -885,7 +885,7 @@ class PublicActivityController extends Controller
                 'nick',
             ]);
 
-        $operationTypes =
+        $activityTypes =
             ActivityType::query()
                 ->orderBy('name')
                 ->get([
@@ -894,7 +894,7 @@ class PublicActivityController extends Controller
                 ]);
 
 
-        $operationStatuses =
+        $activityStatuses =
             ActivityStatus::query()
                 ->orderBy('name')
                 ->get([
@@ -940,7 +940,7 @@ class PublicActivityController extends Controller
                 ]);
 
 
-        $operationDays =
+        $activityDays =
             ActivityDay::query()
                 ->whereHas('activities')
                 ->orderBy('name')
@@ -973,18 +973,18 @@ class PublicActivityController extends Controller
         return view(
             'activities.index',
             compact(
-                'operations',
-                'operationItems',
+                'activities',
+                'activityItems',
 
                 'platforms',
                 'editors',
-                'operationTypes',
-                'operationStatuses',
+                'activityTypes',
+                'activityStatuses',
                 'maps',
                 'periods',
                 'campaigns',
                 'factions',
-                'operationDays',
+                'activityDays',
 
                 'search',
 
@@ -1011,11 +1011,11 @@ class PublicActivityController extends Controller
         );
     }
 
-    public function show(Activity $operation): View
+    public function show(Activity $activity): View
     {
-        $operation->load([
-            'operationType',
-            'operationStatus',
+        $activity->load([
+            'activityType',
+            'activityStatus',
             'campaign',
             'period',
             'platform',
@@ -1032,7 +1032,7 @@ class PublicActivityController extends Controller
         ]);
         /*
         |--------------------------------------------------------------------------
-        | Eventos de este operativo
+        | Eventos de esta actividad
         |--------------------------------------------------------------------------
         |
         | Recuperamos todo el historial.
@@ -1042,7 +1042,7 @@ class PublicActivityController extends Controller
         |
         */
 
-        $operationEvents = $operation
+        $activityEvents = $activity
             ->events()
             ->with([
                 'eventStatus',
@@ -1066,7 +1066,7 @@ class PublicActivityController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $upcomingEvents = $operationEvents
+        $upcomingEvents = $activityEvents
             ->filter(
                 fn ($event): bool =>
                     $event->date !== null
@@ -1082,7 +1082,7 @@ class PublicActivityController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $pastEvents = $operationEvents
+        $pastEvents = $activityEvents
             ->filter(
                 fn ($event): bool =>
                     $event->date !== null
@@ -1096,13 +1096,13 @@ class PublicActivityController extends Controller
         | ORBAT
         |--------------------------------------------------------------------------
         |
-        | Aquí usamos directamente el ORBAT plantilla del operativo.
+        | Aquí usamos directamente el ORBAT plantilla del actividad.
         | No existen asignaciones de usuarios porque no estamos viendo un evento.
         |
         */
 
         $groups = collect(
-            $operation->orbat['groups'] ?? []
+            $activity->orbat['groups'] ?? []
         )
             ->filter(
                 fn (array $group): bool =>
@@ -1197,7 +1197,7 @@ class PublicActivityController extends Controller
         */
 
         $description =
-            $operation->description ?? [];
+            $activity->description ?? [];
 
         $descriptionSections = collect(
             $description['sections'] ?? []
@@ -1354,7 +1354,7 @@ class PublicActivityController extends Controller
         */
 
         $radioNetworks = collect(
-            $operation->radio['networks']
+            $activity->radio['networks']
             ?? []
         )
             ->filter(
@@ -1375,7 +1375,7 @@ class PublicActivityController extends Controller
         $addons = Addon::query()
             ->whereIn(
                 'id',
-                $operation
+                $activity
                     ->addons['addon_ids']
                     ?? []
             )
@@ -1386,12 +1386,12 @@ class PublicActivityController extends Controller
         return view(
             'activities.show',
             compact(
-                'operation',
+                'activity',
                 'visibleOrbatGroups',
                 'descriptionSections',
                 'radioNetworks',
                 'addons',
-                'operationEvents',
+                'activityEvents',
                 'upcomingEvents',
                 'pastEvents',
             )

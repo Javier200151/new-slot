@@ -38,7 +38,7 @@ class PublicEventController extends Controller
         $filters = $request->validate([
             'month' => ['nullable', 'integer', 'between:1,12'],
             'year' => ['nullable', 'integer', 'between:2000,2100'],
-            'type' => ['nullable', 'integer', 'exists:operations_type,id'],
+            'type' => ['nullable', 'integer', 'exists:activity_types,id'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
         ]);
@@ -62,7 +62,7 @@ class PublicEventController extends Controller
             ->with([
                 'eventStatus',
                 'eventResult',
-                'activity.operationType',
+                'activity.activityType',
                 'activity.campaign',
                 'activity.period',
                 'activity.platform',
@@ -111,7 +111,7 @@ class PublicEventController extends Controller
                 $selectedTypeId,
                 fn ($query) => $query->whereHas(
                     'activity',
-                    fn ($query) => $query->where('operation_type_id', $selectedTypeId),
+                    fn ($query) => $query->where('activity_type_id', $selectedTypeId),
                 ),
             )
             ->orderByDesc('date')
@@ -143,7 +143,7 @@ class PublicEventController extends Controller
         return view('events.index', [
             'calendarDays' => $calendarDays,
             'listedEvents' => $listedEvents,
-            'operationTypes' => $activityTypes,
+            'activityTypes' => $activityTypes,
             'selectedTypeId' => $selectedTypeId,
             'selectedDateFrom' => $selectedDateFrom,
             'selectedDateTo' => $selectedDateTo,
@@ -162,8 +162,8 @@ class PublicEventController extends Controller
         $event->load([
             'eventStatus',
             'eventResult',
-            'activity.operationType',
-            'activity.operationStatus',
+            'activity.activityType',
+            'activity.activityStatus',
             'activity.campaign',
             'activity.period',
             'activity.platform',
@@ -2548,7 +2548,7 @@ class PublicEventController extends Controller
             $user,
             'event-orbat',
             'manage',
-            $event->activity?->operation_type_id,
+            $event->activity?->activity_type_id,
         );
     }
 

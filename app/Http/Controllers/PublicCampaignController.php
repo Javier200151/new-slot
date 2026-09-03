@@ -53,7 +53,7 @@ class PublicCampaignController extends Controller
                 ->with([
                     'eventStatus',
                     'eventResult',
-                    'activity.operationType',
+                    'activity.activityType',
                     'activity.campaign',
                     'activity.period',
                     'activity.platform',

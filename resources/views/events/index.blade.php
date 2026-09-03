@@ -2,7 +2,7 @@
 
 @section('title', 'Eventos')
 
-@section('meta-description', 'Calendario de eventos y operativos de Squad ALPHA.')
+@section('meta-description', 'Calendario de eventos y actividades de Squad ALPHA.')
 
 @section('body-class', 'events-body')
 
@@ -15,7 +15,7 @@
         <div class="container">
             {{-- <span class="events-kicker">Agenda operativa</span> --}}
             <h1>Eventos</h1>
-            <p>Consulta los próximos operativos y el histórico de eventos finalizados.</p>
+            <p>Consulta los próximas actividades y el histórico de eventos finalizados.</p>
         </div>
     </section>
 
@@ -112,9 +112,9 @@
                                             ])
                                             @style([
                                                 '--event-color: '
-                                                . ($event->activity?->operationType?->color ?? '')
+                                                . ($event->activity?->activityType?->color ?? '')
                                                 => filled(
-                                                    $event->activity?->operationType?->color
+                                                    $event->activity?->activityType?->color
                                                 ),
                                                 'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;'
                                                     => $isCancelled,
@@ -219,9 +219,9 @@
                         <span>Tipo de evento</span>
                         <select name="type">
                             <option value="">Todos los tipos</option>
-                            @foreach($operationTypes as $operationType)
-                                <option value="{{ $operationType->id }}" @selected($selectedTypeId === $operationType->id)>
-                                    {{ $operationType->name }}
+                            @foreach($activityTypes as $activityType)
+                                <option value="{{ $activityType->id }}" @selected($selectedTypeId === $activityType->id)>
+                                    {{ $activityType->name }}
                                 </option>
                             @endforeach
                         </select>

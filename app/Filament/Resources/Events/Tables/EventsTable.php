@@ -118,13 +118,13 @@ class EventsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('operation_id')
+                SelectFilter::make('activity_id')
                     ->label('Actividad')
                     ->multiple()
                     ->options(
                         fn (): array => Activity::query()
                             ->whereIn(
-                                'operation_type_id',
+                                'activity_type_id',
                                 ActivityTypeAccess::allowedTypeIds(
                                     auth()->user(),
                                     'events',

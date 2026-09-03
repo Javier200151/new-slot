@@ -1,29 +1,29 @@
 @extends('layouts.metopas')
 
 @php
-    $dayOrNight = match ($operation->day_or_night) {
+    $dayOrNight = match ($activity->day_or_night) {
         'day' => 'Día',
         'night' => 'Noche',
         'both' => 'Día y noche',
         default => null,
     };
 
-    $operationDays = $operation->days
+    $activityDays = $activity->days
         ->pluck('name')
         ->filter()
         ->join(', ');
 @endphp
 
-@section('title', $operation->name)
+@section('title', $activity->name)
 
 @section(
     'meta-description',
-    'Información, briefing y ORBAT de la actividad ' . $operation->name . '.'
+    'Información, briefing y ORBAT de la actividad ' . $activity->name . '.'
 )
 
 @section(
     'body-class',
-    'event-detail-body operations-body'
+    'event-detail-body activities-body'
 )
 
 @push('styles')
@@ -34,7 +34,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ asset('css/operations.css') }}"
+        href="{{ asset('css/activities.css') }}"
     >
 @endpush
 
@@ -46,11 +46,11 @@
         @style([
             '--event-color: '
             . (
-                $operation->operationType?->color
+                $activity->activityType?->color
                 ?? ''
             )
             => filled(
-                $operation->operationType?->color
+                $activity->activityType?->color
             ),
         ])
     >
@@ -74,7 +74,7 @@
                 </span>
 
                 <span>
-                    {{ $operation->name }}
+                    {{ $activity->name }}
                 </span>
             </nav>
 
@@ -90,22 +90,22 @@
                     <div class="event-detail__eyebrow">
 
                         <span>
-                            {{ $operation->operationType?->name
+                            {{ $activity->activityType?->name
                                 ?? 'Actividad'
                             }}
                         </span>
 
-                        @if($operation->operationStatus)
+                        @if($activity->activityStatus)
 
                             <span
-                                class="operation-status-badge"
+                                class="activity-status-badge"
                                 @style([
-                                    '--status-color: ' . $operation->operationStatus?->color
-                                        => filled($operation->operationStatus?->color),
+                                    '--status-color: ' . $activity->activityStatus?->color
+                                        => filled($activity->activityStatus?->color),
                                 ])
                             >
-                                {{ $operation
-                                    ->operationStatus
+                                {{ $activity
+                                    ->activityStatus
                                     ->name
                                 }}
                             </span>
@@ -116,7 +116,7 @@
 
 
                     <h1>
-                        {{ $operation->name }}
+                        {{ $activity->name }}
                     </h1>
 
 
@@ -147,8 +147,8 @@
                             </a>
                         @endif
 
-                        @if($operationEvents->isNotEmpty())
-                            <a href="#eventos-operativo">
+                        @if($activityEvents->isNotEmpty())
+                            <a href="#eventos-actividad">
                                 Eventos
                             </a>
                         @endif
@@ -158,15 +158,15 @@
                 </div>
 
 
-                @if($operation->image)
+                @if($activity->image)
 
                     <figure class="event-detail__cover">
 
                         <img
                             src="{{ asset(
-                                'storage/' . $operation->image
+                                'storage/' . $activity->image
                             ) }}"
-                            alt="{{ $operation->name }}"
+                            alt="{{ $activity->name }}"
                         >
 
                     </figure>
@@ -181,40 +181,40 @@
             ====================================================== --}}
 
             <section
-                id="datos-operativo"
+                id="datos-actividad"
                 class="event-detail__facts"
                 aria-label="Datos de la actividad"
             >
 
-                @if($operation->platform)
+                @if($activity->platform)
 
                     <div>
                         <dt>Plataforma</dt>
 
                         <dd class="event-detail__fact-with-icon">
-                            @if($operation->platform->image)
+                            @if($activity->platform->image)
                                 <img
-                                    src="{{ asset('storage/' . $operation->platform->image) }}"
+                                    src="{{ asset('storage/' . $activity->platform->image) }}"
                                     alt=""
                                     width="28"
                                     height="28"
                                     style="width:28px;height:28px;max-width:28px;max-height:28px;object-fit:contain;"
                                 >
                             @endif
-                            <span>{{ $operation->platform->name }}</span>
+                            <span>{{ $activity->platform->name }}</span>
                         </dd>
                     </div>
 
                 @endif
 
 
-                @if($operation->period)
+                @if($activity->period)
 
                     <div>
                         <dt>Periodo</dt>
 
                         <dd>
-                            {{ $operation->period->name }}
+                            {{ $activity->period->name }}
                         </dd>
                     </div>
 
@@ -222,15 +222,15 @@
 
 
                 @if(
-                    ($operation->operationType?->usesEnemyFactions() ?? true)
-                    && $operation->enemyFactions->isNotEmpty()
+                    ($activity->activityType?->usesEnemyFactions() ?? true)
+                    && $activity->enemyFactions->isNotEmpty()
                 )
 
                     <div>
                         <dt>Facciones enemigas</dt>
 
                         <dd style="display:grid;gap:8px;">
-                            @foreach($operation->enemyFactions as $enemyFaction)
+                            @foreach($activity->enemyFactions as $enemyFaction)
                                 {!! \App\Support\FactionOptionLabel::make($enemyFaction) !!}
                             @endforeach
                         </dd>
@@ -239,7 +239,7 @@
                 @endif
 
 
-                @if($operation->map)
+                @if($activity->map)
 
                     <div>
                         <dt>Mapa</dt>
@@ -248,10 +248,10 @@
                             <a
                                 href="{{ route(
                                     'maps.show',
-                                    $operation->map
+                                    $activity->map
                                 ) }}"
                             >
-                                {{ $operation->map->name }}
+                                {{ $activity->map->name }}
                             </a>
                         </dd>
                     </div>
@@ -272,32 +272,32 @@
                 @endif
 
 
-                @if(filled($operationDays))
+                @if(filled($activityDays))
 
                     <div>
                         <dt>Días</dt>
 
                         <dd>
-                            {{ $operationDays }}
+                            {{ $activityDays }}
                         </dd>
                     </div>
 
                 @endif
 
 
-                @if($operation->editor || $operation->editorAlly)
+                @if($activity->editor || $activity->editorAlly)
 
                     <div>
                         <dt>Editor</dt>
 
                         <dd>
-                            @if($operation->editor)
+                            @if($activity->editor)
                                 <x-user-link
-                                    :user="$operation->editor"
-                                    style="color: {{ $operation->editor->getFrontendColor() }};"
+                                    :user="$activity->editor"
+                                    style="color: {{ $activity->editor->getFrontendColor() }};"
                                 />
                             @else
-                                <span>{{ $operation->editorAlly->name }}</span>
+                                <span>{{ $activity->editorAlly->name }}</span>
                             @endif
                         </dd>
                     </div>
@@ -305,7 +305,7 @@
                 @endif
 
 
-                @if($operation->campaign)
+                @if($activity->campaign)
 
                     <div>
                         <dt>Campaña</dt>
@@ -314,10 +314,10 @@
                             <a
                                 href="{{ route(
                                     'campaigns.show',
-                                    $operation->campaign
+                                    $activity->campaign
                                 ) }}"
                             >
-                                {{ $operation->campaign->name }}
+                                {{ $activity->campaign->name }}
                             </a>
                         </dd>
                     </div>
@@ -332,42 +332,42 @@
             ====================================================== --}}
 
             @if(
-                ($operation->operationType?->supportsOcap() ?? false)
-                || ($operation->operationType?->supportsRespawn() ?? false)
-                || ($operation->operationType?->supportsJip() ?? false)
+                ($activity->activityType?->supportsOcap() ?? false)
+                || ($activity->activityType?->supportsRespawn() ?? false)
+                || ($activity->activityType?->supportsJip() ?? false)
             )
                 <section
                     class="event-detail__options"
                     aria-label="Opciones de la actividad"
                 >
-                    @if($operation->operationType?->supportsOcap())
-                        <span @class(['is-enabled' => $operation->ocap])>OCAP</span>
+                    @if($activity->activityType?->supportsOcap())
+                        <span @class(['is-enabled' => $activity->ocap])>OCAP</span>
                     @endif
 
-                    @if($operation->operationType?->supportsRespawn())
-                        <span @class(['is-enabled' => $operation->respawn])>Respawn</span>
+                    @if($activity->activityType?->supportsRespawn())
+                        <span @class(['is-enabled' => $activity->respawn])>Respawn</span>
                     @endif
 
-                    @if($operation->operationType?->supportsJip())
-                        <span @class(['is-enabled' => $operation->jip])>JIP</span>
+                    @if($activity->activityType?->supportsJip())
+                        <span @class(['is-enabled' => $activity->jip])>JIP</span>
                     @endif
                 </section>
             @endif
 
             @if(
-                ($operation->operationType?->awardsMetopa() ?? false)
-                && $operation->metopa
+                ($activity->activityType?->awardsMetopa() ?? false)
+                && $activity->metopa
             )
                 <section class="event-detail__course-metopa" aria-label="Metopa de la actividad">
                     <span>Metopa asociada</span>
-                    <a href="{{ route('metopas.show', $operation->metopa) }}">
-                        @if($operation->metopa->image)
+                    <a href="{{ route('metopas.show', $activity->metopa) }}">
+                        @if($activity->metopa->image)
                             <img
-                                src="{{ asset('storage/' . $operation->metopa->image) }}"
+                                src="{{ asset('storage/' . $activity->metopa->image) }}"
                                 alt=""
                             >
                         @endif
-                        <strong>{{ $operation->metopa->name }}</strong>
+                        <strong>{{ $activity->metopa->name }}</strong>
                     </a>
                 </section>
             @endif
@@ -523,11 +523,11 @@
                     event-detail__section
                     event-detail__orbat
                 "
-                aria-labelledby="operation-orbat-title"
+                aria-labelledby="activity-orbat-title"
             >
 
                 <header>
-                    <span id="operation-orbat-title">
+                    <span id="activity-orbat-title">
                         ORBAT
                     </span>
                 </header>
@@ -971,9 +971,9 @@
             ====================================================== --}}
 
             <section
-                id="eventos-operativo"
+                id="eventos-actividad"
                 class="event-detail__section"
-                aria-labelledby="operation-events-title"
+                aria-labelledby="activity-events-title"
             >
 
                 <header>
@@ -982,14 +982,14 @@
                         Historial
                     </span>
 
-                    <h2 id="operation-events-title">
+                    <h2 id="activity-events-title">
                         Eventos de esta actividad
                     </h2>
 
                 </header>
 
 
-                @if($operationEvents->isEmpty())
+                @if($activityEvents->isEmpty())
 
                     <div class="events-empty">
 
@@ -1104,14 +1104,14 @@
                                             @style([
                                                 '--event-color: '
                                                 . (
-                                                    $operation
-                                                        ->operationType
+                                                    $activity
+                                                        ->activityType
                                                         ?->color
                                                     ?? ''
                                                 )
                                                 => filled(
-                                                    $operation
-                                                        ->operationType
+                                                    $activity
+                                                        ->activityType
                                                         ?->color
                                                 ),
                                                 'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;'
@@ -1128,7 +1128,7 @@
                                                     class="
                                                         event-card__detail-link
                                                     "
-                                                    aria-label="Ver evento {{ $event->name ?: $operation->name }}"
+                                                    aria-label="Ver evento {{ $event->name ?: $activity->name }}"
                                                 ></a>
                                             @endunless
 
@@ -1140,7 +1140,7 @@
                                             >
 
                                                 @if(
-                                                    $operation
+                                                    $activity
                                                         ->period
                                                         ?->ico
                                                 )
@@ -1148,11 +1148,11 @@
                                                     <img
                                                         src="{{ asset(
                                                             'storage/'
-                                                            . $operation
+                                                            . $activity
                                                                 ->period
                                                                 ->ico
                                                         ) }}"
-                                                        alt="{{ $operation
+                                                        alt="{{ $activity
                                                             ->period
                                                             ->name
                                                         }}"
@@ -1165,7 +1165,7 @@
 
 
                                                 @if(
-                                                    $operation
+                                                    $activity
                                                         ->platform
                                                         ?->image
                                                 )
@@ -1173,11 +1173,11 @@
                                                     <img
                                                         src="{{ asset(
                                                             'storage/'
-                                                            . $operation
+                                                            . $activity
                                                                 ->platform
                                                                 ->image
                                                         ) }}"
-                                                        alt="{{ $operation
+                                                        alt="{{ $activity
                                                             ->platform
                                                             ->name
                                                         }}"
@@ -1196,7 +1196,7 @@
                                                 <div class="event-card__topline">
 
                                                     <span class="event-card__type">
-                                                        {{ $operation->operationType?->name ?? 'Actividad' }}
+                                                        {{ $activity->activityType?->name ?? 'Actividad' }}
                                                     </span>
 
                                                     @if($event->eventStatus)
@@ -1223,7 +1223,7 @@
 
                                                     @if(
                                                         $event->eventStatus?->name === 'FINALIZADO'
-                                                        && ($operation->operationType?->supportsOcap() ?? false)
+                                                        && ($activity->activityType?->supportsOcap() ?? false)
                                                         && filled($event->ocap_url)
                                                     )
 
@@ -1233,7 +1233,7 @@
                                                             rel="noopener noreferrer"
                                                             class="event-card__ocap-link"
                                                             title="Abrir OCAP"
-                                                            aria-label="Abrir OCAP de {{ $event->name ?: $operation->name }}"
+                                                            aria-label="Abrir OCAP de {{ $event->name ?: $activity->name }}"
                                                         >
                                                             OCAP ↗
                                                         </a>
@@ -1252,7 +1252,7 @@
                                                     <h3>
                                                         @if($isCancelled)
                                                             <span>
-                                                                {{ $event->name ?: $operation->name }}
+                                                                {{ $event->name ?: $activity->name }}
                                                             </span>
                                                         @else
                                                             <a
@@ -1262,7 +1262,7 @@
                                                                 ) }}"
                                                             >
                                                                 {{ $event->name
-                                                                    ?: $operation->name
+                                                                    ?: $activity->name
                                                                 }}
                                                             </a>
                                                         @endif
@@ -1305,7 +1305,7 @@
                                                     @endif
 
 
-                                                    @if(($operation->operationType?->usesEventResult() ?? true) && $event->eventResult)
+                                                    @if(($activity->activityType?->usesEventResult() ?? true) && $event->eventResult)
 
                                                         <div>
                                                             <dt>
@@ -1462,14 +1462,14 @@
                                             @style([
                                                 '--event-color: '
                                                 . (
-                                                    $operation
-                                                        ->operationType
+                                                    $activity
+                                                        ->activityType
                                                         ?->color
                                                     ?? ''
                                                 )
                                                 => filled(
-                                                    $operation
-                                                        ->operationType
+                                                    $activity
+                                                        ->activityType
                                                         ?->color
                                                 ),
                                                 'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;'
@@ -1486,7 +1486,7 @@
                                                     class="
                                                         event-card__detail-link
                                                     "
-                                                    aria-label="Ver evento {{ $event->name ?: $operation->name }}"
+                                                    aria-label="Ver evento {{ $event->name ?: $activity->name }}"
                                                 ></a>
                                             @endunless
 
@@ -1498,7 +1498,7 @@
                                             >
 
                                                 @if(
-                                                    $operation
+                                                    $activity
                                                         ->period
                                                         ?->ico
                                                 )
@@ -1506,11 +1506,11 @@
                                                     <img
                                                         src="{{ asset(
                                                             'storage/'
-                                                            . $operation
+                                                            . $activity
                                                                 ->period
                                                                 ->ico
                                                         ) }}"
-                                                        alt="{{ $operation
+                                                        alt="{{ $activity
                                                             ->period
                                                             ->name
                                                         }}"
@@ -1523,7 +1523,7 @@
 
 
                                                 @if(
-                                                    $operation
+                                                    $activity
                                                         ->platform
                                                         ?->image
                                                 )
@@ -1531,11 +1531,11 @@
                                                     <img
                                                         src="{{ asset(
                                                             'storage/'
-                                                            . $operation
+                                                            . $activity
                                                                 ->platform
                                                                 ->image
                                                         ) }}"
-                                                        alt="{{ $operation
+                                                        alt="{{ $activity
                                                             ->platform
                                                             ->name
                                                         }}"
@@ -1554,7 +1554,7 @@
                                                 <div class="event-card__topline">
 
                                                     <span class="event-card__type">
-                                                        {{ $operation->operationType?->name ?? 'Actividad' }}
+                                                        {{ $activity->activityType?->name ?? 'Actividad' }}
                                                     </span>
 
                                                     @if($event->eventStatus)
@@ -1581,7 +1581,7 @@
 
                                                     @if(
                                                         $event->eventStatus?->name === 'FINALIZADO'
-                                                        && ($operation->operationType?->supportsOcap() ?? false)
+                                                        && ($activity->activityType?->supportsOcap() ?? false)
                                                         && filled($event->ocap_url)
                                                     )
 
@@ -1591,7 +1591,7 @@
                                                             rel="noopener noreferrer"
                                                             class="event-card__ocap-link"
                                                             title="Abrir OCAP"
-                                                            aria-label="Abrir OCAP de {{ $event->name ?: $operation->name }}"
+                                                            aria-label="Abrir OCAP de {{ $event->name ?: $activity->name }}"
                                                         >
                                                             OCAP ↗
                                                         </a>
@@ -1610,7 +1610,7 @@
                                                     <h3>
                                                         @if($isCancelled)
                                                             <span>
-                                                                {{ $event->name ?: $operation->name }}
+                                                                {{ $event->name ?: $activity->name }}
                                                             </span>
                                                         @else
                                                             <a
@@ -1620,7 +1620,7 @@
                                                                 ) }}"
                                                             >
                                                                 {{ $event->name
-                                                                    ?: $operation->name
+                                                                    ?: $activity->name
                                                                 }}
                                                             </a>
                                                         @endif
@@ -1663,7 +1663,7 @@
                                                     @endif
 
 
-                                                    @if(($operation->operationType?->usesEventResult() ?? true) && $event->eventResult)
+                                                    @if(($activity->activityType?->usesEventResult() ?? true) && $event->eventResult)
 
                                                         <div>
                                                             <dt>

@@ -36,7 +36,7 @@ class ActivityForm
                     ->label('Nombre')
                     ->required(),
 
-                Select::make('operation_type_id')
+                Select::make('activity_type_id')
                     ->label('Tipo de actividad')
                     ->options(
                         function ($record): array {
@@ -89,9 +89,9 @@ class ActivityForm
                     )
                     ->required(),
 
-                Select::make('operation_status_id')
+                Select::make('activity_status_id')
                     ->label('Estado')
-                    ->relationship('operationStatus', 'name')
+                    ->relationship('activityStatus', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
@@ -125,7 +125,7 @@ class ActivityForm
                 FileUpload::make('image')
                     ->label('Imagen')
                     ->disk('public')
-                    ->directory('operations')
+                    ->directory('activities')
                     ->visibility('public')
                     ->preserveFilenames()
                     ->image(),
@@ -137,7 +137,7 @@ class ActivityForm
                     ->visible(
                         function (Get $get): bool {
                             $type = ActivityTypeConfiguration::find(
-                                $get('operation_type_id')
+                                $get('activity_type_id')
                             );
 
                             return $type !== null
@@ -154,7 +154,7 @@ class ActivityForm
                             ->label('OCAP')
                             ->visible(
                                 fn (Get $get): bool =>
-                                    ActivityTypeConfiguration::find($get('operation_type_id'))?->supportsOcap()
+                                    ActivityTypeConfiguration::find($get('activity_type_id'))?->supportsOcap()
                                     ?? false
                             ),
                         Toggle::make('respawn')
@@ -162,7 +162,7 @@ class ActivityForm
                             ->label('Respawn')
                             ->visible(
                                 fn (Get $get): bool =>
-                                    ActivityTypeConfiguration::find($get('operation_type_id'))?->supportsRespawn()
+                                    ActivityTypeConfiguration::find($get('activity_type_id'))?->supportsRespawn()
                                     ?? false
                             ),
                         Toggle::make('jip')
@@ -170,7 +170,7 @@ class ActivityForm
                             ->label('JIP')
                             ->visible(
                                 fn (Get $get): bool =>
-                                    ActivityTypeConfiguration::find($get('operation_type_id'))?->supportsJip()
+                                    ActivityTypeConfiguration::find($get('activity_type_id'))?->supportsJip()
                                     ?? false
                             ),
                     ]),
@@ -532,7 +532,7 @@ class ActivityForm
                     ->preload()
                     ->visible(
                         fn (Get $get): bool =>
-                            ActivityTypeConfiguration::find($get('operation_type_id'))?->usesEnemyFactions()
+                            ActivityTypeConfiguration::find($get('activity_type_id'))?->usesEnemyFactions()
                             ?? false
                     )
                     ->nullable(),
@@ -549,7 +549,7 @@ class ActivityForm
                     ->preload()
                     ->visible(
                         fn (Get $get): bool =>
-                            ActivityTypeConfiguration::find($get('operation_type_id'))?->awardsMetopa()
+                            ActivityTypeConfiguration::find($get('activity_type_id'))?->awardsMetopa()
                             ?? false
                     )
                     ->helperText('Se propondrá automáticamente al finalizar un evento de esta actividad.')

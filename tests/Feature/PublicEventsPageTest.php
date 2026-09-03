@@ -169,7 +169,7 @@ class PublicEventsPageTest extends TestCase
             $table->text('description')->nullable();
         });
 
-        Schema::create('operations', function (Blueprint $table): void {
+        Schema::create('activities', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('operation_type_id');
             $table->foreignId('operation_status_id')->nullable();
@@ -193,15 +193,15 @@ class PublicEventsPageTest extends TestCase
             $table->softDeletes();
         });
 
-        Schema::create('enemy_faction_operation', function (Blueprint $table): void {
+        Schema::create('activity_enemy_faction', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('faction_id');
-            $table->foreignId('operation_id');
+            $table->foreignId('activity_id');
         });
 
         Schema::create('events', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('operation_id');
+            $table->foreignId('activity_id');
             $table->foreignId('event_status_id');
             $table->foreignId('event_result_id')->nullable();
             $table->string('name');
@@ -307,7 +307,7 @@ class PublicEventsPageTest extends TestCase
             ],
         ]);
 
-        DB::table('operations')->insert([
+        DB::table('activities')->insert([
             [
                 'id' => 1,
                 'operation_type_id' => 1,
@@ -349,7 +349,7 @@ class PublicEventsPageTest extends TestCase
         DB::table('events')->insert([
             [
                 'id' => 1,
-                'operation_id' => 1,
+                'activity_id' => 1,
                 'event_status_id' => 1,
                 'event_result_id' => null,
                 'name' => 'Evento activo',
@@ -376,7 +376,7 @@ class PublicEventsPageTest extends TestCase
             ],
             [
                 'id' => 2,
-                'operation_id' => 2,
+                'activity_id' => 2,
                 'event_status_id' => 2,
                 'event_result_id' => 1,
                 'name' => 'Evento finalizado',
@@ -388,7 +388,7 @@ class PublicEventsPageTest extends TestCase
             ],
             [
                 'id' => 3,
-                'operation_id' => 1,
+                'activity_id' => 1,
                 'event_status_id' => 3,
                 'event_result_id' => null,
                 'name' => 'Evento borrador',
@@ -450,7 +450,7 @@ class PublicEventsPageTest extends TestCase
     {
         DB::table('events')->insert([
             'id' => 4,
-            'operation_id' => 1,
+            'activity_id' => 1,
             'event_status_id' => 1,
             'event_result_id' => null,
             'name' => 'Evento de septiembre',
@@ -535,12 +535,12 @@ class PublicEventsPageTest extends TestCase
             'mandatory' => true,
             'active' => true,
         ]);
-        DB::table('enemy_faction_operation')->insert([
+        DB::table('activity_enemy_faction')->insert([
             'faction_id' => 1,
-            'operation_id' => 1,
+            'activity_id' => 1,
         ]);
 
-        DB::table('operations')->where('id', 1)->update([
+        DB::table('activities')->where('id', 1)->update([
             'day_id' => 1,
             'editor_id' => 10,
             'description' => json_encode([

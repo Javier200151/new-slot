@@ -33,16 +33,16 @@ class CreateActivity extends CreateRecord
         $data = ActivityEditorSelection::resolveChoice($data);
         $data = ActivityTypeConfiguration::normalizeActivityData($data);
 
-        $operationTypeId = $data['operation_type_id'] ?? null;
+        $activityTypeId = $data['activity_type_id'] ?? null;
 
         if (! ActivityTypeAccess::can(
             auth()->user(),
             'activities',
             'create',
-            $operationTypeId,
+            $activityTypeId,
         )) {
             throw ValidationException::withMessages([
-                'data.operation_type_id' =>
+                'data.activity_type_id' =>
                     'No tienes permiso para crear actividades de este tipo.',
             ]);
         }
@@ -54,7 +54,7 @@ class CreateActivity extends CreateRecord
     {
         /*
         |--------------------------------------------------------------------------
-        | Días del operativo
+        | Días del actividad
         |--------------------------------------------------------------------------
         */
 
@@ -71,7 +71,7 @@ class CreateActivity extends CreateRecord
                 ->change(
                     subject: $this->record,
 
-                    event: 'operation_days_updated',
+                    event: 'activity_days_updated',
 
                     old: [
                         'days' => [],
@@ -85,7 +85,7 @@ class CreateActivity extends CreateRecord
                         'relation' => 'days',
 
                         'table' =>
-                            'operation_operation_day',
+                            'activity_day_assignments',
 
                         'action' => 'initial_assignment',
                     ],
@@ -99,9 +99,9 @@ class CreateActivity extends CreateRecord
         |--------------------------------------------------------------------------
         */
 
-        $this->record->loadMissing('operationType');
+        $this->record->loadMissing('activityType');
 
-        if (! ($this->record->operationType?->usesEnemyFactions() ?? false)) {
+        if (! ($this->record->activityType?->usesEnemyFactions() ?? false)) {
             $this->record->enemyFactions()->detach();
         }
 
@@ -119,7 +119,7 @@ class CreateActivity extends CreateRecord
                     subject: $this->record,
 
                     event:
-                        'operation_enemy_factions_updated',
+                        'activity_enemy_factions_updated',
 
                     old: [
                         'enemy_factions' => [],
@@ -135,7 +135,7 @@ class CreateActivity extends CreateRecord
                             'enemyFactions',
 
                         'table' =>
-                            'enemy_faction_operation',
+                            'activity_enemy_faction',
 
                         'action' =>
                             'initial_assignment',

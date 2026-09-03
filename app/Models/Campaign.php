@@ -31,11 +31,6 @@ class Campaign extends Model
         return $this->hasMany(Activity::class, 'campaign_id');
     }
 
-    /** Alias histórico durante la transición Operation -> Activity. */
-    public function operations()
-    {
-        return $this->hasMany(Activity::class, 'campaign_id');
-    }
 
     public function events()
     {
@@ -43,7 +38,7 @@ class Campaign extends Model
             Event::class,
             Activity::class,
             'campaign_id',
-            'operation_id',
+            'activity_id',
         );
     }
 }

@@ -36,29 +36,29 @@ class ListActivities extends ListRecords
             'view',
         );
 
-        $operationTypes = ActivityType::query()
+        $activityTypes = ActivityType::query()
             ->whereIn('id', $allowedTypeIds)
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        foreach ($operationTypes as $operationType) {
-            $operationTypeId = (int) $operationType->id;
+        foreach ($activityTypes as $activityType) {
+            $activityTypeId = (int) $activityType->id;
 
-            $tabs['type_' . $operationTypeId] =
-                Tab::make($operationType->name)
+            $tabs['type_' . $activityTypeId] =
+                Tab::make($activityType->name)
                     ->badge(
                         (clone $baseQuery)
                             ->where(
-                                'operation_type_id',
-                                $operationTypeId,
+                                'activity_type_id',
+                                $activityTypeId,
                             )
                             ->count()
                     )
                     ->modifyQueryUsing(
                         fn (Builder $query): Builder =>
                             $query->where(
-                                'operation_type_id',
-                                $operationTypeId,
+                                'activity_type_id',
+                                $activityTypeId,
                             )
                     );
         }

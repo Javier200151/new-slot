@@ -1,5 +1,5 @@
 @php
-    $operation = $event->activity;
+    $activity = $event->activity;
 
     $totalSlots =
         $event->getOrbatSlotsCount();
@@ -56,7 +56,7 @@
         'is-draft' => $isDraft,
     ])
     @style([
-        '--event-color: ' . ($operation?->operationType?->color ?? '') => filled($operation?->operationType?->color),
+        '--event-color: ' . ($activity?->activityType?->color ?? '') => filled($activity?->activityType?->color),
         '--slot-occupancy: ' . $occupancyPercentage . '%',
         'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;' => $isCancelled,
     ])
@@ -65,15 +65,15 @@
         <a
             href="{{ route('events.show', $event) }}"
             class="event-card__detail-link"
-            aria-label="Ver evento {{ $event->name ?: $operation?->name }}"
+            aria-label="Ver evento {{ $event->name ?: $activity?->name }}"
         ></a>
     @endunless
 
     <div class="event-card__period">
-        @if($operation?->period?->ico)
+        @if($activity?->period?->ico)
             <img
-                src="{{ asset('storage/' . $operation->period->ico) }}"
-                alt="Periodo {{ $operation->period->name }}"
+                src="{{ asset('storage/' . $activity->period->ico) }}"
+                alt="Periodo {{ $activity->period->name }}"
                 loading="lazy"
                 width="56"
                 height="56"
@@ -81,10 +81,10 @@
             >
         @endif
 
-        @if($operation?->platform?->image)
+        @if($activity?->platform?->image)
             <img
-                src="{{ asset('storage/' . $operation->platform->image) }}"
-                alt="Plataforma {{ $operation->platform->name }}"
+                src="{{ asset('storage/' . $activity->platform->image) }}"
+                alt="Plataforma {{ $activity->platform->name }}"
                 loading="lazy"
                 width="56"
                 height="56"
@@ -92,8 +92,8 @@
             >
         @endif
 
-        @if(! $operation?->period?->ico && ! $operation?->platform?->image)
-            <span aria-hidden="true">{{ strtoupper(substr($operation?->period?->name ?? 'SQA', 0, 3)) }}</span>
+        @if(! $activity?->period?->ico && ! $activity?->platform?->image)
+            <span aria-hidden="true">{{ strtoupper(substr($activity?->period?->name ?? 'SQA', 0, 3)) }}</span>
         @endif
     </div>
 
@@ -101,7 +101,7 @@
         <div class="event-card__topline">
 
             <span class="event-card__type">
-                {{ $operation?->operationType?->name ?? 'Sin tipo' }}
+                {{ $activity?->activityType?->name ?? 'Sin tipo' }}
             </span>
 
             <span @class([
@@ -121,7 +121,7 @@
 
             @if(
                 $event->eventStatus?->name === 'FINALIZADO'
-                && ($operation?->operationType?->supportsOcap() ?? false)
+                && ($activity?->activityType?->supportsOcap() ?? false)
                 && filled($event->ocap_url)
             )
                 <a
@@ -130,7 +130,7 @@
                     rel="noopener noreferrer"
                     class="event-card__ocap-link"
                     title="Abrir OCAP"
-                    aria-label="Abrir OCAP de {{ $event->name ?: $operation?->name }}"
+                    aria-label="Abrir OCAP de {{ $event->name ?: $activity?->name }}"
                 >
                     OCAP ↗
                 </a>
@@ -141,10 +141,10 @@
         <div class="event-card__title-row">
             <h3>
                 @if($isCancelled)
-                    <span>{{ $event->name ?: $operation?->name }}</span>
+                    <span>{{ $event->name ?: $activity?->name }}</span>
                 @else
                     <a href="{{ route('events.show', $event) }}">
-                        {{ $event->name ?: $operation?->name }}
+                        {{ $event->name ?: $activity?->name }}
                     </a>
                 @endif
             </h3>
@@ -155,31 +155,31 @@
         </div>
 
         <dl class="event-card__facts">
-            @if($operation?->period)
+            @if($activity?->period)
                 <div>
                     <dt>Periodo</dt>
-                    <dd>{{ $operation->period->name }}</dd>
+                    <dd>{{ $activity->period->name }}</dd>
                 </div>
             @endif
 
-            @if($operation?->map)
+            @if($activity?->map)
                 <div>
                     <dt>Mapa</dt>
                     <dd>
-                        <a href="{{ route('maps.show', $operation->map) }}" class="event-card__fact-link">
-                            {{ $operation->map->name }}
+                        <a href="{{ route('maps.show', $activity->map) }}" class="event-card__fact-link">
+                            {{ $activity->map->name }}
                         </a>
                     </dd>
                 </div>
             @endif
 
-            @if($operation?->platform)
+            @if($activity?->platform)
                 <div>
                     <dt>Plataforma</dt>
                     <dd class="event-card__fact-with-icon">
-                        @if($operation->platform->image)
+                        @if($activity->platform->image)
                             <img
-                                src="{{ asset('storage/' . $operation->platform->image) }}"
+                                src="{{ asset('storage/' . $activity->platform->image) }}"
                                 alt=""
                                 loading="lazy"
                                 width="20"
@@ -187,7 +187,7 @@
                                 style="width:20px;height:20px;max-width:20px;max-height:20px;object-fit:contain;"
                             >
                         @endif
-                        <span>{{ $operation->platform->name }}</span>
+                        <span>{{ $activity->platform->name }}</span>
                     </dd>
                 </div>
             @endif
@@ -199,19 +199,19 @@
                 </div>
             @endif
 
-            @if(($operation?->operationType?->usesEventResult() ?? true) && $event->eventResult)
+            @if(($activity?->activityType?->usesEventResult() ?? true) && $event->eventResult)
                 <div>
                     <dt>Resultado</dt>
                     <dd>{{ $event->eventResult->name }}</dd>
                 </div>
             @endif
 
-            @if($operation?->campaign)
+            @if($activity?->campaign)
                 <div>
                     <dt>Campaña</dt>
                     <dd>
-                        <a href="{{ route('campaigns.show', $operation->campaign) }}" class="event-card__campaign-link">
-                            {{ $operation->campaign->name }}
+                        <a href="{{ route('campaigns.show', $activity->campaign) }}" class="event-card__campaign-link">
+                            {{ $activity->campaign->name }}
                         </a>
                     </dd>
                 </div>

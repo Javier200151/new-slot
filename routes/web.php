@@ -222,7 +222,7 @@ Route::get(
 )->name('activities.index');
 
 Route::get(
-    '/actividades/{operation}',
+    '/actividades/{activity}',
     [PublicActivityController::class, 'show']
 )->name('activities.show');
 
@@ -243,7 +243,7 @@ Route::get('/operativos', function () {
 Route::get('/operativos/{operation}', function (string $operation) {
     return redirect()->route(
         'activities.show',
-        ['operation' => $operation],
+        ['activity' => $operation],
         301,
     );
 })->name('operations.show');

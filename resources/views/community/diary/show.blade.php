@@ -78,7 +78,7 @@
                 @csrf
 
                 <div class="forum-field">
-                    <label for="diary-event-id">Evento / operativo en el que participaste</label>
+                    <label for="diary-event-id">Evento / actividad en el que participaste</label>
                     <select id="diary-event-id" name="event_id" required>
                         <option value="">Selecciona un evento…</option>
                         @foreach($missingEvents as $event)
@@ -135,8 +135,8 @@
                             @if($entry->event?->activity?->name)
                                 · {{ $entry->event->activity->name }}
                             @endif
-                            @if($entry->event?->activity?->operationType?->name)
-                                · {{ $entry->event->activity->operationType->name }}
+                            @if($entry->event?->activity?->activityType?->name)
+                                · {{ $entry->event->activity->activityType->name }}
                             @endif
                         </small>
                     </div>

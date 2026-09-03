@@ -7,13 +7,13 @@
     'Listado de actividades de Squad ALPHA.'
 )
 
-@section('body-class', 'operations-body')
+@section('body-class', 'activities-body')
 
 @push('styles')
     <link
         rel="stylesheet"
-        href="{{ asset('css/operations.css') }}?v={{
-            filemtime(public_path('css/operations.css'))
+        href="{{ asset('css/activities.css') }}?v={{
+            filemtime(public_path('css/activities.css'))
         }}"
     >
 @endpush
@@ -21,14 +21,14 @@
 
 @section('content')
 
-    <section class="operations-hero">
+    <section class="activities-hero">
         <div class="container">
 
-            <span class="operations-kicker">
+            <span class="activities-kicker">
                 Archivo de actividades
             </span>
 
-            <div class="operations-hero__row">
+            <div class="activities-hero__row">
 
                 <div>
                     <h1>Actividades</h1>
@@ -39,14 +39,14 @@
                 </div>
 
                 <div
-                    class="operations-view-switcher"
+                    class="activities-view-switcher"
                     role="group"
                     aria-label="Vista del listado"
                 >
                     <button
                         type="button"
-                        class="operations-view-button is-active"
-                        data-operation-view="grid"
+                        class="activities-view-button is-active"
+                        data-activity-view="grid"
                         aria-pressed="true"
                         title="Vista en cuadrícula"
                     >
@@ -59,8 +59,8 @@
 
                     <button
                         type="button"
-                        class="operations-view-button"
-                        data-operation-view="list"
+                        class="activities-view-button"
+                        data-activity-view="list"
                         aria-pressed="false"
                         title="Vista en lista"
                     >
@@ -83,7 +83,7 @@
     ====================================================== --}}
 
     <section
-        class="operations-filters-section"
+        class="activities-filters-section"
         aria-label="Filtros de actividades"
     >
         <div class="container">
@@ -109,8 +109,8 @@
             <form
                 method="GET"
                 action="{{ route('activities.index') }}"
-                class="operations-filters {{ $hasAdvancedFilters ? 'is-expanded' : '' }}"
-                data-operations-filters
+                class="activities-filters {{ $hasAdvancedFilters ? 'is-expanded' : '' }}"
+                data-activities-filters
                 data-has-advanced-filters="{{ $hasAdvancedFilters ? '1' : '0' }}"
             >
                 {{-- Vista actual, para no perder cuadrícula/lista --}}
@@ -118,16 +118,16 @@
                     <input type="hidden" name="view" value="{{ request('view') }}">
                 @endif
 
-                <div class="operations-filters-basic">
+                <div class="activities-filters-basic">
 
-                    <div class="operations-filter-field operations-filter-field--search">
+                    <div class="activities-filter-field activities-filter-field--search">
 
-                        <label for="operations-search">
+                        <label for="activities-search">
                             Buscar
                         </label>
 
                         <input
-                            id="operations-search"
+                            id="activities-search"
                             type="search"
                             name="q"
                             value="{{ $search }}"
@@ -137,9 +137,9 @@
 
                     </div>
 
-                    <div class="operations-filter-field operations-filter-field--sort">
-                        <label for="operations-sort">Ordenar</label>
-                        <select id="operations-sort" name="sort">
+                    <div class="activities-filter-field activities-filter-field--sort">
+                        <label for="activities-sort">Ordenar</label>
+                        <select id="activities-sort" name="sort">
                             <option value="published_desc" @selected($selectedSort === 'published_desc')>Últimos publicados</option>
                             <option value="published_asc" @selected($selectedSort === 'published_asc')>Primeros publicados</option>
                             <option value="name_asc" @selected($selectedSort === 'name_asc')>Nombre A–Z</option>
@@ -149,19 +149,19 @@
 
                     <button
                         type="button"
-                        class="operations-filters-toggle"
-                        data-operations-filters-toggle
+                        class="activities-filters-toggle"
+                        data-activities-filters-toggle
                         aria-expanded="{{ $hasAdvancedFilters ? 'true' : 'false' }}"
-                        aria-controls="operations-advanced-filters"
+                        aria-controls="activities-advanced-filters"
                     >
                         <span
-                            class="operations-filters-toggle__icon"
+                            class="activities-filters-toggle__icon"
                             aria-hidden="true"
                         >
                             ⚙
                         </span>
 
-                        <span data-operations-filters-toggle-label>
+                        <span data-activities-filters-toggle-label>
                             {{
                                 $hasAdvancedFilters
                                     ? 'Ocultar filtros'
@@ -172,7 +172,7 @@
 
                     <button
                         type="submit"
-                        class="operations-filter-submit operations-filter-submit--basic"
+                        class="activities-filter-submit activities-filter-submit--basic"
                     >
                         Filtrar
                     </button>
@@ -180,15 +180,15 @@
                 </div>
 
                 <div
-                    id="operations-advanced-filters"
-                    class="operations-filters-advanced"
-                    data-operations-filters-advanced
+                    id="activities-advanced-filters"
+                    class="activities-filters-advanced"
+                    data-activities-filters-advanced
                     @if(! $hasAdvancedFilters)
                         hidden
                     @endif
                 >
                     {{-- PLATAFORMA --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="platform">Plataforma</label>
                         <select id="platform" name="platform">
                             <option value="">Todas las plataformas</option>
@@ -204,7 +204,7 @@
                     </div>
 
                     {{-- EDITOR --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="editor">Editor</label>
                         <select id="editor" name="editor">
                             <option value="">Todos los editores</option>
@@ -220,11 +220,11 @@
                     </div>
 
                     {{-- TIPO --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="type">Tipo</label>
                         <select id="type" name="type">
                             <option value="">Todos los tipos</option>
-                            @foreach($operationTypes as $type)
+                            @foreach($activityTypes as $type)
                                 <option
                                     value="{{ $type->id }}"
                                     @selected((string) request('type') === (string) $type->id)
@@ -236,11 +236,11 @@
                     </div>
 
                     {{-- ESTADO --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="status">Estado</label>
                         <select id="status" name="status">
                             <option value="">Todos los estados</option>
-                            @foreach($operationStatuses as $status)
+                            @foreach($activityStatuses as $status)
                                 <option
                                     value="{{ $status->id }}"
                                     @selected((string) request('status') === (string) $status->id)
@@ -252,7 +252,7 @@
                     </div>
 
                     {{-- MAPA --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="map">Mapa</label>
                         <select id="map" name="map">
                             <option value="">Todos los mapas</option>
@@ -270,7 +270,7 @@
                     </div>
 
                     {{-- PERIODO --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="period">Periodo</label>
                         <select id="period" name="period">
                             <option value="">Todos los periodos</option>
@@ -288,7 +288,7 @@
                     </div>
 
                     {{-- CAMPAÑA --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="campaign">Campaña</label>
                         <select id="campaign" name="campaign">
                             <option value="">Todas las campañas</option>
@@ -306,7 +306,7 @@
                     </div>
 
                     {{-- FACCIÓN ENEMIGA --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="faction">Facción enemiga</label>
                         <select id="faction" name="faction">
                             <option value="">Todas las facciones</option>
@@ -323,21 +323,21 @@
                         </select>
                     </div>
 
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
 
-                        <label for="operations-day">
+                        <label for="activities-day">
                             Día de la semana
                         </label>
 
                         <select
-                            id="operations-day"
+                            id="activities-day"
                             name="day"
                         >
                             <option value="">
                                 Todos los días
                             </option>
 
-                            @foreach($operationDays as $day)
+                            @foreach($activityDays as $day)
                                 <option
                                     value="{{ $day->id }}"
                                     @selected(
@@ -352,14 +352,14 @@
                     </div>
 
                     {{-- AMBIENTACIÓN --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
 
-                        <label for="operations-day-night">
+                        <label for="activities-day-night">
                             Ambientación
                         </label>
 
                         <select
-                            id="operations-day-night"
+                            id="activities-day-night"
                             name="day_or_night"
                         >
                             <option value="">
@@ -397,10 +397,10 @@
                     </div>
 
                     {{-- OCAP --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="ocap">OCAP</label>
                         <select
-                            id="operations-ocap"
+                            id="activities-ocap"
                             name="ocap"
                         >
                             <option value="">Cualquiera</option>
@@ -422,10 +422,10 @@
                     </div>
 
                     {{-- RESPAWN --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="respawn">Respawn</label>
                         <select
-                            id="operations-respawn"
+                            id="activities-respawn"
                             name="respawn"
                         >
                             <option value="">Cualquiera</option>
@@ -447,10 +447,10 @@
                     </div>
 
                     {{-- JIP --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
                         <label for="jip">JIP</label>
                         <select
-                            id="operations-jip"
+                            id="activities-jip"
                             name="jip"
                         >
                             <option value="">Cualquiera</option>
@@ -472,10 +472,10 @@
                     </div>
 
                     {{-- MULTICLANES --}}
-                    <div class="operations-filter-field">
-                        <label for="operations-multiclans">Multiclanes</label>
+                    <div class="activities-filter-field">
+                        <label for="activities-multiclans">Multiclanes</label>
                         <select
-                            id="operations-multiclans"
+                            id="activities-multiclans"
                             name="multiclans"
                         >
                             <option value="">Cualquiera</option>
@@ -497,14 +497,14 @@
                     </div>
 
                     {{-- DESDE --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
 
-                        <label for="operations-date-from">
+                        <label for="activities-date-from">
                             Desde
                         </label>
 
                         <input
-                            id="operations-date-from"
+                            id="activities-date-from"
                             type="date"
                             name="date_from"
                             value="{{ $selectedDateFrom }}"
@@ -513,14 +513,14 @@
                     </div>
 
                     {{-- HASTA --}}
-                    <div class="operations-filter-field">
+                    <div class="activities-filter-field">
 
-                        <label for="operations-date-to">
+                        <label for="activities-date-to">
                             Hasta
                         </label>
 
                         <input
-                            id="operations-date-to"
+                            id="activities-date-to"
                             type="date"
                             name="date_to"
                             value="{{ $selectedDateTo }}"
@@ -528,17 +528,17 @@
 
                     </div>
 
-                    <div class="operations-filter-actions operations-filter-actions--advanced">
+                    <div class="activities-filter-actions activities-filter-actions--advanced">
                         <button
                             type="submit"
-                            class="operations-filter-submit"
+                            class="activities-filter-submit"
                         >
                             Filtrar
                         </button>
 
                         <a
                             href="{{ route('activities.index', array_filter(['view' => request('view')])) }}"
-                            class="operations-filter-clear"
+                            class="activities-filter-clear"
                         >
                             Limpiar
                         </a>
@@ -555,19 +555,19 @@
     ====================================================== --}}
 
     <section
-        class="operations-list-section"
-        aria-labelledby="operations-list-title"
+        class="activities-list-section"
+        aria-labelledby="activities-list-title"
     >
         <div class="container">
 
             @php
-                $campaignCount = $operationItems
+                $campaignCount = $activityItems
                     ->where('type', 'campaign')
                     ->count();
             @endphp
 
 
-            <header class="operations-list-header">
+            <header class="activities-list-header">
 
                 <div>
 
@@ -580,12 +580,12 @@
                     </span>
 
 
-                    <h2 id="operations-list-title">
+                    <h2 id="activities-list-title">
 
-                        {{ $operations->count() }}
+                        {{ $activities->count() }}
 
                         {{
-                            $operations->count() === 1
+                            $activities->count() === 1
                                 ? 'actividad'
                                 : 'actividades'
                         }}
@@ -593,7 +593,7 @@
 
                         @if($campaignCount > 0)
 
-                            <small class="operations-list-header__campaigns">
+                            <small class="activities-list-header__campaigns">
 
                                 · {{ $campaignCount }}
 
@@ -614,9 +614,9 @@
             </header>
 
 
-            @if($operations->isEmpty())
+            @if($activities->isEmpty())
 
-                <div class="operations-empty">
+                <div class="activities-empty">
 
                     @if($hasFilters)
 
@@ -630,7 +630,7 @@
 
                         <a
                             href="{{ route('activities.index') }}"
-                            class="operations-empty__reset"
+                            class="activities-empty__reset"
                         >
                             Quitar filtros
                         </a>
@@ -652,11 +652,11 @@
             @else
 
                 <div
-                    class="operations-catalog is-grid"
-                    data-operations-catalog
+                    class="activities-catalog is-grid"
+                    data-activities-catalog
                 >
 
-                    @foreach($operationItems as $item)
+                    @foreach($activityItems as $item)
 
                         @php
                             $isCampaign =
@@ -667,21 +667,21 @@
                                     ? $item['campaign']
                                     : null;
 
-                            $operationsToRender =
+                            $activitiesToRender =
                                 $isCampaign
-                                    ? $operations
+                                    ? $activities
                                         ->where(
                                             'campaign_id',
                                             $campaign->id
                                         )
                                         ->values()
                                     : collect([
-                                        $item['operation'],
+                                        $item['activity'],
                                     ]);
 
-                            $campaignOperationsCount =
+                            $campaignActivitiesCount =
                                 $isCampaign
-                                    ? $operationsToRender->count()
+                                    ? $activitiesToRender->count()
                                     : 0;
                         @endphp
 
@@ -694,12 +694,12 @@
                             @php
                             /*
                             * La imagen de la campaña se obtiene
-                            * automáticamente del primer operativo.
+                            * automáticamente del primera actividad.
                             */
 
-                            $campaignFirstOperation =
+                            $campaignFirstActivity =
                                 $campaign
-                                    ->operations
+                                    ->activities
                                     ->first();
 
 
@@ -707,39 +707,39 @@
 
 
                             if (
-                                $campaignFirstOperation
+                                $campaignFirstActivity
                                 && filled(
-                                    $campaignFirstOperation->image
+                                    $campaignFirstActivity->image
                                 )
                             ) {
                                 $campaignThumbnail = asset(
                                     'storage/'
-                                    . $campaignFirstOperation->image
+                                    . $campaignFirstActivity->image
                                 );
                             } elseif (
-                                $campaignFirstOperation
+                                $campaignFirstActivity
                                 && filled(
-                                    $campaignFirstOperation
+                                    $campaignFirstActivity
                                         ->map
                                         ?->image
                                 )
                             ) {
                                 /*
                                 * Igual que en las tarjetas normales:
-                                * si el operativo no tiene imagen propia,
+                                * si el actividad no tiene imagen propia,
                                 * usamos la imagen del mapa.
                                 */
 
                                 $campaignThumbnail = asset(
                                     'storage/'
-                                    . $campaignFirstOperation
+                                    . $campaignFirstActivity
                                         ->map
                                         ->image
                                 );
                             }
                         @endphp
                             <div
-                                class="operation-campaign-card"
+                                class="activity-campaign-card"
                                 role="button"
                                 tabindex="0"
 
@@ -749,7 +749,7 @@
                                 aria-expanded="false"
                                 
                             >
-                                <div class="operation-campaign-card__media">
+                                <div class="activity-campaign-card__media">
 
                                     @if($campaignThumbnail)
 
@@ -762,7 +762,7 @@
                                     @else
 
                                         <div
-                                            class="operation-campaign-card__placeholder"
+                                            class="activity-campaign-card__placeholder"
                                         >
 
                                             <img
@@ -778,23 +778,23 @@
 
 
                                     <div
-                                        class="operation-campaign-card__media-overlay"
+                                        class="activity-campaign-card__media-overlay"
                                         aria-hidden="true"
                                     ></div>
 
 
                                     <span
-                                        class="operation-campaign-card__media-badge"
+                                        class="activity-campaign-card__media-badge"
                                     >
                                         Campaña
                                     </span>
 
                                 </div>
-                                    <div class="operation-campaign-card__main">
+                                    <div class="activity-campaign-card__main">
 
 
                                         <h3
-                                            class="operation-campaign-card__title"
+                                            class="activity-campaign-card__title"
                                         >
                                             {{ $campaign->name }}
                                         </h3>
@@ -803,7 +803,7 @@
                                         @if(filled($campaign->description))
 
                                             <div
-                                                class="operation-campaign-card__description"
+                                                class="activity-campaign-card__description"
                                             >
                                                 {!! nl2br(
                                                     e(
@@ -817,7 +817,7 @@
                                         @else
 
                                             <p
-                                                class="operation-campaign-card__description operation-campaign-card__description--empty"
+                                                class="activity-campaign-card__description activity-campaign-card__description--empty"
                                             >
                                                 Sin descripción.
                                             </p>
@@ -828,23 +828,23 @@
 
 
                                     <div
-                                        class="operation-campaign-card__aside"
+                                        class="activity-campaign-card__aside"
                                     >
 
                                         <div
-                                            class="operation-campaign-card__meta"
+                                            class="activity-campaign-card__meta"
                                         >
 
                                             <span
                                                 @class([
-                                                    'operation-campaign-card__persistent',
+                                                    'activity-campaign-card__persistent',
                                                     'is-persistent' =>
                                                         $campaign->persistent,
                                                 ])
                                             >
 
                                                 <span
-                                                    class="operation-campaign-card__persistent-dot"
+                                                    class="activity-campaign-card__persistent-dot"
                                                     aria-hidden="true"
                                                 ></span>
 
@@ -858,12 +858,12 @@
 
 
                                             <span
-                                                class="operation-campaign-card__count"
+                                                class="activity-campaign-card__count"
                                             >
-                                                {{ $campaignOperationsCount }}
+                                                {{ $campaignActivitiesCount }}
 
                                                 {{
-                                                    $campaignOperationsCount === 1
+                                                    $campaignActivitiesCount === 1
                                                         ? 'actividad'
                                                         : 'actividades'
                                                 }}
@@ -873,11 +873,11 @@
 
 
                                         <span
-                                            class="operation-campaign-card__toggle"
+                                            class="activity-campaign-card__toggle"
                                             aria-hidden="true"
                                         >
                                             <span
-                                                class="operation-campaign-card__toggle-icon"
+                                                class="activity-campaign-card__toggle-icon"
                                             >
                                                 ↓
                                             </span>
@@ -892,31 +892,31 @@
 
 
                         {{-- ==========================================
-                            OPERATIVOS
+                            ACTIVIDADES
                         =========================================== --}}
 
-                        @foreach($operationsToRender as $operation)
+                        @foreach($activitiesToRender as $activity)
 
                             @php
                                 $thumbnail = null;
 
-                                if (filled($operation->image)) {
+                                if (filled($activity->image)) {
                                     $thumbnail = asset(
-                                        'storage/' . $operation->image
+                                        'storage/' . $activity->image
                                     );
                                 } elseif (
                                     filled(
-                                        $operation->map?->image
+                                        $activity->map?->image
                                     )
                                 ) {
                                     $thumbnail = asset(
-                                        'storage/' . $operation->map->image
+                                        'storage/' . $activity->map->image
                                     );
                                 }
 
-                                $operationColor =
-                                    $operation
-                                        ->operationType
+                                $activityColor =
+                                    $activity
+                                        ->activityType
                                         ?->color
                                     ?: '#f59e0b';
                             @endphp
@@ -924,9 +924,9 @@
 
                             <div
                                 @class([
-                                    'operation-card-wrapper',
+                                    'activity-card-wrapper',
 
-                                    'operation-card-wrapper--campaign' =>
+                                    'activity-card-wrapper--campaign' =>
                                         $isCampaign,
                                 ])
 
@@ -939,7 +939,7 @@
                                 @if($isCampaign)
 
                                     <span
-                                        class="operation-card-connector"
+                                        class="activity-card-connector"
                                         aria-hidden="true"
                                     ></span>
 
@@ -948,42 +948,42 @@
 
                                 <article
                                     @class([
-                                        'operation-card',
-                                        'operation-card--campaign-child' =>
+                                        'activity-card',
+                                        'activity-card--campaign-child' =>
                                             $isCampaign,
                                     ])
                                     style="
-                                        --operation-color:
-                                        {{ $operationColor }};
+                                        --activity-color:
+                                        {{ $activityColor }};
                                     "
                                 >
 
                                     <a
                                         href="{{ route(
                                             'activities.show',
-                                            $operation
+                                            $activity
                                         ) }}"
-                                        class="operation-card__link"
-                                        aria-label="Ver actividad {{ $operation->name }}"
+                                        class="activity-card__link"
+                                        aria-label="Ver actividad {{ $activity->name }}"
                                     ></a>
 
 
                                     <div
-                                        class="operation-card__media"
+                                        class="activity-card__media"
                                     >
 
                                         @if($thumbnail)
 
                                             <img
                                                 src="{{ $thumbnail }}"
-                                                alt="{{ $operation->name }}"
+                                                alt="{{ $activity->name }}"
                                                 loading="lazy"
                                             >
 
                                         @else
 
                                             <div
-                                                class="operation-card__placeholder"
+                                                class="activity-card__placeholder"
                                             >
 
                                                 <img
@@ -999,18 +999,18 @@
 
 
                                         <div
-                                            class="operation-card__media-overlay"
+                                            class="activity-card__media-overlay"
                                         ></div>
 
 
-                                        @if($operation->operationType)
+                                        @if($activity->activityType)
 
                                             <span
-                                                class="operation-card__type"
+                                                class="activity-card__type"
                                             >
                                                 {{
-                                                    $operation
-                                                        ->operationType
+                                                    $activity
+                                                        ->activityType
                                                         ->name
                                                 }}
                                             </span>
@@ -1018,18 +1018,18 @@
                                         @endif
 
 
-                                        @if($operation->operationStatus)
+                                        @if($activity->activityStatus)
 
                                             <span
-                                                class="operation-card__status"
+                                                class="activity-card__status"
                                                 @style([
-                                                    '--status-color: ' . $operation->operationStatus?->color
-                                                        => filled($operation->operationStatus?->color),
+                                                    '--status-color: ' . $activity->activityStatus?->color
+                                                        => filled($activity->activityStatus?->color),
                                                 ])
                                             >
                                                 {{
-                                                    $operation
-                                                        ->operationStatus
+                                                    $activity
+                                                        ->activityStatus
                                                         ->name
                                                 }}
                                             </span>
@@ -1040,23 +1040,23 @@
 
 
                                     <div
-                                        class="operation-card__body"
+                                        class="activity-card__body"
                                     >
 
                                         <div
-                                            class="operation-card__heading"
+                                            class="activity-card__heading"
                                         >
 
                                             <div>
 
                                                 <h3>
-                                                    {{ $operation->name }}
+                                                    {{ $activity->name }}
                                                 </h3>
 
 
                                                 {{--
                                                     Solo mostramos el badge
-                                                    de campaña si el operativo
+                                                    de campaña si el actividad
                                                     estuviera fuera de un grupo.
 
                                                     Dentro del desplegable sería
@@ -1065,24 +1065,24 @@
 
                                                 @if(
                                                     ! $isCampaign
-                                                    && $operation->campaign
+                                                    && $activity->campaign
                                                 )
 
                                                     <div
-                                                        class="operation-card__campaign"
+                                                        class="activity-card__campaign"
                                                     >
 
                                                         <span
-                                                            class="operation-card__campaign-badge"
+                                                            class="activity-card__campaign-badge"
                                                         >
                                                             Campaña
                                                         </span>
 
                                                         <span
-                                                            class="operation-card__campaign-name"
+                                                            class="activity-card__campaign-name"
                                                         >
                                                             {{
-                                                                $operation
+                                                                $activity
                                                                     ->campaign
                                                                     ->name
                                                             }}
@@ -1096,7 +1096,7 @@
 
 
                                             <span
-                                                class="operation-card__arrow"
+                                                class="activity-card__arrow"
                                                 aria-hidden="true"
                                             >
                                                 →
@@ -1106,12 +1106,12 @@
 
 
                                         <dl
-                                            class="operation-card__facts"
+                                            class="activity-card__facts"
                                         >
 
                                             {{-- Plataforma --}}
 
-                                            @if($operation->platform)
+                                            @if($activity->platform)
 
                                                 <div>
 
@@ -1122,7 +1122,7 @@
                                                     <dd>
 
                                                         @if(
-                                                            $operation
+                                                            $activity
                                                                 ->platform
                                                                 ->image
                                                         )
@@ -1130,7 +1130,7 @@
                                                             <img
                                                                 src="{{ asset(
                                                                     'storage/'
-                                                                    . $operation
+                                                                    . $activity
                                                                         ->platform
                                                                         ->image
                                                                 ) }}"
@@ -1143,7 +1143,7 @@
 
                                                         <span>
                                                             {{
-                                                                $operation
+                                                                $activity
                                                                     ->platform
                                                                     ->name
                                                             }}
@@ -1158,7 +1158,7 @@
 
                                             {{-- Mapa --}}
 
-                                            @if($operation->map)
+                                            @if($activity->map)
 
                                                 <div>
 
@@ -1171,13 +1171,13 @@
                                                         <a
                                                             href="{{ route(
                                                                 'maps.show',
-                                                                $operation->map
+                                                                $activity->map
                                                             ) }}"
-                                                            class="operation-card__fact-link"
-                                                            title="Ver mapa {{ $operation->map->name }}"
+                                                            class="activity-card__fact-link"
+                                                            title="Ver mapa {{ $activity->map->name }}"
                                                         >
                                                             {{
-                                                                $operation
+                                                                $activity
                                                                     ->map
                                                                     ->name
                                                             }}
@@ -1192,7 +1192,7 @@
 
                                             {{-- Periodo --}}
 
-                                            @if($operation->period)
+                                            @if($activity->period)
 
                                                 <div>
 
@@ -1203,7 +1203,7 @@
                                                     <dd>
 
                                                         @if(
-                                                            $operation
+                                                            $activity
                                                                 ->period
                                                                 ->ico
                                                         )
@@ -1211,7 +1211,7 @@
                                                             <img
                                                                 src="{{ asset(
                                                                     'storage/'
-                                                                    . $operation
+                                                                    . $activity
                                                                         ->period
                                                                         ->ico
                                                                 ) }}"
@@ -1224,7 +1224,7 @@
 
                                                         <span>
                                                             {{
-                                                                $operation
+                                                                $activity
                                                                     ->period
                                                                     ->name
                                                             }}
@@ -1239,7 +1239,7 @@
 
                                             {{-- Editor --}}
 
-                                            @if($operation->editor || $operation->editorAlly)
+                                            @if($activity->editor || $activity->editorAlly)
 
                                                 <div>
 
@@ -1249,27 +1249,27 @@
 
                                                     <dd>
 
-                                                        @if($operation->editor)
+                                                        @if($activity->editor)
                                                             <a
                                                                 href="{{ route(
                                                                     'users.show',
-                                                                    $operation->editor
+                                                                    $activity->editor
                                                                 ) }}"
-                                                                class="operation-card__editor"
+                                                                class="activity-card__editor"
                                                                 style="
                                                                     --member-group-color:
                                                                     {{
-                                                                        $operation
+                                                                        $activity
                                                                             ->editor
                                                                             ->getFrontendColor()
                                                                     }};
                                                                 "
                                                             >
-                                                                {{ $operation->editor->nick }}
+                                                                {{ $activity->editor->nick }}
                                                             </a>
                                                         @else
-                                                            <span class="operation-card__editor">
-                                                                {{ $operation->editorAlly->name }}
+                                                            <span class="activity-card__editor">
+                                                                {{ $activity->editorAlly->name }}
                                                             </span>
                                                         @endif
 
@@ -1283,21 +1283,21 @@
 
 
                                         @if(
-                                            ($operation->operationType?->supportsOcap() ?? false)
-                                            || ($operation->operationType?->supportsRespawn() ?? false)
-                                            || ($operation->operationType?->supportsJip() ?? false)
+                                            ($activity->activityType?->supportsOcap() ?? false)
+                                            || ($activity->activityType?->supportsRespawn() ?? false)
+                                            || ($activity->activityType?->supportsJip() ?? false)
                                         )
-                                            <div class="operation-card__options">
-                                                @if($operation->operationType?->supportsOcap())
-                                                    <span @class(['is-enabled' => $operation->ocap])>OCAP</span>
+                                            <div class="activity-card__options">
+                                                @if($activity->activityType?->supportsOcap())
+                                                    <span @class(['is-enabled' => $activity->ocap])>OCAP</span>
                                                 @endif
 
-                                                @if($operation->operationType?->supportsRespawn())
-                                                    <span @class(['is-enabled' => $operation->respawn])>Respawn</span>
+                                                @if($activity->activityType?->supportsRespawn())
+                                                    <span @class(['is-enabled' => $activity->respawn])>Respawn</span>
                                                 @endif
 
-                                                @if($operation->operationType?->supportsJip())
-                                                    <span @class(['is-enabled' => $operation->jip])>JIP</span>
+                                                @if($activity->activityType?->supportsJip())
+                                                    <span @class(['is-enabled' => $activity->jip])>JIP</span>
                                                 @endif
                                             </div>
                                         @endif
@@ -1324,8 +1324,8 @@
 
 @push('scripts')
     <script
-        src="{{ asset('js/operations.js') }}?v={{
-            filemtime(public_path('js/operations.js'))
+        src="{{ asset('js/activities.js') }}?v={{
+            filemtime(public_path('js/activities.js'))
         }}"
         defer
     ></script>

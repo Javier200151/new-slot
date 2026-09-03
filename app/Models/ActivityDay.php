@@ -8,13 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Día canónico asociado a actividades.
  *
- * Durante la transición mantiene la tabla/pivote históricos.
+ * Usa la tabla física canónica `activity_days` y el pivote `activity_day_assignments`.
  */
 class ActivityDay extends Model
 {
     use Auditable;
 
-    protected $table = 'operation_day';
+    protected $table = 'activity_days';
 
     public $timestamps = false;
 
@@ -26,15 +26,10 @@ class ActivityDay extends Model
     {
         return $this->belongsToMany(
             Activity::class,
-            'operation_operation_day',
-            'operation_day_id',
-            'operation_id'
+            'activity_day_assignments',
+            'activity_day_id',
+            'activity_id'
         );
     }
 
-    /** Alias histórico durante la transición. */
-    public function operations()
-    {
-        return $this->activities();
-    }
 }

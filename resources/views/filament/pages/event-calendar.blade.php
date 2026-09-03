@@ -81,7 +81,7 @@
                                     <a
                                         class="admin-calendar__event"
                                         href="{{ route('events.show', $event) }}"
-                                        style="--event-color: {{ $event->activity?->operationType?->color ?: '#f59e0b' }}"
+                                        style="--event-color: {{ $event->activity?->activityType?->color ?: '#f59e0b' }}"
                                         target="_blank"
                                     >
                                         <small>{{ $status }}</small>

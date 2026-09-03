@@ -6,19 +6,20 @@ use App\Models\Concerns\Auditable;
 use App\Support\PermissionCatalog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Tipo canónico de actividad.
  *
- * Durante la transición sigue apuntando físicamente a la tabla histórica
- * `operations_type`. El rename de la tabla se hará en una migración posterior.
+ * Usa la tabla física canónica `activity_types`.
  */
 class ActivityType extends Model
 {
     use Auditable;
 
-    protected $table = 'operations_type';
+    protected $table = 'activity_types';
 
     public $timestamps = false;
 
@@ -85,14 +86,9 @@ class ActivityType extends Model
 
     public function activities()
     {
-        return $this->hasMany(Activity::class, 'operation_type_id');
+        return $this->hasMany(Activity::class, 'activity_type_id');
     }
 
-    /** Alias histórico durante la transición. */
-    public function operations()
-    {
-        return $this->activities();
-    }
 
     public function usesEnemyFactions(): bool
     {

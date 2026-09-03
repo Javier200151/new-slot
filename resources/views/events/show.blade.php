@@ -32,7 +32,7 @@
     <article
         class="event-detail"
         @style([
-            '--event-color: ' . ($activity->operationType?->color ?? '') => filled($activity->operationType?->color),
+            '--event-color: ' . ($activity->activityType?->color ?? '') => filled($activity->activityType?->color),
         ])
     >
         <div class="container event-detail__container">
@@ -116,7 +116,7 @@
                     <div class="event-detail__eyebrow">
 
                         <span>
-                            {{ $activity->operationType?->name ?? 'Evento' }}
+                            {{ $activity->activityType?->name ?? 'Evento' }}
                         </span>
 
                         <span
@@ -194,7 +194,7 @@
                     </nav>
 
                     {{-- @if($event->name && $event->name !== $activity->name)
-                        <p class="event-detail__operation-name">{{ $activity->name }}</p>
+                        <p class="event-detail__activity-name">{{ $activity->name }}</p>
                     @endif --}}
 
 
@@ -227,13 +227,13 @@
                 @endif
 
                 @foreach([
-                    // ['Tipo', $activity->operationType?->name],
+                    // ['Tipo', $activity->activityType?->name],
                     // ['Estado del evento', $event->eventStatus?->name],
                     ['Periodo', $activity->period?->name],
                     ['Mapa', $activity->map?->name],
                     ['Ambientación', $dayOrNight],
                     ['Duración', $event->duration ? $event->duration . ' min' : null],
-                    ['Resultado', ($activity->operationType?->usesEventResult() ?? true) ? $event->eventResult?->name : null],
+                    ['Resultado', ($activity->activityType?->usesEventResult() ?? true) ? $event->eventResult?->name : null],
                     ['Editor', $activity->editor_display_name],
                 ] as [$label, $value])
                     @if(filled($value))
@@ -252,7 +252,7 @@
                 @endforeach
 
                 @if(
-                    ($activity->operationType?->usesEnemyFactions() ?? true)
+                    ($activity->activityType?->usesEnemyFactions() ?? true)
                     && $activity->enemyFactions->isNotEmpty()
                 )
                     <div>
@@ -275,9 +275,9 @@
 
             @if(
                 $event->multiclans
-                || ($activity->operationType?->supportsOcap() ?? false)
-                || ($activity->operationType?->supportsRespawn() ?? false)
-                || ($activity->operationType?->supportsJip() ?? false)
+                || ($activity->activityType?->supportsOcap() ?? false)
+                || ($activity->activityType?->supportsRespawn() ?? false)
+                || ($activity->activityType?->supportsJip() ?? false)
             )
                 <section class="event-detail__options" aria-label="Opciones de la actividad">
 
@@ -287,7 +287,7 @@
                         </span>
                     @endif
 
-                    @if($activity->operationType?->supportsOcap())
+                    @if($activity->activityType?->supportsOcap())
                         @if(
                             $event->eventStatus?->name === 'FINALIZADO'
                             && filled($event->ocap_url)
@@ -308,18 +308,18 @@
                         @endif
                     @endif
 
-                    @if($activity->operationType?->supportsRespawn())
+                    @if($activity->activityType?->supportsRespawn())
                         <span @class(['is-enabled' => $activity->respawn])>Respawn</span>
                     @endif
 
-                    @if($activity->operationType?->supportsJip())
+                    @if($activity->activityType?->supportsJip())
                         <span @class(['is-enabled' => $activity->jip])>JIP</span>
                     @endif
                 </section>
             @endif
 
             @if(
-                ($activity->operationType?->awardsMetopa() ?? false)
+                ($activity->activityType?->awardsMetopa() ?? false)
                 && $activity->metopa
             )
                 <section class="event-detail__course-metopa" aria-label="Metopa del curso">

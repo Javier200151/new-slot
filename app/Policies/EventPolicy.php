@@ -23,7 +23,7 @@ class EventPolicy
             $user,
             'events',
             'view',
-            $event->activity?->operation_type_id,
+            $event->activity?->activity_type_id,
         );
     }
 
@@ -42,7 +42,7 @@ class EventPolicy
             $user,
             'events',
             'update',
-            $event->activity?->operation_type_id,
+            $event->activity?->activity_type_id,
         );
     }
 
@@ -52,7 +52,7 @@ class EventPolicy
             $user,
             'events',
             'delete',
-            $event->activity?->operation_type_id,
+            $event->activity?->activity_type_id,
         );
     }
 

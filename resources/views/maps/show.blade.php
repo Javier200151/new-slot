@@ -60,37 +60,37 @@
                 </section>
             @endif
 
-            <section class="map-page__operations" aria-labelledby="map-operations-title">
-                <header class="map-page__operations-header">
+            <section class="map-page__activities" aria-labelledby="map-activities-title">
+                <header class="map-page__activities-header">
                     <span>Historial del mapa</span>
-                    <h2 id="map-operations-title">
-                        {{ $map->operations->count() }}
-                        {{ $map->operations->count() === 1 ? 'actividad creada' : 'actividades creadas' }}
+                    <h2 id="map-activities-title">
+                        {{ $map->activities->count() }}
+                        {{ $map->activities->count() === 1 ? 'actividad creada' : 'actividades creadas' }}
                         en {{ $map->name }}
                     </h2>
                 </header>
 
-                @if($map->operations->isEmpty())
-                    <div class="map-page__operations-empty">
+                @if($map->activities->isEmpty())
+                    <div class="map-page__activities-empty">
                         Todavía no hay actividades asociadas a este mapa.
                     </div>
                 @else
-                    <div class="map-page__operations-grid">
-                        @foreach($map->operations as $operation)
+                    <div class="map-page__activities-grid">
+                        @foreach($map->activities as $activity)
                             <a
-                                href="{{ route('activities.show', $operation) }}"
+                                href="{{ route('activities.show', $activity) }}"
                                 class="map-page__operation-card"
                                 @style([
-                                    '--operation-color: ' . ($operation->operationType?->color ?? '')
-                                        => filled($operation->operationType?->color),
+                                    '--operation-color: ' . ($activity->activityType?->color ?? '')
+                                        => filled($activity->activityType?->color),
                                 ])
                             >
-                                <span>{{ $operation->operationType?->name ?? 'Actividad' }}</span>
-                                <strong>{{ $operation->name }}</strong>
+                                <span>{{ $activity->activityType?->name ?? 'Actividad' }}</span>
+                                <strong>{{ $activity->name }}</strong>
                                 <small>
-                                    {{ $operation->operationStatus?->name ?? 'Sin estado' }}
-                                    @if($operation->editor)
-                                        · {{ $operation->editor->nick }}
+                                    {{ $activity->activityStatus?->name ?? 'Sin estado' }}
+                                    @if($activity->editor)
+                                        · {{ $activity->editor->nick }}
                                     @endif
                                 </small>
                             </a>
