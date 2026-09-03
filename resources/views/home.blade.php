@@ -70,7 +70,7 @@
                 </h1>
 
                 <p class="hero-motto">
-                    Realismo
+                    Simulación
                     <span></span>
                     Disciplina
                     <span></span>
@@ -79,15 +79,14 @@
 
                 <p class="hero-description">
                     Da el paso y entra en una comunidad de simulación militar
-                    centrada en el realismo, la disciplina y el trabajo en equipo.
+                    en Arma 3 y Arma REFORGER.
                 </p>
 
                 <div class="hero-actions">
                     @guest
                         <a
-                            href="{{ route('public.register') }}"
+                            href="#alistamiento"
                             class="btn btn-primary btn-hero"
-                            data-open-modal="register-modal"
                         >
                             Alístate
                             <span aria-hidden="true">→</span>
@@ -383,6 +382,19 @@
                         </div>
 
                         <div class="form-grid">
+                            <label class="form-field">
+                                <span>Nickname</span>
+                                <input
+                                    type="text"
+                                    name="nickname"
+                                    value="{{ old('nickname', auth()->user()?->nick) }}"
+                                    maxlength="80"
+                                    required
+                                    autocomplete="nickname"
+                                    placeholder="Cómo te conocemos en la comunidad"
+                                >
+                            </label>
+
                             <label class="form-field">
                                 <span>Email</span>
                                 <input type="email" name="email" value="{{ old('email', auth()->user()?->email) }}" required autocomplete="email">

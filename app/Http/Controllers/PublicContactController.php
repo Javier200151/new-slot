@@ -17,6 +17,7 @@ class PublicContactController extends Controller
         $recruitmentRequested = $settings->recruitment_open && $request->boolean('is_recruitment');
 
         $rules = [
+            'nickname' => ['required', 'string', 'max:80'],
             'email' => ['required', 'email:rfc', 'max:255'],
             'message' => ['required', 'string', 'max:6000'],
             'accepted_privacy' => ['accepted'],
@@ -37,11 +38,13 @@ class PublicContactController extends Controller
         }
 
         $validated = $request->validate($rules, [
+            'nickname.required' => 'Indica el nickname por el que debemos conocerte.',
             'accepted_privacy.accepted' => 'Debes aceptar la política de privacidad.',
             'accepted_contact.accepted' => 'Debes aceptar el consentimiento de contacto.',
         ]);
 
         $submission = ContactSubmission::create([
+            'nickname' => trim($validated['nickname']),
             'email' => $validated['email'],
             'message' => $validated['message'],
             'is_recruitment' => $recruitmentRequested,
@@ -59,19 +62,27 @@ class PublicContactController extends Controller
         ]);
 
         // Utiliza exactamente el mismo mailer SMTP y remitente global que ya
-        // usa Laravel para la verificación de correo. Solo cambia el receptor.
+        // usa Laravel para verificación de correo y recuperación de contraseña.
         $to = config('mail.contact_to', 'planamayorsquadalpha@gmail.com');
         $subject = $recruitmentRequested
-            ? 'Nueva solicitud de alistamiento - Squad ALPHA'
-            : 'Nueva consulta desde Squad ALPHA';
+            ? 'Solicitud de alistamiento ' . $submission->nickname
+            : 'Consulta de contacto ' . $submission->nickname;
 
         $html = view('emails.contact-submission', compact('submission'))->render();
 
         Mail::html($html, function ($message) use ($to, $subject, $submission): void {
             $message->to($to)
-                ->replyTo($submission->email)
+                ->replyTo($submission->email, $submission->nickname)
                 ->subject($subject);
         });
+
+        if ($recruitmentRequested && $request->user() === null) {
+            return redirect()
+                ->to(route('home', ['modal' => 'register']) . '#alistamiento')
+                ->with('contact_status', 'Solicitud de alistamiento enviada correctamente. Crea ahora tu cuenta para continuar con el proceso.')
+                ->with('recruitment_register_nick', $submission->nickname)
+                ->with('recruitment_register_email', $submission->email);
+        }
 
         return back()->with('contact_status', $recruitmentRequested
             ? 'Solicitud de alistamiento enviada correctamente.'

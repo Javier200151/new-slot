@@ -102,6 +102,7 @@
                     || $selectedOcap !== null
                     || $selectedRespawn !== null
                     || $selectedJip !== null
+                    || $selectedMulticlans !== null
                     || filled($selectedDateFrom)
                     || filled($selectedDateTo);
             @endphp
@@ -464,6 +465,31 @@
                             <option
                                 value="0"
                                 @selected($selectedJip === '0')
+                            >
+                                No
+                            </option>
+                        </select>
+                    </div>
+
+                    {{-- MULTICLANES --}}
+                    <div class="operations-filter-field">
+                        <label for="operations-multiclans">Multiclanes</label>
+                        <select
+                            id="operations-multiclans"
+                            name="multiclans"
+                        >
+                            <option value="">Cualquiera</option>
+
+                            <option
+                                value="1"
+                                @selected($selectedMulticlans === '1')
+                            >
+                                Sí
+                            </option>
+
+                            <option
+                                value="0"
+                                @selected($selectedMulticlans === '0')
                             >
                                 No
                             </option>
