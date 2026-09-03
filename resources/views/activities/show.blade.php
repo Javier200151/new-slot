@@ -135,6 +135,15 @@
                             ORBAT
                         </a>
 
+                        @if(
+                            ($activity->activityType?->usesEnemyFactions() ?? true)
+                            && $activity->enemyFactions->isNotEmpty()
+                        )
+                            <a href="#facciones-enemigas">
+                                Facciones
+                            </a>
+                        @endif
+
                         @if($radioNetworks->isNotEmpty())
                             <a href="#comunicaciones">
                                 Comunicaciones
@@ -220,23 +229,6 @@
 
                 @endif
 
-
-                @if(
-                    ($activity->activityType?->usesEnemyFactions() ?? true)
-                    && $activity->enemyFactions->isNotEmpty()
-                )
-
-                    <div>
-                        <dt>Facciones enemigas</dt>
-
-                        <dd style="display:grid;gap:8px;">
-                            @foreach($activity->enemyFactions as $enemyFaction)
-                                {!! \App\Support\FactionOptionLabel::make($enemyFaction) !!}
-                            @endforeach
-                        </dd>
-                    </div>
-
-                @endif
 
 
                 @if($activity->map)
@@ -700,6 +692,9 @@
                 @endif
 
             </section>
+
+
+            @include('partials.enemy-factions-collapsible', ['activity' => $activity])
 
 
             {{-- =====================================================

@@ -31,6 +31,10 @@
 @section('content')
     <article
         class="event-detail"
+        @if(! $isReadOnly && $event->eventStatus?->name === 'ACTIVO')
+            data-event-roulette-watch
+            data-roulette-lock-state-url="{{ route('events.roulette-lock-state', $event) }}"
+        @endif
         @style([
             '--event-color: ' . ($activity->activityType?->color ?? '') => filled($activity->activityType?->color),
         ])
@@ -111,6 +115,34 @@
                 <div class="event-detail__notice is-error" role="alert">{{ $message }}</div>
             @enderror
 
+            @if($rouletteLockRoom)
+                <div class="event-roulette-lock" data-event-roulette-lock>
+                    <div class="event-roulette-lock__backdrop" data-event-roulette-lock-close></div>
+                    <section class="event-roulette-lock__dialog" role="dialog" aria-modal="true" aria-labelledby="roulette-lock-title">
+                        <span class="event-roulette-lock__eyebrow">🎯 RULETA EN JUEGO</span>
+                        <h2 id="roulette-lock-title">El ORBAT está temporalmente congelado</h2>
+                        <p>
+                            Hay una sala de ruleta activa para este evento. Mientras siga en juego no se puede apuntar,
+                            desapuntar ni mover jugadores. Volverá a habilitarse cuando haya ganador, se cierre la sala o caduque.
+                        </p>
+                        <div class="event-roulette-lock__meta">
+                            <span>Sorteo: <b>{{ $rouletteLockRoom->target_slot_group }} · {{ $rouletteLockRoom->target_slot_name }}</b></span>
+                            @if($rouletteLockRoom->creator)
+                                <span>Creada por <b>{{ $rouletteLockRoom->creator->nick }}</b></span>
+                            @endif
+                        </div>
+                        <div class="event-roulette-lock__actions">
+                            @auth
+                                @if(\App\Support\CommunityArea::can(auth()->user(), \App\Support\CommunityArea::ROULETTE))
+                                    <a class="btn" href="{{ route('community.roulette.show', $rouletteLockRoom) }}">Ver la ruleta</a>
+                                @endif
+                            @endauth
+                            <button type="button" class="btn btn-outline" data-event-roulette-lock-close>Entendido</button>
+                        </div>
+                    </section>
+                </div>
+            @endif
+
             <header class="event-detail__hero">
                 <div class="event-detail__hero-copy">
                     <div class="event-detail__eyebrow">
@@ -170,6 +202,12 @@
                         @endif
                         <a href="#orbat">ORBAT</a>
                         {{-- <a href="#movimientos">Movimientos</a> --}}
+                        @if(
+                            ($activity->activityType?->usesEnemyFactions() ?? true)
+                            && $activity->enemyFactions->isNotEmpty()
+                        )
+                            <a href="#facciones-enemigas">Facciones</a>
+                        @endif
                         @if($radioNetworks->isNotEmpty())
                             <a href="#comunicaciones">Comunicaciones</a>
                         @endif
@@ -251,19 +289,6 @@
 
                 @endforeach
 
-                @if(
-                    ($activity->activityType?->usesEnemyFactions() ?? true)
-                    && $activity->enemyFactions->isNotEmpty()
-                )
-                    <div>
-                        <dt>Facciones enemigas</dt>
-                        <dd style="display:grid;gap:8px;">
-                            @foreach($activity->enemyFactions as $enemyFaction)
-                                {!! \App\Support\FactionOptionLabel::make($enemyFaction) !!}
-                            @endforeach
-                        </dd>
-                    </div>
-                @endif
 
                 @if($activity->campaign)
                     <div>
@@ -1400,7 +1425,11 @@
 
                                                         @if($slot['is_owned_by_user'])
 
-                                                            @if($event->eventStatus?->name === 'ACTIVO')
+                                                            @if($rouletteLockRoom)
+                                                                <span class="event-orbat__unavailable event-orbat__unavailable--roulette">
+                                                                    🎯 Ruleta en juego
+                                                                </span>
+                                                            @elseif($event->eventStatus?->name === 'ACTIVO')
                                                                 <form
                                                                     method="POST"
                                                                     action="{{ route(
@@ -1457,6 +1486,11 @@
                                                             && $event->eventStatus?->name === 'ACTIVO'
                                                         )
 
+                                                            @if($rouletteLockRoom)
+                                                                <span class="event-orbat__unavailable event-orbat__unavailable--roulette">
+                                                                    🎯 Ruleta en juego
+                                                                </span>
+                                                            @else
                                                             @guest
                                                                 <a
                                                                     href="{{ route('login') }}"
@@ -1469,6 +1503,7 @@
                                                                     No disponible para reclutas
                                                                 </span>
                                                             @endguest
+                                                            @endif
 
                                                         @endif
 
@@ -1764,6 +1799,8 @@
                     @endif
                 </div>
             </details>
+
+            @include('partials.enemy-factions-collapsible', ['activity' => $activity])
 
             @if($radioNetworks->isNotEmpty())
                 <details

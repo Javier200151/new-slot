@@ -4921,3 +4921,255 @@ a.event-comment__author:hover {
 .event-course-metopa-action {
     border-color: rgba(34, 197, 94, 0.45) !important;
 }
+
+/* =========================================================
+   FACCIONES ENEMIGAS · DESPLEGABLE
+========================================================= */
+
+.event-detail__collapsible-summary > .event-detail__enemy-factions-summary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.event-detail__enemy-factions-summary > b {
+    flex: 0 0 auto;
+    color: #8c96a8;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.event-detail__enemy-factions-icons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.event-detail__enemy-faction-icon-pair {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.event-detail__enemy-faction-side-icon,
+.event-detail__enemy-faction-country-icon {
+    display: block;
+    flex: 0 0 auto;
+    object-fit: contain;
+}
+
+.event-detail__enemy-factions-icons .event-detail__enemy-faction-side-icon {
+    width: 22px;
+    height: 22px;
+}
+
+.event-detail__enemy-factions-icons .event-detail__enemy-faction-country-icon {
+    width: 28px;
+    height: 20px;
+}
+
+.event-detail__enemy-factions-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+    margin: 0 22px 22px;
+}
+
+.event-detail__enemy-faction {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(12, 17, 24, 0.58);
+}
+
+.event-detail__enemy-faction-visuals {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 0 auto;
+}
+
+.event-detail__enemy-faction-visuals .event-detail__enemy-faction-side-icon {
+    width: 34px;
+    height: 34px;
+}
+
+.event-detail__enemy-faction-visuals .event-detail__enemy-faction-country-icon {
+    width: 38px;
+    height: 28px;
+}
+
+.event-detail__enemy-faction-copy {
+    min-width: 0;
+}
+
+.event-detail__enemy-faction-copy > strong {
+    display: block;
+    overflow: hidden;
+    color: #fff;
+    font-size: 0.86rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.event-detail__enemy-faction-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px 8px;
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 0.66rem;
+}
+
+.event-detail__enemy-faction-meta span {
+    color: inherit;
+    font-size: inherit;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.event-detail__enemy-faction-meta span + span::before {
+    content: "·";
+    margin-right: 8px;
+    color: #4b5563;
+}
+
+@media (max-width: 700px) {
+    .event-detail__enemy-factions-summary-row {
+        flex-wrap: wrap;
+    }
+
+    .event-detail__collapsible-summary > .event-detail__enemy-factions-summary {
+        order: 3;
+        justify-content: flex-start;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .event-detail__enemy-factions-icons {
+        justify-content: flex-start;
+    }
+
+    .event-detail__enemy-factions-list {
+        grid-template-columns: 1fr;
+        margin-right: 0;
+        margin-left: 0;
+    }
+}
+
+/* =========================================================
+   Ruleta de responsabilidad · bloqueo temporal del ORBAT
+   ========================================================= */
+.event-roulette-lock {
+    position: fixed;
+    z-index: 9500;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 22px;
+    opacity: 1;
+    transition: opacity .18s ease;
+}
+
+.event-roulette-lock.is-dismissed {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.event-roulette-lock__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 5, 9, .76);
+    backdrop-filter: blur(5px);
+}
+
+.event-roulette-lock__dialog {
+    position: relative;
+    width: min(560px, 100%);
+    padding: 28px;
+    border: 1px solid rgba(255, 138, 0, .42);
+    border-radius: 18px;
+    background: linear-gradient(155deg, rgba(18, 24, 33, .99), rgba(7, 11, 16, .99));
+    box-shadow: 0 30px 90px rgba(0, 0, 0, .58);
+}
+
+.event-roulette-lock__eyebrow {
+    color: #ff9a1b;
+    font-size: .72rem;
+    font-weight: 950;
+    letter-spacing: .12em;
+}
+
+.event-roulette-lock__dialog h2 {
+    margin: 8px 0 10px;
+    color: #fff;
+    font-size: clamp(1.45rem, 4vw, 2rem);
+}
+
+.event-roulette-lock__dialog > p {
+    margin: 0;
+    color: #b5c0ce;
+    font-size: .9rem;
+    line-height: 1.6;
+}
+
+.event-roulette-lock__meta {
+    display: grid;
+    gap: 6px;
+    margin-top: 18px;
+    padding: 13px 14px;
+    border: 1px solid rgba(148, 163, 184, .15);
+    border-radius: 10px;
+    background: rgba(10, 15, 22, .72);
+    color: #8f9daf;
+    font-size: .75rem;
+}
+
+.event-roulette-lock__meta b {
+    color: #e8edf3;
+}
+
+.event-roulette-lock__actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 20px;
+}
+
+.event-orbat__unavailable--roulette {
+    border-color: rgba(255, 138, 0, .18);
+    color: #dca25d;
+}
+
+@media (max-width: 620px) {
+    .event-roulette-lock__dialog {
+        padding: 22px 18px;
+    }
+
+    .event-roulette-lock__actions {
+        justify-content: stretch;
+    }
+
+    .event-roulette-lock__actions .btn {
+        flex: 1 1 180px;
+        text-align: center;
+    }
+}

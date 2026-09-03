@@ -9,6 +9,7 @@ use App\Http\Controllers\CommunityForumController;
 use App\Http\Controllers\CommunityPollController;
 use App\Http\Controllers\CommunityProcessController;
 use App\Http\Controllers\CommunitySubscriptionController;
+use App\Http\Controllers\CommunityRouletteController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicCampaignController;
@@ -206,6 +207,9 @@ Route::get('/metopas/{metopa}', [MetopaController::class, 'show'])
 
 Route::get('/eventos', [PublicEventController::class, 'index'])
     ->name('events.index');
+
+Route::get('/eventos/{event}/ruleta-estado', [PublicEventController::class, 'rouletteLockState'])
+    ->name('events.roulette-lock-state');
 
 Route::get('/eventos/{event}', [PublicEventController::class, 'show'])
     ->name('events.show');
@@ -656,6 +660,58 @@ Route::middleware('auth')->group(function (): void {
         [CommunityPollController::class, 'vote']
     )
         ->name('community.polls.vote');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ruleta de responsabilidad
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/area/ruleta',
+        [CommunityRouletteController::class, 'index']
+    )->name('community.roulette.index');
+
+    Route::get(
+        '/area/ruleta/crear',
+        [CommunityRouletteController::class, 'create']
+    )->name('community.roulette.create');
+
+    Route::post(
+        '/area/ruleta',
+        [CommunityRouletteController::class, 'store']
+    )->name('community.roulette.store');
+
+    Route::get(
+        '/area/ruleta/salas/{room}',
+        [CommunityRouletteController::class, 'show']
+    )->whereNumber('room')->name('community.roulette.show');
+
+    Route::get(
+        '/area/ruleta/salas/{room}/estado',
+        [CommunityRouletteController::class, 'state']
+    )->whereNumber('room')->name('community.roulette.state');
+
+    Route::patch(
+        '/area/ruleta/salas/{room}',
+        [CommunityRouletteController::class, 'update']
+    )->whereNumber('room')->name('community.roulette.update');
+
+    Route::post(
+        '/area/ruleta/salas/{room}/girar',
+        [CommunityRouletteController::class, 'spin']
+    )->whereNumber('room')->name('community.roulette.spin');
+
+    Route::post(
+        '/area/ruleta/salas/{room}/repetir',
+        [CommunityRouletteController::class, 'repeat']
+    )->whereNumber('room')->name('community.roulette.repeat');
+
+    Route::delete(
+        '/area/ruleta/salas/{room}',
+        [CommunityRouletteController::class, 'destroy']
+    )->whereNumber('room')->name('community.roulette.destroy');
 });
 
 /*

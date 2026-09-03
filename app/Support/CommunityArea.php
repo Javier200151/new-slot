@@ -12,6 +12,7 @@ class CommunityArea
     public const PERSONAL = self::FORUM;
     public const DIARY = 'diary';
     public const POLLS = 'polls';
+    public const ROULETTE = 'roulette';
 
     public static function status(User $user): string
     {
@@ -21,6 +22,7 @@ class CommunityArea
     public static function hasArea(User $user): bool
     {
         return $user->hasRole('admin')
+            || in_array(self::status($user), ['ACTIVO', 'RECLUTA'], true)
             || CommunityForumCategory::hasVisibleForumCategory($user)
             || $user->can('community-forum.moderate')
             || $user->can('community-forum.delete');
@@ -74,6 +76,12 @@ class CommunityArea
             self::FORUM => CommunityForumCategory::hasVisiblePersonalCategory($user),
 
             self::POLLS => self::status($user) === 'ACTIVO',
+
+            self::ROULETTE => in_array(
+                self::status($user),
+                ['ACTIVO', 'RECLUTA'],
+                true,
+            ),
 
             default => false,
         };

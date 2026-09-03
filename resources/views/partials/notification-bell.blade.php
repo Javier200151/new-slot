@@ -197,6 +197,12 @@
 
                         @elseif(
                             $type
+                            === 'community_roulette_winner'
+                        )
+                            🎯
+
+                        @elseif(
+                            $type
                             === 'event_slot_changed'
                         )
                             @if(
@@ -344,6 +350,25 @@
                                     ] ?? 'un evento' }}
                                 </b>
                             </span>
+                        @elseif(
+                            $type
+                            === 'community_roulette_winner'
+                        )
+                            <strong>
+                                La ruleta te ha elegido
+                            </strong>
+
+                            <span>
+                                Te ha tocado
+                                <b>{{ $data['slot_type'] ?? $data['slot_name'] ?? 'un precioso puesto de responsabilidad' }}</b>
+                                en
+                                <b>{{ $data['event_name'] ?? 'el evento' }}</b>.
+                            </span>
+
+                            @if(filled($data['phrase'] ?? null))
+                                <small>{{ $data['phrase'] }}</small>
+                            @endif
+
                         @elseif(
                             $type
                             === 'event_slot_changed'

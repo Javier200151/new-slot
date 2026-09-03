@@ -29,6 +29,7 @@ use App\Models\Stream;
 use App\Models\EventMedia;
 use App\Filament\Resources\Events\EventResource;
 use App\Services\CourseMetopaAwardService;
+use App\Services\CommunityRouletteService;
 use App\Support\ActivityTypeAccess;
 
 class PublicEventController extends Controller
@@ -263,12 +264,20 @@ class PublicEventController extends Controller
         $currentUserSlot = auth()->check()
             ? $event->slots->firstWhere('user_id', auth()->id())
             : null;
+
+        $rouletteLockRoom = $isReadOnly
+            ? null
+            : app(CommunityRouletteService::class)->activeRoomForEvent($event);
+
         $isRegistrationOpen = ! $isReadOnly
-            && $eventStatusName === 'ACTIVO';
-        $canManageOrbat = ! $isReadOnly && $this->canManageOrbat(
-            auth()->user(),
-            $event,
-        );
+            && $eventStatusName === 'ACTIVO'
+            && $rouletteLockRoom === null;
+        $canManageOrbat = ! $isReadOnly
+            && $rouletteLockRoom === null
+            && $this->canManageOrbat(
+                auth()->user(),
+                $event,
+            );
         /*
         |--------------------------------------------------------------------------
         | Personas / aliados asignables manualmente al ORBAT
@@ -607,6 +616,7 @@ class PublicEventController extends Controller
             'canAwardCourseMetopa',
             'courseMetopaAwardUrl',
             'isReadOnly',
+            'rouletteLockRoom',
         ));
     }
 
@@ -853,8 +863,22 @@ class PublicEventController extends Controller
             );
     }
 
+    public function rouletteLockState(Event $event): JsonResponse
+    {
+        $room = app(CommunityRouletteService::class)->activeRoomForEvent($event);
+
+        return response()
+            ->json([
+                'locked' => $room !== null,
+                'room_id' => $room?->id,
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+
     public function registerSlot(Event $event, string $slotKey): RedirectResponse
     {
+        app(CommunityRouletteService::class)->assertEventUnlocked($event);
+
         $user = request()->user();
 
         DB::transaction(function () use ($event, $slotKey, $user): void {
@@ -862,6 +886,8 @@ class PublicEventController extends Controller
                 ->whereKey($event->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            app(CommunityRouletteService::class)->assertEventUnlocked($lockedEvent);
 
             if (! $lockedEvent->eventStatus()->where('name', 'ACTIVO')->exists()) {
                 throw ValidationException::withMessages([
@@ -993,6 +1019,8 @@ class PublicEventController extends Controller
 
     public function unregisterSlot(Event $event, string $slotKey): RedirectResponse
     {
+        app(CommunityRouletteService::class)->assertEventUnlocked($event);
+
         $user = request()->user();
 
         DB::transaction(function () use ($event, $slotKey, $user): void {
@@ -1000,6 +1028,8 @@ class PublicEventController extends Controller
                 ->whereKey($event->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            app(CommunityRouletteService::class)->assertEventUnlocked($lockedEvent);
 
             if (! $lockedEvent->eventStatus()->where('name', 'ACTIVO')->exists()) {
                 throw ValidationException::withMessages([
@@ -1055,6 +1085,8 @@ class PublicEventController extends Controller
     Request $request,
 ): JsonResponse|RedirectResponse {
     $manager = $request->user();
+
+    app(CommunityRouletteService::class)->assertEventUnlocked($event);
 
     abort_unless(
         $this->canManageOrbat(
@@ -1118,6 +1150,8 @@ class PublicEventController extends Controller
             ->whereKey($event->id)
             ->lockForUpdate()
             ->firstOrFail();
+
+        app(CommunityRouletteService::class)->assertEventUnlocked($lockedEvent);
 
         /*
         |--------------------------------------------------------------------------

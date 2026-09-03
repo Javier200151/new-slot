@@ -11,7 +11,8 @@
 
     $areaActive = request()->routeIs('community.diary.*')
         || request()->routeIs('community.forum.*')
-        || request()->routeIs('community.polls.*');
+        || request()->routeIs('community.polls.*')
+        || request()->routeIs('community.roulette.*');
 @endphp
 
 <header class="landing-header">
@@ -85,6 +86,9 @@
                         <summary>{{ $areaLabel }}</summary>
                         <div class="nav-dropdown__menu">
                             <a href="{{ route('community.forum.home') }}">Foro</a>
+                            @if(\App\Support\CommunityArea::can($navUser, \App\Support\CommunityArea::ROULETTE))
+                                <a href="{{ route('community.roulette.index') }}">Ruleta</a>
+                            @endif
                         </div>
                     </details>
                 @endif

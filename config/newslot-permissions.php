@@ -182,6 +182,17 @@ return [
                     'label' => 'Categorías del foro',
                 ],
 
+                'community-roulette' => [
+                    'label' => 'Ruleta de responsabilidad',
+                    'actions' => [
+                        'manage' => 'Crear, preparar, girar y cerrar salas',
+                    ],
+                ],
+
+                'community-roulette-phrases' => [
+                    'label' => 'Frases de la ruleta',
+                ],
+
                 'community-forum-cantina' => [
                     'label' => 'Foro · WHISKEY (Enguarrinando)',
                     'actions' => [
