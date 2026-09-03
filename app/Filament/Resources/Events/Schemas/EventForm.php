@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\Events\Schemas;
 
 use App\Models\EventStatus;
-use App\Models\Operation;
-use App\Support\OperationTypeAccess;
-use App\Support\OperationTypeConfiguration;
+use App\Models\Activity;
+use App\Support\ActivityTypeAccess;
+use App\Support\ActivityTypeConfiguration;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -23,21 +23,21 @@ class EventForm
     {
         return $schema
             ->components([
-                Select::make('operation_id')
+                Select::make('activity_id')
                 ->label('Tipo de evento')
                 ->options(
                     function ($record): array {
                         $action = $record ? 'update' : 'create';
                         $allowedTypeIds =
-                            OperationTypeAccess::allowedTypeIds(
+                            ActivityTypeAccess::allowedTypeIds(
                                 auth()->user(),
                                 'events',
                                 $action,
                             );
 
-                        return Operation::query()
+                        return Activity::query()
                             ->whereIn(
-                                'operation_type_id',
+                                'activity_type_id',
                                 $allowedTypeIds,
                             )
                             ->orderBy('name')
@@ -50,39 +50,39 @@ class EventForm
                 ->live()
                 ->afterStateUpdated(
                     function ($state, Get $get, Set $set): void {
-                        $operation =
-                            Operation::query()
-                                ->with(['operationStatus', 'operationType'])
+                        $activity =
+                            Activity::query()
+                                ->with(['activityStatus', 'activityType'])
                                 ->find($state);
 
                         $set(
                             'name',
-                            $operation?->name
+                            $activity?->name
                         );
 
-                        if ($operation?->editor_ally_id) {
+                        if ($activity?->editor_ally_id) {
                             $set('multiclans', true);
                         }
 
-                        if (! ($operation?->operationType?->usesEventResult() ?? true)) {
+                        if (! ($activity?->activityType?->usesEventResult() ?? true)) {
                             $set('event_result_id', null);
                         }
 
                         if (
-                            ! ($operation?->operationType?->supportsOcap() ?? true)
-                            || ! $operation?->ocap
+                            ! ($activity?->activityType?->supportsOcap() ?? true)
+                            || ! $activity?->ocap
                         ) {
                             $set('ocap_url', null);
                         }
 
                         /*
-                        * Si el nuevo operativo está en BORRADOR
+                        * Si el nuevo actividad está en BORRADOR
                         * y actualmente el evento tenía un estado
                         * público, limpiamos el estado para obligar
                         * al usuario a seleccionar uno válido.
                         */
                         if (
-                            $operation?->operationStatus?->name
+                            $activity?->activityStatus?->name
                             === 'BORRADOR'
                         ) {
                             $currentEventStatusId =
@@ -130,8 +130,8 @@ class EventForm
                             Toggle $component,
                             Get $get
                         ): void {
-                            $externalEditor = Operation::query()
-                                ->whereKey($get('operation_id'))
+                            $externalEditor = Activity::query()
+                                ->whereKey($get('activity_id'))
                                 ->whereNotNull('editor_ally_id')
                                 ->exists();
 
@@ -142,8 +142,8 @@ class EventForm
                     )
                     ->helperText(
                         function (Get $get): string {
-                            $externalEditor = Operation::query()
-                                ->whereKey($get('operation_id'))
+                            $externalEditor = Activity::query()
+                                ->whereKey($get('activity_id'))
                                 ->whereNotNull('editor_ally_id')
                                 ->exists();
 
@@ -154,8 +154,8 @@ class EventForm
                     )
                     ->disabled(
                         fn (Get $get): bool =>
-                            Operation::query()
-                                ->whereKey($get('operation_id'))
+                            Activity::query()
+                                ->whereKey($get('activity_id'))
                                 ->whereNotNull('editor_ally_id')
                                 ->exists()
                     )
@@ -171,26 +171,26 @@ class EventForm
                                 EventStatus::query()
                                     ->orderBy('name');
 
-                            $operationId =
-                                $get('operation_id');
+                            $activityId =
+                                $get('activity_id');
 
-                            if (filled($operationId)) {
-                                $operationStatus =
-                                    Operation::query()
-                                        ->whereKey($operationId)
-                                        ->with('operationStatus')
+                            if (filled($activityId)) {
+                                $activityStatus =
+                                    Activity::query()
+                                        ->whereKey($activityId)
+                                        ->with('activityStatus')
                                         ->first()
-                                        ?->operationStatus
+                                        ?->activityStatus
                                         ?->name;
 
                                 /*
-                                * Un operativo BORRADOR puede tener
+                                * Un actividad BORRADOR puede tener
                                 * un evento preparado en BORRADOR,
                                 * pero ese evento todavía no puede
                                 * publicarse.
                                 */
                                 if (
-                                    $operationStatus
+                                    $activityStatus
                                     === 'BORRADOR'
                                 ) {
                                     $query->where(
@@ -214,18 +214,18 @@ class EventForm
                     ->required()
                     ->helperText(
                         function (Get $get): ?string {
-                            $operationId =
-                                $get('operation_id');
+                            $activityId =
+                                $get('activity_id');
 
-                            if (blank($operationId)) {
+                            if (blank($activityId)) {
                                 return null;
                             }
 
                             $isDraft =
-                                Operation::query()
-                                    ->whereKey($operationId)
+                                Activity::query()
+                                    ->whereKey($activityId)
                                     ->whereHas(
-                                        'operationStatus',
+                                        'activityStatus',
                                         fn ($query) =>
                                             $query->where(
                                                 'name',
@@ -261,11 +261,11 @@ class EventForm
                     ->preload()
                     ->visible(
                         function (Get $get): bool {
-                            $typeId = Operation::query()
-                                ->whereKey($get('operation_id'))
-                                ->value('operation_type_id');
+                            $typeId = Activity::query()
+                                ->whereKey($get('activity_id'))
+                                ->value('activity_type_id');
 
-                            return OperationTypeConfiguration::find($typeId)?->usesEventResult()
+                            return ActivityTypeConfiguration::find($typeId)?->usesEventResult()
                                 ?? false;
                         }
                     )
@@ -290,12 +290,12 @@ class EventForm
                     ->maxLength(255)
                     ->visible(
                         function (Get $get): bool {
-                            $operation = Operation::query()
-                                ->with('operationType')
-                                ->find($get('operation_id'));
+                            $activity = Activity::query()
+                                ->with('activityType')
+                                ->find($get('activity_id'));
 
-                            return (bool) $operation?->ocap
-                                && ($operation?->operationType?->supportsOcap() ?? false);
+                            return (bool) $activity?->ocap
+                                && ($activity?->activityType?->supportsOcap() ?? false);
                         }
                     ),
 

@@ -93,7 +93,7 @@ class CommunityDiaryController extends Controller
             'entries' => fn ($entries) => $entries
                 ->latest('created_at')
                 ->latest('id'),
-            'entries.event.operation.operationType',
+            'entries.event.activity.activityType',
             'entries.event.eventStatus',
             'entries.comments.author.status',
             'entries.comments.author.mainSqaGroup',
@@ -119,7 +119,7 @@ class CommunityDiaryController extends Controller
             $existingEventIds = $diary->entries->pluck('event_id')->filter();
 
             $missingEvents = Event::query()
-                ->with(['operation.operationType', 'eventStatus'])
+                ->with(['activity.activityType', 'eventStatus'])
                 ->whereIn('id', $eventIds)
                 ->whereNotIn('id', $existingEventIds)
                 ->latest('date')

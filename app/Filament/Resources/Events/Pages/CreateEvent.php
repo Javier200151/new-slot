@@ -3,13 +3,13 @@
 namespace App\Filament\Resources\Events\Pages;
 
 use App\Filament\Resources\Events\EventResource;
-use App\Models\Operation;
+use App\Models\Activity;
 use Filament\Resources\Pages\CreateRecord;
 use App\Services\CommunityNotificationService;
 use App\Models\EventStatus;
 use Illuminate\Validation\ValidationException;
-use App\Support\OperationTypeAccess;
-use App\Support\OperationTypeConfiguration;
+use App\Support\ActivityTypeAccess;
+use App\Support\ActivityTypeConfiguration;
 
 class CreateEvent extends CreateRecord
 {
@@ -33,22 +33,22 @@ class CreateEvent extends CreateRecord
     {
         /*
         |--------------------------------------------------------------------------
-        | Recuperar operativo y estado solicitado
+        | Recuperar actividad y estado solicitado
         |--------------------------------------------------------------------------
         */
 
-        $operation = Operation::query()
-            ->with('operationStatus')
-            ->find($data['operation_id'] ?? null);
+        $activity = Activity::query()
+            ->with('activityStatus')
+            ->find($data['activity_id'] ?? null);
 
-        if (! OperationTypeAccess::can(
+        if (! ActivityTypeAccess::can(
             auth()->user(),
             'events',
             'create',
-            $operation?->operation_type_id,
+            $activity?->activity_type_id,
         )) {
             throw ValidationException::withMessages([
-                'data.operation_id' =>
+                'data.activity_id' =>
                     'No tienes permiso para crear eventos de este tipo.',
             ]);
         }
@@ -65,10 +65,10 @@ class CreateEvent extends CreateRecord
 
         /*
         |--------------------------------------------------------------------------
-        | Seguridad: operativo BORRADOR
+        | Seguridad: actividad BORRADOR
         |--------------------------------------------------------------------------
         |
-        | Si el operativo está en BORRADOR, el evento también debe quedar en
+        | Si el actividad está en BORRADOR, el evento también debe quedar en
         | BORRADOR.
         |
         | Si Filament no envía event_status_id porque el selector está limitado
@@ -80,7 +80,7 @@ class CreateEvent extends CreateRecord
         */
 
         if (
-            $operation?->operationStatus?->name === 'BORRADOR'
+            $activity?->activityStatus?->name === 'BORRADOR'
         ) {
             $draftStatus = EventStatus::query()
                 ->where('name', 'BORRADOR')
@@ -93,7 +93,7 @@ class CreateEvent extends CreateRecord
             ) {
                 throw ValidationException::withMessages([
                     'data.event_status_id' =>
-                        'Mientras el operativo esté en BORRADOR, '
+                        'Mientras el actividad esté en BORRADOR, '
                         . 'el evento también debe permanecer en BORRADOR.',
                 ]);
             }
@@ -108,24 +108,24 @@ class CreateEvent extends CreateRecord
 
         /*
         |--------------------------------------------------------------------------
-        | Snapshot inicial del operativo
+        | Snapshot inicial del actividad
         |--------------------------------------------------------------------------
         */
 
         $data['name'] =
             $data['name']
-            ?? $operation?->name;
+            ?? $activity?->name;
 
         $data['orbat'] =
-            $operation?->orbat;
+            $activity?->orbat;
 
-        if ($operation?->editor_ally_id) {
+        if ($activity?->editor_ally_id) {
             $data['multiclans'] = true;
         }
 
-        return OperationTypeConfiguration::normalizeEventData(
+        return ActivityTypeConfiguration::normalizeEventData(
             $data,
-            $operation?->id,
+            $activity?->id,
         );
     }
 

@@ -8,7 +8,7 @@ use App\Models\EventComment;
 use App\Models\EventSlot;
 use App\Models\EventSlotHistory;
 use App\Models\Faction;
-use App\Models\OperationType;
+use App\Models\ActivityType;
 use App\Models\SlotType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -29,7 +29,7 @@ use App\Models\Stream;
 use App\Models\EventMedia;
 use App\Filament\Resources\Events\EventResource;
 use App\Services\CourseMetopaAwardService;
-use App\Support\OperationTypeAccess;
+use App\Support\ActivityTypeAccess;
 
 class PublicEventController extends Controller
 {
@@ -38,7 +38,7 @@ class PublicEventController extends Controller
         $filters = $request->validate([
             'month' => ['nullable', 'integer', 'between:1,12'],
             'year' => ['nullable', 'integer', 'between:2000,2100'],
-            'type' => ['nullable', 'integer', 'exists:operations_type,id'],
+            'type' => ['nullable', 'integer', 'exists:activity_types,id'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
         ]);
@@ -62,11 +62,11 @@ class PublicEventController extends Controller
             ->with([
                 'eventStatus',
                 'eventResult',
-                'operation.operationType',
-                'operation.campaign',
-                'operation.period',
-                'operation.platform',
-                'operation.map',
+                'activity.activityType',
+                'activity.campaign',
+                'activity.period',
+                'activity.platform',
+                'activity.map',
                 'slots:id,event_id,slot_key,user_id,ally_id',
                 'slots.ally:id,name,image,url',
             ])
@@ -110,8 +110,8 @@ class PublicEventController extends Controller
             ->when(
                 $selectedTypeId,
                 fn ($query) => $query->whereHas(
-                    'operation',
-                    fn ($query) => $query->where('operation_type_id', $selectedTypeId),
+                    'activity',
+                    fn ($query) => $query->where('activity_type_id', $selectedTypeId),
                 ),
             )
             ->orderByDesc('date')
@@ -121,7 +121,7 @@ class PublicEventController extends Controller
             $listedEvents
         );
 
-        $operationTypes = OperationType::query()
+        $activityTypes = ActivityType::query()
             ->orderBy('name')
             ->get(['id', 'name', 'color']);
 
@@ -143,7 +143,7 @@ class PublicEventController extends Controller
         return view('events.index', [
             'calendarDays' => $calendarDays,
             'listedEvents' => $listedEvents,
-            'operationTypes' => $operationTypes,
+            'activityTypes' => $activityTypes,
             'selectedTypeId' => $selectedTypeId,
             'selectedDateFrom' => $selectedDateFrom,
             'selectedDateTo' => $selectedDateTo,
@@ -162,18 +162,18 @@ class PublicEventController extends Controller
         $event->load([
             'eventStatus',
             'eventResult',
-            'operation.operationType',
-            'operation.operationStatus',
-            'operation.campaign',
-            'operation.period',
-            'operation.platform',
-            'operation.map',
-            'operation.days',
-            'operation.editor',
-            'operation.editorAlly',
-            'operation.metopa',
-            'operation.enemyFactions.army.country',
-            'operation.enemyFactions.side',
+            'activity.activityType',
+            'activity.activityStatus',
+            'activity.campaign',
+            'activity.period',
+            'activity.platform',
+            'activity.map',
+            'activity.days',
+            'activity.editor',
+            'activity.editorAlly',
+            'activity.metopa',
+            'activity.enemyFactions.army.country',
+            'activity.enemyFactions.side',
             'slots.user.mainSqaGroup',
             'slots.ally',
         ]);
@@ -198,8 +198,8 @@ class PublicEventController extends Controller
             $event->ensureOrbatSlotKeys();
         }
 
-        $operation = $event->operation;
-        abort_if($operation === null, 404);
+        $activity = $event->activity;
+        abort_if($activity === null, 404);
 
         /*
         |--------------------------------------------------------------------------
@@ -338,16 +338,16 @@ class PublicEventController extends Controller
             $isAdmin
             || ($user?->can('filament.access') ?? false);
 
-        $canEditOperation = ! $isReadOnly &&
+        $canEditActivity = ! $isReadOnly &&
             $canAccessFilament
             && (
                 $isAdmin
                 || (
                     $user
-                    && $event->operation
+                    && $event->activity
                     && $user->can(
                         'update',
-                        $event->operation
+                        $event->activity
                     )
                 )
             );
@@ -434,7 +434,7 @@ class PublicEventController extends Controller
             );
 
         $canUseEditorMode =
-            $canEditOperation
+            $canEditActivity
             || $canEditEvent;
 
         $visibleOrbatGroups = $groups
@@ -467,7 +467,7 @@ class PublicEventController extends Controller
             })
             ->values();
 
-        $description = $operation->description ?? [];
+        $description = $activity->description ?? [];
         $descriptionSections = collect($description['sections'] ?? []);
 
         if ($descriptionSections->isEmpty() && filled($description['content'] ?? null)) {
@@ -547,12 +547,12 @@ class PublicEventController extends Controller
             ];
         });
 
-        $radioNetworks = collect($operation->radio['networks'] ?? [])
+        $radioNetworks = collect($activity->radio['networks'] ?? [])
             ->filter(fn (array $network): bool => (bool) ($network['visible'] ?? true))
             ->values();
 
         $addons = Addon::query()
-            ->whereIn('id', $operation->addons['addon_ids'] ?? [])
+            ->whereIn('id', $activity->addons['addon_ids'] ?? [])
             ->orderByDesc('mandatory')
             ->orderBy('name')
             ->get();
@@ -590,12 +590,12 @@ class PublicEventController extends Controller
             'descriptionSections',
             'event',
             'eventComments',
-            'operation',
+            'activity',
             'radioNetworks',
             'slotHistory',
             'visibleOrbatGroups',
             'canEditEvent',
-            'canEditOperation',
+            'canEditActivity',
             'canUseEditorMode',
             'orbatAssignableUsers',
             'orbatAssignableAllies',
@@ -987,7 +987,7 @@ class PublicEventController extends Controller
         });
 
         return redirect()
-            ->route('events.show', $event)
+            ->to(route('events.show', $event) . '#orbat')
             ->with('status', 'Tu slot se ha actualizado correctamente.');
     }
 
@@ -1045,7 +1045,7 @@ class PublicEventController extends Controller
         });
 
         return redirect()
-            ->route('events.show', $event)
+            ->to(route('events.show', $event) . '#orbat')
             ->with('status', 'Te has desapuntado correctamente.');
     }
 
@@ -2531,7 +2531,7 @@ class PublicEventController extends Controller
         * Moderador.
         */
 
-        $eventMedia->loadMissing('event.operation');
+        $eventMedia->loadMissing('event.activity');
 
         return $this
             ->canModerateEventMedia(
@@ -2544,11 +2544,11 @@ class PublicEventController extends Controller
         ?User $user,
         Event $event,
     ): bool {
-        return OperationTypeAccess::can(
+        return ActivityTypeAccess::can(
             $user,
             'event-orbat',
             'manage',
-            $event->operation?->operation_type_id,
+            $event->activity?->activity_type_id,
         );
     }
 

@@ -43,24 +43,24 @@ return [
             ],
         ],
 
-        'operations' => [
+        'activities' => [
             'label' => 'Actividades',
             'icon' => 'heroicon-o-map',
             'resources' => [
                 'campaigns' => [
                     'label' => 'Campañas',
                 ],
-                'operations' => [
+                'activities' => [
                     'label' => 'Actividades',
-                    'scope' => 'operation_type',
+                    'scope' => 'activity_type',
                 ],
-                'operation-days' => [
+                'activity-days' => [
                     'label' => 'Días de actividad',
                 ],
-                'operation-types' => [
+                'activity-types' => [
                     'label' => 'Tipos de actividad',
                 ],
-                'operation-statuses' => [
+                'activity-statuses' => [
                     'label' => 'Estados de actividad',
                 ],
                 'periods' => [
@@ -76,7 +76,7 @@ return [
             'resources' => [
                 'events' => [
                     'label' => 'Eventos',
-                    'scope' => 'operation_type',
+                    'scope' => 'activity_type',
                 ],
 
                 'event-comments' => [
@@ -93,7 +93,7 @@ return [
 
                 'event-orbat' => [
                     'label' => 'ORBAT',
-                    'scope' => 'operation_type',
+                    'scope' => 'activity_type',
                     'actions' => [
                         'manage' => 'Manejar ORBAT',
                     ],
@@ -262,8 +262,8 @@ return [
                  * El registro de actividad debería ser de solo lectura.
                  * Añade "delete" si realmente quieres permitir eliminar logs.
                  */
-                'activities' => [
-                    'label' => 'Registro de actividad',
+                'audit-log' => [
+                    'label' => 'Registro de auditoría',
                     'actions' => [
                         'view',
                     ],

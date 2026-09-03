@@ -2,19 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\Auditable;
-
-class OperationStatus extends Model
+/**
+ * Alias histórico de compatibilidad. El modelo canónico es ActivityStatus.
+ */
+class OperationStatus extends ActivityStatus
 {
-    use Auditable;
-    protected $table = 'operation_status';
-
-    public $timestamps = false;
-
-    protected $fillable = [
-        'name',
-        'color',
-        'description',
-    ];
 }

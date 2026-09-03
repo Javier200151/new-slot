@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Models\OperationType;
+use App\Models\ActivityType;
 use Illuminate\Support\Facades\Schema;
 
 class PermissionCatalog
@@ -79,11 +79,15 @@ class PermissionCatalog
         return self::resources()[$resource]['action_options'] ?? [];
     }
 
-    public static function isOperationTypeScoped(string $resource): bool
+    public static function isActivityTypeScoped(string $resource): bool
     {
-        return (self::resources()[$resource]['scope'] ?? null)
-            === 'operation_type';
+        return in_array(
+            self::resources()[$resource]['scope'] ?? null,
+            ['activity_type'],
+            true,
+        );
     }
+
 
     public static function permissionNames(
         bool $includeFilamentAccess = true
@@ -93,12 +97,12 @@ class PermissionCatalog
             : [];
 
         foreach (self::resources() as $resource => $definition) {
-            if (self::isOperationTypeScoped($resource)) {
-                foreach (self::operationTypeIds() as $operationTypeId) {
+            if (self::isActivityTypeScoped($resource)) {
+                foreach (self::activityTypeIds() as $activityTypeId) {
                     foreach ($definition['actions'] as $action) {
-                        $permissions[] = self::operationTypePermissionName(
+                        $permissions[] = self::activityTypePermissionName(
                             $resource,
-                            $operationTypeId,
+                            $activityTypeId,
                             $action,
                         );
                     }
@@ -120,35 +124,38 @@ class PermissionCatalog
         return 'permissions_' . str_replace('-', '_', $resource);
     }
 
-    public static function operationTypeFieldName(
+    public static function activityTypeFieldName(
         string $resource,
-        int $operationTypeId,
+        int $activityTypeId,
     ): string {
         return self::fieldName($resource)
             . '_type_'
-            . $operationTypeId;
+            . $activityTypeId;
     }
 
-    public static function operationTypePermissionName(
+
+    public static function activityTypePermissionName(
         string $resource,
-        int $operationTypeId,
+        int $activityTypeId,
         string $action,
     ): string {
-        return "{$resource}.type.{$operationTypeId}.{$action}";
+        return "{$resource}.type.{$activityTypeId}.{$action}";
     }
 
-    public static function operationTypeIds(): array
+
+    public static function activityTypeIds(): array
     {
-        if (! Schema::hasTable('operations_type')) {
+        if (! Schema::hasTable('activity_types')) {
             return [];
         }
 
-        return OperationType::query()
+        return ActivityType::query()
             ->orderBy('id')
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->all();
     }
+
 
     private static function normalizeActionOptions(
         ?array $configuredActions

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Events\Tables;
 
-use App\Models\Operation;
-use App\Support\OperationTypeAccess;
+use App\Models\Activity;
+use App\Support\ActivityTypeAccess;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -25,7 +25,7 @@ class EventsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('operation.name')
+                TextColumn::make('activity.name')
                     ->label('Actividad')
                     ->searchable()
                     ->sortable()
@@ -118,14 +118,14 @@ class EventsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('operation_id')
+                SelectFilter::make('activity_id')
                     ->label('Actividad')
                     ->multiple()
                     ->options(
-                        fn (): array => Operation::query()
+                        fn (): array => Activity::query()
                             ->whereIn(
-                                'operation_type_id',
-                                OperationTypeAccess::allowedTypeIds(
+                                'activity_type_id',
+                                ActivityTypeAccess::allowedTypeIds(
                                     auth()->user(),
                                     'events',
                                     'view',

@@ -172,13 +172,13 @@
    OPERATIVOS DEL MAPA
 ========================================================= */
 
-.map-page__operations {
+.map-page__activities {
     margin-top: 58px;
     padding-top: 46px;
     border-top: 1px solid var(--border-orange);
 }
 
-.map-page__operations-header span {
+.map-page__activities-header span {
     color: var(--primary);
     font-size: 0.68rem;
     font-weight: 850;
@@ -186,14 +186,14 @@
     text-transform: uppercase;
 }
 
-.map-page__operations-header h2 {
+.map-page__activities-header h2 {
     margin: 9px 0 0;
     color: #fff;
     font-size: clamp(1.8rem, 4vw, 2.8rem);
     letter-spacing: -0.035em;
 }
 
-.map-page__operations-grid {
+.map-page__activities-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
@@ -233,7 +233,7 @@
     color: var(--text-muted);
 }
 
-.map-page__operations-empty {
+.map-page__activities-empty {
     margin-top: 24px;
     padding: 20px;
     border: 1px dashed var(--border);
@@ -242,7 +242,7 @@
 }
 
 @media (max-width: 850px) {
-    .map-page__operations-grid {
+    .map-page__activities-grid {
         grid-template-columns: 1fr;
     }
 }

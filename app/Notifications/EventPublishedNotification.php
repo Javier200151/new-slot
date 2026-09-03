@@ -23,7 +23,7 @@ class EventPublishedNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $this->event->loadMissing('operation');
+        $this->event->loadMissing('activity');
 
         return [
             'type' => 'event_published',
@@ -32,7 +32,7 @@ class EventPublishedNotification extends Notification
 
             'event_name' =>
                 $this->event->name
-                ?: $this->event->operation?->name
+                ?: $this->event->activity?->name
                 ?: 'Evento',
 
             'event_date' =>

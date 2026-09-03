@@ -25,18 +25,20 @@ class Campaign extends Model
         ];
     }
 
-    public function operations()
+    /** Relación canónica. La FK física sigue siendo `campaign_id`. */
+    public function activities()
     {
-        return $this->hasMany(Operation::class);
+        return $this->hasMany(Activity::class, 'campaign_id');
     }
+
 
     public function events()
     {
         return $this->hasManyThrough(
             Event::class,
-            Operation::class,
+            Activity::class,
             'campaign_id',
-            'operation_id',
+            'activity_id',
         );
     }
 }

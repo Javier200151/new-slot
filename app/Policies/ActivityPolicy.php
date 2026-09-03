@@ -2,77 +2,69 @@
 
 namespace App\Policies;
 
+use App\Models\Activity;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
+use App\Support\ActivityTypeAccess;
 
+/**
+ * Policy canónica para las actividades de NewSlot.
+ *
+ * Usa las claves canónicas `activities.type.*`; la migración de permisos conserva
+ * los IDs y las asignaciones existentes de Spatie Permission.
+ */
 class ActivityPolicy
 {
-    public function viewAny(
-        User $user
-    ): bool {
-        return $user->can(
-            'activities.view'
+    public function viewAny(User $user): bool
+    {
+        return ActivityTypeAccess::canAny(
+            $user,
+            'activities',
+            'view',
         );
     }
 
-    public function view(
-        User $user,
-        Model $activity
-    ): bool {
-        return $user->can(
-            'activities.view'
+    public function view(User $user, Activity $activity): bool
+    {
+        return ActivityTypeAccess::can(
+            $user,
+            'activities',
+            'view',
+            $activity->activity_type_id,
         );
     }
 
-    public function create(
-        User $user
-    ): bool {
-        return false;
+    public function create(User $user): bool
+    {
+        return ActivityTypeAccess::canAny(
+            $user,
+            'activities',
+            'create',
+        );
     }
 
-    public function update(
-        User $user,
-        Model $activity
-    ): bool {
-        return false;
+    public function update(User $user, Activity $activity): bool
+    {
+        return ActivityTypeAccess::can(
+            $user,
+            'activities',
+            'update',
+            $activity->activity_type_id,
+        );
     }
 
-    public function delete(
-        User $user,
-        Model $activity
-    ): bool {
-        return false;
+    public function delete(User $user, Activity $activity): bool
+    {
+        return ActivityTypeAccess::can(
+            $user,
+            'activities',
+            'delete',
+            $activity->activity_type_id,
+        );
     }
 
-    public function deleteAny(
-        User $user
-    ): bool {
-        return false;
-    }
-
-    public function forceDelete(
-        User $user,
-        Model $activity
-    ): bool {
-        return false;
-    }
-
-    public function forceDeleteAny(
-        User $user
-    ): bool {
-        return false;
-    }
-
-    public function restore(
-        User $user,
-        Model $activity
-    ): bool {
-        return false;
-    }
-
-    public function restoreAny(
-        User $user
-    ): bool {
-        return false;
+    public function deleteAny(User $user): bool
+    {
+        // Evitamos borrados masivos mezclando tipos con permisos distintos.
+        return $user->hasRole('admin');
     }
 }

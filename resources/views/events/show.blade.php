@@ -6,7 +6,7 @@
         . ' '
         . $event->date->format('d/m/y H:i')
         . 'H';
-    $dayOrNight = match ($operation->day_or_night) {
+    $dayOrNight = match ($activity->day_or_night) {
         'day' => 'Día',
         'night' => 'Noche',
         'both' => 'Día y noche',
@@ -14,9 +14,9 @@
     };
 @endphp
 
-@section('title', $event->name ?: $operation->name)
+@section('title', $event->name ?: $activity->name)
 
-@section('meta-description', 'Información y ORBAT del evento ' . ($event->name ?: $operation->name) . '.')
+@section('meta-description', 'Información y ORBAT del evento ' . ($event->name ?: $activity->name) . '.')
 
 @section('body-class', 'event-detail-body')
 
@@ -32,14 +32,14 @@
     <article
         class="event-detail"
         @style([
-            '--event-color: ' . ($operation->operationType?->color ?? '') => filled($operation->operationType?->color),
+            '--event-color: ' . ($activity->activityType?->color ?? '') => filled($activity->activityType?->color),
         ])
     >
         <div class="container event-detail__container">
             <nav class="event-detail__breadcrumb" aria-label="Migas de pan">
                 <a href="{{ route('events.index', ['month' => $event->date->month, 'year' => $event->date->year]) }}">Eventos</a>
                 <span aria-hidden="true">/</span>
-                <span>{{ $event->name ?: $operation->name }}</span>
+                <span>{{ $event->name ?: $activity->name }}</span>
             </nav>
             @if($isReadOnly)
                 <div class="event-detail__readonly" role="status">
@@ -63,17 +63,17 @@
                         class="event-editor-mode__tools
                             event-editor-only"
                     >
-                        @if($canEditOperation)
+                        @if($canEditActivity)
                             <a
                                 href="{{
-                                    \App\Filament\Resources\Operations\OperationResource::getUrl(
+                                    \App\Filament\Resources\Activities\ActivityResource::getUrl(
                                         'edit',
-                                        ['record' => $operation]
+                                        ['record' => $activity]
                                     )
                                 }}"
                                 class="btn btn-outline"
                             >
-                                Editar operativo
+                                Editar actividad
                             </a>
                         @endif
 
@@ -116,7 +116,7 @@
                     <div class="event-detail__eyebrow">
 
                         <span>
-                            {{ $operation->operationType?->name ?? 'Evento' }}
+                            {{ $activity->activityType?->name ?? 'Evento' }}
                         </span>
 
                         <span
@@ -160,7 +160,7 @@
 
                     </div>
 
-                    <h1>{{ $event->name ?: $operation->name }}</h1>
+                    <h1>{{ $event->name ?: $activity->name }}</h1>
                     <time datetime="{{ $event->date->toIso8601String() }}">{{ $formattedEventDate }}</time>
 
                     <nav class="event-detail__section-nav" aria-label="Secciones del evento">
@@ -193,55 +193,55 @@
                         <a href="#comentarios">Comentarios</a>
                     </nav>
 
-                    {{-- @if($event->name && $event->name !== $operation->name)
-                        <p class="event-detail__operation-name">{{ $operation->name }}</p>
+                    {{-- @if($event->name && $event->name !== $activity->name)
+                        <p class="event-detail__activity-name">{{ $activity->name }}</p>
                     @endif --}}
 
 
                 </div>
 
-                @if($operation->image)
+                @if($activity->image)
                     <figure class="event-detail__cover">
-                        <img src="{{ asset('storage/' . $operation->image) }}" alt="{{ $operation->name }}">
+                        <img src="{{ asset('storage/' . $activity->image) }}" alt="{{ $activity->name }}">
                     </figure>
                 @endif
             </header>
 
-            <section id="datos-evento" class="event-detail__facts" aria-label="Datos del evento y del operativo">
-                @if($operation->platform)
+            <section id="datos-evento" class="event-detail__facts" aria-label="Datos del evento y de la actividad">
+                @if($activity->platform)
                     <div>
                         <dt>Plataforma</dt>
                         <dd class="event-detail__fact-with-icon">
-                            @if($operation->platform->image)
+                            @if($activity->platform->image)
                                 <img
-                                    src="{{ asset('storage/' . $operation->platform->image) }}"
+                                    src="{{ asset('storage/' . $activity->platform->image) }}"
                                     alt=""
                                     width="28"
                                     height="28"
                                     style="width:28px;height:28px;max-width:28px;max-height:28px;object-fit:contain;"
                                 >
                             @endif
-                            <span>{{ $operation->platform->name }}</span>
+                            <span>{{ $activity->platform->name }}</span>
                         </dd>
                     </div>
                 @endif
 
                 @foreach([
-                    // ['Tipo', $operation->operationType?->name],
+                    // ['Tipo', $activity->activityType?->name],
                     // ['Estado del evento', $event->eventStatus?->name],
-                    ['Periodo', $operation->period?->name],
-                    ['Mapa', $operation->map?->name],
+                    ['Periodo', $activity->period?->name],
+                    ['Mapa', $activity->map?->name],
                     ['Ambientación', $dayOrNight],
                     ['Duración', $event->duration ? $event->duration . ' min' : null],
-                    ['Resultado', ($operation->operationType?->usesEventResult() ?? true) ? $event->eventResult?->name : null],
-                    ['Editor', $operation->editor_display_name],
+                    ['Resultado', ($activity->activityType?->usesEventResult() ?? true) ? $event->eventResult?->name : null],
+                    ['Editor', $activity->editor_display_name],
                 ] as [$label, $value])
                     @if(filled($value))
                         <div>
                             <dt>{{ $label }}</dt>
                             <dd>
-                                @if($label === 'Mapa' && $operation->map)
-                                    <a href="{{ route('maps.show', $operation->map) }}">{{ $value }}</a>
+                                @if($label === 'Mapa' && $activity->map)
+                                    <a href="{{ route('maps.show', $activity->map) }}">{{ $value }}</a>
                                 @else
                                     {{ $value }}
                                 @endif
@@ -252,32 +252,32 @@
                 @endforeach
 
                 @if(
-                    ($operation->operationType?->usesEnemyFactions() ?? true)
-                    && $operation->enemyFactions->isNotEmpty()
+                    ($activity->activityType?->usesEnemyFactions() ?? true)
+                    && $activity->enemyFactions->isNotEmpty()
                 )
                     <div>
                         <dt>Facciones enemigas</dt>
                         <dd style="display:grid;gap:8px;">
-                            @foreach($operation->enemyFactions as $enemyFaction)
+                            @foreach($activity->enemyFactions as $enemyFaction)
                                 {!! \App\Support\FactionOptionLabel::make($enemyFaction) !!}
                             @endforeach
                         </dd>
                     </div>
                 @endif
 
-                @if($operation->campaign)
+                @if($activity->campaign)
                     <div>
                         <dt>Campaña</dt>
-                        <dd><a href="{{ route('campaigns.show', $operation->campaign) }}">{{ $operation->campaign->name }}</a></dd>
+                        <dd><a href="{{ route('campaigns.show', $activity->campaign) }}">{{ $activity->campaign->name }}</a></dd>
                     </div>
                 @endif
             </section>
 
             @if(
                 $event->multiclans
-                || ($operation->operationType?->supportsOcap() ?? false)
-                || ($operation->operationType?->supportsRespawn() ?? false)
-                || ($operation->operationType?->supportsJip() ?? false)
+                || ($activity->activityType?->supportsOcap() ?? false)
+                || ($activity->activityType?->supportsRespawn() ?? false)
+                || ($activity->activityType?->supportsJip() ?? false)
             )
                 <section class="event-detail__options" aria-label="Opciones de la actividad">
 
@@ -287,7 +287,7 @@
                         </span>
                     @endif
 
-                    @if($operation->operationType?->supportsOcap())
+                    @if($activity->activityType?->supportsOcap())
                         @if(
                             $event->eventStatus?->name === 'FINALIZADO'
                             && filled($event->ocap_url)
@@ -301,37 +301,37 @@
                             >
                                 OCAP ↗
                             </a>
-                        @elseif($operation->ocap)
+                        @elseif($activity->ocap)
                             <span class="is-enabled">OCAP</span>
                         @else
                             <span>OCAP</span>
                         @endif
                     @endif
 
-                    @if($operation->operationType?->supportsRespawn())
-                        <span @class(['is-enabled' => $operation->respawn])>Respawn</span>
+                    @if($activity->activityType?->supportsRespawn())
+                        <span @class(['is-enabled' => $activity->respawn])>Respawn</span>
                     @endif
 
-                    @if($operation->operationType?->supportsJip())
-                        <span @class(['is-enabled' => $operation->jip])>JIP</span>
+                    @if($activity->activityType?->supportsJip())
+                        <span @class(['is-enabled' => $activity->jip])>JIP</span>
                     @endif
                 </section>
             @endif
 
             @if(
-                ($operation->operationType?->awardsMetopa() ?? false)
-                && $operation->metopa
+                ($activity->activityType?->awardsMetopa() ?? false)
+                && $activity->metopa
             )
                 <section class="event-detail__course-metopa" aria-label="Metopa del curso">
                     <span>Metopa del curso</span>
-                    <a href="{{ route('metopas.show', $operation->metopa) }}">
-                        @if($operation->metopa->image)
+                    <a href="{{ route('metopas.show', $activity->metopa) }}">
+                        @if($activity->metopa->image)
                             <img
-                                src="{{ asset('storage/' . $operation->metopa->image) }}"
+                                src="{{ asset('storage/' . $activity->metopa->image) }}"
                                 alt=""
                             >
                         @endif
-                        <strong>{{ $operation->metopa->name }}</strong>
+                        <strong>{{ $activity->metopa->name }}</strong>
                     </a>
 
                     @if($canAwardCourseMetopa && $courseMetopaAwardUrl)
@@ -1780,7 +1780,7 @@
                             <span>Comunicaciones</span>
 
                             <small>
-                                Radios y frecuencias del operativo
+                                Radios y frecuencias de la actividad
                             </small>
                         </div>
 
@@ -1868,7 +1868,7 @@
                             <span>Addons</span>
 
                             <small>
-                                Mods utilizados por el operativo
+                                Mods utilizados por la actividad
                             </small>
                         </div>
 

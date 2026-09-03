@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-class OperationTypePolicy extends CrudPolicy
+/** Alias histórico para referencias antiguas de auditoría/código. */
+class OperationTypePolicy extends ActivityTypePolicy
 {
-    protected string $resource = 'operation-types';
 }

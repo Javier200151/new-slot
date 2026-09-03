@@ -729,7 +729,7 @@
                                         }}"
                                         maxlength="255"
                                         placeholder="
-                                            Operativo en directo
+                                            Actividad en directo
                                         "
                                     >
 

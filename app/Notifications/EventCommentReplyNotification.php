@@ -24,7 +24,7 @@ class EventCommentReplyNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         $this->reply->loadMissing([
-            'event.operation',
+            'event.activity',
             'user',
         ]);
 
@@ -37,7 +37,7 @@ class EventCommentReplyNotification extends Notification
 
             'event_name' =>
                 $event?->name
-                ?: $event?->operation?->name
+                ?: $event?->activity?->name
                 ?: 'Evento',
 
             'comment_id' =>

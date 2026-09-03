@@ -78,12 +78,12 @@
                 @csrf
 
                 <div class="forum-field">
-                    <label for="diary-event-id">Evento / operativo en el que participaste</label>
+                    <label for="diary-event-id">Evento / actividad en el que participaste</label>
                     <select id="diary-event-id" name="event_id" required>
                         <option value="">Selecciona un evento…</option>
                         @foreach($missingEvents as $event)
                             <option value="{{ $event->id }}" @selected((string) old('event_id') === (string) $event->id)>
-                                {{ $event->date?->format('d/m/Y') }} · {{ $event->operation?->name ?? 'Actividad' }} · {{ $event->name }}
+                                {{ $event->date?->format('d/m/Y') }} · {{ $event->activity?->name ?? 'Actividad' }} · {{ $event->name }}
                             </option>
                         @endforeach
                     </select>
@@ -132,11 +132,11 @@
                         <h2>{{ $entry->event?->name ?? 'Evento eliminado' }}</h2>
                         <small>
                             {{ $entry->event?->date?->format('d/m/Y H:i') }}
-                            @if($entry->event?->operation?->name)
-                                · {{ $entry->event->operation->name }}
+                            @if($entry->event?->activity?->name)
+                                · {{ $entry->event->activity->name }}
                             @endif
-                            @if($entry->event?->operation?->operationType?->name)
-                                · {{ $entry->event->operation->operationType->name }}
+                            @if($entry->event?->activity?->activityType?->name)
+                                · {{ $entry->event->activity->activityType->name }}
                             @endif
                         </small>
                     </div>

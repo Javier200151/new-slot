@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-class OperationDayPolicy extends CrudPolicy
+/** Alias histórico para referencias antiguas de auditoría/código. */
+class OperationDayPolicy extends ActivityDayPolicy
 {
-    protected string $resource = 'operation-days';
 }

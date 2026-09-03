@@ -37,26 +37,26 @@ class PermissionsSeeder extends Seeder
         | Migración de permisos antiguos
         |--------------------------------------------------------------------------
         |
-        | Antes existían operations.view/create/update/delete y
+        | Antes existían permisos globales de actividades y
         | events.view/create/update/delete. En el primer despliegue copiamos cada
         | permiso antiguo a TODOS los tipos existentes para no quitar acceso a
         | los roles actuales. Después retiramos el permiso antiguo del rol.
         |
         | Una vez el rol se edite, podrá limitarse a CURSO, MANIOBRA, etc.
         */
-        $operationTypeIds = PermissionCatalog::operationTypeIds();
+        $activityTypeIds = PermissionCatalog::activityTypeIds();
 
-        if ($operationTypeIds !== []) {
+        if ($activityTypeIds !== []) {
             Role::query()
                 ->where('guard_name', $guard)
                 ->with('permissions')
-                ->each(function (Role $role) use ($operationTypeIds): void {
+                ->each(function (Role $role) use ($activityTypeIds): void {
                     if ($role->name === 'admin') {
                         return;
                     }
 
                     foreach (PermissionCatalog::resources() as $resource => $definition) {
-                        if (! PermissionCatalog::isOperationTypeScoped($resource)) {
+                        if (! PermissionCatalog::isActivityTypeScoped($resource)) {
                             continue;
                         }
 
@@ -68,13 +68,13 @@ class PermissionsSeeder extends Seeder
                             }
 
                             $scopedPermissionNames = array_map(
-                                fn (int $operationTypeId): string =>
-                                    PermissionCatalog::operationTypePermissionName(
+                                fn (int $activityTypeId): string =>
+                                    PermissionCatalog::activityTypePermissionName(
                                         $resource,
-                                        $operationTypeId,
+                                        $activityTypeId,
                                         $action,
                                     ),
-                                $operationTypeIds,
+                                $activityTypeIds,
                             );
 
                             $role->givePermissionTo($scopedPermissionNames);

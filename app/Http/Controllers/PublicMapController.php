@@ -11,10 +11,10 @@ class PublicMapController extends Controller
     {
         $map->load([
             'platform',
-            'operations' => fn ($query) => $query
+            'activities' => fn ($query) => $query
                 ->with([
-                    'operationType',
-                    'operationStatus',
+                    'activityType',
+                    'activityStatus',
                     'platform',
                     'period',
                     'editor.status',

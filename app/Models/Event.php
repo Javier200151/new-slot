@@ -15,7 +15,7 @@ class Event extends Model
     use SoftDeletes, Auditable;
 
     protected $fillable = [
-        'operation_id',
+        'activity_id',
         'name',
         'date',
         'end_date',
@@ -56,10 +56,16 @@ class Event extends Model
         });
     }
 
-    public function operation()
+    /**
+     * Relación canónica con la actividad.
+     *
+     * La FK física canónica es `activity_id`.
+     */
+    public function activity()
     {
-        return $this->belongsTo(Operation::class);
+        return $this->belongsTo(Activity::class, 'activity_id');
     }
+
 
     public function eventStatus()
     {

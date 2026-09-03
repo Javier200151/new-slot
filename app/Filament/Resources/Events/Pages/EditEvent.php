@@ -21,10 +21,10 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use App\Services\CommunityNotificationService;
 use App\Models\EventStatus;
-use App\Models\Operation;
+use App\Models\Activity;
 use App\Models\User;
 use App\Support\FactionOptionLabel;
-use App\Support\OperationTypeConfiguration;
+use App\Support\ActivityTypeConfiguration;
 use App\Services\CourseMetopaAwardService;
 
 class EditEvent extends EditRecord
@@ -133,7 +133,7 @@ class EditEvent extends EditRecord
                     function (): string {
                         $service = app(CourseMetopaAwardService::class);
                         $students = $service->students($this->record);
-                        $metopa = $this->record->operation?->metopa;
+                        $metopa = $this->record->activity?->metopa;
 
                         return 'Metopa: "'
                             . ($metopa?->name ?? 'Sin metopa')
@@ -324,13 +324,13 @@ class EditEvent extends EditRecord
                 ->modalHeading('Recuperar ORBAT original')
                 ->modalDescription(
                     'Se reemplazará el ORBAT del evento por el ORBAT '
-                    . 'actual del operativo asignado. Si existen usuarios '
+                    . 'actual del actividad asignado. Si existen usuarios '
                     . 'o aliados ocupando slots que ya no existen o están '
                     . 'ocultos en el nuevo ORBAT, la operación será bloqueada.'
                 )
                 ->action(function (): void {
                     $this->record->load(
-                        'operation'
+                        'activity'
                     );
 
                     /*
@@ -341,7 +341,7 @@ class EditEvent extends EditRecord
 
                     $newOrbat =
                         $this->record
-                            ->operation
+                            ->activity
                             ?->orbat
                         ?? [
                             'groups' => [],
@@ -353,7 +353,7 @@ class EditEvent extends EditRecord
                     | Comprobar asignaciones
                     |--------------------------------------------------------------------------
                     |
-                    | Si el ORBAT actual del operativo ya no contiene alguno
+                    | Si el ORBAT actual del actividad ya no contiene alguno
                     | de los slots ocupados del evento, no permitimos reemplazarlo.
                     |
                     */
@@ -421,47 +421,47 @@ class EditEvent extends EditRecord
     ): array {
         /*
         |--------------------------------------------------------------------------
-        | El operativo de un evento es inmutable
+        | El actividad de un evento es inmutable
         |--------------------------------------------------------------------------
         |
-        | El operativo se selecciona únicamente al crear el evento.
+        | El actividad se selecciona únicamente al crear el evento.
         | Una vez creado, no puede cambiarse ni siquiera manipulando
         | manualmente la petición de Livewire.
         |
         */
 
-        $originalOperationId =
-            (int) $this->record->operation_id;
+        $originalActivityId =
+            (int) $this->record->activity_id;
 
         if (
-            array_key_exists('operation_id', $data)
-            && (int) $data['operation_id'] !== $originalOperationId
+            array_key_exists('activity_id', $data)
+            && (int) $data['activity_id'] !== $originalActivityId
         ) {
             throw ValidationException::withMessages([
-                'data.operation_id' =>
-                    'El operativo de un evento no puede modificarse '
-                    . 'una vez creado. Si necesitas otro operativo, '
+                'data.activity_id' =>
+                    'El actividad de un evento no puede modificarse '
+                    . 'una vez creado. Si necesitas otro actividad, '
                     . 'elimina este evento y crea uno nuevo.',
             ]);
         }
 
         /*
         * Nos aseguramos además de trabajar siempre
-        * con el operativo original del evento.
+        * con el actividad original del evento.
         */
-        $data['operation_id'] =
-            $originalOperationId;
+        $data['activity_id'] =
+            $originalActivityId;
             
         /*
         |--------------------------------------------------------------------------
-        | Recuperar operativo y estado del evento
+        | Recuperar actividad y estado del evento
         |--------------------------------------------------------------------------
         */
 
-        $operation =
-            Operation::query()
-                ->with('operationStatus')
-                ->find($data['operation_id']);
+        $activity =
+            Activity::query()
+                ->with('activityStatus')
+                ->find($data['activity_id']);
 
         $eventStatus =
             EventStatus::query()
@@ -473,36 +473,36 @@ class EditEvent extends EditRecord
         | Protección de publicación
         |--------------------------------------------------------------------------
         |
-        | Un operativo BORRADOR puede verse públicamente y puede tener
+        | Un actividad BORRADOR puede verse públicamente y puede tener
         | un evento BORRADOR preparado.
         |
         | Lo que no permitimos es que dicho evento pase a ACTIVO o
-        | FINALIZADO mientras el operativo continúe en BORRADOR.
+        | FINALIZADO mientras el actividad continúe en BORRADOR.
         |
         */
 
         if (
-            $operation?->operationStatus?->name === 'BORRADOR'
+            $activity?->activityStatus?->name === 'BORRADOR'
             && $eventStatus?->name !== 'BORRADOR'
         ) {
             throw ValidationException::withMessages([
                 'data.event_status_id' =>
                     'No puedes publicar este evento porque '
-                    . 'el operativo seleccionado todavía está '
+                    . 'el actividad seleccionado todavía está '
                     . 'en BORRADOR.',
             ]);
         }
 
         if (
-            $operation?->editor_ally_id
+            $activity?->editor_ally_id
             || $this->record->slots()->whereNotNull('ally_id')->exists()
         ) {
             $data['multiclans'] = true;
         }
 
-        return OperationTypeConfiguration::normalizeEventData(
+        return ActivityTypeConfiguration::normalizeEventData(
             $data,
-            $originalOperationId,
+            $originalActivityId,
         );
     }
 

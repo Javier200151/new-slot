@@ -4,7 +4,7 @@
         ? \App\Support\CommunityArea::label($navUser)
         : null;
 
-    $communityActive = request()->routeIs('operations.*')
+    $communityActive = request()->routeIs('activities.*')
         || request()->routeIs('metopas.*')
         || request()->routeIs('community.organization')
         || request()->routeIs('campaigns.*');
@@ -66,7 +66,7 @@
                 <details @class(['nav-dropdown', 'is-active' => $communityActive])>
                     <summary>Comunidad</summary>
                     <div class="nav-dropdown__menu">
-                        <a href="{{ route('operations.index') }}">Operativos</a>
+                        <a href="{{ route('activities.index') }}">Actividades</a>
                         <a href="{{ route('metopas.index') }}">Metopas</a>
                         <a href="{{ route('campaigns.index') }}">Campañas</a>
                         <a href="{{ route('community.organization') }}">Organigrama</a>

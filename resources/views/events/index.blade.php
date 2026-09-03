@@ -2,7 +2,7 @@
 
 @section('title', 'Eventos')
 
-@section('meta-description', 'Calendario de eventos y operativos de Squad ALPHA.')
+@section('meta-description', 'Calendario de eventos y actividades de Squad ALPHA.')
 
 @section('body-class', 'events-body')
 
@@ -15,7 +15,7 @@
         <div class="container">
             {{-- <span class="events-kicker">Agenda operativa</span> --}}
             <h1>Eventos</h1>
-            <p>Consulta los próximos operativos y el histórico de eventos finalizados.</p>
+            <p>Consulta los próximas actividades y el histórico de eventos finalizados.</p>
         </div>
     </section>
 
@@ -112,9 +112,9 @@
                                             ])
                                             @style([
                                                 '--event-color: '
-                                                . ($event->operation?->operationType?->color ?? '')
+                                                . ($event->activity?->activityType?->color ?? '')
                                                 => filled(
-                                                    $event->operation?->operationType?->color
+                                                    $event->activity?->activityType?->color
                                                 ),
                                                 'opacity: .48; filter: grayscale(1); pointer-events: none; cursor: default;'
                                                     => $isCancelled,
@@ -124,19 +124,19 @@
                                             @if($isCancelled)
                                                 <div
                                                     class="events-calendar__event-main"
-                                                    title="Evento cancelado: {{ $event->name ?: $event->operation?->name }}"
+                                                    title="Evento cancelado: {{ $event->name ?: $event->activity?->name }}"
                                                 >
                                             @else
                                                 <a
                                                     href="{{ route('events.show', $event) }}"
                                                     class="events-calendar__event-main"
-                                                    title="{{ $event->name ?: $event->operation?->name }}"
+                                                    title="{{ $event->name ?: $event->activity?->name }}"
                                                 >
                                             @endif
 
                                                 @if(
-                                                    $event->operation?->period?->ico
-                                                    || $event->operation?->platform?->image
+                                                    $event->activity?->period?->ico
+                                                    || $event->activity?->platform?->image
                                                 )
 
                                                     <span
@@ -144,12 +144,12 @@
                                                         aria-hidden="true"
                                                     >
 
-                                                        @if($event->operation?->period?->ico)
+                                                        @if($event->activity?->period?->ico)
 
                                                             <img
                                                                 src="{{ asset(
                                                                     'storage/'
-                                                                    . $event->operation->period->ico
+                                                                    . $event->activity->period->ico
                                                                 ) }}"
                                                                 alt=""
                                                                 width="17"
@@ -160,12 +160,12 @@
                                                         @endif
 
 
-                                                        @if($event->operation?->platform?->image)
+                                                        @if($event->activity?->platform?->image)
 
                                                             <img
                                                                 src="{{ asset(
                                                                     'storage/'
-                                                                    . $event->operation->platform->image
+                                                                    . $event->activity->platform->image
                                                                 ) }}"
                                                                 alt=""
                                                                 width="17"
@@ -181,7 +181,7 @@
 
 
                                                 <span class="events-calendar__event-name">
-                                                    @if($isDraft)<small>BORRADOR · </small>@endif{{ $event->name ?: $event->operation?->name }}
+                                                    @if($isDraft)<small>BORRADOR · </small>@endif{{ $event->name ?: $event->activity?->name }}
                                                 </span>
 
                                             @if($isCancelled)
@@ -219,9 +219,9 @@
                         <span>Tipo de evento</span>
                         <select name="type">
                             <option value="">Todos los tipos</option>
-                            @foreach($operationTypes as $operationType)
-                                <option value="{{ $operationType->id }}" @selected($selectedTypeId === $operationType->id)>
-                                    {{ $operationType->name }}
+                            @foreach($activityTypes as $activityType)
+                                <option value="{{ $activityType->id }}" @selected($selectedTypeId === $activityType->id)>
+                                    {{ $activityType->name }}
                                 </option>
                             @endforeach
                         </select>
