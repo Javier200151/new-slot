@@ -53,6 +53,13 @@ class NotificationController extends Controller
                     )
                 ),
 
+            'community_roulette_winner' =>
+                $this->redirectToEvent(
+                    (int) (
+                        $data['event_id'] ?? 0
+                    )
+                ),
+
             'metopa_awarded' =>
                 $this->redirectToMetopa(
                     (int) (

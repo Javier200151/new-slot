@@ -2377,3 +2377,76 @@ document.addEventListener(
             );
     }
 );
+document.addEventListener('DOMContentLoaded', () => {
+    const rouletteWatch = document.querySelector('[data-event-roulette-watch]');
+    const rouletteLock = document.querySelector('[data-event-roulette-lock]');
+
+    if (!rouletteWatch) {
+        return;
+    }
+
+    const lockStateUrl = rouletteWatch.dataset.rouletteLockStateUrl;
+    const initiallyLocked = Boolean(rouletteLock);
+    let knownLocked = initiallyLocked;
+    let checking = false;
+
+    if (rouletteLock) {
+        const close = () => {
+            rouletteLock.classList.add('is-dismissed');
+            window.setTimeout(() => rouletteLock.remove(), 180);
+        };
+
+        rouletteLock.querySelectorAll('[data-event-roulette-lock-close]').forEach((button) => {
+            button.addEventListener('click', close);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && document.body.contains(rouletteLock)) {
+                close();
+            }
+        });
+    }
+
+    if (!lockStateUrl) {
+        return;
+    }
+
+    window.setInterval(async () => {
+        if (checking || document.visibilityState === 'hidden') {
+            return;
+        }
+
+        checking = true;
+        try {
+            const response = await fetch(lockStateUrl, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const state = await response.json();
+            const lockedNow = state.locked === true;
+
+            if (lockedNow !== knownLocked) {
+                // Si la sala acaba de crearse, recargamos para mostrar el aviso
+                // y retirar botones del ORBAT. Si acaba de terminar, recargamos
+                // para recuperar las inscripciones sin esperar al usuario.
+                window.location.reload();
+                return;
+            }
+
+            knownLocked = lockedNow;
+        } catch {
+            // El siguiente sondeo volverá a comprobar el bloqueo.
+        } finally {
+            checking = false;
+        }
+    }, 4000);
+});

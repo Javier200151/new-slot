@@ -11,7 +11,8 @@
 
     $areaActive = request()->routeIs('community.diary.*')
         || request()->routeIs('community.forum.*')
-        || request()->routeIs('community.polls.*');
+        || request()->routeIs('community.polls.*')
+        || request()->routeIs('community.roulette.*');
 @endphp
 
 <header class="landing-header">
@@ -85,12 +86,24 @@
                         <summary>{{ $areaLabel }}</summary>
                         <div class="nav-dropdown__menu">
                             <a href="{{ route('community.forum.home') }}">Foro</a>
+                            @if(\App\Support\CommunityArea::can($navUser, \App\Support\CommunityArea::ROULETTE))
+                                <a href="{{ route('community.roulette.index') }}">Ruleta</a>
+                            @endif
                         </div>
                     </details>
                 @endif
             </nav>
 
             <div class="nav-actions">
+                <a
+                    href="https://foro.squadalpha.es/"
+                    class="legacy-forum-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Foro antiguo <span aria-hidden="true">↗</span>
+                </a>
+
                 @guest
                     <a
                         href="{{ route('login') }}"
