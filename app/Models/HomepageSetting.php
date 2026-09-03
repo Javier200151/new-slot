@@ -10,6 +10,7 @@ class HomepageSetting extends Model
         'recruitment_open',
         'contact_email',
         'instagram_url',
+        'google_photos_url',
         'news_title',
         'news_intro',
         'streams_title',
