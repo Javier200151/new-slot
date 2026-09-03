@@ -16,7 +16,7 @@ class HomepageSettingForm
             Section::make('Contacto y alistamiento')
                 ->description(
                     'Controla si el formulario público admite solicitudes de alistamiento. '
-                    . 'Todas las consultas y solicitudes se envían a planamayorsquadalpha@gmail.com '
+                    . 'Todas las consultas y solicitudes se envían a contactosquadalpha@gmail.com '
                     . 'usando el mismo SMTP configurado para los correos de NewSlot.'
                 )
                 ->schema([
