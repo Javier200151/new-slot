@@ -70,7 +70,7 @@
                 </h1>
 
                 <p class="hero-motto">
-                    Realismo
+                    Simulación
                     <span></span>
                     Disciplina
                     <span></span>
@@ -79,15 +79,14 @@
 
                 <p class="hero-description">
                     Da el paso y entra en una comunidad de simulación militar
-                    centrada en el realismo, la disciplina y el trabajo en equipo.
+                    en Arma 3 y Arma REFORGER.
                 </p>
 
                 <div class="hero-actions">
                     @guest
                         <a
-                            href="{{ route('public.register') }}"
+                            href="#alistamiento"
                             class="btn btn-primary btn-hero"
-                            data-open-modal="register-modal"
                         >
                             Alístate
                             <span aria-hidden="true">→</span>
