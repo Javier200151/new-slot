@@ -22,3 +22,8 @@ Schedule::command('community:birthdays')
     ->dailyAt('08:00')
     ->timezone('Europe/Madrid')
     ->withoutOverlapping();
+
+Schedule::command('homepage:refresh-google-photos')
+    ->dailyAt('04:15')
+    ->timezone('Europe/Madrid')
+    ->withoutOverlapping();

@@ -15,6 +15,7 @@ class SqaGroupUser extends Model
         'sqa_group_id',
         'user_id',
         'main',
+        'coordinator',
         'updated_by',
     ];
 
@@ -22,6 +23,7 @@ class SqaGroupUser extends Model
     {
         return [
             'main' => 'boolean',
+            'coordinator' => 'boolean',
         ];
     }
 
@@ -40,31 +42,46 @@ class SqaGroupUser extends Model
         });
 
         static::saved(function ($sqaGroupUser): void {
-            if (! $sqaGroupUser->main) {
+            if ($sqaGroupUser->main) {
+                $otherMainGroups =
+                    static::query()
+                        ->where(
+                            'user_id',
+                            $sqaGroupUser->user_id
+                        )
+                        ->whereKeyNot(
+                            $sqaGroupUser->id
+                        )
+                        ->where('main', true)
+                        ->get();
+
+                foreach (
+                    $otherMainGroups
+                    as $otherGroup
+                ) {
+                    $otherGroup->forceFill([
+                        'main' => false,
+
+                        'updated_by' =>
+                            Auth::id(),
+                    ])->save();
+                }
+            }
+
+            if (! $sqaGroupUser->coordinator) {
                 return;
             }
 
-            $otherMainGroups =
-                static::query()
-                    ->where(
-                        'user_id',
-                        $sqaGroupUser->user_id
-                    )
-                    ->whereKeyNot(
-                        $sqaGroupUser->id
-                    )
-                    ->where('main', true)
-                    ->get();
+            $otherCoordinators = static::query()
+                ->where('sqa_group_id', $sqaGroupUser->sqa_group_id)
+                ->whereKeyNot($sqaGroupUser->id)
+                ->where('coordinator', true)
+                ->get();
 
-            foreach (
-                $otherMainGroups
-                as $otherGroup
-            ) {
-                $otherGroup->forceFill([
-                    'main' => false,
-
-                    'updated_by' =>
-                        Auth::id(),
+            foreach ($otherCoordinators as $otherCoordinator) {
+                $otherCoordinator->forceFill([
+                    'coordinator' => false,
+                    'updated_by' => Auth::id(),
                 ])->save();
             }
         });

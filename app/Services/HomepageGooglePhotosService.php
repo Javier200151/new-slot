@@ -9,44 +9,71 @@ use Throwable;
 
 class HomepageGooglePhotosService
 {
+    /**
+     * Devuelve únicamente la última galería válida guardada en caché.
+     *
+     * IMPORTANTE: este método se usa durante la petición de la portada y no
+     * realiza ninguna llamada HTTP a Google. Así la disponibilidad o latencia
+     * de Google Fotos nunca afecta al TTFB de NewSlot.
+     */
     public function latest(int $limit = 6, ?string $albumUrl = null): Collection
     {
-        $limit = max(1, min(12, $limit));
-        $albumUrl = trim((string) ($albumUrl ?: config('services.google_photos.album_url')));
+        [$limit, $albumUrl] = $this->normaliseRequest($limit, $albumUrl);
 
         if ($albumUrl === '') {
             return collect();
         }
 
-        $albumCacheId = sha1($albumUrl);
-        $freshKey = 'homepage.google-photos.v2.' . $albumCacheId . '.' . $limit;
-        $fallbackKey = 'homepage.google-photos.last-success.v2.' . $albumCacheId . '.' . $limit;
+        $items = Cache::get($this->lastSuccessKey($albumUrl, $limit), []);
 
-        $items = Cache::remember($freshKey, now()->addMinutes(30), function () use ($albumUrl, $limit, $fallbackKey): array {
-            $fetched = $this->fetchMedia($albumUrl, $limit);
+        return collect(is_array($items) ? $items : [])
+            ->take($limit)
+            ->values();
+    }
 
-            if ($fetched !== []) {
-                // Google Fotos no ofrece una API anónima oficial para álbumes
-                // públicos. Conservamos la última respuesta válida para que un
-                // cambio puntual de su HTML o una caída no vacíe la portada.
-                Cache::put($fallbackKey, $fetched, now()->addDays(7));
-            }
+    /**
+     * Actualiza explícitamente la caché desde Google Fotos.
+     *
+     * Se invoca desde Artisan/scheduler, nunca desde la petición web de Inicio.
+     * Si Google falla, conservamos indefinidamente la última lectura correcta.
+     */
+    public function refresh(int $limit = 6, ?string $albumUrl = null): Collection
+    {
+        [$limit, $albumUrl] = $this->normaliseRequest($limit, $albumUrl);
 
-            return $fetched;
-        });
-
-        if (! is_array($items) || $items === []) {
-            $items = Cache::get($fallbackKey, []);
+        if ($albumUrl === '') {
+            return collect();
         }
 
-        return collect(is_array($items) ? $items : [])->take($limit)->values();
+        $fetched = $this->fetchMedia($albumUrl, $limit);
+
+        if ($fetched !== []) {
+            Cache::forever($this->lastSuccessKey($albumUrl, $limit), $fetched);
+
+            return collect($fetched)->take($limit)->values();
+        }
+
+        return $this->latest($limit, $albumUrl);
+    }
+
+    private function normaliseRequest(int $limit, ?string $albumUrl): array
+    {
+        $limit = max(1, min(12, $limit));
+        $albumUrl = trim((string) ($albumUrl ?: config('services.google_photos.album_url')));
+
+        return [$limit, $albumUrl];
+    }
+
+    private function lastSuccessKey(string $albumUrl, int $limit): string
+    {
+        return 'homepage.google-photos.last-success.v2.' . sha1($albumUrl) . '.' . $limit;
     }
 
     private function fetchMedia(string $albumUrl, int $limit): array
     {
         try {
-            $response = Http::timeout(9)
-                ->retry(1, 250)
+            $response = Http::connectTimeout(4)
+                ->timeout(10)
                 ->withHeaders([
                     'Accept' => 'text/html,application/xhtml+xml',
                     'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.7',
@@ -239,8 +266,8 @@ class HomepageGooglePhotosService
                     'source-path' => '/share/' . $albumKey,
                 ]);
 
-            $response = Http::timeout(9)
-                ->retry(1, 250)
+            $response = Http::connectTimeout(4)
+                ->timeout(10)
                 ->asForm()
                 ->withHeaders([
                     'Accept' => '*/*',

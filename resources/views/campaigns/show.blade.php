@@ -19,15 +19,29 @@
                 <span>{{ $campaign->name }}</span>
             </nav> --}}
 
-            <header class="campaign-page__header">
-                <span>Campaña</span>
-                <h1>{{ $campaign->name }}</h1>
+            <header @class(['campaign-page__header', 'has-cover' => filled($campaignCoverImage)])>
+                <div class="campaign-page__header-grid">
+                    <div class="campaign-page__intro">
+                        <span>Campaña</span>
+                        <h1>{{ $campaign->name }}</h1>
 
-                @if(filled($campaign->description))
-                    <div class="campaign-page__description">
-                        {{ $description }}
+                        @if(filled($campaign->description))
+                            <div class="campaign-page__description">
+                                {{ $description }}
+                            </div>
+                        @endif
                     </div>
-                @endif
+
+                    @if(filled($campaignCoverImage))
+                        <figure class="campaign-page__cover">
+                            <img
+                                src="{{ asset('storage/' . $campaignCoverImage) }}"
+                                alt="Primera partida de la campaña {{ $campaign->name }}"
+                                loading="eager"
+                            >
+                        </figure>
+                    @endif
+                </div>
             </header>
 
             <section class="campaign-events" aria-labelledby="campaign-events-title">
