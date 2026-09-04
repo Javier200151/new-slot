@@ -140,10 +140,21 @@ class PublicCampaignController extends Controller
             );
         }
 
+        $campaignFirstEvent = $campaign->events
+            ->sortBy(fn ($event) => $event->date?->getTimestamp() ?? PHP_INT_MAX)
+            ->first();
+
+        $campaignCoverImage = $campaignFirstEvent?->activity?->image;
+
         $description = new HtmlString(
             RichContentRenderer::make($campaign->description)->toHtml(),
         );
 
-        return view('campaigns.show', compact('campaign', 'description'));
+        return view('campaigns.show', compact(
+            'campaign',
+            'description',
+            'campaignFirstEvent',
+            'campaignCoverImage',
+        ));
     }
 }

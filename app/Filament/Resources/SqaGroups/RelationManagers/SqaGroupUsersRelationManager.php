@@ -12,6 +12,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 
 class SqaGroupUsersRelationManager extends RelationManager
@@ -46,6 +47,13 @@ class SqaGroupUsersRelationManager extends RelationManager
                     ->label('Principal')
                     ->inline(false)
                     ->default(false),
+
+                Toggle::make('coordinator')
+                    ->label('Coordinador del grupo')
+                    ->helperText('Solo puede existir un coordinador por grupo. Activarlo aquí desmarca automáticamente al anterior.')
+                    ->inline(false)
+                    ->default(false)
+                    ->visible(fn (): bool => (bool) $this->getOwnerRecord()->has_coordinator_role),
             ]);
     }
 
@@ -68,6 +76,13 @@ class SqaGroupUsersRelationManager extends RelationManager
                     ->label('Principal')
                     ->boolean()
                     ->sortable(),
+
+                ToggleColumn::make('coordinator')
+                    ->label('Coordinador')
+                    ->onColor('warning')
+                    ->offColor('gray')
+                    ->visible(fn (): bool => (bool) $this->getOwnerRecord()->has_coordinator_role)
+                    ->disabled(fn (): bool => ! auth()->user()?->can('update', $this->getOwnerRecord())),
 
                 TextColumn::make('updatedBy.nick')
                     ->label('Actualizado por')

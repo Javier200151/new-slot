@@ -192,6 +192,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         return $this->belongsToMany(SqaGroup::class, 'sqa_group_users')
             ->withPivot([
                 'main',
+                'coordinator',
                 'updated_by',
                 'deleted_at',
             ])

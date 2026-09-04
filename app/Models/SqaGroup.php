@@ -15,9 +15,11 @@ class SqaGroup extends Model
         'large_name',
         'description',
         'image',
+        'icon',
         'color',
         'display_order',
         'show_in_organization',
+        'has_coordinator_role',
     ];
 
     protected function casts(): array
@@ -25,7 +27,27 @@ class SqaGroup extends Model
         return [
             'display_order' => 'integer',
             'show_in_organization' => 'boolean',
+            'has_coordinator_role' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $group): void {
+            if ($group->has_coordinator_role || ! $group->wasChanged('has_coordinator_role')) {
+                return;
+            }
+
+            $values = ['coordinator' => false];
+
+            if ($userId = auth()->id()) {
+                $values['updated_by'] = $userId;
+            }
+
+            $group->sqaGroupUsers()
+                ->where('coordinator', true)
+                ->update($values);
+        });
     }
 
     public function sqaGroupUsers()
@@ -38,10 +60,17 @@ class SqaGroup extends Model
         return $this->belongsToMany(User::class, 'sqa_group_users')
             ->withPivot([
                 'main',
+                'coordinator',
                 'updated_by',
                 'deleted_at',
             ])
             ->withTimestamps()
             ->wherePivotNull('deleted_at');
+    }
+
+    public function coordinatorAssignment()
+    {
+        return $this->hasOne(SqaGroupUser::class)
+            ->where('coordinator', true);
     }
 }

@@ -9,6 +9,7 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -19,9 +20,14 @@ class SqaGroupsTable
     {
         return $table
             ->columns([
-                // ImageColumn::make('image')
-                //     ->label('Imagen')
-                //     ->circular(),
+                ImageColumn::make('icon')
+                    ->label('Icono')
+                    ->disk('public')
+                    ->imageWidth(36)
+                    ->imageHeight(36)
+                    ->extraImgAttributes([
+                        'style' => 'object-fit: contain; max-width: 36px; max-height: 36px;',
+                    ]),
 
                 TextColumn::make('name')
                     ->label('Nombre')
@@ -32,6 +38,17 @@ class SqaGroupsTable
                     ->label('Nombre largo')
                     ->searchable()
                     ->sortable(),
+
+                IconColumn::make('has_coordinator_role')
+                    ->label('Figura coordinador')
+                    ->boolean()
+                    ->sortable(),
+
+                TextColumn::make('coordinator_display')
+                    ->label('Coordinador')
+                    ->state(fn ($record): string => ! $record->has_coordinator_role
+                        ? 'No aplica'
+                        : ($record->coordinatorAssignment?->user?->nick ?? 'Sin asignar')),
 
                 ColorColumn::make('color')
                     ->label('Color'),

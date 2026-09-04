@@ -25,18 +25,29 @@
             >
         </a>
 
-        <button
-            type="button"
-            class="nav-toggle"
-            aria-label="Mostrar menú"
-            aria-controls="public-navigation"
-            aria-expanded="false"
-            data-nav-toggle
-        >
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
+        <div class="nav-mobile-tools">
+            <a
+                href="https://foro.squadalpha.es/"
+                class="legacy-forum-link legacy-forum-link--mobile"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Foro antiguo <span aria-hidden="true">↗</span>
+            </a>
+
+            <button
+                type="button"
+                class="nav-toggle"
+                aria-label="Mostrar menú"
+                aria-controls="public-navigation"
+                aria-expanded="false"
+                data-nav-toggle
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
 
         <div id="public-navigation" class="nav-menu" data-nav-menu>
             <nav class="landing-nav" aria-label="Navegación principal">
@@ -94,10 +105,10 @@
                 @endif
             </nav>
 
-            <div class="nav-actions">
+            <div @class(['nav-actions', 'nav-actions--guest' => ! $navUser, 'nav-actions--authenticated' => (bool) $navUser])>
                 <a
                     href="https://foro.squadalpha.es/"
-                    class="legacy-forum-link"
+                    class="legacy-forum-link legacy-forum-link--desktop"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
