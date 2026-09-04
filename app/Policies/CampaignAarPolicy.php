@@ -20,6 +20,10 @@ class CampaignAarPolicy
 
     public function update(User $user, CampaignAar $aar): bool
     {
+        if ($user->hasPermissionTo('campaign-aars.manage')) {
+            return true;
+        }
+
         $aar->loadMissing([
             'campaign',
             'event.activity',

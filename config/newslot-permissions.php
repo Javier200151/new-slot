@@ -50,6 +50,12 @@ return [
                 'campaigns' => [
                     'label' => 'Campañas',
                 ],
+                'campaign-aars' => [
+                    'label' => 'AAR de campañas',
+                    'actions' => [
+                        'manage' => 'Editar cualquier AAR (migración / excepción)',
+                    ],
+                ],
                 'activities' => [
                     'label' => 'Actividades',
                     'scope' => 'activity_type',
