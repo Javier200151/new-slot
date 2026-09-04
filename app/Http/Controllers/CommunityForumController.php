@@ -7,12 +7,14 @@ use App\Models\CommunityDiary;
 use App\Models\CommunityDiaryComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityPostComment;
+use App\Models\CommunityReaction;
 use App\Models\CommunityProcess;
 use App\Services\CommunityPollManager;
 use App\Services\CommunityPollViewService;
 use App\Services\CommunitySubscriptionService;
 use App\Support\CommunityArea;
 use App\Support\CommunityForumCategory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -60,9 +62,11 @@ class CommunityForumController extends Controller
             'forumCategory',
             'author.status',
             'author.mainSqaGroup',
+            'reactions.user:id,nick',
             'lockedBy:id,nick',
             'comments.author.status',
             'comments.author.mainSqaGroup',
+            'comments.reactions.user:id,nick',
             'process.poll.options',
             'process.activeApplications.user.status',
             'process.activeApplications.user.mainSqaGroup',
@@ -249,6 +253,52 @@ class CommunityForumController extends Controller
         return back()->with('status', $post->is_pinned ? 'thread-pinned' : 'thread-unpinned');
     }
 
+    public function reactToPost(
+        Request $request,
+        string $channel,
+        CommunityPost $post,
+    ): RedirectResponse|JsonResponse {
+        $this->authorizeChannel($request, $channel);
+        abort_unless($post->channel === $channel, 404);
+
+        $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(
+            CommunityForumCategory::canView($request->user(), $categoryKey),
+            403,
+            'No tienes acceso a esta categoría.'
+        );
+
+        return $this->toggleReaction(
+            $request,
+            $post,
+            route('community.forum.show', [$channel, $post]) . '#mensaje-inicial',
+        );
+    }
+
+    public function reactToComment(
+        Request $request,
+        string $channel,
+        CommunityPost $post,
+        CommunityPostComment $comment,
+    ): RedirectResponse|JsonResponse {
+        $this->authorizeChannel($request, $channel);
+        abort_unless($post->channel === $channel, 404);
+        abort_unless($comment->community_post_id === $post->id, 404);
+
+        $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(
+            CommunityForumCategory::canView($request->user(), $categoryKey),
+            403,
+            'No tienes acceso a esta categoría.'
+        );
+
+        return $this->toggleReaction(
+            $request,
+            $comment,
+            route('community.forum.show', [$channel, $post]) . '#respuesta-' . $comment->id,
+        );
+    }
+
     public function comment(
         Request $request,
         string $channel,
@@ -335,6 +385,74 @@ class CommunityForumController extends Controller
         $post->touch();
 
         return back()->with('status', 'comment-deleted');
+    }
+
+    private function toggleReaction(
+        Request $request,
+        CommunityPost|CommunityPostComment $reactable,
+        string $redirectUrl,
+    ): RedirectResponse|JsonResponse {
+        $validated = $request->validate([
+            'reaction' => [
+                'required',
+                'string',
+                Rule::in(array_keys(CommunityReaction::options())),
+            ],
+        ]);
+
+        $userId = $request->user()->id;
+        $reactionCode = $validated['reaction'];
+
+        DB::transaction(function () use ($reactable, $userId, $reactionCode): void {
+            $existing = $reactable->reactions()
+                ->where('user_id', $userId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing?->reaction === $reactionCode) {
+                $existing->delete();
+
+                return;
+            }
+
+            if ($existing) {
+                $existing->update(['reaction' => $reactionCode]);
+
+                return;
+            }
+
+            $reactable->reactions()->create([
+                'user_id' => $userId,
+                'reaction' => $reactionCode,
+            ]);
+        });
+
+        $reactable->load('reactions.user:id,nick');
+
+        if ($request->expectsJson()) {
+            $options = CommunityReaction::options();
+            $mine = $reactable->reactions->firstWhere('user_id', $userId)?->reaction;
+            $counts = [];
+            $reactors = [];
+
+            foreach ($options as $code => $option) {
+                $matching = $reactable->reactions->where('reaction', $code);
+                $counts[$code] = $matching->count();
+                $reactors[$code] = $matching
+                    ->pluck('user.nick')
+                    ->filter()
+                    ->values()
+                    ->all();
+            }
+
+            return response()->json([
+                'mine' => $mine,
+                'counts' => $counts,
+                'reactors' => $reactors,
+            ]);
+        }
+
+        return redirect($redirectUrl)->with('status', 'reaction-updated');
     }
 
     private function personalLanding(Request $request): View

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CommunityPost extends Model
@@ -78,5 +79,10 @@ class CommunityPost extends Model
     public function subscriptions()
     {
         return $this->morphMany(CommunitySubscription::class, 'subscribable');
+    }
+
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(CommunityReaction::class, 'reactable');
     }
 }

@@ -609,6 +609,13 @@ Route::middleware('auth')->group(function (): void {
         ->name('community.forum.pin');
 
     Route::post(
+        '/area/foro/{channel}/{post}/reaccion',
+        [CommunityForumController::class, 'reactToPost']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.reactions.post');
+
+    Route::post(
         '/area/foro/{channel}/{post}/respuestas',
         [CommunityForumController::class, 'comment']
     )
@@ -628,6 +635,13 @@ Route::middleware('auth')->group(function (): void {
     )
         ->whereIn('channel', ['cantina', 'personal'])
         ->name('community.forum.comments.destroy');
+
+    Route::post(
+        '/area/foro/{channel}/{post}/respuestas/{comment}/reaccion',
+        [CommunityForumController::class, 'reactToComment']
+    )
+        ->whereIn('channel', ['cantina', 'personal'])
+        ->name('community.forum.reactions.comment');
 
     Route::patch(
         '/area/personal/procesos/{process}',

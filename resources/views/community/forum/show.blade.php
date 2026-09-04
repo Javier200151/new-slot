@@ -112,6 +112,11 @@
 
             <div class="forum-post__body forum-rich">{!! \App\Support\ForumMarkup::render($post->body) !!}</div>
 
+            @include('community.partials.reactions', [
+                'reactable' => $post,
+                'reactionRoute' => route('community.forum.reactions.post', [$channel, $post]),
+            ])
+
             <div class="forum-message__actions">
                 <button
                     class="forum-message-action forum-quote-btn"
@@ -224,6 +229,11 @@
                         </div>
 
                         <div class="forum-comment__body forum-rich">{!! \App\Support\ForumMarkup::render($comment->body) !!}</div>
+
+                        @include('community.partials.reactions', [
+                            'reactable' => $comment,
+                            'reactionRoute' => route('community.forum.reactions.comment', [$channel, $post, $comment]),
+                        ])
 
                         <div class="forum-message__actions">
                             @if(!$post->is_locked && $canReply)

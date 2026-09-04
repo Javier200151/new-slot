@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CommunityPostComment extends Model
@@ -24,5 +25,10 @@ class CommunityPostComment extends Model
     public function author()
     {
         return $this->belongsTo(User::class, 'user_id')->withTrashed();
+    }
+
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(CommunityReaction::class, 'reactable');
     }
 }
