@@ -54,8 +54,12 @@
     };
 
     const initEditor = (editor) => {
+        if (!editor || editor.dataset.forumEditorInitialized === '1') return;
+
         const textarea = editor.querySelector('.forum-editor__textarea');
         if (!textarea) return;
+
+        editor.dataset.forumEditorInitialized = '1';
 
         editor.querySelectorAll('[data-forum-wrap]').forEach((button) => {
             button.addEventListener('click', () => wrapSelection(textarea, button.dataset.forumWrap));
@@ -208,8 +212,15 @@
         });
     };
 
+    window.NewSlotForumEditor = Object.assign(window.NewSlotForumEditor || {}, {
+        init: initEditor,
+        initAll(scope = document) {
+            scope.querySelectorAll('[data-forum-editor]').forEach(initEditor);
+        },
+    });
+
     ready(() => {
-        document.querySelectorAll('[data-forum-editor]').forEach(initEditor);
+        window.NewSlotForumEditor.initAll();
         initCompose();
         initThreadTypes();
         initPollConfig();

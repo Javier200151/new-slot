@@ -4,6 +4,10 @@
     $editorLabel = $label ?? 'Mensaje';
     $editorValue = $value ?? old($editorName, '');
     $editorRows = $rows ?? 9;
+    $editorRequired = $required ?? true;
+    $editorMaxlength = $maxlength ?? null;
+    $editorPlaceholder = $placeholder ?? null;
+    $editorHelp = $help ?? 'Puedes combinar formato, citas, spoilers, enlaces e imágenes por URL. El contenido se procesa como BBCode seguro; no se admite HTML directo.';
 @endphp
 
 <div class="forum-editor" data-forum-editor>
@@ -58,10 +62,12 @@
         name="{{ $editorName }}"
         rows="{{ $editorRows }}"
         class="forum-editor__textarea"
-        required
+        @if($editorRequired) required @endif
+        @if($editorMaxlength) maxlength="{{ $editorMaxlength }}" @endif
+        @if($editorPlaceholder) placeholder="{{ $editorPlaceholder }}" @endif
     >{{ $editorValue }}</textarea>
 
-    <small class="forum-editor__help">
-        Puedes combinar formato, citas, spoilers, enlaces e imágenes por URL. El contenido se procesa como BBCode seguro; no se admite HTML directo.
-    </small>
+    @if($editorHelp)
+        <small class="forum-editor__help">{{ $editorHelp }}</small>
+    @endif
 </div>
