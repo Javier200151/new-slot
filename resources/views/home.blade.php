@@ -614,7 +614,7 @@
                                     </label>
 
                                     <label class="form-field" style="margin-top: 14px;">
-                                        <span>Resumen de experiencia en simulación militar en Arma 3</span>
+                                        <span>Resumen de experiencia en simulación militar en Arma 3 y Arma Reforger</span>
                                         <textarea
                                             name="experience_summary"
                                             rows="6"
