@@ -17,6 +17,7 @@ class CommunityReaction extends Model
     {
         return [
             'like' => ['emoji' => '👍', 'label' => 'Me gusta'],
+            'dislike' => ['emoji' => '👎', 'label' => 'No me gusta'],
             'love' => ['emoji' => '❤️', 'label' => 'Me encanta'],
             'laugh' => ['emoji' => '😂', 'label' => 'Me divierte'],
             'wow' => ['emoji' => '😮', 'label' => 'Me sorprende'],
@@ -24,6 +25,10 @@ class CommunityReaction extends Model
             'angry' => ['emoji' => '😡', 'label' => 'Me enfada'],
             'salute' => ['emoji' => '🫡', 'label' => 'Saludo'],
             'clown' => ['emoji' => '🤡', 'label' => 'Payaso'],
+            'skull' => ['emoji' => '💀', 'label' => 'Calavera'],
+            'clap' => ['emoji' => '👏', 'label' => 'Aplausos'],
+            'fire' => ['emoji' => '🔥', 'label' => 'Épico'],
+            'thinking' => ['emoji' => '🤔', 'label' => 'Pensando'],
         ];
     }
 
