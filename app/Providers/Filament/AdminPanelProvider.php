@@ -20,7 +20,8 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationItem;
-use Filament\Support\Assets\Css;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Support\HtmlString;
 //use Pxlrbt\FilamentActivityLog\FilamentActivityLogPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -38,14 +39,29 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->assets([
-                Css::make(
-                    'filament-custom',
-                    asset('css/filament-custom.css')
-                        . '?v='
-                        . filemtime(public_path('css/filament-custom.css'))
-                ),
-            ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                function (): HtmlString {
+                    $path = public_path('css/filament-custom.css');
+
+                    if (! is_file($path)) {
+                        return new HtmlString('');
+                    }
+
+                    $css = file_get_contents($path);
+
+                    if ($css === false) {
+                        return new HtmlString('');
+                    }
+
+                    // El CSS personalizado del panel es muy pequeño y crítico para el layout.
+                    // Lo inyectamos inline para que producción no dependa de la caché de
+                    // archivos estáticos de Caddy/navegador después de cada despliegue.
+                    $css = str_replace('</style>', '<\/style>', $css);
+
+                    return new HtmlString("<style id=\"newslot-filament-custom\">{$css}</style>");
+                },
+            )
             ->navigationGroups([
                 NavigationGroup::make('Actividades'),
                 NavigationGroup::make('Eventos'),
