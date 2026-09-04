@@ -409,7 +409,9 @@ Route::get('/firmas/{nick}.html', function ($nick) {
         ->firstOrFail();
 
     return view('firmas.show', compact('user'));
-})->name('firmas.show');
+})
+    ->where('nick', '[^/]+')
+    ->name('firmas.show');
 /*
 |--------------------------------------------------------------------------
 | Usuarios públicos
