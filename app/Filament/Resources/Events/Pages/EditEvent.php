@@ -20,7 +20,6 @@ use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use App\Services\CommunityNotificationService;
-use App\Services\CampaignAarService;
 use App\Models\EventStatus;
 use App\Models\Activity;
 use App\Models\User;
@@ -288,9 +287,21 @@ class EditEvent extends EditRecord
                         }
                     }
 
-                    $this->record->forceFill([
-                        'orbat' => $orbat,
-                    ])->save();
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Validar ANTES de guardar
+                    |--------------------------------------------------------------------------
+                    |
+                    | El ORBAT del evento puede tener usuarios/aliados asignados en
+                    | event_slots. Si ocultamos un grupo o slot ocupado, la asignación
+                    | quedaría huérfana desde el punto de vista del ORBAT público.
+                    |
+                    | Es importante comprobar los conflictos antes de persistir el JSON.
+                    | Antes se guardaba primero y se validaba después: Filament mostraba
+                    | el error, pero el slot ya quedaba oculto y el ocupante continuaba
+                    | en event_slots.
+                    |
+                    */
 
                     $conflicts =
                         $this
@@ -306,7 +317,11 @@ class EditEvent extends EditRecord
                             );
 
                         return;
-}
+                    }
+
+                    $this->record->forceFill([
+                        'orbat' => $orbat,
+                    ])->save();
 
                     Notification::make()
                         ->title('Visibilidad del ORBAT actualizada.')
@@ -719,20 +734,9 @@ class EditEvent extends EditRecord
     }
     protected function afterSave(): void
     {
-        $this->record->load(
+        $this->record->loadMissing(
             'eventStatus'
         );
-
-        if (
-            $this->record->eventStatus?->name
-            === 'FINALIZADO'
-        ) {
-            app(CampaignAarService::class)
-                ->ensureForFinalizedEvent(
-                    $this->record,
-                    true,
-                );
-        }
 
         if (
             $this->record->eventStatus?->name
