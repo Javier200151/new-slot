@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!sections || !template || !addButton) return;
 
+    window.NewSlotForumEditor?.initAll(editor);
+
     const refreshLabels = () => {
         sections.querySelectorAll('[data-aar-section]').forEach((section, index) => {
             const label = section.querySelector('.aar-editor__section-head > span');
@@ -40,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sections.appendChild(section);
         bindRemove(section);
+        window.NewSlotForumEditor?.init(section.querySelector('[data-forum-editor]'));
         refreshLabels();
         section.querySelector('input[type="text"]')?.focus();
     });

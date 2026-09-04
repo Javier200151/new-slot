@@ -10,6 +10,7 @@
 
 @if($editing)
     @push('scripts')
+        <script src="{{ asset('js/community-forum.js') }}?v={{ filemtime(public_path('js/community-forum.js')) }}" defer></script>
         <script src="{{ asset('js/campaign-aar.js') }}?v={{ filemtime(public_path('js/campaign-aar.js')) }}" defer></script>
     @endpush
 @endif
@@ -80,48 +81,57 @@
                 </div>
             </section>
 
-            <section class="aar-orbat" aria-labelledby="aar-orbat-title">
-                <header>
+            <details class="aar-orbat" aria-labelledby="aar-orbat-title">
+                <summary class="aar-orbat__summary">
                     <div>
                         <span class="aar-kicker">Anexo automático</span>
                         <h2 id="aar-orbat-title">ORBAT final</h2>
                     </div>
-                    <small>Capturado al cerrar el operativo</small>
-                </header>
-
-                @php($orbatGroups = $aar->orbat_snapshot['groups'] ?? [])
-
-                @if(empty($orbatGroups))
-                    <p class="aar-muted">No hay ORBAT disponible para este operativo.</p>
-                @else
-                    <div class="aar-orbat__groups">
-                        @foreach($orbatGroups as $group)
-                            <article class="aar-orbat__group">
-                                <header>
-                                    <strong>{{ $group['name'] ?? 'Grupo' }}</strong>
-                                    @if(filled($group['faction'] ?? null))
-                                        <span>{{ $group['faction'] }}</span>
-                                    @endif
-                                </header>
-
-                                <div class="aar-orbat__slots">
-                                    @foreach(($group['slots'] ?? []) as $slot)
-                                        <div>
-                                            <span>
-                                                <b>{{ $slot['slot_name'] ?? 'Slot' }}</b>
-                                                <small>{{ $slot['slot_type'] ?? 'Sin tipo' }}</small>
-                                            </span>
-                                            <strong @class(['is-vacant' => ($slot['assignee'] ?? 'VACANTE') === 'VACANTE'])>
-                                                {{ $slot['assignee'] ?? 'VACANTE' }}
-                                            </strong>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </article>
-                        @endforeach
+                    <div class="aar-orbat__summary-meta">
+                        <small>Capturado al cerrar el operativo</small>
+                        <span class="aar-orbat__toggle-label" aria-hidden="true">
+                            <span class="is-closed">Ver ORBAT</span>
+                            <span class="is-open">Ocultar ORBAT</span>
+                            <b>⌄</b>
+                        </span>
                     </div>
-                @endif
-            </section>
+                </summary>
+
+                <div class="aar-orbat__content">
+                    @php($orbatGroups = $aar->orbat_snapshot['groups'] ?? [])
+
+                    @if(empty($orbatGroups))
+                        <p class="aar-muted">No hay ORBAT disponible para este operativo.</p>
+                    @else
+                        <div class="aar-orbat__groups">
+                            @foreach($orbatGroups as $group)
+                                <article class="aar-orbat__group">
+                                    <header>
+                                        <strong>{{ $group['name'] ?? 'Grupo' }}</strong>
+                                        @if(filled($group['faction'] ?? null))
+                                            <span>{{ $group['faction'] }}</span>
+                                        @endif
+                                    </header>
+
+                                    <div class="aar-orbat__slots">
+                                        @foreach(($group['slots'] ?? []) as $slot)
+                                            <div>
+                                                <span>
+                                                    <b>{{ $slot['slot_name'] ?? 'Slot' }}</b>
+                                                    <small>{{ $slot['slot_type'] ?? 'Sin tipo' }}</small>
+                                                </span>
+                                                <strong @class(['is-vacant' => ($slot['assignee'] ?? 'VACANTE') === 'VACANTE'])>
+                                                    {{ $slot['assignee'] ?? 'VACANTE' }}
+                                                </strong>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </details>
 
             @if($editing)
                 <form
@@ -181,15 +191,17 @@
                                     >
                                 </label>
 
-                                <label>
-                                    <span>Informe</span>
-                                    <textarea
-                                        name="sections[{{ $index }}][content]"
-                                        rows="8"
-                                        maxlength="20000"
-                                        placeholder="Describe hechos, resultados, incidencias, decisiones de mando, inteligencia obtenida..."
-                                    >{{ $section['content'] ?? '' }}</textarea>
-                                </label>
+                                @include('community.partials.editor', [
+                                    'id' => 'aar-section-editor-' . $index,
+                                    'name' => 'sections[' . $index . '][content]',
+                                    'label' => 'Informe',
+                                    'value' => $section['content'] ?? '',
+                                    'rows' => 10,
+                                    'required' => false,
+                                    'maxlength' => 20000,
+                                    'placeholder' => 'Describe hechos, resultados, incidencias, decisiones de mando, inteligencia obtenida...',
+                                    'help' => 'Formato seguro: negrita, títulos, listas, colores, enlaces e imágenes por URL. No se admite HTML directo.',
+                                ])
                             </article>
                         @endforeach
                     </div>
@@ -208,10 +220,17 @@
                                 <input type="text" name="sections[__INDEX__][title]" maxlength="120" required>
                             </label>
 
-                            <label>
-                                <span>Informe</span>
-                                <textarea name="sections[__INDEX__][content]" rows="8" maxlength="20000"></textarea>
-                            </label>
+                            @include('community.partials.editor', [
+                                'id' => 'aar-section-editor-__INDEX__',
+                                'name' => 'sections[__INDEX__][content]',
+                                'label' => 'Informe',
+                                'value' => '',
+                                'rows' => 10,
+                                'required' => false,
+                                'maxlength' => 20000,
+                                'placeholder' => 'Describe hechos, resultados, incidencias, decisiones de mando, inteligencia obtenida...',
+                                'help' => 'Formato seguro: negrita, títulos, listas, colores, enlaces e imágenes por URL. No se admite HTML directo.',
+                            ])
                         </article>
                     </template>
 
@@ -258,7 +277,7 @@
                                     <div>
                                         <h3>{{ $section['title'] ?? 'Sección' }}</h3>
                                         @if(filled($section['content'] ?? null))
-                                            <p>{!! nl2br(e($section['content'])) !!}</p>
+                                            <div class="aar-rich forum-rich">{!! \App\Support\ForumMarkup::render($section['content']) !!}</div>
                                         @else
                                             <p class="aar-muted">Sin información registrada.</p>
                                         @endif
