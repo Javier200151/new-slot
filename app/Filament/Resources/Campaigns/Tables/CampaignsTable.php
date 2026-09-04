@@ -20,6 +20,12 @@ class CampaignsTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('editor.nick')
+                    ->label('Editor/a')
+                    ->placeholder('Sin asignar')
+                    ->searchable()
+                    ->sortable(),
+
                 IconColumn::make('persistent')
                     ->label('Persistente')
                     ->boolean()

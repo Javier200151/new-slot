@@ -23,7 +23,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ asset('css/landing.css') }}"
+        href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}"
     >
 </head>
 

@@ -7,7 +7,7 @@
 
     <title>@yield('title', 'Metopas') - Squad ALPHA</title>
 
-    <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/metopas.css') }}">
     @stack('styles')
 </head>

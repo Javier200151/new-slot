@@ -107,6 +107,11 @@ class Event extends Model
         return $this->hasMany(EventSlot::class);
     }
 
+    public function campaignAar()
+    {
+        return $this->hasOne(CampaignAar::class, 'event_id');
+    }
+
     public function isCancelled(): bool
     {
         return mb_strtoupper(

@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\SqaGroups\Schemas;
 
+use App\Models\SqaGroup;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Checkbox;
 use Filament\Schemas\Schema;
 
 class SqaGroupForm
@@ -55,16 +56,30 @@ class SqaGroupForm
                     ->directory('sqa-groups')
                     ->visibility('public')
                     ->preserveFilenames()
+                    ->deletable()
                     ->columnSpanFull(),
 
                 FileUpload::make('icon')
                     ->label('Icono del organigrama')
-                    ->helperText('Icono cuadrado o transparente que se mostrará junto al nombre del grupo en el organigrama.')
+                    ->helperText('Icono cuadrado o transparente que se mostrará junto al nombre del grupo en el organigrama. Puedes quitarlo desde el propio campo o usando la casilla inferior.')
                     ->image()
                     ->disk('public')
                     ->directory('sqa-groups/icons')
                     ->visibility('public')
                     ->preserveFilenames()
+                    ->deletable()
+                    ->columnSpanFull(),
+
+                Checkbox::make('remove_icon')
+                    ->label('Quitar el icono actual al guardar')
+                    ->helperText('Úsalo si el control de subida no permite retirar correctamente un icono ya guardado. Se eliminará la referencia del grupo y el archivo del disco público.')
+                    ->visible(
+                        fn (?SqaGroup $record): bool => $record !== null && filled($record->icon),
+                    )
+                    ->dehydrated(
+                        fn (?SqaGroup $record): bool => $record !== null,
+                    )
+                    ->default(false)
                     ->columnSpanFull(),
             ]);
     }

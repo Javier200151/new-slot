@@ -16,6 +16,7 @@ class Campaign extends Model
         'name',
         'persistent',
         'description',
+        'editor_id',
     ];
 
     protected function casts(): array
@@ -26,6 +27,16 @@ class Campaign extends Model
     }
 
     /** Relación canónica. La FK física sigue siendo `campaign_id`. */
+    public function editor()
+    {
+        return $this->belongsTo(User::class, 'editor_id')->withTrashed();
+    }
+
+    public function aars()
+    {
+        return $this->hasMany(CampaignAar::class, 'campaign_id');
+    }
+
     public function activities()
     {
         return $this->hasMany(Activity::class, 'campaign_id');
