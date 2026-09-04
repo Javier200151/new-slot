@@ -6,7 +6,7 @@ use App\Models\Status;
 use App\Rules\NotReservedUsername;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -88,13 +88,11 @@ class UserForm
                     ->disabled()
                     ->default(fn ($record) => $record?->getSignatureUrl()),
 
-                RichEditor::make('quote')
+                Textarea::make('quote')
                     ->label('Cita')
-                    ->disableToolbarButtons([
-                        'attachFiles',
-                    ]) 
-                    ->maxLength(255),   
-                    //->columnSpanFull(),
+                    ->rows(3)
+                    ->maxLength(500)
+                    ->helperText('Frase o cita que se muestra en el perfil público.'),
 
 
                 FileUpload::make('image')

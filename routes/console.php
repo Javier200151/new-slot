@@ -19,7 +19,7 @@ Schedule::command('activitylog:clean --force')
     ->withoutOverlapping();
 
 Schedule::command('community:birthdays')
-    ->dailyAt('08:00')
+    ->dailyAt('00:00')
     ->timezone('Europe/Madrid')
     ->withoutOverlapping();
 
