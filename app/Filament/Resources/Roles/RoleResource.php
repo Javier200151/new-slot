@@ -12,6 +12,7 @@ use App\Support\PermissionCatalog;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ReplicateAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -19,10 +20,12 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use UnitEnum;
 
@@ -69,6 +72,21 @@ class RoleResource extends Resource
                     ])
                     ->columns(2),
 
+                Section::make('Buscar permisos')
+                    ->description('Filtra los checks por bloque, permiso, acción o tipo de actividad.')
+                    ->schema([
+                        TextInput::make('permission_search')
+                            ->label('Buscar permisos')
+                            ->placeholder('Ej.: usuarios, eliminar, ORBAT, operación...')
+                            ->prefixIcon('heroicon-o-magnifying-glass')
+                            ->live(debounce: 200)
+                            ->dehydrated(false)
+                            ->extraInputAttributes([
+                                'autocomplete' => 'off',
+                            ]),
+                    ])
+                    ->columnSpanFull(),
+
                 self::permissionTabs(),
             ]);
     }
@@ -82,12 +100,42 @@ class RoleResource extends Resource
 
         foreach (PermissionCatalog::groups() as $group) {
             $components = [];
+            $baseGroupSearchTerms = [
+                $group['label'] ?? '',
+            ];
+            $groupSearchTerms = $baseGroupSearchTerms;
 
             foreach ($group['resources'] ?? [] as $resource => $definition) {
+                $resourceLabel = $definition['label'] ?? $resource;
+                $actionOptions = PermissionCatalog::actionOptionsFor($resource);
+                $resourceSearchTerms = array_merge(
+                    $baseGroupSearchTerms,
+                    [
+                        $resource,
+                        $resourceLabel,
+                    ],
+                    array_keys($actionOptions),
+                    array_values($actionOptions),
+                );
+
                 if (PermissionCatalog::isActivityTypeScoped($resource)) {
                     $typeCheckboxes = [];
+                    $sectionSearchTerms = $resourceSearchTerms;
 
                     foreach ($activityTypes as $activityType) {
+                        $typeSearchTerms = array_merge(
+                            $resourceSearchTerms,
+                            [
+                                (string) $activityType->id,
+                                $activityType->name,
+                            ],
+                        );
+
+                        $sectionSearchTerms = array_merge(
+                            $sectionSearchTerms,
+                            $typeSearchTerms,
+                        );
+
                         $typeCheckboxes[] = CheckboxList::make(
                             PermissionCatalog::activityTypeFieldName(
                                 $resource,
@@ -95,22 +143,38 @@ class RoleResource extends Resource
                             )
                         )
                             ->label($activityType->name)
-                            ->options(
-                                PermissionCatalog::actionOptionsFor($resource)
-                            )
+                            ->options($actionOptions)
                             ->columns(4)
-                            ->bulkToggleable();
+                            ->bulkToggleable()
+                            ->hidden(
+                                fn (Get $get): bool => ! self::permissionSearchMatches(
+                                    $get('permission_search'),
+                                    $typeSearchTerms,
+                                )
+                            )
+                            ->dehydratedWhenHidden();
                     }
 
                     $components[] = Section::make(
-                        ($definition['label'] ?? $resource) . ' por tipo'
+                        $resourceLabel . ' por tipo'
                     )
                         ->description(
                             'Selecciona qué acciones puede realizar este rol en cada tipo.'
                         )
                         ->schema($typeCheckboxes)
                         ->columns(2)
-                        ->columnSpanFull();
+                        ->columnSpanFull()
+                        ->hidden(
+                            fn (Get $get): bool => ! self::permissionSearchMatches(
+                                $get('permission_search'),
+                                $sectionSearchTerms,
+                            )
+                        );
+
+                    $groupSearchTerms = array_merge(
+                        $groupSearchTerms,
+                        $sectionSearchTerms,
+                    );
 
                     continue;
                 }
@@ -118,18 +182,34 @@ class RoleResource extends Resource
                 $components[] = CheckboxList::make(
                     PermissionCatalog::fieldName($resource)
                 )
-                    ->label($definition['label'] ?? $resource)
-                    ->options(
-                        PermissionCatalog::actionOptionsFor($resource)
-                    )
+                    ->label($resourceLabel)
+                    ->options($actionOptions)
                     ->columns(4)
-                    ->bulkToggleable();
+                    ->bulkToggleable()
+                    ->hidden(
+                        fn (Get $get): bool => ! self::permissionSearchMatches(
+                            $get('permission_search'),
+                            $resourceSearchTerms,
+                        )
+                    )
+                    ->dehydratedWhenHidden();
+
+                $groupSearchTerms = array_merge(
+                    $groupSearchTerms,
+                    $resourceSearchTerms,
+                );
             }
 
             $tabs[] = Tab::make($group['label'])
                 ->icon($group['icon'] ?? null)
                 ->schema($components)
-                ->columns(2);
+                ->columns(2)
+                ->hidden(
+                    fn (Get $get): bool => ! self::permissionSearchMatches(
+                        $get('permission_search'),
+                        $groupSearchTerms,
+                    )
+                );
         }
 
         return Tabs::make('Permisos')
@@ -137,6 +217,42 @@ class RoleResource extends Resource
             ->persistTab()
             ->id('role-permission-tabs')
             ->columnSpanFull();
+    }
+
+    /**
+     * El buscador solo afecta a la presentación. Los CheckboxList ocultos
+     * continúan deshidratando su estado para no perder permisos al guardar.
+     */
+    public static function permissionSearchMatches(
+        mixed $search,
+        array $terms,
+    ): bool {
+        $search = trim((string) $search);
+
+        if ($search === '') {
+            return true;
+        }
+
+        $search = Str::lower(Str::ascii($search));
+        $tokens = preg_split('/\s+/u', $search) ?: [];
+        $haystack = Str::lower(Str::ascii(
+            implode(' ', array_filter(array_map(
+                static fn ($term): string => (string) $term,
+                $terms,
+            )))
+        ));
+
+        foreach ($tokens as $token) {
+            if ($token === '') {
+                continue;
+            }
+
+            if (! str_contains($haystack, $token)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static function table(Table $table): Table
@@ -195,10 +311,72 @@ class RoleResource extends Resource
                         return 'warning';
                     }),
             ])
+            ->searchable()
+            ->searchPlaceholder('Buscar roles…')
+            ->persistSearchInSession()
             ->actions([
                 EditAction::make(),
+                self::duplicateAction(),
                 DeleteAction::make(),
             ]);
+    }
+
+    public static function duplicateAction(): ReplicateAction
+    {
+        return ReplicateAction::make('duplicate')
+            ->label('Duplicar')
+            ->icon('heroicon-o-square-2-stack')
+            ->color('warning')
+            ->authorize('create', Role::class)
+            ->requiresConfirmation()
+            ->modalHeading('Duplicar rol')
+            ->modalDescription(
+                'Se copiarán todos los permisos del rol. Los usuarios asignados no se duplicarán.'
+            )
+            ->beforeReplicaSaved(function (Role $record, Role $replica): void {
+                $replica->name = self::nextDuplicateName($record);
+            })
+            ->after(function (Role $record, Role $replica): void {
+                $record->loadMissing('permissions');
+
+                $replica->syncPermissions(
+                    $record->permissions
+                        ->pluck('name')
+                        ->all()
+                );
+
+                app(PermissionRegistrar::class)
+                    ->forgetCachedPermissions();
+            })
+            ->successNotificationTitle(
+                fn (Role $replica): string =>
+                    "Rol {$replica->name} duplicado correctamente."
+            )
+            ->successRedirectUrl(
+                fn (Role $replica): string => self::getUrl(
+                    'edit',
+                    ['record' => $replica],
+                )
+            );
+    }
+
+    public static function nextDuplicateName(Role $role): string
+    {
+        $baseName = $role->name . '_duplicado';
+        $candidate = $baseName;
+        $suffix = 2;
+
+        while (
+            Role::query()
+                ->where('guard_name', $role->guard_name ?: 'web')
+                ->where('name', $candidate)
+                ->exists()
+        ) {
+            $candidate = $baseName . '_' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     public static function getPages(): array
