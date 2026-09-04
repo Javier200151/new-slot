@@ -67,6 +67,24 @@
                                                     <a href="mailto:{{ $submission->email }}" style="color:#f59e0b;text-decoration:none;">{{ $submission->email }}</a>
                                                 </td>
                                             </tr>
+                                            @if($submission->is_recruitment)
+                                                <tr>
+                                                    <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">Nombre real</td>
+                                                    <td style="padding:12px 14px;background:#090c11;border:1px solid #252b35;border-left:0;border-radius:0 8px 8px 0;color:#f7f7f8;font-size:14px;">{{ $submission->full_name }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">Nacimiento</td>
+                                                    <td style="padding:12px 14px;background:#090c11;border:1px solid #252b35;border-left:0;border-radius:0 8px 8px 0;color:#f7f7f8;font-size:14px;">{{ $submission->birth_date?->format('d/m/Y') }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">Residencia</td>
+                                                    <td style="padding:12px 14px;background:#090c11;border:1px solid #252b35;border-left:0;border-radius:0 8px 8px 0;color:#f7f7f8;font-size:14px;">{{ $submission->residence }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">WhatsApp</td>
+                                                    <td style="padding:12px 14px;background:#090c11;border:1px solid #252b35;border-left:0;border-radius:0 8px 8px 0;color:#f7f7f8;font-size:14px;">{{ $submission->phone_whatsapp }}</td>
+                                                </tr>
+                                            @endif
                                             <tr>
                                                 <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">Recibido</td>
                                                 <td style="padding:12px 14px;background:#090c11;border:1px solid #252b35;border-left:0;border-radius:0 8px 8px 0;color:#f7f7f8;font-size:14px;">{{ $submission->created_at?->format('d/m/Y H:i') }}</td>
@@ -83,6 +101,25 @@
                                         </div>
                                     </td>
                                 </tr>
+
+                                @if($submission->is_recruitment)
+                                    <tr>
+                                        <td style="padding:0 42px 24px;">
+                                            <div style="margin-bottom:12px;color:#f59e0b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Cómo nos conociste</div>
+                                            <div style="padding:20px;background:#090c11;border:1px solid #252b35;border-radius:10px;color:#d8dde5;font-size:14px;line-height:1.7;">
+                                                {!! nl2br(e($submission->how_heard_us)) !!}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:0 42px 28px;">
+                                            <div style="margin-bottom:12px;color:#f59e0b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Experiencia en simulación militar / Arma 3</div>
+                                            <div style="padding:20px;background:#090c11;border:1px solid #252b35;border-radius:10px;color:#d8dde5;font-size:14px;line-height:1.7;">
+                                                {!! nl2br(e($submission->experience_summary)) !!}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
 
                                 @if($submission->is_recruitment)
                                     <tr>
@@ -104,6 +141,8 @@
                                                     'Disponibilidad los martes' => $submission->tuesday_available,
                                                     'Disponibilidad los viernes' => $submission->friday_available,
                                                     'Experiencia previa en simulación' => $submission->has_previous_experience,
+                                                    'Política de privacidad aceptada' => $submission->accepted_privacy,
+                                                    'Consentimiento de contacto' => $submission->accepted_contact,
                                                 ] as $label => $value)
                                                     <tr>
                                                         <td style="padding:13px 16px;border-bottom:1px solid #202630;color:#adb4c0;font-size:13px;line-height:1.5;">{{ $label }}</td>
