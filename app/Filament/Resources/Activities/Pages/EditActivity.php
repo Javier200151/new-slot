@@ -38,6 +38,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\VerticalAlignment;
 use App\Services\AuditLogger;
+use App\Services\ActivityBriefingSqfExporter;
 use App\Models\ActivityStatus;
 use App\Support\ActivityTypeAccess;
 use App\Support\ActivityEditorSelection;
@@ -261,6 +262,129 @@ class EditActivity extends EditRecord
         ];
     }
 
+    private function canDownloadBriefingSqf(): bool
+    {
+        $this->record->loadMissing([
+            'activityType',
+            'platform',
+        ]);
+
+        $activityType = strtoupper(
+            Str::ascii(
+                trim(
+                    (string) (
+                        $this->record->activityType?->name
+                        ?? ''
+                    )
+                )
+            )
+        );
+
+        $platform = strtoupper(
+            preg_replace(
+                '/[^A-Za-z0-9]+/',
+                '',
+                Str::ascii(
+                    trim(
+                        (string) (
+                            $this->record->platform?->name
+                            ?? ''
+                        )
+                    )
+                )
+            )
+            ?? ''
+        );
+
+        return in_array(
+            $activityType,
+            [
+                'OPERACION',
+                'OPERATIVO',
+            ],
+            true,
+        )
+            && $platform === 'ARMA3';
+    }
+
+    private function detectBriefingSqfSide(): string
+    {
+        $groups = collect(
+            $this->record->orbat['groups'] ?? []
+        )
+            ->filter(
+                fn (mixed $group): bool =>
+                    is_array($group)
+                    && (bool) ($group['visible'] ?? true)
+                    && (int) ($group['faction_id'] ?? 0) > 0
+            )
+            ->values();
+
+        if ($groups->isEmpty()) {
+            return 'WEST';
+        }
+
+        $factionIds = $groups
+            ->pluck('faction_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $factions = Faction::query()
+            ->with('side:id,name,description')
+            ->whereIn('id', $factionIds)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($groups as $group) {
+            $faction = $factions->get(
+                (int) ($group['faction_id'] ?? 0)
+            );
+
+            if (! $faction?->side) {
+                continue;
+            }
+
+            $description = trim(
+                (string) ($faction->side->description ?? '')
+            );
+
+            if ($description !== '') {
+                $candidate = strtoupper(
+                    trim(explode(',', $description, 2)[0])
+                );
+
+                if (preg_match('/^[A-Z_][A-Z0-9_]*$/', $candidate)) {
+                    return $candidate;
+                }
+            }
+
+            $sideName = strtoupper(
+                Str::ascii(
+                    trim((string) $faction->side->name)
+                )
+            );
+
+            $candidate = match ($sideName) {
+                'BLUFOR' => 'WEST',
+                'OPFOR' => 'EAST',
+                'INDEPENDIENTE',
+                'INDEPENDENT',
+                'INDFOR' => 'RESISTANCE',
+                'CIVIL',
+                'CIVILIAN' => 'CIVILIAN',
+                default => null,
+            };
+
+            if ($candidate !== null) {
+                return $candidate;
+            }
+        }
+
+        return 'WEST';
+    }
+
     private static function slotPickerSchema(): array
     {
         $groups = SlotQuickSelection::pickerGroups();
@@ -480,6 +604,77 @@ class EditActivity extends EditRecord
                     'class' =>
                         'operation-header-action--primary',
                 ]),
+
+            Action::make('downloadBriefingSqf')
+                ->label('Descargar briefing.sqf')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->extraAttributes([
+                    'class' =>
+                        'operation-header-action--secondary',
+                ])
+                ->visible(
+                    fn (): bool =>
+                        $this->canDownloadBriefingSqf()
+                )
+                ->modalHeading('Exportar briefing para Arma 3')
+                ->modalDescription(
+                    'Indica el bando jugable y la ruta del banner .paa. '
+                    . 'El resto del briefing se genera automáticamente '
+                    . 'a partir de las secciones guardadas en la actividad.'
+                )
+                ->modalSubmitActionLabel('Descargar briefing.sqf')
+                ->form([
+                    TextInput::make('side')
+                        ->label('Bando')
+                        ->default(
+                            fn (): string =>
+                                $this->detectBriefingSqfSide()
+                        )
+                        ->required()
+                        ->maxLength(40)
+                        ->helperText(
+                            'Se intenta detectar desde la facción del ORBAT. '
+                            . 'Puedes modificarlo antes de descargar. '
+                            . 'Valores habituales: WEST, EAST, RESISTANCE o CIVILIAN.'
+                        )
+                        ->rules([
+                            'regex:/^[A-Za-z_][A-Za-z0-9_]*$/',
+                        ]),
+
+                    TextInput::make('banner_path')
+                        ->label('Imagen .paa del briefing')
+                        ->placeholder('images\STILLHERE_banner.paa')
+                        ->maxLength(255)
+                        ->helperText(
+                            'Opcional. Ruta dentro de la misión. '
+                            . 'Ejemplo: images\STILLHERE_banner.paa'
+                        ),
+                ])
+                ->action(
+                    function (
+                        array $data,
+                        ActivityBriefingSqfExporter $exporter,
+                    ) {
+                        $sqf = $exporter->export(
+                            $this->record,
+                            (string) $data['side'],
+                            (string) ($data['banner_path'] ?? ''),
+                        );
+
+                        return response()->streamDownload(
+                            static function () use ($sqf): void {
+                                echo $sqf;
+                            },
+                            'briefing.sqf',
+                            [
+                                'Content-Type' =>
+                                    'text/plain; charset=UTF-8',
+                                'Cache-Control' =>
+                                    'no-store, no-cache, must-revalidate',
+                            ],
+                        );
+                    }
+                ),
 
             Action::make('editDescription')
             ->label('Editar descripción')
