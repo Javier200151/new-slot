@@ -38,6 +38,7 @@ class EditRole extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            RoleResource::duplicateAction(),
             DeleteAction::make(),
         ];
     }
