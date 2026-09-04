@@ -25,16 +25,16 @@
             >
         </a>
 
-        <div class="nav-mobile-tools">
-            <a
-                href="https://foro.squadalpha.es/"
-                class="legacy-forum-link legacy-forum-link--mobile"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                Foro antiguo <span aria-hidden="true">↗</span>
-            </a>
+        <a
+            href="https://foro.squadalpha.es/"
+            class="legacy-forum-link legacy-forum-link--header"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Foro antiguo <span aria-hidden="true">↗</span>
+        </a>
 
+        <div class="nav-mobile-tools">
             <button
                 type="button"
                 class="nav-toggle"
@@ -106,15 +106,6 @@
             </nav>
 
             <div @class(['nav-actions', 'nav-actions--guest' => ! $navUser, 'nav-actions--authenticated' => (bool) $navUser])>
-                <a
-                    href="https://foro.squadalpha.es/"
-                    class="legacy-forum-link legacy-forum-link--desktop"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    Foro antiguo <span aria-hidden="true">↗</span>
-                </a>
-
                 @guest
                     <a
                         href="{{ route('login') }}"

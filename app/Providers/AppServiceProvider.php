@@ -4,10 +4,12 @@ namespace App\Providers;
 
 use App\Listeners\AuditPermissionRelationChange;
 use App\Models\Activity as NewSlotActivity;
+use App\Models\CampaignAar;
 use App\Models\Operation;
 use App\Models\GameMap;
 use App\Models\Role;
 use App\Policies\ActivityPolicy;
+use App\Policies\CampaignAarPolicy;
 use App\Policies\AuditLogPolicy;
 use App\Policies\OperationPolicy;
 use App\Policies\MapPolicy;
@@ -62,6 +64,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(
             Role::class,
             RolePolicy::class
+        );
+
+        Gate::policy(
+            CampaignAar::class,
+            CampaignAarPolicy::class
         );
 
         /*

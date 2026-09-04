@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CommunityDiary;
+use App\Models\CampaignAar;
 use App\Models\CommunityPost;
 use App\Models\Event;
 use App\Models\Metopa;
@@ -58,6 +59,11 @@ class NotificationController extends Controller
                     (int) (
                         $data['event_id'] ?? 0
                     )
+                ),
+
+            'campaign_aar_pending' =>
+                $this->redirectToCampaignAar(
+                    (int) ($data['aar_id'] ?? 0)
                 ),
 
             'metopa_awarded' =>
@@ -158,6 +164,27 @@ class NotificationController extends Controller
                 'Cache-Control',
                 'no-store, no-cache, must-revalidate'
             );
+    }
+
+    private function redirectToCampaignAar(
+        int $aarId,
+    ): RedirectResponse {
+        $aar = CampaignAar::query()
+            ->with(['campaign', 'event'])
+            ->find($aarId);
+
+        if (! $aar || ! $aar->campaign || ! $aar->event) {
+            return redirect()->route('campaigns.index');
+        }
+
+        return redirect()->route(
+            'campaigns.aars.show',
+            [
+                'campaign' => $aar->campaign,
+                'event' => $aar->event,
+                'editar' => 1,
+            ],
+        );
     }
 
     private function redirectToEvent(

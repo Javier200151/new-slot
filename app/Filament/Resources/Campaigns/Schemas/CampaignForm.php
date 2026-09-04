@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Campaigns\Schemas;
 
+use App\Models\User;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -21,6 +23,19 @@ class CampaignForm
                 Toggle::make('persistent')
                     ->label('Persistente')
                     ->default(true),
+
+                Select::make('editor_id')
+                    ->label('Editor/a de campaña')
+                    ->helperText('Puede completar y editar los AAR de todos los operativos de esta campaña.')
+                    ->options(
+                        fn (): array => User::query()
+                            ->orderBy('nick')
+                            ->pluck('nick', 'id')
+                            ->all()
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
 
                 RichEditor::make('description')
                     ->label('Descripción')

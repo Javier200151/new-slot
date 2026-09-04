@@ -203,6 +203,12 @@
 
                         @elseif(
                             $type
+                            === 'campaign_aar_pending'
+                        )
+                            🗂️
+
+                        @elseif(
+                            $type
                             === 'event_slot_changed'
                         )
                             @if(
@@ -368,6 +374,25 @@
                             @if(filled($data['phrase'] ?? null))
                                 <small>{{ $data['phrase'] }}</small>
                             @endif
+
+                        @elseif(
+                            $type
+                            === 'campaign_aar_pending'
+                        )
+                            <strong>
+                                AAR pendiente
+                            </strong>
+
+                            <span>
+                                Como Mando global de
+                                <b>{{ $data['event_name'] ?? 'este operativo' }}</b>,
+                                debes completar el After Action Report de la campaña
+                                <b>{{ $data['campaign_name'] ?? '' }}</b>.
+                            </span>
+
+                            <small>
+                                El ORBAT y los datos del operativo ya están preparados.
+                            </small>
 
                         @elseif(
                             $type

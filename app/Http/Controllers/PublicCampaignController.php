@@ -58,6 +58,7 @@ class PublicCampaignController extends Controller
                     'activity.period',
                     'activity.platform',
                     'activity.map',
+                    'campaignAar:id,event_id,status',
                     'slots:id,event_id,slot_key,user_id,ally_id',
                 ])
                 ->withCount([
@@ -150,11 +151,45 @@ class PublicCampaignController extends Controller
             RichContentRenderer::make($campaign->description)->toHtml(),
         );
 
+        $finalizedCampaignEvents = $campaign->events
+            ->filter(
+                fn ($event): bool =>
+                    mb_strtoupper(trim((string) $event->eventStatus?->name)) === 'FINALIZADO'
+            );
+
+        $campaignAarPublishedCount = $finalizedCampaignEvents
+            ->filter(fn ($event): bool => $event->campaignAar?->status === 'published')
+            ->count();
+
+        $campaignAarPendingCount = $finalizedCampaignEvents->count()
+            - $campaignAarPublishedCount;
+
+        $campaignEventIdsAscending = $campaign->events
+            ->sortBy(fn ($event) => $event->date?->getTimestamp() ?? PHP_INT_MAX)
+            ->pluck('id')
+            ->values();
+
+        $campaignAarPendingEvent = $finalizedCampaignEvents
+            ->filter(fn ($event): bool => $event->campaignAar?->status !== 'published')
+            ->sortByDesc(fn ($event) => $event->date?->getTimestamp() ?? 0)
+            ->first();
+
+        if ($campaignAarPendingEvent) {
+            $position = $campaignEventIdsAscending->search((int) $campaignAarPendingEvent->id);
+            $campaignAarPendingEvent->setAttribute(
+                'campaign_sequence',
+                $position === false ? 1 : $position + 1,
+            );
+        }
+
         return view('campaigns.show', compact(
             'campaign',
             'description',
             'campaignFirstEvent',
             'campaignCoverImage',
+            'campaignAarPublishedCount',
+            'campaignAarPendingCount',
+            'campaignAarPendingEvent',
         ));
     }
 }

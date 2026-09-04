@@ -8,6 +8,7 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/events.css') }}?v={{ filemtime(public_path('css/events.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/campaign-aar.css') }}?v={{ filemtime(public_path('css/campaign-aar.css')) }}">
 @endpush
 
 @section('content')
@@ -32,15 +33,56 @@
                         @endif
                     </div>
 
-                    @if(filled($campaignCoverImage))
-                        <figure class="campaign-page__cover">
-                            <img
-                                src="{{ asset('storage/' . $campaignCoverImage) }}"
-                                alt="Primera partida de la campaña {{ $campaign->name }}"
-                                loading="eager"
-                            >
-                        </figure>
-                    @endif
+                    <aside class="campaign-page__aside">
+                        @if(filled($campaignCoverImage))
+                            <figure class="campaign-page__cover">
+                                <img
+                                    src="{{ asset('storage/' . $campaignCoverImage) }}"
+                                    alt="Primera partida de la campaña {{ $campaign->name }}"
+                                    loading="eager"
+                                >
+                            </figure>
+                        @endif
+
+                        <section class="campaign-aar-teaser" aria-labelledby="campaign-aar-teaser-title">
+                            <div class="campaign-aar-teaser__top">
+                                <div>
+                                    <span class="aar-kicker">After Action Report</span>
+                                    <h2 id="campaign-aar-teaser-title">Archivo AAR</h2>
+                                </div>
+                                <span class="campaign-aar-teaser__badge">AAR</span>
+                            </div>
+
+                            <div class="campaign-aar-teaser__counts">
+                                <span>
+                                    <b>{{ $campaignAarPublishedCount }}</b>
+                                    <small>Publicados</small>
+                                </span>
+                                <span>
+                                    <b>{{ $campaignAarPendingCount }}</b>
+                                    <small>Pendientes</small>
+                                </span>
+                            </div>
+
+                            @if($campaignAarPendingEvent)
+                                <a
+                                    class="campaign-aar-teaser__pending"
+                                    href="{{ $campaignAarPendingEvent->campaignAar
+                                        ? route('campaigns.aars.show', [$campaign, $campaignAarPendingEvent])
+                                        : route('campaigns.aars.index', $campaign) }}"
+                                >
+                                    <span>
+                                        Operativo de campaña {{ $campaignAarPendingEvent->campaign_sequence }}
+                                    </span>
+                                    <b>PENDIENTE AAR →</b>
+                                </a>
+                            @endif
+
+                            <a href="{{ route('campaigns.aars.index', $campaign) }}">
+                                Abrir archivo de campaña →
+                            </a>
+                        </section>
+                    </aside>
                 </div>
             </header>
 

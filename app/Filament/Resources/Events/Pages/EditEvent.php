@@ -20,6 +20,7 @@ use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use App\Services\CommunityNotificationService;
+use App\Services\CampaignAarService;
 use App\Models\EventStatus;
 use App\Models\Activity;
 use App\Models\User;
@@ -718,9 +719,20 @@ class EditEvent extends EditRecord
     }
     protected function afterSave(): void
     {
-        $this->record->loadMissing(
+        $this->record->load(
             'eventStatus'
         );
+
+        if (
+            $this->record->eventStatus?->name
+            === 'FINALIZADO'
+        ) {
+            app(CampaignAarService::class)
+                ->ensureForFinalizedEvent(
+                    $this->record,
+                    true,
+                );
+        }
 
         if (
             $this->record->eventStatus?->name

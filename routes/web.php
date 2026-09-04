@@ -13,6 +13,7 @@ use App\Http\Controllers\CommunityRouletteController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicCampaignController;
+use App\Http\Controllers\CampaignAarController;
 use App\Http\Controllers\PublicEventController;
 use App\Http\Controllers\PublicLoginController;
 use App\Http\Controllers\PublicMapController;
@@ -379,6 +380,19 @@ Route::get('/campanas', [PublicCampaignController::class, 'index'])
 
 Route::get('/campanas/{campaign}', [PublicCampaignController::class, 'show'])
     ->name('campaigns.show');
+
+Route::get('/campanas/{campaign}/aar', [CampaignAarController::class, 'index'])
+    ->name('campaigns.aars.index');
+
+Route::get('/campanas/{campaign}/aar/{event}', [CampaignAarController::class, 'show'])
+    ->name('campaigns.aars.show');
+
+Route::middleware('auth')->group(function (): void {
+    Route::put(
+        '/campanas/{campaign}/aar/{event}',
+        [CampaignAarController::class, 'update'],
+    )->name('campaigns.aars.update');
+});
 
 /*
 |--------------------------------------------------------------------------
