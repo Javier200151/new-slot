@@ -23,7 +23,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}"
+        href="{{ asset('css/landing.css') }}"
     >
 </head>
 
@@ -449,7 +449,7 @@
 
                         <div class="form-grid">
                             <label class="form-field">
-                                <span>Nickname</span>
+                                <span>Nick</span>
                                 <input
                                     type="text"
                                     name="nickname"
@@ -462,7 +462,7 @@
                             </label>
 
                             <label class="form-field">
-                                <span>Email</span>
+                                <span>Email *</span>
                                 <input type="email" name="email" value="{{ old('email', auth()->user()?->email) }}" required autocomplete="email">
                             </label>
 
@@ -484,6 +484,77 @@
                             </div>
 
                             <div class="recruitment-fields" data-recruitment-fields @if(!old('is_recruitment')) hidden @endif>
+                                <div class="requirement-block">
+                                    <h3>Datos personales</h3>
+
+                                    <div class="form-grid">
+                                        <label class="form-field form-field--full">
+                                            <span>Nombre y apellidos (reales) *</span>
+                                            <input
+                                                type="text"
+                                                name="full_name"
+                                                value="{{ old('full_name') }}"
+                                                maxlength="160"
+                                                autocomplete="name"
+                                                data-recruitment-required
+                                                placeholder="Nombre y apellidos"
+                                            >
+                                        </label>
+
+                                        <label class="form-field">
+                                            <span>Fecha de nacimiento *</span>
+                                            <input
+                                                type="date"
+                                                name="birth_date"
+                                                value="{{ old('birth_date') }}"
+                                                autocomplete="bday"
+                                                data-recruitment-required
+                                            >
+                                        </label>
+
+                                        <label class="form-field">
+                                            <span>Lugar de residencia</span>
+                                            <input
+                                                type="text"
+                                                name="residence"
+                                                value="{{ old('residence') }}"
+                                                maxlength="160"
+                                                autocomplete="address-level2"
+                                                data-recruitment-required
+                                                placeholder="Ciudad / Provincia"
+                                            >
+                                        </label>
+
+                                        <label class="form-field form-field--full">
+                                            <span>Teléfono (contacto WhatsApp) *</span>
+                                            <input
+                                                type="tel"
+                                                name="phone_whatsapp"
+                                                value="{{ old('phone_whatsapp') }}"
+                                                maxlength="40"
+                                                autocomplete="tel"
+                                                inputmode="tel"
+                                                data-recruitment-required
+                                                placeholder="+34 ..."
+                                            >
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="requirement-block">
+                                    <h3>Cómo nos conociste</h3>
+                                    <label class="form-field">
+                                        <span>Cuéntanos brevemente cómo llegaste a Squad ALPHA</span>
+                                        <textarea
+                                            name="how_heard_us"
+                                            rows="4"
+                                            maxlength="1500"
+                                            data-recruitment-required
+                                            placeholder="YouTube, Twitch, un amigo, redes sociales, buscador..."
+                                        >{{ old('how_heard_us') }}</textarea>
+                                    </label>
+                                </div>
+
                                 <div class="requirement-block">
                                     <h3>Normativa</h3>
                                     <label class="form-check">
@@ -518,19 +589,40 @@
 
                                 <div class="requirement-block">
                                     <h3>Disponibilidad martes</h3>
-                                    <label class="form-radio"><input type="radio" name="tuesday_available" value="1" @checked(old('tuesday_available') === '1') data-recruitment-required> <span>Confirmo tener disponibilidad para participar los martes (de 20:00 a 22:30h).</span></label>
-                                    <label class="form-radio"><input type="radio" name="tuesday_available" value="0" @checked(old('tuesday_available') === '0')> <span>No tengo disponibilidad para participar los martes (de 20:00 a 22:30h).</span></label>
+                                    <input type="hidden" name="tuesday_available" value="0">
+                                    <label class="form-check">
+                                        <input type="checkbox" name="tuesday_available" value="1" @checked((string) old('tuesday_available') === '1')>
+                                        <span>Tengo disponibilidad para participar los martes (de 20:00 a 22:30h). Si no puedes normalmente, deja esta casilla sin marcar.</span>
+                                    </label>
                                 </div>
 
                                 <div class="requirement-block">
                                     <h3>Disponibilidad viernes</h3>
-                                    <label class="form-radio"><input type="radio" name="friday_available" value="1" @checked(old('friday_available') === '1') data-recruitment-required> <span>Confirmo tener disponibilidad para participar los viernes (a partir de las 22:30h).</span></label>
-                                    <label class="form-radio"><input type="radio" name="friday_available" value="0" @checked(old('friday_available') === '0')> <span>No tengo disponibilidad para participar los viernes (a partir de las 22:30h).</span></label>
+                                    <input type="hidden" name="friday_available" value="0">
+                                    <label class="form-check">
+                                        <input type="checkbox" name="friday_available" value="1" @checked((string) old('friday_available') === '1')>
+                                        <span>Tengo disponibilidad para participar los viernes (a partir de las 22:30h). Si no puedes normalmente, deja esta casilla sin marcar.</span>
+                                    </label>
                                 </div>
 
                                 <div class="requirement-block">
                                     <h3>Experiencia previa</h3>
-                                    <label class="form-check"><input type="checkbox" name="has_previous_experience" value="1" @checked(old('has_previous_experience'))> <span>Tengo experiencia previa en simulación en Arma.</span></label>
+                                    <input type="hidden" name="has_previous_experience" value="0">
+                                    <label class="form-check">
+                                        <input type="checkbox" name="has_previous_experience" value="1" @checked((string) old('has_previous_experience') === '1')>
+                                        <span>Tengo experiencia previa en simulación militar con Arma 3.</span>
+                                    </label>
+
+                                    <label class="form-field" style="margin-top: 14px;">
+                                        <span>Resumen de experiencia en simulación militar en Arma 3</span>
+                                        <textarea
+                                            name="experience_summary"
+                                            rows="6"
+                                            maxlength="4000"
+                                            data-recruitment-required
+                                            placeholder="Cuéntanos comunidades anteriores, tiempo jugando, roles habituales, experiencia con ACE/TFAR/ACRE, etc. Si no tienes experiencia previa, indícalo."
+                                        >{{ old('experience_summary') }}</textarea>
+                                    </label>
                                 </div>
                             </div>
                         @endif
