@@ -219,11 +219,74 @@
         },
     });
 
+    const updateReactionBlock = (block, payload) => {
+        const mine = payload.mine || null;
+        const counts = payload.counts || {};
+        const reactors = payload.reactors || {};
+
+        block.querySelectorAll('[data-forum-reaction-chip]').forEach((button) => {
+            const form = button.closest('[data-forum-reaction-form]');
+            const code = form?.dataset.reactionCode || '';
+            const count = Number(counts[code] || 0);
+            const label = button.dataset.reactionLabel || 'Reacción';
+            const users = Array.isArray(reactors[code]) ? reactors[code] : [];
+
+            button.hidden = count === 0;
+            button.classList.toggle('is-active', mine === code);
+            button.querySelector('[data-forum-reaction-count]')?.replaceChildren(String(count));
+            button.title = users.length ? `${label}: ${users.join(', ')}` : label;
+        });
+
+        block.querySelectorAll('[data-forum-reaction-option]').forEach((button) => {
+            const form = button.closest('[data-forum-reaction-form]');
+            const code = form?.dataset.reactionCode || '';
+            button.classList.toggle('is-active', mine === code);
+        });
+
+        block.querySelector('[data-forum-reaction-picker]')?.removeAttribute('open');
+    };
+
+    const initReactionBlocks = () => {
+        document.querySelectorAll('[data-forum-reactions]').forEach((block) => {
+            block.querySelectorAll('[data-forum-reaction-form]').forEach((form) => {
+                form.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    if (block.classList.contains('is-loading')) return;
+                    block.classList.add('is-loading');
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: {
+                                Accept: 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            credentials: 'same-origin',
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Reaction request failed: ${response.status}`);
+                        }
+
+                        updateReactionBlock(block, await response.json());
+                    } catch (_) {
+                        HTMLFormElement.prototype.submit.call(form);
+                    } finally {
+                        block.classList.remove('is-loading');
+                    }
+                });
+            });
+        });
+    };
+
     ready(() => {
         window.NewSlotForumEditor.initAll();
         initCompose();
         initThreadTypes();
         initPollConfig();
         initQuoteButtons();
+        initReactionBlocks();
     });
 })();

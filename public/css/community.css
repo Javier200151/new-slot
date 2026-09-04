@@ -1916,3 +1916,182 @@
         padding-inline: 10px;
     }
 }
+
+/* ================================================================
+   Reacciones del foro
+   ================================================================ */
+
+.forum-reactions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.forum-reactions__summary {
+    display: flex;
+    width: 100%;
+    min-height: 27px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Si todavía no hay ninguna reacción real, no reservamos una fila vacía. */
+.forum-reactions__summary:not(:has(.forum-reaction-chip:not([hidden]))) {
+    display: none;
+}
+
+.forum-reaction-form {
+    margin: 0;
+}
+
+/* Los formularios cuyos chips están ocultos no deben ocupar hueco en la fila.
+   Sin esto, el gap del flex se aplicaba también a formularios vacíos y
+   desplazaba las reacciones visibles. */
+.forum-reactions__summary > .forum-reaction-form:has(.forum-reaction-chip[hidden]) {
+    display: none;
+}
+
+.forum-reactions__summary > .forum-reaction-form {
+    flex: 0 0 auto;
+}
+
+.forum-reaction-chip {
+    display: inline-flex;
+    min-height: 27px;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 999px;
+    color: #9aa6b7;
+    background: rgba(255, 255, 255, .025);
+    font: inherit;
+    font-size: .68rem;
+    cursor: pointer;
+    transition: border-color .16s ease, background-color .16s ease, color .16s ease;
+}
+
+.forum-reaction-chip > span:first-child {
+    font-size: .88rem;
+    line-height: 1;
+}
+
+.forum-reaction-chip:hover,
+.forum-reaction-chip:focus-visible {
+    color: #e7edf5;
+    border-color: rgba(245, 158, 11, .38);
+    background: rgba(245, 158, 11, .06);
+    outline: none;
+}
+
+.forum-reaction-chip.is-active {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, .48);
+    background: rgba(245, 158, 11, .09);
+}
+
+.forum-reaction-picker {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.forum-reaction-chip[hidden] {
+    display: none !important;
+}
+
+.forum-reaction-picker > summary {
+    list-style: none;
+}
+
+.forum-reaction-picker > summary::-webkit-details-marker {
+    display: none;
+}
+
+.forum-reaction-picker__trigger {
+    display: inline-grid;
+    min-width: 30px;
+    height: 27px;
+    place-items: center;
+    padding: 0 7px;
+    border: 1px solid rgba(148, 163, 184, .15);
+    border-radius: 999px;
+    color: #8996a8;
+    background: rgba(255, 255, 255, .02);
+    font-size: .72rem;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+}
+
+.forum-reaction-picker__trigger:hover,
+.forum-reaction-picker__trigger:focus-visible,
+.forum-reaction-picker[open] > .forum-reaction-picker__trigger {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, .4);
+    background: rgba(245, 158, 11, .07);
+    outline: none;
+}
+
+.forum-reaction-picker__menu {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 6px);
+    left: 0;
+    display: flex;
+    gap: 4px;
+    padding: 7px;
+    border: 1px solid rgba(148, 163, 184, .2);
+    border-radius: 10px;
+    background: #0b1119;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .38);
+}
+
+.forum-reaction-picker__option {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    font: inherit;
+    font-size: 1.08rem;
+    cursor: pointer;
+    transition: transform .13s ease, border-color .13s ease, background-color .13s ease;
+}
+
+.forum-reaction-picker__option:hover,
+.forum-reaction-picker__option:focus-visible {
+    transform: translateY(-1px) scale(1.08);
+    border-color: rgba(245, 158, 11, .35);
+    background: rgba(245, 158, 11, .08);
+    outline: none;
+}
+
+.forum-reaction-picker__option.is-active {
+    border-color: rgba(245, 158, 11, .48);
+    background: rgba(245, 158, 11, .12);
+}
+
+.forum-reactions.is-loading {
+    opacity: .65;
+    pointer-events: none;
+}
+
+@media (max-width: 720px) {
+    .forum-reaction-picker__menu {
+        position: fixed;
+        top: auto;
+        right: 12px;
+        bottom: 16px;
+        left: 12px;
+        justify-content: center;
+    }
+}
+
