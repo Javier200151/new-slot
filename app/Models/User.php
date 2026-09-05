@@ -9,7 +9,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -20,11 +20,15 @@ use App\Models\Concerns\Auditable;
 use App\Notifications\VerifyEmailNotification;
 use App\Notifications\ResetPasswordNotification;
 
-#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Auditable, Notifiable, SoftDeletes;
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
     protected $fillable = [
         'nick',
         'email',
@@ -52,6 +56,17 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             'birth_at' => 'date',
             'member_at' => 'date',
         ];
+    }
+
+    protected function steamId(): Attribute
+    {
+        return Attribute::make(
+            set: function (mixed $value): ?string {
+                $value = trim((string) $value);
+
+                return $value !== '' ? $value : null;
+            },
+        );
     }
 
     public function getFilamentName(): string

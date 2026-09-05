@@ -41,8 +41,11 @@ class UserForm
                     ->required(),
                 TextInput::make('password')
                     ->password()
-                    ->required()
-                    ->revealable(),
+                    ->minLength(8)
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->saved(fn (?string $state): bool => filled($state))
+                    ->revealable()
+                    ->helperText('Déjalo vacío al editar para conservar la contraseña actual.'),
                 TextInput::make('promo_id')
                     ->label('Promoción')
                     ->numeric()
@@ -112,7 +115,17 @@ class UserForm
                     ),
 
                 TextInput::make('discord_id'),
-                TextInput::make('steam_id'),
+                TextInput::make('steam_id')
+                    ->label('Steam ID')
+                    ->trim()
+                    ->maxLength(255)
+                    ->unique(ignoreRecord: true)
+                    ->dehydrateStateUsing(
+                        fn (?string $state): ?string => filled($state) ? $state : null
+                    )
+                    ->validationMessages([
+                        'unique' => 'Este Steam ID ya está asignado a otro usuario.',
+                    ]),
                 DatePicker::make('member_at')
                     ->label('Miembro desde')
                     ->helperText('Fecha en la que el recluta pasó a ser miembro.'),
