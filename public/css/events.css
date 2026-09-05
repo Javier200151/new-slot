@@ -5214,3 +5214,145 @@ a.event-comment__author:hover {
         text-align: center;
     }
 }
+
+/* =========================================================
+   BRIEFING - BBCODE SEGURO
+========================================================= */
+
+.briefing-section__heading {
+    min-width: 0;
+    margin: 0;
+
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.briefing-rich {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.briefing-rich .forum-rich__h2,
+.briefing-rich .forum-rich__h3 {
+    color: #f5f7fb;
+    line-height: 1.2;
+}
+
+.briefing-rich .forum-rich__h2 {
+    margin: 18px 0 8px;
+    font-size: 1.45rem;
+}
+
+.briefing-rich .forum-rich__h3 {
+    margin: 16px 0 7px;
+    font-size: 1.12rem;
+}
+
+.briefing-rich .forum-rich__hr {
+    margin: 18px 0;
+    border: 0;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.briefing-rich .forum-rich__link {
+    color: var(--event-color, #fbbf24);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.briefing-rich .forum-rich__image-link {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 14px 0;
+}
+
+.briefing-rich .forum-rich__image {
+    display: block;
+    width: auto;
+    max-width: min(100%, 920px);
+    max-height: 680px;
+
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 10px;
+
+    background: rgba(0, 0, 0, 0.25);
+    object-fit: contain;
+}
+
+.briefing-rich .forum-rich__quote {
+    margin: 14px 0;
+    padding: 12px 14px;
+
+    border-left: 3px solid var(--event-color, rgba(245, 158, 11, 0.55));
+    border-radius: 0 8px 8px 0;
+
+    color: #aeb9c8;
+    background: rgba(245, 158, 11, 0.045);
+}
+
+.briefing-rich .forum-rich__quote-author {
+    margin-bottom: 5px;
+    color: var(--event-color, #fbbf24);
+    font-size: 0.66rem;
+    font-weight: 900;
+}
+
+.briefing-rich .forum-rich__spoiler {
+    margin: 13px 0;
+    overflow: hidden;
+
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 9px;
+
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.briefing-rich .forum-rich__spoiler summary {
+    padding: 9px 12px;
+
+    color: #d6deea;
+    font-size: 0.7rem;
+    font-weight: 850;
+
+    cursor: pointer;
+    user-select: none;
+}
+
+.briefing-rich .forum-rich__spoiler-body {
+    padding: 0 12px 12px;
+}
+
+.briefing-rich .forum-rich__code {
+    margin: 13px 0;
+    padding: 12px;
+    overflow-x: auto;
+
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 9px;
+
+    color: #d1fae5;
+    background: #070b10;
+
+    font-size: 0.75rem;
+    line-height: 1.55;
+    white-space: pre;
+}
+
+.briefing-rich .forum-rich__list {
+    margin: 10px 0;
+    padding-left: 24px;
+}
+
+.briefing-rich .forum-rich__list li {
+    margin: 4px 0;
+}
+
+.briefing-section__heading.briefing-rich .forum-rich__image-link,
+.briefing-section__heading.briefing-rich .forum-rich__image {
+    max-height: 140px;
+}

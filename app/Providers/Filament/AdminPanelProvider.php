@@ -21,6 +21,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationItem;
 use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
 //use Pxlrbt\FilamentActivityLog\FilamentActivityLogPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -45,6 +46,12 @@ class AdminPanelProvider extends PanelProvider
                         . '?v='
                         . filemtime(public_path('css/filament-custom.css'))
                 ),
+                Js::make(
+                    'filament-briefing-bbcode',
+                    asset('js/filament-briefing-bbcode.js')
+                        . '?v='
+                        . filemtime(public_path('js/filament-briefing-bbcode.js'))
+                )->defer(),
             ])
             ->navigationGroups([
                 NavigationGroup::make('Actividades'),

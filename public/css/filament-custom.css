@@ -291,3 +291,241 @@
     font-size: 0.75rem !important;
     line-height: 1rem !important;
 }
+/* =========================================================
+   EDITOR BBCODE DEL BRIEFING
+========================================================= */
+
+.briefing-bbcode-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+
+    margin-bottom: 0.45rem;
+    padding: 0.45rem;
+
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 0.65rem;
+
+    background: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+.briefing-bbcode-toolbar__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.3rem 0.48rem;
+
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 0.45rem;
+
+    background: color-mix(in srgb, currentColor 5%, transparent);
+    color: inherit;
+
+    font-size: 0.78rem;
+    line-height: 1;
+
+    cursor: pointer;
+}
+
+.briefing-bbcode-toolbar__button:hover,
+.briefing-bbcode-toolbar__button:focus-visible {
+    border-color: rgb(245 158 11 / 0.75);
+    background: rgb(245 158 11 / 0.14);
+    outline: none;
+}
+
+.briefing-bbcode-toolbar__colors {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.22rem;
+
+    margin-left: 0.15rem;
+    padding-left: 0.45rem;
+
+    border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.briefing-bbcode-toolbar__color {
+    min-width: 1.2rem;
+    width: 1.2rem;
+    min-height: 1.2rem;
+    height: 1.2rem;
+    padding: 0;
+
+    border-radius: 999px;
+    background: var(--bbcode-color);
+}
+
+/* =========================================================
+   EDITOR ORBAT - DISTRIBUCIÓN DE GRUPOS
+========================================================= */
+
+.orbat-group-cards > .fi-fo-repeater-items {
+    display: block !important;
+    column-count: 2;
+    column-gap: 1rem;
+}
+
+.orbat-group-cards > .fi-fo-repeater-items > .fi-fo-repeater-item {
+    display: inline-block;
+    width: 100%;
+    margin: 0 0 1rem;
+    break-inside: avoid;
+    vertical-align: top;
+}
+
+@media (max-width: 1023px) {
+    .orbat-group-cards > .fi-fo-repeater-items {
+        column-count: 1;
+    }
+}
+
+/* =========================================================
+   EDITOR ORBAT - TARJETAS DE SLOT
+========================================================= */
+
+.orbat-slot-cards > .fi-fo-repeater-items {
+    align-items: start;
+}
+
+.orbat-slot-cards .fi-fo-repeater-item {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.orbat-slot-cards .fi-fo-repeater-item-content {
+    padding: 0.55rem !important;
+}
+
+.orbat-slot-cards .fi-fo-repeater-item-header-label {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 0.92rem;
+}
+
+.orbat-slot-cards .fi-fo-field-wrp {
+    min-width: 0;
+}
+
+.orbat-slot-choice-field {
+    min-width: 0;
+}
+
+.orbat-slot-choice-display {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.12rem;
+    min-height: 2.85rem;
+    padding: 0.58rem 0.72rem;
+    border: 1px solid rgb(71 85 105 / 0.55);
+    border-radius: 0.75rem;
+    background: rgb(15 23 42 / 0.48);
+}
+
+.orbat-slot-choice-display strong,
+.orbat-slot-choice-display small {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.orbat-slot-choice-display strong {
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.05rem;
+}
+
+.orbat-slot-choice-display small {
+    font-size: 0.68rem;
+    line-height: 0.88rem;
+    opacity: 0.74;
+}
+
+.orbat-slot-picker-actions {
+    justify-content: flex-end;
+}
+
+.orbat-slot-picker-icon {
+    width: 2.85rem !important;
+    min-width: 2.85rem !important;
+    height: 2.85rem !important;
+    min-height: 2.85rem !important;
+    border-radius: 0.75rem !important;
+}
+
+.orbat-slot-cards .fi-input-wrp {
+    min-height: 2.75rem;
+}
+
+.orbat-slot-cards .fi-input,
+.orbat-slot-cards .fi-select-input {
+    font-size: 0.92rem;
+}
+
+/* =========================================================
+   EDITOR ORBAT - FACCIÓN LARGA
+========================================================= */
+
+.orbat-faction-field,
+.orbat-faction-field .fi-fo-select,
+.orbat-faction-field .fi-select-input,
+.orbat-faction-field .fi-select-input-ctn,
+.orbat-faction-field .fi-select-input-btn,
+.orbat-faction-field .fi-select-input-value-ctn,
+.orbat-faction-field .fi-select-input-value-label {
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+.orbat-faction-field .fi-select-input-btn,
+.orbat-faction-field .fi-select-input-value-ctn,
+.orbat-faction-field .fi-select-input-value-label {
+    overflow: hidden !important;
+}
+
+.orbat-faction-field .fi-select-input-value-label > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+}
+
+/* BBCode mostrado en el resumen de descripción del formulario de actividad. */
+.activity-description-summary-bbcode {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.activity-description-summary-bbcode .forum-rich__image-link {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0.6rem 0;
+}
+
+.activity-description-summary-bbcode .forum-rich__image {
+    display: block;
+    max-width: 100%;
+    max-height: 26rem;
+    border-radius: 0.5rem;
+    object-fit: contain;
+}
+
+.activity-description-summary-bbcode .forum-rich__link {
+    color: rgb(245 158 11);
+    text-decoration: underline;
+}
+
+.activity-description-summary-bbcode .forum-rich__quote,
+.activity-description-summary-bbcode .forum-rich__code,
+.activity-description-summary-bbcode .forum-rich__spoiler {
+    margin: 0.6rem 0;
+}
