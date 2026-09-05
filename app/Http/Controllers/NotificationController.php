@@ -63,7 +63,14 @@ class NotificationController extends Controller
 
             'campaign_aar_pending' =>
                 $this->redirectToCampaignAar(
-                    (int) ($data['aar_id'] ?? 0)
+                    (int) ($data['aar_id'] ?? 0),
+                    true,
+                ),
+
+            'campaign_aar_published' =>
+                $this->redirectToCampaignAar(
+                    (int) ($data['aar_id'] ?? 0),
+                    false,
                 ),
 
             'metopa_awarded' =>
@@ -106,17 +113,19 @@ class NotificationController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-        $latestNotification = $user
+        $latestNotificationChange = $user
             ->notifications()
-            ->latest()
-            ->first();
+            ->latest('updated_at')
+            ->first(['id', 'updated_at']);
 
         $unreadCount = $user
             ->unreadNotifications()
             ->count();
 
         $signature =
-            ($latestNotification?->id ?? 'none')
+            ($latestNotificationChange?->id ?? 'none')
+            . ':'
+            . ($latestNotificationChange?->updated_at?->getTimestamp() ?? 0)
             . ':'
             . $unreadCount;
 
@@ -168,6 +177,7 @@ class NotificationController extends Controller
 
     private function redirectToCampaignAar(
         int $aarId,
+        bool $editing,
     ): RedirectResponse {
         $aar = CampaignAar::query()
             ->with(['campaign', 'event'])
@@ -177,13 +187,18 @@ class NotificationController extends Controller
             return redirect()->route('campaigns.index');
         }
 
+        $parameters = [
+            'campaign' => $aar->campaign,
+            'event' => $aar->event,
+        ];
+
+        if ($editing) {
+            $parameters['editar'] = 1;
+        }
+
         return redirect()->route(
             'campaigns.aars.show',
-            [
-                'campaign' => $aar->campaign,
-                'event' => $aar->event,
-                'editar' => 1,
-            ],
+            $parameters,
         );
     }
 

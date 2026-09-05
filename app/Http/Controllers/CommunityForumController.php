@@ -8,12 +8,14 @@ use App\Models\CommunityDiaryComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityPostComment;
 use App\Models\CommunityReaction;
+use App\Models\User;
 use App\Models\CommunityProcess;
 use App\Services\CommunityPollManager;
 use App\Services\CommunityPollViewService;
 use App\Services\CommunitySubscriptionService;
 use App\Support\CommunityArea;
 use App\Support\CommunityForumCategory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,6 +55,72 @@ class CommunityForumController extends Controller
         return $this->forumList($request, 'personal', $category);
     }
 
+    public function unread(Request $request): View
+    {
+        $this->authorizeForumHome($request);
+
+        $user = $request->user();
+        $query = $this->visibleForumPostQuery($user)
+            ->with([
+                'author.status',
+                'author.mainSqaGroup',
+                'forumCategory',
+                'process.poll',
+                'process.activeApplications',
+                'poll',
+            ])
+            ->withCount('comments')
+            ->withExists([
+                'subscriptions as is_subscribed' => fn ($subscriptions) =>
+                    $subscriptions->where('user_id', $user->id),
+            ])
+            ->withReadStateFor($user)
+            ->unreadFor($user);
+
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search): void {
+                $builder
+                    ->where('title', 'like', "%{$search}%")
+                    ->orWhere('body', 'like', "%{$search}%")
+                    ->orWhereHas(
+                        'author',
+                        fn ($author) => $author->where('nick', 'like', "%{$search}%"),
+                    );
+            });
+        }
+
+        $filter = (string) $request->query('filtro', 'all');
+        match ($filter) {
+            'poll' => $query->whereHas('poll'),
+            'locked' => $query->where('is_locked', true),
+            default => null,
+        };
+
+        $posts = $query
+            ->latest('updated_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('community.forum.index', [
+            'channel' => 'unread',
+            'channelTitle' => 'Nuevos mensajes',
+            'channelDescription' => 'Hilos nuevos o actualizados que todavía no has abierto desde su última actividad.',
+            'categories' => collect(),
+            'category' => null,
+            'categoryKey' => null,
+            'posts' => $posts,
+            'search' => $search,
+            'filter' => $filter,
+            'canCreate' => false,
+            'canModerate' => false,
+            'canDeleteAny' => false,
+            'forumUnreadCount' => $this->unreadForumCount($user),
+            'forumUnreadBaseline' => $user->forum_unread_baseline_at,
+            'isUnreadView' => true,
+        ]);
+    }
+
     public function show(Request $request, string $channel, CommunityPost $post): View
     {
         $this->authorizeChannel($request, $channel);
@@ -80,6 +148,8 @@ class CommunityForumController extends Controller
             403,
             'No tienes acceso a esta categoría.',
         );
+
+        $post->markReadBy($request->user());
 
         $authors = collect([$post->author])
             ->merge($post->comments->pluck('author'))
@@ -464,7 +534,7 @@ class CommunityForumController extends Controller
                 fn (array $category, string $key): bool =>
                     CommunityForumCategory::canView($user, $key)
             )
-            ->map(function (array $category, string $key) use ($request): array {
+            ->map(function (array $category, string $key) use ($request, $user): array {
                 if ($key === CommunityForumCategory::DIARY) {
                     $lastDiary = CommunityDiary::query()
                         ->with('author:id,nick')
@@ -490,6 +560,7 @@ class CommunityForumController extends Controller
                             ? 'Diario de ' . ($lastDiary->author?->nick ?: $lastDiary->author_nick)
                             : null,
                         'can_create' => $myDiaryExists || $canStartDiary,
+                        'unread_count' => 0,
                     ];
                 }
 
@@ -511,8 +582,11 @@ class CommunityForumController extends Controller
                     'last_activity' => $lastPost?->updated_at,
                     'last_title' => $lastPost?->title,
                     'can_create' => CommunityForumCategory::can($request->user(), $key, 'create'),
+                    'unread_count' => (clone $query)->unreadFor($user)->count(),
                 ];
             });
+
+        $forumUnreadCount = (int) $categories->sum('unread_count');
 
         return view('community.forum.index', [
             'channel' => 'personal',
@@ -527,11 +601,15 @@ class CommunityForumController extends Controller
             'canCreate' => false,
             'canModerate' => false,
             'canDeleteAny' => false,
+            'forumUnreadCount' => $forumUnreadCount,
+            'forumUnreadBaseline' => $user->forum_unread_baseline_at,
+            'isUnreadView' => false,
         ]);
     }
 
     private function forumList(Request $request, string $channel, string $categoryKey): View
     {
+        $user = $request->user();
         $category = CommunityForumCategory::get($categoryKey);
         abort_unless($category, 404);
         abort_unless(CommunityForumCategory::canView($request->user(), $categoryKey), 403, 'No tienes acceso a esta categoría.');
@@ -548,8 +626,9 @@ class CommunityForumController extends Controller
                 ->withCount('comments')
                 ->withExists([
                     'subscriptions as is_subscribed' => fn ($subscriptions) =>
-                        $subscriptions->where('user_id', $request->user()->id),
-                ]),
+                        $subscriptions->where('user_id', $user->id),
+                ])
+                ->withReadStateFor($user),
             $categoryKey,
         );
 
@@ -592,6 +671,9 @@ class CommunityForumController extends Controller
             'canCreate' => CommunityForumCategory::can($request->user(), $categoryKey, 'create'),
             'canModerate' => $this->canModerate($request, $categoryKey),
             'canDeleteAny' => $this->canDeleteAny($request, $categoryKey),
+            'forumUnreadCount' => $this->unreadForumCount($user),
+            'forumUnreadBaseline' => $user->forum_unread_baseline_at,
+            'isUnreadView' => false,
         ]);
     }
 
@@ -783,6 +865,46 @@ class CommunityForumController extends Controller
                 (int) ($commentCounts[$author->id] ?? 0) + (int) ($diaryCommentCounts[$author->id] ?? 0)
             );
         }
+    }
+
+    private function visibleForumPostQuery(User $user): Builder
+    {
+        $categoryKeys = collect(CommunityForumCategory::landing())
+            ->filter(
+                fn (array $category, string $key): bool =>
+                    ($category['channel'] ?? null) !== 'diary'
+                    && CommunityForumCategory::canView($user, $key),
+            )
+            ->keys()
+            ->values();
+
+        $query = CommunityPost::query();
+
+        if ($categoryKeys->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(
+            function (Builder $visible) use ($categoryKeys): void {
+                foreach ($categoryKeys as $key) {
+                    $visible->orWhere(
+                        function (Builder $categoryQuery) use ($key): void {
+                            CommunityForumCategory::applyToQuery(
+                                $categoryQuery,
+                                (string) $key,
+                            );
+                        },
+                    );
+                }
+            },
+        );
+    }
+
+    private function unreadForumCount(User $user): int
+    {
+        return $this->visibleForumPostQuery($user)
+            ->unreadFor($user)
+            ->count();
     }
 
     private function canModerate(Request $request, string $categoryKey): bool

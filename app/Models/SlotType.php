@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\Auditable;
+use App\Support\SlotQuickSelection;
 
 class SlotType extends Model
 {
@@ -51,6 +52,18 @@ class SlotType extends Model
                         )
                         ->max('picker_order')
                 ) + 10;
+            }
+        );
+
+        static::saved(
+            function (): void {
+                SlotQuickSelection::clearCache();
+            }
+        );
+
+        static::deleted(
+            function (): void {
+                SlotQuickSelection::clearCache();
             }
         );
     }

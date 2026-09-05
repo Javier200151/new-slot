@@ -11,11 +11,15 @@
         ->unreadNotifications()
         ->count();
 
-    $latestNotification =
-        $headerNotifications->first();
+    $latestNotificationChange = $notificationUser
+        ->notifications()
+        ->latest('updated_at')
+        ->first(['id', 'updated_at']);
 
     $notificationSignature =
-        ($latestNotification?->id ?? 'none')
+        ($latestNotificationChange?->id ?? 'none')
+        . ':'
+        . ($latestNotificationChange?->updated_at?->getTimestamp() ?? 0)
         . ':'
         . $unreadNotificationCount;
 
@@ -209,6 +213,12 @@
 
                         @elseif(
                             $type
+                            === 'campaign_aar_published'
+                        )
+                            📋
+
+                        @elseif(
+                            $type
                             === 'event_slot_changed'
                         )
                             @if(
@@ -314,24 +324,35 @@
                             $type
                             === 'metopa_awarded'
                         )
+                            @php
+                                $metopaAwardedUsers = collect($data['awarded_users'] ?? [])
+                                    ->filter(fn ($user) => is_array($user) && filled($user['nick'] ?? null))
+                                    ->pluck('nick')
+                                    ->unique()
+                                    ->values();
+
+                                if ($metopaAwardedUsers->isEmpty() && filled($data['awarded_user_nick'] ?? null)) {
+                                    $metopaAwardedUsers = collect([$data['awarded_user_nick']]);
+                                }
+
+                                $metopaVisibleNames = $metopaAwardedUsers->take(3)->all();
+                                $metopaRemainingNames = max(0, $metopaAwardedUsers->count() - count($metopaVisibleNames));
+                                $metopaNamesLabel = implode(', ', $metopaVisibleNames);
+                            @endphp
+
                             <strong>
-                                Nueva metopa
+                                {{ $metopaAwardedUsers->count() > 1 ? 'Metopa concedida' : 'Nueva metopa' }}
                             </strong>
 
                             <span>
-                                <b>
-                                    {{ $data[
-                                        'awarded_user_nick'
-                                    ] ?? 'Un usuario' }}
-                                </b>
+                                <b>{{ $metopaNamesLabel !== '' ? $metopaNamesLabel : 'Un usuario' }}</b>
+                                @if($metopaRemainingNames > 0)
+                                    y <b>{{ $metopaRemainingNames }} más</b>
+                                @endif
 
-                                ha conseguido
+                                {{ $metopaAwardedUsers->count() > 1 ? 'han conseguido' : 'ha conseguido' }}
 
-                                <b>
-                                    {{ $data[
-                                        'metopa_name'
-                                    ] ?? 'una metopa' }}
-                                </b>
+                                <b>{{ $data['metopa_name'] ?? 'una metopa' }}</b>
                             </span>
                         @elseif(
                             $type
@@ -392,6 +413,25 @@
 
                             <small>
                                 El ORBAT y los datos del operativo ya están preparados.
+                            </small>
+
+                        @elseif(
+                            $type
+                            === 'campaign_aar_published'
+                        )
+                            <strong>
+                                Nuevo AAR publicado
+                            </strong>
+
+                            <span>
+                                Ya está disponible el AAR de
+                                <b>{{ $data['event_name'] ?? 'un operativo' }}</b>
+                                de la campaña
+                                <b>{{ $data['campaign_name'] ?? '' }}</b>.
+                            </span>
+
+                            <small>
+                                Pulsa para abrir el informe.
                             </small>
 
                         @elseif(

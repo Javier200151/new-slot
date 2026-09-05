@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\CampaignAar;
 use App\Models\Event;
 use App\Services\CampaignAarService;
+use App\Services\CommunityNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,6 +15,7 @@ class CampaignAarController extends Controller
 {
     public function __construct(
         private readonly CampaignAarService $aarService,
+        private readonly CommunityNotificationService $communityNotifications,
     ) {}
 
     public function index(Campaign $campaign): View
@@ -152,6 +154,10 @@ class CampaignAarController extends Controller
                 ? now()
                 : $aar->published_at,
         ])->save();
+
+        if ($isPublishing && ! $alreadyPublished) {
+            $this->communityNotifications->campaignAarPublished($aar);
+        }
 
         return redirect()
             ->route('campaigns.aars.show', [$campaign, $event])

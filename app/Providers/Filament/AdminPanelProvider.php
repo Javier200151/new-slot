@@ -52,6 +52,12 @@ class AdminPanelProvider extends PanelProvider
                         . '?v='
                         . filemtime(public_path('js/filament-briefing-bbcode.js'))
                 )->defer(),
+                Js::make(
+                    'filament-orbat-layout',
+                    asset('js/filament-orbat-layout.js')
+                        . '?v='
+                        . filemtime(public_path('js/filament-orbat-layout.js'))
+                )->defer(),
             ])
             ->navigationGroups([
                 NavigationGroup::make('Actividades'),

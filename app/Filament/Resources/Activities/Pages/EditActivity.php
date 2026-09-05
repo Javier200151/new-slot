@@ -54,6 +54,16 @@ class EditActivity extends EditRecord
 
     protected array $auditEnemyFactionsBefore = [];
 
+    private ?array $orbatFactionOptionsCache = null;
+
+    /**
+     * Capacidades de los modelos de radio durante la petición Livewire actual.
+     * Evita repetir la misma consulta por cada campo Canal/Bloque/Frecuencia.
+     *
+     * @var array<int, array{channel: bool, block: bool, frequency: bool}>
+     */
+    protected static array $radioModelCapabilitiesCache = [];
+
     protected function mutateFormDataBeforeFill(array $data): array
     {
         return ActivityEditorSelection::addChoiceToFormData($data);
@@ -383,6 +393,27 @@ class EditActivity extends EditRecord
         }
 
         return 'WEST';
+    }
+
+    private function orbatFactionOptions(): array
+    {
+        if ($this->orbatFactionOptionsCache !== null) {
+            return $this->orbatFactionOptionsCache;
+        }
+
+        return $this->orbatFactionOptionsCache = Faction::query()
+            ->with([
+                'side',
+                'army.country',
+            ])
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(
+                fn (Faction $faction): array => [
+                    $faction->id => FactionOptionLabel::make($faction),
+                ]
+            )
+            ->all();
     }
 
     private static function slotPickerSchema(): array
@@ -1126,6 +1157,10 @@ class EditActivity extends EditRecord
                                         $selectedId =
                                             $get('faction_id');
 
+                                        if (blank($countryId) && blank($armyId)) {
+                                            return $this->orbatFactionOptions();
+                                        }
+
                                         $query =
                                             Faction::query();
 
@@ -1407,9 +1442,7 @@ class EditActivity extends EditRecord
                             Repeater::make('slots')
                                 ->label('Slots')
                                 ->columns(1)
-                                ->grid([
-                                    'md' => 2,
-                                ])
+                                ->grid(1)
                                 ->extraAttributes([
                                     'class' => 'orbat-slot-cards',
                                 ])
@@ -1470,8 +1503,18 @@ class EditActivity extends EditRecord
                                                     'class' => 'orbat-slot-choice-field',
                                                 ])
                                                 ->columnSpan([
+                                                    'default' => 12,
+                                                    'sm' => 4,
+                                                ]),
+
+                                            TextInput::make('name')
+                                                ->label('Nombre del slot')
+                                                ->required()
+                                                ->maxLength(255)
+                                                ->live(onBlur: true)
+                                                ->columnSpan([
                                                     'default' => 10,
-                                                    'sm' => 11,
+                                                    'sm' => 7,
                                                 ]),
 
                                             Actions::make([
@@ -1546,13 +1589,9 @@ class EditActivity extends EditRecord
                                                     'default' => 2,
                                                     'sm' => 1,
                                                 ]),
-
-                                            TextInput::make('name')
-                                                ->label('Nombre del slot')
-                                                ->required()
-                                                ->maxLength(255)
-                                                ->live(onBlur: true)
-                                                ->columnSpanFull(),
+                                        ])
+                                        ->extraAttributes([
+                                            'class' => 'orbat-slot-row-fields',
                                         ])
                                         ->columnSpanFull(),
                                 ])
@@ -1675,21 +1714,168 @@ class EditActivity extends EditRecord
                 ->form([
                     Actions::make([
                         Action::make('loadOrbatRadioNetworks')
-                            ->label('Cargar ORBAT')
+                            ->label('Sincronizar con ORBAT')
+                            ->icon('heroicon-o-arrow-path')
                             ->action(function (Get $get, Set $set): void {
-                                $orbatGroups = $this->record->orbat['groups'] ?? [];
-
-                                $networks = collect($get('networks') ?? [])
-                                    ->merge(
-                                        collect($orbatGroups)
-                                            ->pluck('name')
-                                            ->filter()
-                                            ->map(fn (string $name): array => static::blankRadioNetwork($name))
+                                $groupNames = collect(
+                                    $this->record->orbat['groups'] ?? []
+                                )
+                                    ->map(
+                                        fn (array $group): string =>
+                                            trim((string) ($group['name'] ?? ''))
                                     )
-                                    ->values()
-                                    ->all();
+                                    ->filter()
+                                    ->unique(
+                                        fn (string $name): string =>
+                                            mb_strtolower($name)
+                                    )
+                                    ->values();
 
-                                $set('networks', $networks);
+                                if ($groupNames->isEmpty()) {
+                                    Notification::make()
+                                        ->title('El ORBAT no tiene grupos para sincronizar.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                if ($groupNames->count() > 99) {
+                                    Notification::make()
+                                        ->title('No se pueden sincronizar más de 99 grupos.')
+                                        ->body('El bloque de radio está limitado al rango 1–99.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $currentNetworks = collect(
+                                    $get('networks') ?? []
+                                )->values();
+
+                                $currentModelIds = $currentNetworks
+                                    ->pluck('radio_model_id')
+                                    ->filter()
+                                    ->map(fn ($id): int => (int) $id)
+                                    ->unique()
+                                    ->values();
+
+                                $currentModels = RadioModel::query()
+                                    ->whereIn('id', $currentModelIds)
+                                    ->get()
+                                    ->keyBy('id');
+
+                                $preferredRadioModel = $currentNetworks
+                                    ->map(
+                                        fn (array $network) =>
+                                            $currentModels->get(
+                                                (int) ($network['radio_model_id'] ?? 0)
+                                            )
+                                    )
+                                    ->first(
+                                        fn (?RadioModel $model): bool =>
+                                            (bool) ($model?->channel)
+                                            && (bool) ($model?->block)
+                                    );
+
+                                $preferredRadioModel ??= RadioModel::query()
+                                    ->where('channel', true)
+                                    ->where('block', true)
+                                    ->orderBy('name')
+                                    ->first();
+
+                                if (! $preferredRadioModel) {
+                                    Notification::make()
+                                        ->title('No hay un modelo de radio con Canal y Bloque habilitados.')
+                                        ->body('Configura primero un modelo compatible para poder sincronizar el ORBAT.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $usedNetworkIndexes = [];
+
+                                $syncedNetworks = $groupNames
+                                    ->map(function (string $groupName, int $index) use (
+                                        $currentNetworks,
+                                        $currentModels,
+                                        $preferredRadioModel,
+                                        &$usedNetworkIndexes,
+                                    ): array {
+                                        $normalizedGroupName = mb_strtolower($groupName);
+
+                                        $matchingIndex = $currentNetworks
+                                            ->keys()
+                                            ->first(function (int $networkIndex) use (
+                                                $currentNetworks,
+                                                $normalizedGroupName,
+                                                $usedNetworkIndexes,
+                                            ): bool {
+                                                if (in_array($networkIndex, $usedNetworkIndexes, true)) {
+                                                    return false;
+                                                }
+
+                                                return mb_strtolower(
+                                                    trim((string) (
+                                                        $currentNetworks[$networkIndex]['name'] ?? ''
+                                                    ))
+                                                ) === $normalizedGroupName;
+                                            });
+
+                                        $network = $matchingIndex !== null
+                                            ? $currentNetworks[$matchingIndex]
+                                            : static::blankRadioNetwork($groupName);
+
+                                        if ($matchingIndex !== null) {
+                                            $usedNetworkIndexes[] = $matchingIndex;
+                                        }
+
+                                        $currentModel = $currentModels->get(
+                                            (int) ($network['radio_model_id'] ?? 0)
+                                        );
+
+                                        if (
+                                            ! $currentModel
+                                            || ! $currentModel->channel
+                                            || ! $currentModel->block
+                                        ) {
+                                            $network['radio_model_id'] = $preferredRadioModel->id;
+                                            $network['radio_model_name'] = $preferredRadioModel->name;
+                                        }
+
+                                        $network['name'] = $groupName;
+                                        $network['configuration'] = array_merge(
+                                            $network['configuration'] ?? [],
+                                            [
+                                                'channel' => 1,
+                                                'block' => $index + 1,
+                                            ],
+                                        );
+                                        $network['visible'] = (bool) ($network['visible'] ?? true);
+
+                                        return $network;
+                                    });
+
+                                $customNetworks = $currentNetworks
+                                    ->reject(
+                                        fn (array $network, int $networkIndex): bool =>
+                                            in_array($networkIndex, $usedNetworkIndexes, true)
+                                    );
+
+                                $set(
+                                    'networks',
+                                    $syncedNetworks
+                                        ->concat($customNetworks)
+                                        ->values()
+                                        ->all()
+                                );
+
+                                Notification::make()
+                                    ->title($groupNames->count() . ' radios sincronizadas con el ORBAT.')
+                                    ->success()
+                                    ->send();
                             }),
 
                         
@@ -1729,7 +1915,11 @@ class EditActivity extends EditRecord
                             TextInput::make('name')
                                 ->label('Nombre')
                                 ->required()
-                                ->maxLength(255),
+                                ->maxLength(255)
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 4,
+                                ]),
 
                             Select::make('radio_model_id')
                                 ->label('Modelo de radio')
@@ -1748,44 +1938,91 @@ class EditActivity extends EditRecord
                                     $set('configuration.block', null);
                                     $set('configuration.frequency', null);
                                 })
-                                ->required(),
+                                ->required()
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 4,
+                                ]),
 
                             Hidden::make('radio_model_name'),
 
                             TextInput::make('configuration.channel')
                                 ->label('Canal')
                                 ->numeric()
-                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
-                                    ->whereKey($get('radio_model_id'))
-                                    ->value('channel')),
+                                ->integer()
+                                ->minValue(1)
+                                ->maxValue(99)
+                                ->extraAttributes([
+                                    'class' => 'radio-number-field',
+                                ])
+                                ->columnSpan([
+                                    'default' => 6,
+                                    'md' => 1,
+                                ])
+                                ->visible(
+                                    fn (Get $get): bool =>
+                                        static::radioModelSupports(
+                                            $get('radio_model_id'),
+                                            'channel'
+                                        )
+                                ),
 
                             TextInput::make('configuration.block')
                                 ->label('Bloque')
                                 ->numeric()
-                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
-                                    ->whereKey($get('radio_model_id'))
-                                    ->value('block')),
+                                ->integer()
+                                ->minValue(1)
+                                ->maxValue(99)
+                                ->extraAttributes([
+                                    'class' => 'radio-number-field',
+                                ])
+                                ->columnSpan([
+                                    'default' => 6,
+                                    'md' => 1,
+                                ])
+                                ->visible(
+                                    fn (Get $get): bool =>
+                                        static::radioModelSupports(
+                                            $get('radio_model_id'),
+                                            'block'
+                                        )
+                                ),
 
                             TextInput::make('configuration.frequency')
                                 ->label('Frecuencia')
                                 ->numeric()
                                 ->step('0.001')
                                 ->suffix('MHz')
-                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
-                                    ->whereKey($get('radio_model_id'))
-                                    ->value('frequency')),
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 2,
+                                ])
+                                ->visible(
+                                    fn (Get $get): bool =>
+                                        static::radioModelSupports(
+                                            $get('radio_model_id'),
+                                            'frequency'
+                                        )
+                                ),
 
                             Textarea::make('notes')
                                 ->label('Notas')
-                                ->rows(1),
-                                //->columnSpanFull(),
+                                ->rows(1)
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 10,
+                                ]),
 
                             Toggle::make('visible')
                                 ->label('Visible')
                                 ->inline(false)
-                                ->default(true),
+                                ->default(true)
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 2,
+                                ]),
                         ])
-                        ->columns(3)
+                        ->columns(12)
                         ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                         ->reorderableWithButtons()
                         ->collapsible()
@@ -1795,25 +2032,30 @@ class EditActivity extends EditRecord
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
-                    $networks = collect(
+                    $submittedNetworks = collect(
                         $data['networks'] ?? []
-                    )
+                    );
+
+                    $radioModels = RadioModel::query()
+                        ->whereIn(
+                            'id',
+                            $submittedNetworks
+                                ->pluck('radio_model_id')
+                                ->filter()
+                                ->map(fn ($id): int => (int) $id)
+                                ->unique()
+                                ->values()
+                        )
+                        ->get()
+                        ->keyBy('id');
+
+                    $networks = $submittedNetworks
                         ->map(function (
                             array $network
-                        ): array {
-                            $radioModel =
-                                isset(
-                                    $network[
-                                        'radio_model_id'
-                                    ]
-                                )
-                                    ? RadioModel::query()
-                                        ->find(
-                                            $network[
-                                                'radio_model_id'
-                                            ]
-                                        )
-                                    : null;
+                        ) use ($radioModels): array {
+                            $radioModel = isset($network['radio_model_id'])
+                                ? $radioModels->get((int) $network['radio_model_id'])
+                                : null;
 
                             return [
                                 'name' =>
@@ -2259,6 +2501,34 @@ HTML;
             ->unique(fn (string $name): string => mb_strtolower($name))
             ->values()
             ->all();
+    }
+
+    protected static function radioModelSupports(
+        mixed $radioModelId,
+        string $capability
+    ): bool {
+        if (
+            blank($radioModelId)
+            || ! in_array($capability, ['channel', 'block', 'frequency'], true)
+        ) {
+            return false;
+        }
+
+        $radioModelId = (int) $radioModelId;
+
+        if (! array_key_exists($radioModelId, static::$radioModelCapabilitiesCache)) {
+            $radioModel = RadioModel::query()
+                ->select(['id', 'channel', 'block', 'frequency'])
+                ->find($radioModelId);
+
+            static::$radioModelCapabilitiesCache[$radioModelId] = [
+                'channel' => (bool) ($radioModel?->channel),
+                'block' => (bool) ($radioModel?->block),
+                'frequency' => (bool) ($radioModel?->frequency),
+            ];
+        }
+
+        return static::$radioModelCapabilitiesCache[$radioModelId][$capability];
     }
 
     protected static function blankRadioNetwork(string $name): array

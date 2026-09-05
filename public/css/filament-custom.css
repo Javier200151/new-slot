@@ -366,50 +366,67 @@
 ========================================================= */
 
 .orbat-group-cards > .fi-fo-repeater-items {
-    display: block !important;
-    column-count: 2;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1px;
     column-gap: 1rem;
+    row-gap: 0;
+    align-items: start;
 }
 
 .orbat-group-cards > .fi-fo-repeater-items > .fi-fo-repeater-item {
-    display: inline-block;
+    min-width: 0;
     width: 100%;
-    margin: 0 0 1rem;
-    break-inside: avoid;
-    vertical-align: top;
+    align-self: start;
 }
 
 @media (max-width: 1023px) {
     .orbat-group-cards > .fi-fo-repeater-items {
-        column-count: 1;
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: auto;
+        row-gap: 1rem;
     }
 }
 
 /* =========================================================
-   EDITOR ORBAT - TARJETAS DE SLOT
+   EDITOR ORBAT - FILAS DE SLOT
 ========================================================= */
 
 .orbat-slot-cards > .fi-fo-repeater-items {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.55rem !important;
     align-items: start;
 }
 
 .orbat-slot-cards .fi-fo-repeater-item {
     min-width: 0;
     overflow: hidden;
+    border-radius: 0.55rem !important;
+}
+
+.orbat-slot-cards .fi-fo-repeater-item-header {
+    min-height: 2.35rem;
+    padding-block: 0.35rem !important;
 }
 
 .orbat-slot-cards .fi-fo-repeater-item-content {
-    padding: 0.55rem !important;
+    padding: 0.45rem 0.55rem 0.55rem !important;
 }
 
 .orbat-slot-cards .fi-fo-repeater-item-header-label {
     min-width: 0;
     max-width: 100%;
-    font-size: 0.92rem;
+    font-size: 0.86rem;
 }
 
 .orbat-slot-cards .fi-fo-field-wrp {
     min-width: 0;
+}
+
+.orbat-slot-row-fields {
+    align-items: end !important;
+    gap: 0.5rem !important;
 }
 
 .orbat-slot-choice-field {
@@ -420,12 +437,12 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 0.12rem;
-    min-height: 2.85rem;
-    padding: 0.58rem 0.72rem;
-    border: 1px solid rgb(71 85 105 / 0.55);
-    border-radius: 0.75rem;
-    background: rgb(15 23 42 / 0.48);
+    gap: 0.08rem;
+    min-height: 2.65rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid rgb(71 85 105 / 0.5);
+    border-radius: 0.45rem;
+    background: rgb(15 23 42 / 0.38);
 }
 
 .orbat-slot-choice-display strong,
@@ -439,15 +456,15 @@
 }
 
 .orbat-slot-choice-display strong {
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     font-weight: 700;
-    line-height: 1.05rem;
+    line-height: 1rem;
 }
 
 .orbat-slot-choice-display small {
-    font-size: 0.68rem;
-    line-height: 0.88rem;
-    opacity: 0.74;
+    font-size: 0.66rem;
+    line-height: 0.84rem;
+    opacity: 0.72;
 }
 
 .orbat-slot-picker-actions {
@@ -455,20 +472,20 @@
 }
 
 .orbat-slot-picker-icon {
-    width: 2.85rem !important;
-    min-width: 2.85rem !important;
-    height: 2.85rem !important;
-    min-height: 2.85rem !important;
-    border-radius: 0.75rem !important;
+    width: 2.65rem !important;
+    min-width: 2.65rem !important;
+    height: 2.65rem !important;
+    min-height: 2.65rem !important;
+    border-radius: 0.45rem !important;
 }
 
 .orbat-slot-cards .fi-input-wrp {
-    min-height: 2.75rem;
+    min-height: 2.65rem;
 }
 
 .orbat-slot-cards .fi-input,
 .orbat-slot-cards .fi-select-input {
-    font-size: 0.92rem;
+    font-size: 0.88rem;
 }
 
 /* =========================================================
@@ -528,4 +545,18 @@
 .activity-description-summary-bbcode .forum-rich__code,
 .activity-description-summary-bbcode .forum-rich__spoiler {
     margin: 0.6rem 0;
+}
+
+/* =========================================================
+   EDITOR DE RADIOS - CAMPOS NUMÉRICOS COMPACTOS
+========================================================= */
+
+.radio-number-field .fi-input-wrp {
+    width: 5.25rem;
+    max-width: 100%;
+}
+
+.radio-number-field .fi-input {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }

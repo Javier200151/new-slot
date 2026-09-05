@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Support\SlotQuickSelection;
 use Illuminate\Database\Eloquent\Model;
 
 class SlotTypeQuickName extends Model
@@ -24,6 +25,21 @@ class SlotTypeQuickName extends Model
             'is_course_student' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(
+            function (): void {
+                SlotQuickSelection::clearCache();
+            }
+        );
+
+        static::deleted(
+            function (): void {
+                SlotQuickSelection::clearCache();
+            }
+        );
     }
 
     public function slotType()
