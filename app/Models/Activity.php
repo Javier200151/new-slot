@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Concerns\Auditable;
+use App\Support\BriefingMarkup;
 
 /**
  * Modelo canónico de las actividades de NewSlot.
@@ -276,19 +277,18 @@ class Activity extends Model
 
         foreach ($sections as $section) {
 
-            $title = e(
+            $title = BriefingMarkup::render(
                 $section['title']
                 ?? 'Sección sin título'
-            );
+            )->toHtml();
 
-            $content =
-                $section['content'] ?? '';
+            $content = BriefingMarkup::render(
+                $section['content'] ?? ''
+            )->toHtml();
 
-            $image = trim(
-                (string) (
-                    $section['image'] ?? ''
-                )
-            );
+            $image = BriefingMarkup::imageUrl(
+                $section['image'] ?? null
+            ) ?? '';
 
             $position =
                 $section['image_position']
@@ -355,7 +355,9 @@ class Activity extends Model
             ';
 
             $html .= "
-                <h3
+                <div
+                    role=\"heading\"
+                    aria-level=\"3\"
                     style=\"
                         font-size: 1.125rem;
                         font-weight: 700;
@@ -363,7 +365,7 @@ class Activity extends Model
                     \"
                 >
                     {$title}
-                </h3>
+                </div>
             ";
 
             $contentHtml = '';
@@ -371,6 +373,7 @@ class Activity extends Model
             if (filled($content)) {
                 $contentHtml = "
                     <div
+                        class=\"activity-description-summary-bbcode\"
                         style=\"
                             min-width: 0;
                             line-height: 1.6;

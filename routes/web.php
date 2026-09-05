@@ -546,6 +546,11 @@ Route::middleware('auth')->group(function (): void {
         ->name('community.diary.comments.destroy');
 
     Route::get(
+        '/area/foro/nuevos-mensajes',
+        [CommunityForumController::class, 'unread']
+    )->name('community.forum.unread');
+
+    Route::get(
         '/area/foro/{channel}',
         [CommunityForumController::class, 'index']
     )

@@ -281,6 +281,16 @@
         });
     };
 
+    // Al volver con el botón Atrás algunos navegadores restauran la lista
+    // desde bfcache sin pedirla otra vez al servidor. En ese caso refrescamos
+    // únicamente las páginas de listado para que un hilo recién abierto deje
+    // de aparecer visualmente como nuevo de inmediato.
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted && document.querySelector('[data-forum-index-page]')) {
+            window.location.reload();
+        }
+    });
+
     ready(() => {
         window.NewSlotForumEditor.initAll();
         initCompose();

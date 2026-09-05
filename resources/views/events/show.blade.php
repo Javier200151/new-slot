@@ -1123,9 +1123,13 @@
 
                             <section>
 
-                                <h3>
+                                <div
+                                    class="briefing-section__heading briefing-rich"
+                                    role="heading"
+                                    aria-level="3"
+                                >
                                     {{ $section['title'] }}
-                                </h3>
+                                </div>
 
                                 <div
                                     class="
@@ -1181,7 +1185,7 @@
                                         "
                                     >
                                         <section>
-                                            <div class="event-rich-content">{{ $section['content'] }}</div>
+                                            <div class="event-rich-content briefing-rich">{{ $section['content'] }}</div>
                                         </section>                                    
                                     </div>
 

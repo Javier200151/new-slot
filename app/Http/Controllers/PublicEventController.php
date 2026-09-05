@@ -13,11 +13,9 @@ use App\Models\SlotType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
@@ -31,6 +29,7 @@ use App\Filament\Resources\Events\EventResource;
 use App\Services\CourseMetopaAwardService;
 use App\Services\CommunityRouletteService;
 use App\Support\ActivityTypeAccess;
+use App\Support\BriefingMarkup;
 
 class PublicEventController extends Controller
 {
@@ -530,17 +529,17 @@ class PublicEventController extends Controller
             }
 
             return [
-                'title' =>
-                    $section['title'] ?? 'Descripción',
-
-                'content' => new HtmlString(
-                    RichContentRenderer::make(
-                        $section['content'] ?? ''
-                    )->toHtml(),
+                'title' => BriefingMarkup::render(
+                    $section['title'] ?? 'Descripción'
                 ),
 
-                'image' =>
-                    $section['image'] ?? null,
+                'content' => BriefingMarkup::render(
+                    $section['content'] ?? ''
+                ),
+
+                'image' => BriefingMarkup::imageUrl(
+                    $section['image'] ?? null
+                ),
 
                 'image_position' =>
                     $position,

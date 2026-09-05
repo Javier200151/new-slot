@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Activity;
+use App\Support\BriefingMarkup;
+
 class ActivityBriefingSqfExporter
 {
     private const BREAK_TOKEN = '___NEWSLOT_SQF_BR___';
@@ -27,7 +29,9 @@ class ActivityBriefingSqfExporter
         foreach ($sections as $section) {
             $title = trim((string) ($section['title'] ?? ''));
             $content = $this->htmlToStructuredText(
-                $section['content'] ?? ''
+                BriefingMarkup::render(
+                    $section['content'] ?? ''
+                )->toHtml()
             );
 
             if ($title === '' && $content === '') {
@@ -80,6 +84,7 @@ class ActivityBriefingSqfExporter
 
     private function sectionHeading(string $title): string
     {
+        $title = BriefingMarkup::render($title)->toHtml();
         $title = html_entity_decode(
             strip_tags($title),
             ENT_QUOTES | ENT_HTML5,

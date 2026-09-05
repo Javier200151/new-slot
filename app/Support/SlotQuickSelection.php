@@ -4,10 +4,12 @@ namespace App\Support;
 
 use App\Models\SlotType;
 use App\Models\SlotTypeQuickName;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class SlotQuickSelection
 {
+    private const PICKER_CACHE_KEY = 'newslot:slot-quick-selection:v3';
     private static ?array $pickerGroupsCache = null;
 
     private static ?array $choiceMetadataCache = null;
@@ -43,6 +45,8 @@ class SlotQuickSelection
         self::$choiceMetadataCache = null;
         self::$pickerColumnsCache = null;
         self::$pickerImagesCache = null;
+
+        Cache::forget(self::PICKER_CACHE_KEY);
     }
 
     public static function pickerFieldName(string $slotTypeName): string
@@ -109,38 +113,57 @@ class SlotQuickSelection
 
     public static function prepareOrbat(array $orbat): array
     {
-        $groups = $orbat['groups'] ?? [];
+        self::buildPickerCache();
 
-        $quickNames = SlotTypeQuickName::query()
-            ->get()
-            ->groupBy('slot_type_id');
+        $groups = $orbat['groups'] ?? [];
+        $metadata = self::$choiceMetadataCache ?? [];
+        $quickChoiceByTypeAndName = [];
+
+        foreach ($metadata as $choice => $choiceMetadata) {
+            $slotTypeId = (int) ($choiceMetadata['slot_type_id'] ?? 0);
+            $quickNameId = (int) ($choiceMetadata['slot_quick_name_id'] ?? 0);
+
+            if ($slotTypeId <= 0 || $quickNameId <= 0) {
+                continue;
+            }
+
+            $quickChoiceByTypeAndName[$slotTypeId][self::normalizeName(
+                (string) ($choiceMetadata['name'] ?? '')
+            )] = $choice;
+        }
 
         foreach ($groups as $groupIndex => $group) {
             foreach (($group['slots'] ?? []) as $slotIndex => $slot) {
                 $slotTypeId = (int) ($slot['slot_type_id'] ?? 0);
                 $quickNameId = (int) ($slot['slot_quick_name_id'] ?? 0);
-                $matched = null;
+                $choice = null;
 
-                $choice = $quickNameId > 0
-                    ? 'quick:' . $quickNameId
-                    : null;
+                if ($quickNameId > 0) {
+                    $quickChoice = 'quick:' . $quickNameId;
+
+                    if (isset($metadata[$quickChoice])) {
+                        $choice = $quickChoice;
+                    }
+                }
 
                 if (! $choice && $slotTypeId > 0) {
-                    $matched = ($quickNames->get($slotTypeId) ?? collect())
-                        ->first(
-                            fn (SlotTypeQuickName $quickName): bool =>
-                                mb_strtolower(trim($quickName->name))
-                                === mb_strtolower(trim((string) ($slot['name'] ?? '')))
-                        );
+                    $choice = $quickChoiceByTypeAndName[$slotTypeId][
+                        self::normalizeName((string) ($slot['name'] ?? ''))
+                    ] ?? null;
 
-                    $choice = $matched
-                        ? 'quick:' . $matched->id
-                        : 'type:' . $slotTypeId;
+                    if (! $choice) {
+                        $typeChoice = 'type:' . $slotTypeId;
+                        $choice = isset($metadata[$typeChoice])
+                            ? $typeChoice
+                            : null;
+                    }
                 }
+
+                $resolved = $choice ? ($metadata[$choice] ?? null) : null;
 
                 $groups[$groupIndex]['slots'][$slotIndex]['slot_choice'] = $choice;
                 $groups[$groupIndex]['slots'][$slotIndex]['slot_quick_name_id'] =
-                    $quickNameId > 0 ? $quickNameId : ($matched->id ?? null);
+                    $resolved['slot_quick_name_id'] ?? null;
             }
         }
 
@@ -159,37 +182,20 @@ class SlotQuickSelection
             ];
         }
 
-        if (str_starts_with($choice, 'quick:')) {
-            $quickName = SlotTypeQuickName::query()
-                ->with('slotType')
-                ->find((int) substr($choice, 6));
+        $metadata = self::choiceMetadata($choice);
 
-            if ($quickName) {
-                return [
-                    'slot_type_id' => (int) $quickName->slot_type_id,
-                    'slot_quick_name_id' => (int) $quickName->id,
-                    'name' => $quickName->name,
-                ];
-            }
-        }
-
-        if (str_starts_with($choice, 'type:')) {
-            $slotType = SlotType::query()
-                ->find((int) substr($choice, 5));
-
-            if ($slotType) {
-                return [
-                    'slot_type_id' => (int) $slotType->id,
-                    'slot_quick_name_id' => null,
-                    'name' => $slotType->name,
-                ];
-            }
+        if (! $metadata) {
+            return [
+                'slot_type_id' => null,
+                'slot_quick_name_id' => null,
+                'name' => null,
+            ];
         }
 
         return [
-            'slot_type_id' => null,
-            'slot_quick_name_id' => null,
-            'name' => null,
+            'slot_type_id' => $metadata['slot_type_id'] ?? null,
+            'slot_quick_name_id' => $metadata['slot_quick_name_id'] ?? null,
+            'name' => $metadata['name'] ?? null,
         ];
     }
 
@@ -214,6 +220,13 @@ class SlotQuickSelection
         return self::$choiceMetadataCache[$choice] ?? null;
     }
 
+    private static function normalizeName(string $value): string
+    {
+        return Str::lower(
+            Str::ascii(trim($value))
+        );
+    }
+
     private static function buildPickerCache(): void
     {
         if (
@@ -225,74 +238,90 @@ class SlotQuickSelection
             return;
         }
 
-        $groups = [];
-        $metadata = [];
-        $images = [];
-        $columns = [
+        $payload = Cache::remember(
+            self::PICKER_CACHE_KEY,
+            now()->addMinutes(10),
+            static function (): array {
+                $groups = [];
+                $metadata = [];
+                $images = [];
+                $columns = [
+                    1 => [],
+                    2 => [],
+                    3 => [],
+                    4 => [],
+                ];
+
+                SlotType::query()
+                    ->with([
+                        'quickNames' => fn ($query) => $query
+                            ->orderBy('sort_order')
+                            ->orderBy('name'),
+                    ])
+                    ->orderBy('picker_column')
+                    ->orderBy('picker_order')
+                    ->orderBy('name')
+                    ->get()
+                    ->each(
+                        function (SlotType $slotType) use (&$groups, &$metadata, &$columns, &$images): void {
+                            $slotTypeName = $slotType->name;
+                            $slotTypeId = (int) $slotType->id;
+                            $images[$slotTypeName] = $slotType->image;
+                            $pickerColumn = max(
+                                1,
+                                min(4, (int) ($slotType->picker_column ?: 1))
+                            );
+                            $options = [];
+                            $typeChoice = 'type:' . $slotTypeId;
+
+                            // El tipo se conserva siempre en metadatos para poder
+                            // resolver ORBATs legacy sin consultar la BD slot a slot.
+                            $metadata[$typeChoice] = [
+                                'slot_type_id' => $slotTypeId,
+                                'slot_quick_name_id' => null,
+                                'slot_type_name' => $slotTypeName,
+                                'name' => $slotTypeName,
+                            ];
+
+                            if ($slotType->quickNames->isEmpty()) {
+                                $options[$typeChoice] = $slotTypeName;
+                            } else {
+                                foreach ($slotType->quickNames as $quickName) {
+                                    $choice = 'quick:' . $quickName->id;
+
+                                    $options[$choice] = $quickName->name;
+                                    $metadata[$choice] = [
+                                        'slot_type_id' => $slotTypeId,
+                                        'slot_quick_name_id' => (int) $quickName->id,
+                                        'slot_type_name' => $slotTypeName,
+                                        'name' => $quickName->name,
+                                    ];
+                                }
+                            }
+
+                            $groups[$slotTypeName] = $options;
+                            $columns[$pickerColumn][$slotTypeName] = $options;
+                        }
+                    );
+
+                return [
+                    'groups' => $groups,
+                    'metadata' => $metadata,
+                    'columns' => $columns,
+                    'images' => $images,
+                ];
+            }
+        );
+
+        self::$pickerGroupsCache = $payload['groups'] ?? [];
+        self::$choiceMetadataCache = $payload['metadata'] ?? [];
+        self::$pickerColumnsCache = $payload['columns'] ?? [
             1 => [],
             2 => [],
             3 => [],
             4 => [],
         ];
-
-        /*
-        |--------------------------------------------------------------------------
-        | El TIPO DE SLOT es el encabezado
-        |--------------------------------------------------------------------------
-        |
-        | No existe una segunda categoría visual. Cada SlotType de la base de
-        | datos es directamente un bloque del selector (Piloto, RTO, Médico y
-        | Sanitario, etc.) y sus quickNames son los botones que aparecen debajo.
-        |
-        */
-        SlotType::query()
-            ->with([
-                'quickNames' => fn ($query) => $query
-                    ->orderBy('sort_order')
-                    ->orderBy('name'),
-            ])
-            ->orderBy('picker_column')
-            ->orderBy('picker_order')
-            ->orderBy('name')
-            ->get()
-            ->each(
-                function (SlotType $slotType) use (&$groups, &$metadata, &$columns, &$images): void {
-                    $slotTypeName = $slotType->name;
-                    $images[$slotTypeName] = $slotType->image;
-                    $pickerColumn = max(
-                        1,
-                        min(4, (int) ($slotType->picker_column ?: 1))
-                    );
-                    $options = [];
-
-                    if ($slotType->quickNames->isEmpty()) {
-                        $choice = 'type:' . $slotType->id;
-
-                        $options[$choice] = $slotTypeName;
-                        $metadata[$choice] = [
-                            'slot_type_name' => $slotTypeName,
-                            'name' => $slotTypeName,
-                        ];
-                    } else {
-                        foreach ($slotType->quickNames as $quickName) {
-                            $choice = 'quick:' . $quickName->id;
-
-                            $options[$choice] = $quickName->name;
-                            $metadata[$choice] = [
-                                'slot_type_name' => $slotTypeName,
-                                'name' => $quickName->name,
-                            ];
-                        }
-                    }
-
-                    $groups[$slotTypeName] = $options;
-                    $columns[$pickerColumn][$slotTypeName] = $options;
-                }
-            );
-
-        self::$pickerGroupsCache = $groups;
-        self::$choiceMetadataCache = $metadata;
-        self::$pickerColumnsCache = $columns;
-        self::$pickerImagesCache = $images;
+        self::$pickerImagesCache = $payload['images'] ?? [];
     }
+
 }

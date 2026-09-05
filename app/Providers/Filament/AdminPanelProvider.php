@@ -7,10 +7,13 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -18,10 +21,8 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
-use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Filament\Navigation\NavigationItem;
-use Filament\View\PanelsRenderHook;
 use Illuminate\Support\HtmlString;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 //use Pxlrbt\FilamentActivityLog\FilamentActivityLogPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -62,13 +63,27 @@ class AdminPanelProvider extends PanelProvider
                     return new HtmlString("<style id=\"newslot-filament-custom\">{$css}</style>");
                 },
             )
+            ->assets([
+                Js::make(
+                    'filament-briefing-bbcode',
+                    asset('js/filament-briefing-bbcode.js')
+                        . '?v='
+                        . filemtime(public_path('js/filament-briefing-bbcode.js'))
+                )->defer(),
+                Js::make(
+                    'filament-orbat-layout',
+                    asset('js/filament-orbat-layout.js')
+                        . '?v='
+                        . filemtime(public_path('js/filament-orbat-layout.js'))
+                )->defer(),
+            ])
             ->navigationGroups([
                 NavigationGroup::make('Actividades'),
                 NavigationGroup::make('Eventos'),
                 NavigationGroup::make('Streams'),
                 NavigationGroup::make('Comunidad'),
                 NavigationGroup::make('Usuarios'),
-                NavigationGroup::make('Sistema'),    
+                NavigationGroup::make('Sistema'),
             ])
             ->navigationItems([
                 NavigationItem::make('Volver a la web')

@@ -1,6 +1,6 @@
 @extends('layouts.metopas')
 
-@section('title', $channel === 'personal' && $category ? $category['label'] . ' · Foro' : $channelTitle)
+@section('title', ($isUnreadView ?? false) ? 'Nuevos mensajes · Foro' : ($channel === 'personal' && $category ? $category['label'] . ' · Foro' : $channelTitle))
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/community.css') }}?v={{ filemtime(public_path('css/community.css')) }}">
@@ -13,7 +13,7 @@
 @section('body-class', 'forum-body')
 
 @section('content')
-<div class="community-shell forum-shell">
+<div class="community-shell forum-shell" data-forum-index-page>
     <span class="community-kicker">{{ \App\Support\CommunityArea::label(auth()->user()) }}</span>
 
     @if($channel === 'personal' && !$category)
@@ -22,6 +22,13 @@
                 <h1 class="community-title">Foro</h1>
                 <p class="community-lead">{{ $channelDescription }}</p>
             </div>
+
+            <a class="community-btn community-btn--ghost forum-unread-button" href="{{ route('community.forum.unread') }}">
+                <span>☷ Nuevos mensajes</span>
+                @if(($forumUnreadCount ?? 0) > 0)
+                    <strong>{{ $forumUnreadCount }}</strong>
+                @endif
+            </a>
         </div>
 
         @if(session('status'))
@@ -31,7 +38,10 @@
         <section class="forum-category-grid" aria-label="Categorías del Foro">
             @foreach($categories as $item)
                 <a
-                    class="forum-category-card"
+                    @class([
+                        'forum-category-card',
+                        'has-unread' => (int) ($item['unread_count'] ?? 0) > 0,
+                    ])
                     href="{{ $item['url'] }}"
                     style="--forum-category-color: {{ $item['color'] ?? '#f59e0b' }}"
                 >
@@ -39,6 +49,9 @@
                     <div class="forum-category-card__body">
                         <div class="forum-category-card__title-row">
                             <h2>{{ $item['label'] }}</h2>
+                            @if((int) ($item['unread_count'] ?? 0) > 0)
+                                <span class="forum-category-card__unread">{{ $item['unread_count'] }} nuevo{{ (int) $item['unread_count'] === 1 ? '' : 's' }}</span>
+                            @endif
                             @unless($item['can_create'])
                                 <span class="forum-category-card__readonly">Solo lectura</span>
                             @endunless
@@ -68,7 +81,9 @@
             $forumDescription = $isPersonalCategory ? $category['description'] : $channelDescription;
         @endphp
 
-        @if($isPersonalCategory)
+        @if($isUnreadView ?? false)
+            <a class="community-kicker forum-back-link" href="{{ route('community.forum.home') }}">← Foro</a>
+        @elseif($isPersonalCategory)
             <a class="community-kicker forum-back-link" href="{{ route('community.forum.home') }}">← Foro</a>
         @endif
 
@@ -87,11 +102,22 @@
                     <p class="community-lead">{{ $forumDescription }}</p>
                 @endif
             </div>
-            @if($canCreate)
-                <button class="community-btn" type="button" data-forum-compose-open>+ Nuevo hilo</button>
-            @else
-                <span class="forum-category-permission-note">Tu rol puede leer y responder, pero no abrir hilos aquí.</span>
-            @endif
+            <div class="forum-page-actions">
+                <a @class(['community-btn', 'community-btn--ghost', 'forum-unread-button', 'is-active' => ($isUnreadView ?? false)]) href="{{ route('community.forum.unread') }}">
+                    <span>☷ Nuevos mensajes</span>
+                    @if(($forumUnreadCount ?? 0) > 0)
+                        <strong>{{ $forumUnreadCount }}</strong>
+                    @endif
+                </a>
+
+                @if(!($isUnreadView ?? false))
+                    @if($canCreate)
+                        <button class="community-btn" type="button" data-forum-compose-open>+ Nuevo hilo</button>
+                    @else
+                        <span class="forum-category-permission-note">Tu rol puede leer y responder, pero no abrir hilos aquí.</span>
+                    @endif
+                @endif
+            </div>
         </div>
 
         @if(session('status') === 'subscription-enabled')
@@ -111,17 +137,25 @@
             </div>
         @endif
 
+        @php
+            $forumSearchAction = ($isUnreadView ?? false)
+                ? route('community.forum.unread')
+                : ($isPersonalCategory
+                    ? route('community.forum.category', $categoryKey)
+                    : route('community.forum.index', $channel));
+        @endphp
+
         <section class="forum-tools" aria-label="Herramientas del foro">
-            <form method="GET" action="{{ $isPersonalCategory ? route('community.forum.category', $categoryKey) : route('community.forum.index', $channel) }}" class="forum-search-form">
+            <form method="GET" action="{{ $forumSearchAction }}" class="forum-search-form">
                 <input type="search" name="q" value="{{ $search }}" placeholder="Buscar por título, mensaje o autor…">
                 <select name="filtro">
                     <option value="all" @selected($filter === 'all')>Todos</option>
-                    @if($channel === 'personal')<option value="poll" @selected($filter === 'poll')>Con votación</option>@endif
+                    @if($channel === 'personal' || ($isUnreadView ?? false))<option value="poll" @selected($filter === 'poll')>Con votación</option>@endif
                     <option value="locked" @selected($filter === 'locked')>Cerrados</option>
                 </select>
                 <button class="community-btn community-btn--ghost" type="submit">Buscar / filtrar</button>
                 @if($search !== '' || $filter !== 'all')
-                    <a class="community-btn community-btn--ghost" href="{{ $isPersonalCategory ? route('community.forum.category', $categoryKey) : route('community.forum.index', $channel) }}">Limpiar</a>
+                    <a class="community-btn community-btn--ghost" href="{{ $forumSearchAction }}">Limpiar</a>
                 @endif
             </form>
         </section>
@@ -229,11 +263,20 @@
                 @php
                     $processStatus = $post->process?->effectiveStatus();
                     $processLabel = $post->process ? (\App\Models\CommunityProcess::typeOptions()[$post->process->type] ?? 'Proceso') : null;
+                    $postChannel = $post->channel;
+                    $baseline = $forumUnreadBaseline ?? null;
+                    $isUnreadThread = ($isUnreadView ?? false)
+                        || (
+                            ! (bool) ($post->is_currently_read ?? false)
+                            && ($baseline === null || $post->updated_at->gt($baseline))
+                        );
                 @endphp
 
-                <article class="forum-row forum-row--real">
-                    <a class="forum-row__main" href="{{ route('community.forum.show', [$channel, $post]) }}">
+                <article @class(['forum-row', 'forum-row--real', 'is-unread' => $isUnreadThread])>
+                    <a class="forum-row__main" href="{{ route('community.forum.show', [$postChannel, $post]) }}">
                         <div class="forum-row__badges">
+                            @if($isUnreadThread)<span class="is-unread">● Nuevo</span>@endif
+                            @if(($isUnreadView ?? false) && $post->forumCategory)<span class="is-category">{{ $post->forumCategory->title }}</span>@endif
                             @if($post->is_pinned)<span>📌 Fijado</span>@endif
                             @if($processLabel)<span class="is-process">{{ $processLabel }}</span>@endif
                             @if($post->process)<span>{{ \App\Models\CommunityProcess::statusOptions()[$processStatus] ?? $processStatus }}</span>@endif
@@ -272,7 +315,11 @@
                     @endif
                 </article>
             @empty
-                <div class="community-empty">Todavía no hay hilos en esta categoría.</div>
+                <div class="community-empty">
+                    {{ ($isUnreadView ?? false)
+                        ? 'No tienes mensajes nuevos pendientes de leer.'
+                        : 'Todavía no hay hilos en esta categoría.' }}
+                </div>
             @endforelse
         </div>
 

@@ -420,9 +420,13 @@
 
                             <section>
 
-                                <h3>
+                                <div
+                                    class="briefing-section__heading briefing-rich"
+                                    role="heading"
+                                    aria-level="3"
+                                >
                                     {{ $section['title'] }}
-                                </h3>
+                                </div>
 
 
                                 <div
@@ -484,7 +488,7 @@
 
                                         <section>
 
-                                            <div class="event-rich-content">
+                                            <div class="event-rich-content briefing-rich">
                                                 {{ $section['content'] }}
                                             </div>
 

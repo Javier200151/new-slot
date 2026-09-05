@@ -150,8 +150,8 @@
                             <p>Puedes renombrar, eliminar o añadir apartados según lo ocurrido en este operativo.</p>
                         </div>
 
-                        <button type="button" class="aar-button aar-button--ghost" data-aar-add-section>
-                            + Añadir sección
+                        <button type="button" class="aar-button aar-button--ghost" data-aar-add-section="start">
+                            + Añadir sección arriba
                         </button>
                     </header>
 
@@ -171,7 +171,13 @@
                             <article class="aar-editor__section" data-aar-section>
                                 <div class="aar-editor__section-head">
                                     <span>SECCIÓN {{ str_pad((string) ($loop->iteration), 2, '0', STR_PAD_LEFT) }}</span>
-                                    <button type="button" data-aar-remove-section>Eliminar</button>
+                                    <div class="aar-editor__section-tools" aria-label="Orden de la sección">
+                                        <button type="button" data-aar-move-section="top" title="Mover al principio" aria-label="Mover al principio">⇈</button>
+                                        <button type="button" data-aar-move-section="up" title="Mover una posición arriba" aria-label="Mover una posición arriba">↑</button>
+                                        <button type="button" data-aar-move-section="down" title="Mover una posición abajo" aria-label="Mover una posición abajo">↓</button>
+                                        <button type="button" data-aar-move-section="bottom" title="Mover al final" aria-label="Mover al final">⇊</button>
+                                        <button type="button" class="aar-editor__remove" data-aar-remove-section>Eliminar</button>
+                                    </div>
                                 </div>
 
                                 <input
@@ -210,7 +216,13 @@
                         <article class="aar-editor__section" data-aar-section>
                             <div class="aar-editor__section-head">
                                 <span>NUEVA SECCIÓN</span>
-                                <button type="button" data-aar-remove-section>Eliminar</button>
+                                <div class="aar-editor__section-tools" aria-label="Orden de la sección">
+                                    <button type="button" data-aar-move-section="top" title="Mover al principio" aria-label="Mover al principio">⇈</button>
+                                    <button type="button" data-aar-move-section="up" title="Mover una posición arriba" aria-label="Mover una posición arriba">↑</button>
+                                    <button type="button" data-aar-move-section="down" title="Mover una posición abajo" aria-label="Mover una posición abajo">↓</button>
+                                    <button type="button" data-aar-move-section="bottom" title="Mover al final" aria-label="Mover al final">⇊</button>
+                                    <button type="button" class="aar-editor__remove" data-aar-remove-section>Eliminar</button>
+                                </div>
                             </div>
 
                             <input type="hidden" name="sections[__INDEX__][key]" value="">
@@ -233,6 +245,12 @@
                             ])
                         </article>
                     </template>
+
+                    <div class="aar-editor__add-bottom">
+                        <button type="button" class="aar-button aar-button--ghost" data-aar-add-section="end">
+                            + Añadir sección al final
+                        </button>
+                    </div>
 
                     <footer class="aar-editor__actions">
                         <a class="aar-button aar-button--ghost" href="{{ route('campaigns.aars.show', [$campaign, $event]) }}">

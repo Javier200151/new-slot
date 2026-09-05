@@ -6,8 +6,6 @@ use App\Models\Addon;
 use App\Models\Faction;
 use App\Models\Activity;
 use App\Models\SlotType;
-use Filament\Forms\Components\RichEditor\RichContentRenderer;
-use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use App\Models\Platform;
 use App\Models\User;
@@ -18,6 +16,7 @@ use App\Models\ActivityDay;
 use App\Models\ActivityStatus;
 use App\Models\ActivityType;
 use App\Models\Period;
+use App\Support\BriefingMarkup;
 
 class PublicActivityController extends Controller
 {
@@ -1312,22 +1311,19 @@ class PublicActivityController extends Controller
                             ?? '';
 
                         return [
-                            'title' =>
+                            'title' => BriefingMarkup::render(
                                 $section['title']
-                                ?? 'Descripción',
+                                ?? 'Descripción'
+                            ),
 
-                            'content' =>
-                                filled($content)
-                                    ? new HtmlString(
-                                        RichContentRenderer::make(
-                                            $content
-                                        )->toHtml()
-                                    )
-                                    : new HtmlString(''),
+                            'content' => BriefingMarkup::render(
+                                $content
+                            ),
 
-                            'image' =>
+                            'image' => BriefingMarkup::imageUrl(
                                 $section['image']
-                                ?? null,
+                                ?? null
+                            ),
 
                             'image_position' =>
                                 $position,

@@ -16,9 +16,8 @@ use Filament\Actions\RestoreAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\RichEditor\EditorCommand;
-use Filament\Forms\Components\RichEditor\RichEditorTool;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -45,6 +44,7 @@ use App\Support\ActivityEditorSelection;
 use App\Support\FactionOptionLabel;
 use App\Support\ActivityTypeConfiguration;
 use App\Support\SlotQuickSelection;
+use App\Support\BriefingMarkup;
 
 class EditActivity extends EditRecord
 {
@@ -53,6 +53,16 @@ class EditActivity extends EditRecord
     protected array $auditDaysBefore = [];
 
     protected array $auditEnemyFactionsBefore = [];
+
+    private ?array $orbatFactionOptionsCache = null;
+
+    /**
+     * Capacidades de los modelos de radio durante la petición Livewire actual.
+     * Evita repetir la misma consulta por cada campo Canal/Bloque/Frecuencia.
+     *
+     * @var array<int, array{channel: bool, block: bool, frequency: bool}>
+     */
+    protected static array $radioModelCapabilitiesCache = [];
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
@@ -383,6 +393,27 @@ class EditActivity extends EditRecord
         }
 
         return 'WEST';
+    }
+
+    private function orbatFactionOptions(): array
+    {
+        if ($this->orbatFactionOptionsCache !== null) {
+            return $this->orbatFactionOptionsCache;
+        }
+
+        return $this->orbatFactionOptionsCache = Faction::query()
+            ->with([
+                'side',
+                'army.country',
+            ])
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(
+                fn (Faction $faction): array => [
+                    $faction->id => FactionOptionLabel::make($faction),
+                ]
+            )
+            ->all();
     }
 
     private static function slotPickerSchema(): array
@@ -717,14 +748,33 @@ class EditActivity extends EditRecord
                 $sections = collect($sections)
                     ->map(function (array $section): array {
                         return [
-                            'title' =>
-                                $section['title'] ?? '',
+                            'title' => BriefingMarkup::toEditor(
+                                $section['title'] ?? ''
+                            ),
 
-                            'content' =>
-                                $section['content'] ?? null,
+                            'content' => BriefingMarkup::toEditor(
+                                $section['content'] ?? null
+                            ),
 
-                            'image' =>
-                                $section['image'] ?? null,
+                            'image_upload' =>
+                                filled($section['image'] ?? null)
+                                && ! Str::startsWith(
+                                    strtolower((string) $section['image']),
+                                    ['http://', 'https://']
+                                )
+                                    ? $section['image']
+                                    : null,
+
+                            'legacy_image' =>
+                                filled($section['image'] ?? null)
+                                && Str::startsWith(
+                                    strtolower((string) $section['image']),
+                                    ['http://', 'https://']
+                                )
+                                    ? $section['image']
+                                    : null,
+
+                            'remove_legacy_image' => false,
 
                             'image_position' =>
                                 $section['image_position']
@@ -758,23 +808,56 @@ class EditActivity extends EditRecord
                     ->label('Secciones')
 
                     ->schema([
-                        TextInput::make('title')
+                        Textarea::make('title')
                             ->label('Título')
                             ->required()
-                            ->maxLength(255),
-
-                        RichEditor::make('content')
-                            ->label('Contenido')
-                            ->disableToolbarButtons([
-                                'attachFiles',
+                            ->rows(2)
+                            ->maxLength(1000)
+                            ->helperText(
+                                'Admite BBCode seguro: [b], [i], [u], [color=#ff8800], [url=...], [img]...[/img], etc.'
+                            )
+                            ->extraInputAttributes([
+                                'data-briefing-bbcode' => '1',
                             ])
                             ->columnSpanFull(),
 
-                        TextInput::make('image')
-                            ->label('Imagen')
-                            ->placeholder('https://...')
-                            ->url()
-                            ->maxLength(2048)
+                        Textarea::make('content')
+                            ->label('Contenido')
+                            ->rows(10)
+                            ->maxLength(50000)
+                            ->helperText(
+                                'BBCode seguro como en foro/AAR. Para imágenes remotas usa [img]https://...[/img]. No se admite HTML directo.'
+                            )
+                            ->extraInputAttributes([
+                                'data-briefing-bbcode' => '1',
+                            ])
+                            ->columnSpanFull(),
+
+                        FileUpload::make('image_upload')
+                            ->label('Imagen subida')
+                            ->image()
+                            ->disk('public')
+                            ->directory('activities/briefings')
+                            ->visibility('public')
+                            ->maxSize(5120)
+                            ->helperText(
+                                'Opcional. Sube una imagen desde tu equipo (máx. 5 MB). Las imágenes por URL se insertan dentro del BBCode con [img]...[/img].'
+                            )
+                            ->columnSpanFull(),
+
+                        Hidden::make('legacy_image'),
+
+                        Toggle::make('remove_legacy_image')
+                            ->label('Quitar imagen antigua por URL')
+                            ->helperText(
+                                'Solo aparece en briefings antiguos que todavía guardan una URL en el campo de imagen.'
+                            )
+                            ->visible(
+                                fn (Get $get): bool => filled(
+                                    $get('legacy_image')
+                                )
+                            )
+                            ->default(false)
                             ->columnSpanFull(),
 
                         Select::make('image_position')
@@ -869,12 +952,22 @@ class EditActivity extends EditRecord
                             $allowedAlignments,
                             $allowedWidths,
                         ): array {
-                            $image = trim(
-                                (string) (
-                                    $section['image']
-                                    ?? ''
-                                )
+                            $uploadedImage = BriefingMarkup::normalizeImageReference(
+                                $section['image_upload'] ?? null
                             );
+
+                            $legacyImage = BriefingMarkup::normalizeImageReference(
+                                $section['legacy_image'] ?? null
+                            );
+
+                            $image = $uploadedImage;
+
+                            if (
+                                $image === null
+                                && ! (bool) ($section['remove_legacy_image'] ?? false)
+                            ) {
+                                $image = $legacyImage;
+                            }
 
                             $caption = trim(
                                 (string) (
@@ -932,14 +1025,14 @@ class EditActivity extends EditRecord
                                     )
                                 ),
 
-                                'content' =>
-                                    $section['content']
-                                    ?? null,
+                                'content' => trim(
+                                    (string) (
+                                        $section['content']
+                                        ?? ''
+                                    )
+                                ),
 
-                                'image' =>
-                                    $image !== ''
-                                        ? $image
-                                        : null,
+                                'image' => $image,
 
                                 'image_position' =>
                                     $position,
@@ -1003,6 +1096,9 @@ class EditActivity extends EditRecord
                     Repeater::make('groups')
                         ->label('Grupos')
                         ->columns(3)
+                        ->extraAttributes([
+                            'class' => 'orbat-group-cards',
+                        ])
                         ->schema([
                             Toggle::make('visible')
                                 ->label('Visible')
@@ -1060,6 +1156,10 @@ class EditActivity extends EditRecord
 
                                         $selectedId =
                                             $get('faction_id');
+
+                                        if (blank($countryId) && blank($armyId)) {
+                                            return $this->orbatFactionOptions();
+                                        }
 
                                         $query =
                                             Faction::query();
@@ -1149,6 +1249,10 @@ class EditActivity extends EditRecord
                                     }
                                 )
                                 ->allowHtml()
+                                ->wrapOptionLabels()
+                                ->extraAttributes([
+                                    'class' => 'orbat-faction-field',
+                                ])
 
                                 /*
                                 |--------------------------------------------------------------------------
@@ -1337,15 +1441,14 @@ class EditActivity extends EditRecord
                             ),
                             Repeater::make('slots')
                                 ->label('Slots')
-                                ->columns(3)
+                                ->columns(1)
+                                ->grid(1)
+                                ->extraAttributes([
+                                    'class' => 'orbat-slot-cards',
+                                ])
                                 ->schema([
                                     Hidden::make('slot_key')
                                         ->default(fn (): string => (string) Str::ulid()),
-
-                                    TextInput::make('name')
-                                        ->label('Nombre')
-                                        ->required()
-                                        ->maxLength(255),
 
                                     Hidden::make('slot_type_id'),
 
@@ -1354,80 +1457,148 @@ class EditActivity extends EditRecord
                                     Hidden::make('slot_choice')
                                         ->required(),
 
-                                    Actions::make([
-                                        Action::make('chooseSlot')
-                                            ->label(
-                                                fn (Get $get): string =>
-                                                    filled($get('slot_choice'))
-                                                        ? 'Cambiar slot · ' . (
-                                                            SlotQuickSelection::selectedSummary(
-                                                                $get('slot_choice')
-                                                            ) ?? 'seleccionado'
+                                    Grid::make(12)
+                                        ->schema([
+                                            Placeholder::make('slot_choice_preview')
+                                                ->label('Tipo de slot')
+                                                ->content(
+                                                    function (Get $get): HtmlString {
+                                                        $manualName = trim(
+                                                            (string) ($get('name') ?? '')
+                                                        );
+
+                                                        $choice = is_string(
+                                                            $get('slot_choice')
                                                         )
-                                                        : 'Escoger slot'
-                                            )
-                                            ->icon('heroicon-o-squares-2x2')
-                                            ->color('primary')
-                                            ->button()
-                                            ->modalHeading('Escoger slot')
-                                            ->modalDescription(
-                                                'Selecciona un nombre rápido. El nombre se copiará al slot y podrás editarlo después si lo necesitas.'
-                                            )
-                                            ->modalWidth('7xl')
-                                            ->modalSubmitAction(false)
-                                            ->fillForm(
-                                                fn (mixed $schemaState): array =>
-                                                    SlotQuickSelection::pickerFormData(
-                                                        is_array($schemaState)
-                                                            && is_string($schemaState['slot_choice'] ?? null)
-                                                                ? $schemaState['slot_choice']
-                                                                : null
-                                                    )
-                                            )
-                                            ->schema(
-                                                fn (): array => self::slotPickerSchema()
-                                            )
-                                            ->action(
-                                                function (
-                                                    array $data,
-                                                    Set $schemaSet
-                                                ): void {
-                                                    $choice = is_string(
-                                                        $data['selected_slot_choice'] ?? null
-                                                    )
-                                                        ? $data['selected_slot_choice']
-                                                        : null;
+                                                            ? $get('slot_choice')
+                                                            : null;
 
-                                                    $resolved = SlotQuickSelection::resolveChoice(
-                                                        $choice
-                                                    );
+                                                        $resolved = SlotQuickSelection::resolveChoice(
+                                                            $choice
+                                                        );
 
-                                                    $schemaSet('slot_choice', $choice);
-                                                    $schemaSet(
-                                                        'slot_type_id',
-                                                        $resolved['slot_type_id']
-                                                    );
-                                                    $schemaSet(
-                                                        'slot_quick_name_id',
-                                                        $resolved['slot_quick_name_id']
-                                                    );
+                                                        $selectedName = trim(
+                                                            (string) ($resolved['name'] ?? '')
+                                                        );
 
-                                                    if (filled($resolved['name'])) {
-                                                        $schemaSet(
-                                                            'name',
-                                                            $resolved['name']
+                                                        $slotType = SlotQuickSelection::selectedLabel(
+                                                            $choice
+                                                        );
+
+                                                        $primary = $selectedName !== ''
+                                                            ? $selectedName
+                                                            : ($manualName !== ''
+                                                                ? $manualName
+                                                                : 'Sin seleccionar');
+
+                                                        return new HtmlString(
+                                                            '<div class="orbat-slot-choice-display">'
+                                                            . '<strong>' . e($primary) . '</strong>'
+                                                            . '<small>' . e($slotType ?? 'Escoge tipo y nombre base') . '</small>'
+                                                            . '</div>'
                                                         );
                                                     }
-                                                }
-                                            ),
-                                    ])
-                                        ->verticalAlignment(VerticalAlignment::End)
-                                        ->columnSpan(2),
-                                    
+                                                )
+                                                ->extraAttributes([
+                                                    'class' => 'orbat-slot-choice-field',
+                                                ])
+                                                ->columnSpan([
+                                                    'default' => 12,
+                                                    'sm' => 4,
+                                                ]),
+
+                                            TextInput::make('name')
+                                                ->label('Nombre del slot')
+                                                ->required()
+                                                ->maxLength(255)
+                                                ->live(onBlur: true)
+                                                ->columnSpan([
+                                                    'default' => 10,
+                                                    'sm' => 7,
+                                                ]),
+
+                                            Actions::make([
+                                                Action::make('chooseSlot')
+                                                    ->label('')
+                                                    ->icon('heroicon-o-squares-2x2')
+                                                    ->tooltip('Escoger tipo de slot y nombre base')
+                                                    ->color('primary')
+                                                    ->iconButton()
+                                                    ->extraAttributes([
+                                                        'class' => 'orbat-slot-picker-icon',
+                                                    ])
+                                                    ->modalHeading('Escoger slot')
+                                                    ->modalDescription(
+                                                        'Selecciona un nombre rápido. El nombre se copiará al slot y podrás editarlo después si lo necesitas.'
+                                                    )
+                                                    ->modalWidth('7xl')
+                                                    ->modalSubmitAction(false)
+                                                    ->fillForm(
+                                                        fn (mixed $schemaState): array =>
+                                                            SlotQuickSelection::pickerFormData(
+                                                                is_array($schemaState)
+                                                                    && is_string($schemaState['slot_choice'] ?? null)
+                                                                        ? $schemaState['slot_choice']
+                                                                        : null
+                                                            )
+                                                    )
+                                                    ->schema(
+                                                        fn (): array => self::slotPickerSchema()
+                                                    )
+                                                    ->action(
+                                                        function (
+                                                            array $data,
+                                                            Set $schemaSet
+                                                        ): void {
+                                                            $choice = is_string(
+                                                                $data['selected_slot_choice'] ?? null
+                                                            )
+                                                                ? $data['selected_slot_choice']
+                                                                : null;
+
+                                                            $resolved = SlotQuickSelection::resolveChoice(
+                                                                $choice
+                                                            );
+
+                                                            $schemaSet('slot_choice', $choice);
+                                                            $schemaSet(
+                                                                'slot_type_id',
+                                                                $resolved['slot_type_id']
+                                                            );
+                                                            $schemaSet(
+                                                                'slot_quick_name_id',
+                                                                $resolved['slot_quick_name_id']
+                                                            );
+
+                                                            if (filled($resolved['name'])) {
+                                                                $schemaSet(
+                                                                    'name',
+                                                                    $resolved['name']
+                                                                );
+                                                            }
+                                                        }
+                                                    ),
+                                            ])
+                                                ->label(' ')
+                                                ->verticalAlignment(VerticalAlignment::End)
+                                                ->alignEnd()
+                                                ->extraAttributes([
+                                                    'class' => 'orbat-slot-picker-actions',
+                                                ])
+                                                ->columnSpan([
+                                                    'default' => 2,
+                                                    'sm' => 1,
+                                                ]),
+                                        ])
+                                        ->extraAttributes([
+                                            'class' => 'orbat-slot-row-fields',
+                                        ])
+                                        ->columnSpanFull(),
                                 ])
                                 ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                                 ->reorderableWithButtons()
                                 ->collapsible()
+                                ->compact()
                                 ->cloneable()
                                 ->default([])
                                 ->addActionLabel('Añadir slot')
@@ -1543,21 +1714,168 @@ class EditActivity extends EditRecord
                 ->form([
                     Actions::make([
                         Action::make('loadOrbatRadioNetworks')
-                            ->label('Cargar ORBAT')
+                            ->label('Sincronizar con ORBAT')
+                            ->icon('heroicon-o-arrow-path')
                             ->action(function (Get $get, Set $set): void {
-                                $orbatGroups = $this->record->orbat['groups'] ?? [];
-
-                                $networks = collect($get('networks') ?? [])
-                                    ->merge(
-                                        collect($orbatGroups)
-                                            ->pluck('name')
-                                            ->filter()
-                                            ->map(fn (string $name): array => static::blankRadioNetwork($name))
+                                $groupNames = collect(
+                                    $this->record->orbat['groups'] ?? []
+                                )
+                                    ->map(
+                                        fn (array $group): string =>
+                                            trim((string) ($group['name'] ?? ''))
                                     )
-                                    ->values()
-                                    ->all();
+                                    ->filter()
+                                    ->unique(
+                                        fn (string $name): string =>
+                                            mb_strtolower($name)
+                                    )
+                                    ->values();
 
-                                $set('networks', $networks);
+                                if ($groupNames->isEmpty()) {
+                                    Notification::make()
+                                        ->title('El ORBAT no tiene grupos para sincronizar.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                if ($groupNames->count() > 99) {
+                                    Notification::make()
+                                        ->title('No se pueden sincronizar más de 99 grupos.')
+                                        ->body('El bloque de radio está limitado al rango 1–99.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $currentNetworks = collect(
+                                    $get('networks') ?? []
+                                )->values();
+
+                                $currentModelIds = $currentNetworks
+                                    ->pluck('radio_model_id')
+                                    ->filter()
+                                    ->map(fn ($id): int => (int) $id)
+                                    ->unique()
+                                    ->values();
+
+                                $currentModels = RadioModel::query()
+                                    ->whereIn('id', $currentModelIds)
+                                    ->get()
+                                    ->keyBy('id');
+
+                                $preferredRadioModel = $currentNetworks
+                                    ->map(
+                                        fn (array $network) =>
+                                            $currentModels->get(
+                                                (int) ($network['radio_model_id'] ?? 0)
+                                            )
+                                    )
+                                    ->first(
+                                        fn (?RadioModel $model): bool =>
+                                            (bool) ($model?->channel)
+                                            && (bool) ($model?->block)
+                                    );
+
+                                $preferredRadioModel ??= RadioModel::query()
+                                    ->where('channel', true)
+                                    ->where('block', true)
+                                    ->orderBy('name')
+                                    ->first();
+
+                                if (! $preferredRadioModel) {
+                                    Notification::make()
+                                        ->title('No hay un modelo de radio con Canal y Bloque habilitados.')
+                                        ->body('Configura primero un modelo compatible para poder sincronizar el ORBAT.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $usedNetworkIndexes = [];
+
+                                $syncedNetworks = $groupNames
+                                    ->map(function (string $groupName, int $index) use (
+                                        $currentNetworks,
+                                        $currentModels,
+                                        $preferredRadioModel,
+                                        &$usedNetworkIndexes,
+                                    ): array {
+                                        $normalizedGroupName = mb_strtolower($groupName);
+
+                                        $matchingIndex = $currentNetworks
+                                            ->keys()
+                                            ->first(function (int $networkIndex) use (
+                                                $currentNetworks,
+                                                $normalizedGroupName,
+                                                $usedNetworkIndexes,
+                                            ): bool {
+                                                if (in_array($networkIndex, $usedNetworkIndexes, true)) {
+                                                    return false;
+                                                }
+
+                                                return mb_strtolower(
+                                                    trim((string) (
+                                                        $currentNetworks[$networkIndex]['name'] ?? ''
+                                                    ))
+                                                ) === $normalizedGroupName;
+                                            });
+
+                                        $network = $matchingIndex !== null
+                                            ? $currentNetworks[$matchingIndex]
+                                            : static::blankRadioNetwork($groupName);
+
+                                        if ($matchingIndex !== null) {
+                                            $usedNetworkIndexes[] = $matchingIndex;
+                                        }
+
+                                        $currentModel = $currentModels->get(
+                                            (int) ($network['radio_model_id'] ?? 0)
+                                        );
+
+                                        if (
+                                            ! $currentModel
+                                            || ! $currentModel->channel
+                                            || ! $currentModel->block
+                                        ) {
+                                            $network['radio_model_id'] = $preferredRadioModel->id;
+                                            $network['radio_model_name'] = $preferredRadioModel->name;
+                                        }
+
+                                        $network['name'] = $groupName;
+                                        $network['configuration'] = array_merge(
+                                            $network['configuration'] ?? [],
+                                            [
+                                                'channel' => 1,
+                                                'block' => $index + 1,
+                                            ],
+                                        );
+                                        $network['visible'] = (bool) ($network['visible'] ?? true);
+
+                                        return $network;
+                                    });
+
+                                $customNetworks = $currentNetworks
+                                    ->reject(
+                                        fn (array $network, int $networkIndex): bool =>
+                                            in_array($networkIndex, $usedNetworkIndexes, true)
+                                    );
+
+                                $set(
+                                    'networks',
+                                    $syncedNetworks
+                                        ->concat($customNetworks)
+                                        ->values()
+                                        ->all()
+                                );
+
+                                Notification::make()
+                                    ->title($groupNames->count() . ' radios sincronizadas con el ORBAT.')
+                                    ->success()
+                                    ->send();
                             }),
 
                         
@@ -1597,7 +1915,11 @@ class EditActivity extends EditRecord
                             TextInput::make('name')
                                 ->label('Nombre')
                                 ->required()
-                                ->maxLength(255),
+                                ->maxLength(255)
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 4,
+                                ]),
 
                             Select::make('radio_model_id')
                                 ->label('Modelo de radio')
@@ -1616,44 +1938,91 @@ class EditActivity extends EditRecord
                                     $set('configuration.block', null);
                                     $set('configuration.frequency', null);
                                 })
-                                ->required(),
+                                ->required()
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 4,
+                                ]),
 
                             Hidden::make('radio_model_name'),
 
                             TextInput::make('configuration.channel')
                                 ->label('Canal')
                                 ->numeric()
-                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
-                                    ->whereKey($get('radio_model_id'))
-                                    ->value('channel')),
+                                ->integer()
+                                ->minValue(1)
+                                ->maxValue(99)
+                                ->extraAttributes([
+                                    'class' => 'radio-number-field',
+                                ])
+                                ->columnSpan([
+                                    'default' => 6,
+                                    'md' => 1,
+                                ])
+                                ->visible(
+                                    fn (Get $get): bool =>
+                                        static::radioModelSupports(
+                                            $get('radio_model_id'),
+                                            'channel'
+                                        )
+                                ),
 
                             TextInput::make('configuration.block')
                                 ->label('Bloque')
                                 ->numeric()
-                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
-                                    ->whereKey($get('radio_model_id'))
-                                    ->value('block')),
+                                ->integer()
+                                ->minValue(1)
+                                ->maxValue(99)
+                                ->extraAttributes([
+                                    'class' => 'radio-number-field',
+                                ])
+                                ->columnSpan([
+                                    'default' => 6,
+                                    'md' => 1,
+                                ])
+                                ->visible(
+                                    fn (Get $get): bool =>
+                                        static::radioModelSupports(
+                                            $get('radio_model_id'),
+                                            'block'
+                                        )
+                                ),
 
                             TextInput::make('configuration.frequency')
                                 ->label('Frecuencia')
                                 ->numeric()
                                 ->step('0.001')
                                 ->suffix('MHz')
-                                ->visible(fn (Get $get): bool => (bool) RadioModel::query()
-                                    ->whereKey($get('radio_model_id'))
-                                    ->value('frequency')),
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 2,
+                                ])
+                                ->visible(
+                                    fn (Get $get): bool =>
+                                        static::radioModelSupports(
+                                            $get('radio_model_id'),
+                                            'frequency'
+                                        )
+                                ),
 
                             Textarea::make('notes')
                                 ->label('Notas')
-                                ->rows(1),
-                                //->columnSpanFull(),
+                                ->rows(1)
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 10,
+                                ]),
 
                             Toggle::make('visible')
                                 ->label('Visible')
                                 ->inline(false)
-                                ->default(true),
+                                ->default(true)
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'md' => 2,
+                                ]),
                         ])
-                        ->columns(3)
+                        ->columns(12)
                         ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                         ->reorderableWithButtons()
                         ->collapsible()
@@ -1663,25 +2032,30 @@ class EditActivity extends EditRecord
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
-                    $networks = collect(
+                    $submittedNetworks = collect(
                         $data['networks'] ?? []
-                    )
+                    );
+
+                    $radioModels = RadioModel::query()
+                        ->whereIn(
+                            'id',
+                            $submittedNetworks
+                                ->pluck('radio_model_id')
+                                ->filter()
+                                ->map(fn ($id): int => (int) $id)
+                                ->unique()
+                                ->values()
+                        )
+                        ->get()
+                        ->keyBy('id');
+
+                    $networks = $submittedNetworks
                         ->map(function (
                             array $network
-                        ): array {
-                            $radioModel =
-                                isset(
-                                    $network[
-                                        'radio_model_id'
-                                    ]
-                                )
-                                    ? RadioModel::query()
-                                        ->find(
-                                            $network[
-                                                'radio_model_id'
-                                            ]
-                                        )
-                                    : null;
+                        ) use ($radioModels): array {
+                            $radioModel = isset($network['radio_model_id'])
+                                ? $radioModels->get((int) $network['radio_model_id'])
+                                : null;
 
                             return [
                                 'name' =>
@@ -2127,6 +2501,34 @@ HTML;
             ->unique(fn (string $name): string => mb_strtolower($name))
             ->values()
             ->all();
+    }
+
+    protected static function radioModelSupports(
+        mixed $radioModelId,
+        string $capability
+    ): bool {
+        if (
+            blank($radioModelId)
+            || ! in_array($capability, ['channel', 'block', 'frequency'], true)
+        ) {
+            return false;
+        }
+
+        $radioModelId = (int) $radioModelId;
+
+        if (! array_key_exists($radioModelId, static::$radioModelCapabilitiesCache)) {
+            $radioModel = RadioModel::query()
+                ->select(['id', 'channel', 'block', 'frequency'])
+                ->find($radioModelId);
+
+            static::$radioModelCapabilitiesCache[$radioModelId] = [
+                'channel' => (bool) ($radioModel?->channel),
+                'block' => (bool) ($radioModel?->block),
+                'frequency' => (bool) ($radioModel?->frequency),
+            ];
+        }
+
+        return static::$radioModelCapabilitiesCache[$radioModelId][$capability];
     }
 
     protected static function blankRadioNetwork(string $name): array
