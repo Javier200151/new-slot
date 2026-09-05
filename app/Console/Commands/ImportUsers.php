@@ -34,6 +34,10 @@ class ImportUsers extends Command
             return self::FAILURE;
         }
 
+        if (! $this->validateSteamIds($users)) {
+            return self::FAILURE;
+        }
+
         /*
          * Primera pasada:
          * Crear o actualizar usuarios sin asignar tutor.
@@ -65,7 +69,7 @@ class ImportUsers extends Command
                     'tutor_id' => null,
                     'tagname' => $data['tagname'] ?? null,
                     'discord_id' => $data['discord_id'] ?? null,
-                    'steam_id' => $data['steam_id'] ?? null,
+                    'steam_id' => $this->normalizeSteamId($data['steam_id'] ?? null),
                     'member_at' => $memberAt,
                 ]
             );
@@ -135,6 +139,71 @@ class ImportUsers extends Command
         $this->info('Importación de usuarios terminada.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Comprueba todos los Steam ID antes de modificar usuarios para evitar
+     * importaciones parciales que puedan violar la unicidad.
+     */
+    private function validateSteamIds(array $users): bool
+    {
+        $owners = [];
+
+        foreach ($users as $data) {
+            $nick = trim((string) ($data['nick'] ?? ''));
+            $steamId = $this->normalizeSteamId($data['steam_id'] ?? null);
+
+            if ($nick === '' || $steamId === null) {
+                continue;
+            }
+
+            if (
+                isset($owners[$steamId])
+                && strcasecmp($owners[$steamId], $nick) !== 0
+            ) {
+                $this->error(
+                    "Steam ID duplicado en el JSON: {$steamId} aparece para "
+                    . "{$owners[$steamId]} y {$nick}."
+                );
+
+                return false;
+            }
+
+            $owners[$steamId] = $nick;
+        }
+
+        if ($owners === []) {
+            return true;
+        }
+
+        $existingUsers = User::withTrashed()
+            ->whereIn('steam_id', array_keys($owners))
+            ->get(['nick', 'steam_id']);
+
+        foreach ($existingUsers as $existingUser) {
+            $expectedNick = $owners[$existingUser->steam_id] ?? null;
+
+            if (
+                $expectedNick !== null
+                && strcasecmp($existingUser->nick, $expectedNick) !== 0
+            ) {
+                $this->error(
+                    "No se puede importar: el Steam ID {$existingUser->steam_id} "
+                    . "ya pertenece a {$existingUser->nick}."
+                );
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function normalizeSteamId(mixed $steamId): ?string
+    {
+        $steamId = trim((string) $steamId);
+
+        return $steamId !== '' ? $steamId : null;
     }
 
     private function parseDate(?string $date): ?string

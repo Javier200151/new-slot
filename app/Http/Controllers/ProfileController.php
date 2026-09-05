@@ -32,6 +32,12 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
+        $steamId = trim((string) $request->input('steam_id', ''));
+
+        $request->merge([
+            'steam_id' => $steamId !== '' ? $steamId : null,
+        ]);
+
         $validated = $request->validateWithBag(
             'profileUpdate',
             [
@@ -75,6 +81,7 @@ class ProfileController extends Controller
                     'nullable',
                     'string',
                     'max:255',
+                    Rule::unique('users', 'steam_id')->ignore($user),
                 ],
 
                 'birth_at' => [
@@ -104,6 +111,8 @@ class ProfileController extends Controller
                 'email.required' => 'El correo electrónico es obligatorio.',
                 'email.email' => 'Introduce un correo electrónico válido.',
                 'email.unique' => 'Este correo electrónico ya está en uso.',
+
+                'steam_id.unique' => 'Este Steam ID ya está asignado a otro usuario.',
 
                 'quote.max' => 'La frase no puede superar los 500 caracteres.',
                 'birth_at.before_or_equal' => 'La fecha de nacimiento no puede ser futura.',
