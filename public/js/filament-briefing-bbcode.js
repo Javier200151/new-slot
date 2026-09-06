@@ -1,4 +1,10 @@
 (() => {
+    if (window.__newslotBriefingBbcodeLoaded) {
+        return;
+    }
+
+    window.__newslotBriefingBbcodeLoaded = true;
+
     const FIELD_SELECTOR = '[data-briefing-bbcode]';
     const COLORS = [
         ['#f8fafc', 'Blanco'],
@@ -71,14 +77,16 @@
         }
 
         const inputWrapper = field.closest('.fi-fo-textarea');
+        const fieldWrapper = field.closest('.fi-fo-textarea-wrp');
+        const toolbarHost = inputWrapper?.parentElement ?? fieldWrapper;
 
-        if (!inputWrapper || !inputWrapper.parentElement) {
+        if (!inputWrapper || !toolbarHost) {
             return;
         }
 
         if (
             field.dataset.briefingBbcodeReady === '1'
-            && inputWrapper.parentElement.querySelector(':scope > .briefing-bbcode-toolbar')
+            && toolbarHost.querySelector('.briefing-bbcode-toolbar')
         ) {
             return;
         }
@@ -140,7 +148,7 @@
         });
 
         toolbar.append(colors);
-        inputWrapper.parentElement.insertBefore(toolbar, inputWrapper);
+        toolbarHost.insertBefore(toolbar, inputWrapper);
     };
 
     const initAll = (root = document) => {

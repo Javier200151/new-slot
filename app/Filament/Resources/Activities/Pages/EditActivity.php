@@ -56,6 +56,7 @@ class EditActivity extends EditRecord
 
     private ?array $orbatFactionOptionsCache = null;
 
+
     /**
      * Capacidades de los modelos de radio durante la petición Livewire actual.
      * Evita repetir la misma consulta por cada campo Canal/Bloque/Frecuencia.
@@ -1095,7 +1096,7 @@ class EditActivity extends EditRecord
                 ->form([
                     Repeater::make('groups')
                         ->label('Grupos')
-                        ->columns(3)
+                        ->columns(12)
                         ->extraAttributes([
                             'class' => 'orbat-group-cards',
                         ])
@@ -1116,329 +1117,222 @@ class EditActivity extends EditRecord
 
                                     $set('slots', $slots);
                                 })
-                                ->default(true),
+                                ->default(true)
+                                ->columnSpan(2),
 
                             TextInput::make('name')
                                 ->label('Nombre')
                                 ->required()
-                                ->maxLength(255),
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Mostrar / ocultar filtros
-                            |--------------------------------------------------------------------------
-                            |
-                            | Estado únicamente visual.
-                            | Nunca se guarda dentro del JSON del ORBAT.
-                            |
-                            */
-
-                            Hidden::make('show_faction_filters')
-                                ->default(false)
-                                ->dehydrated(false),
+                                ->maxLength(255)
+                                ->columnSpan(10),
 
                             /*
                             |--------------------------------------------------------------------------
                             | Facción
                             |--------------------------------------------------------------------------
+                            |
+                            | Los nombres de facción suelen ser demasiado largos para un Select dentro
+                            | de la tarjeta del grupo. Mostramos un resumen compacto y abrimos un modal
+                            | ancho para buscar/filtrar la facción con comodidad.
+                            |
                             */
 
-                            Select::make('faction_id')
-                                ->label('Facción')
-                                ->options(
-                                    function (Get $get): array {
+                            Actions::make([
+                                Action::make('chooseFaction')
+                                    ->label(
+                                        function (Get $get): HtmlString {
+                                            $factionId = (int) ($get('faction_id') ?? 0);
 
-                                        $countryId =
-                                            $get('faction_country_filter');
+                                            if ($factionId <= 0) {
+                                                return new HtmlString(
+                                                    '<span class="orbat-faction-clickable-copy orbat-faction-clickable-copy--empty">Sin facción seleccionada</span>'
+                                                );
+                                            }
 
-                                        $armyId =
-                                            $get('faction_army_filter');
+                                            $label = $this->orbatFactionOptions()[$factionId]
+                                                ?? e('Facción #' . $factionId);
 
-                                        $selectedId =
-                                            $get('faction_id');
-
-                                        if (blank($countryId) && blank($armyId)) {
-                                            return $this->orbatFactionOptions();
+                                            return new HtmlString(
+                                                '<span class="orbat-faction-clickable-copy">' . $label . '</span>'
+                                            );
                                         }
+                                    )
+                                    ->tooltip('Cambiar facción')
+                                    ->color('gray')
+                                    ->button()
+                                    ->extraAttributes([
+                                        'class' => 'orbat-faction-clickable',
+                                    ])
+                                    ->modalHeading('Escoger facción')
+                                    ->modalDescription(
+                                        'Busca directamente o filtra por país y ejército. Los nombres largos se muestran completos dentro de este popup.'
+                                    )
+                                    ->modalWidth('5xl')
+                                    ->modalSubmitActionLabel('Usar facción')
+                                    ->fillForm(
+                                        fn (mixed $schemaState): array => [
+                                            'selected_faction_id' => is_array($schemaState)
+                                                ? ($schemaState['faction_id'] ?? null)
+                                                : null,
+                                            'faction_picker_country_id' => null,
+                                            'faction_picker_army_id' => null,
+                                        ]
+                                    )
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                Select::make('faction_picker_country_id')
+                                                    ->label('País')
+                                                    ->options(
+                                                        fn (): array => Country::query()
+                                                            ->orderBy('name')
+                                                            ->pluck('name', 'id')
+                                                            ->all()
+                                                    )
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->placeholder('Todos los países')
+                                                    ->live()
+                                                    ->afterStateUpdated(
+                                                        function ($state, Get $get, Set $set): void {
+                                                            $armyId = $get('faction_picker_army_id');
 
-                                        $query =
-                                            Faction::query();
+                                                            if (blank($state) || blank($armyId)) {
+                                                                return;
+                                                            }
 
-                                        /*
-                                        |--------------------------------------------------------------------------
-                                        | Aplicar filtros
-                                        |--------------------------------------------------------------------------
-                                        */
+                                                            $armyBelongsToCountry = Army::query()
+                                                                ->whereKey($armyId)
+                                                                ->where('country_id', $state)
+                                                                ->exists();
 
-                                        if (
-                                            filled($countryId)
-                                            || filled($armyId)
-                                        ) {
-                                            $query->where(
-                                                function ($query) use (
-                                                    $countryId,
-                                                    $armyId,
-                                                    $selectedId
-                                                ): void {
+                                                            if (! $armyBelongsToCountry) {
+                                                                $set('faction_picker_army_id', null);
+                                                            }
+                                                        }
+                                                    ),
+
+                                                Select::make('faction_picker_army_id')
+                                                    ->label('Ejército')
+                                                    ->options(
+                                                        function (Get $get): array {
+                                                            $query = Army::query()
+                                                                ->orderBy('name');
+
+                                                            if (filled($get('faction_picker_country_id'))) {
+                                                                $query->where(
+                                                                    'country_id',
+                                                                    $get('faction_picker_country_id')
+                                                                );
+                                                            }
+
+                                                            return $query
+                                                                ->pluck('name', 'id')
+                                                                ->all();
+                                                        }
+                                                    )
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->placeholder('Todos los ejércitos')
+                                                    ->live(),
+                                            ]),
+
+                                        Select::make('selected_faction_id')
+                                            ->label('Facción')
+                                            ->options(
+                                                function (Get $get): array {
+                                                    $countryId = $get('faction_picker_country_id');
+                                                    $armyId = $get('faction_picker_army_id');
+                                                    $selectedId = $get('selected_faction_id');
+
+                                                    if (blank($countryId) && blank($armyId)) {
+                                                        return $this->orbatFactionOptions();
+                                                    }
+
+                                                    $query = Faction::query()
+                                                        ->with([
+                                                            'side',
+                                                            'army.country',
+                                                        ]);
 
                                                     $query->where(
                                                         function ($query) use (
                                                             $countryId,
-                                                            $armyId
+                                                            $armyId,
+                                                            $selectedId
                                                         ): void {
-
-                                                            /*
-                                                            * País
-                                                            */
-
-                                                            if (filled($countryId)) {
-                                                                $query->whereHas(
-                                                                    'army',
-                                                                    fn ($armyQuery) =>
-                                                                        $armyQuery->where(
-                                                                            'country_id',
-                                                                            $countryId
-                                                                        )
-                                                                );
-                                                            }
-
-                                                            /*
-                                                            * Ejército
-                                                            */
-
-                                                            if (filled($armyId)) {
-                                                                $query->where(
-                                                                    'army_id',
+                                                            $query->where(
+                                                                function ($query) use (
+                                                                    $countryId,
                                                                     $armyId
-                                                                );
+                                                                ): void {
+                                                                    if (filled($countryId)) {
+                                                                        $query->whereHas(
+                                                                            'army',
+                                                                            fn ($armyQuery) => $armyQuery->where(
+                                                                                'country_id',
+                                                                                $countryId
+                                                                            )
+                                                                        );
+                                                                    }
+
+                                                                    if (filled($armyId)) {
+                                                                        $query->where('army_id', $armyId);
+                                                                    }
+                                                                }
+                                                            );
+
+                                                            if (filled($selectedId)) {
+                                                                $query->orWhere('factions.id', $selectedId);
                                                             }
                                                         }
                                                     );
 
-                                                    /*
-                                                    * Conservamos siempre la facción
-                                                    * que ya tuviera seleccionada el grupo.
-                                                    */
-
-                                                    if (filled($selectedId)) {
-                                                        $query->orWhere(
-                                                            'factions.id',
-                                                            $selectedId
-                                                        );
-                                                    }
+                                                    return $query
+                                                        ->orderBy('name')
+                                                        ->get()
+                                                        ->mapWithKeys(
+                                                            fn (Faction $faction): array => [
+                                                                $faction->id => FactionOptionLabel::make($faction),
+                                                            ]
+                                                        )
+                                                        ->all();
                                                 }
-                                            );
-                                        }
-
-                                        return $query
-                                            ->with([
-                                                'side',
-                                                'army.country',
-                                            ])
-                                            ->orderBy('name')
-                                            ->get()
-                                            ->mapWithKeys(
-                                                fn (Faction $faction): array => [
-                                                    $faction->id =>
-                                                        FactionOptionLabel::make(
-                                                            $faction
-                                                        ),
-                                                ]
                                             )
-                                            ->all();
-                                    }
-                                )
-                                ->allowHtml()
-                                ->wrapOptionLabels()
-                                ->extraAttributes([
-                                    'class' => 'orbat-faction-field',
-                                ])
+                                            ->allowHtml()
+                                            ->wrapOptionLabels()
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->extraAttributes([
+                                                'class' => 'orbat-faction-picker-select',
+                                            ]),
+                                    ])
+                                    ->action(
+                                        function (array $data, Set $schemaSet): void {
+                                            $factionId = isset($data['selected_faction_id'])
+                                                ? (int) $data['selected_faction_id']
+                                                : 0;
 
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Embudo
-                                |--------------------------------------------------------------------------
-                                |
-                                | IMPORTANTE:
-                                |
-                                | Ya NO tiene ->schema().
-                                | Ya NO abre otro modal.
-                                |
-                                | Simplemente muestra / oculta los filtros
-                                | dentro del modal actual del ORBAT.
-                                |
-                                */
-
-                                ->suffixAction(
-                                    Action::make('toggleFactionFilters')
-                                        ->label('Filtrar facciones')
-                                        ->icon('heroicon-o-funnel')
-                                        ->iconButton()
-                                        ->tooltip('Filtrar por país o ejército')
-
-                                        /*
-                                        * Naranja cuando existe algún
-                                        * filtro aplicado.
-                                        */
-
-                                        ->color(
-                                            fn (Get $get): string =>
-                                                (
-                                                    filled(
-                                                        $get(
-                                                            'faction_country_filter'
-                                                        )
-                                                    )
-                                                    || filled(
-                                                        $get(
-                                                            'faction_army_filter'
-                                                        )
-                                                    )
-                                                )
-                                                    ? 'primary'
-                                                    : 'gray'
-                                        )
-
-                                        /*
-                                        * Mostrar / ocultar.
-                                        */
-
-                                        ->action(
-                                            function (
-                                                Get $get,
-                                                Set $set
-                                            ): void {
-
-                                                $set(
-                                                    'show_faction_filters',
-                                                    ! (bool) $get(
-                                                        'show_faction_filters'
-                                                    )
-                                                );
-                                            }
-                                        )
-                                )
-
-                                ->searchable()
-                                ->preload()
-                                ->required(),
-
-                            Grid::make(1)
-                            ->schema([
-
-                                Select::make('faction_country_filter')
-                                    ->label('Filtrar por país')
-                                    ->options(
-                                        fn (): array =>
-                                            Country::query()
-                                                ->orderBy('name')
-                                                ->pluck('name', 'id')
-                                                ->all()
-                                    )
-                                    ->searchable()
-                                    ->preload()
-                                    ->placeholder('Todos los países')
-                                    ->live()
-                                    ->afterStateUpdated(
-                                        function ($state, Get $get, Set $set): void {
-                                            $armyId =
-                                                $get('faction_army_filter');
-
-                                            /*
-                                            * Si se quita el país, el ejército puede
-                                            * seguir utilizándose como filtro independiente.
-                                            */
-                                            if (blank($state) || blank($armyId)) {
+                                            if ($factionId <= 0) {
                                                 return;
                                             }
 
-                                            /*
-                                            * Si el ejército seleccionado no pertenece
-                                            * al nuevo país, se limpia automáticamente.
-                                            */
-                                            $armyBelongsToCountry =
-                                                Army::query()
-                                                    ->whereKey($armyId)
-                                                    ->where('country_id', $state)
-                                                    ->exists();
-
-                                            if (! $armyBelongsToCountry) {
-                                                $set(
-                                                    'faction_army_filter',
-                                                    null
-                                                );
-                                            }
+                                            $schemaSet('faction_id', $factionId);
                                         }
-                                    )
-                                    ->dehydrated(false),
-
-                                Select::make('faction_army_filter')
-                                    ->label('Filtrar por ejército')
-                                    ->options(
-                                        function (Get $get): array {
-                                            $query =
-                                                Army::query()
-                                                    ->orderBy('name');
-
-                                            if (
-                                                filled(
-                                                    $get(
-                                                        'faction_country_filter'
-                                                    )
-                                                )
-                                            ) {
-                                                $query->where(
-                                                    'country_id',
-                                                    $get(
-                                                        'faction_country_filter'
-                                                    )
-                                                );
-                                            }
-
-                                            return $query
-                                                ->pluck(
-                                                    'name',
-                                                    'id'
-                                                )
-                                                ->all();
-                                        }
-                                    )
-                                    ->searchable()
-                                    ->preload()
-                                    ->placeholder(
-                                        'Todos los ejércitos'
-                                    )
-                                    ->live()
-                                    ->dehydrated(false),
+                                    ),
                             ])
+                                ->label('Facción')
+                                ->fullWidth()
+                                ->extraAttributes([
+                                    'class' => 'orbat-faction-clickable-actions',
+                                ])
+                                ->columnStart(3)
+                                ->columnSpan(10),
 
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Colocar debajo de "Facción"
-                            |--------------------------------------------------------------------------
-                            |
-                            | El repeater del grupo tiene 3 columnas:
-                            |
-                            | 1 = Visible
-                            | 2 = Nombre
-                            | 3 = Facción
-                            |
-                            | Por eso forzamos este bloque a comenzar
-                            | en la columna 3.
-                            |
-                            */
+                            Hidden::make('faction_id')
+                                ->required(),
 
-                            ->columnStart(3)
-                            ->columnSpan(1)
-
-                            /*
-                            * Solo aparece al pulsar el embudo.
-                            */
-
-                            ->visible(
-                                fn (Get $get): bool =>
-                                    (bool) $get('show_faction_filters')
-                            ),
                             Repeater::make('slots')
                                 ->label('Slots')
                                 ->columns(1)

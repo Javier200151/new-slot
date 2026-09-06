@@ -7,10 +7,13 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -18,10 +21,8 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Filament\Navigation\NavigationItem;
-use Filament\Support\Assets\Css;
-use Filament\Support\Assets\Js;
 //use Pxlrbt\FilamentActivityLog\FilamentActivityLogPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -39,13 +40,54 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                function (): HtmlString {
+                    $path = public_path('css/filament-custom.css');
+
+                    if (! is_file($path)) {
+                        return new HtmlString('');
+                    }
+
+                    $css = file_get_contents($path);
+
+                    if ($css === false) {
+                        return new HtmlString('');
+                    }
+
+                    // El CSS personalizado del panel es muy pequeño y crítico para el layout.
+                    // Lo inyectamos inline para que producción no dependa de la caché de
+                    // archivos estáticos de Caddy/navegador después de cada despliegue.
+                    $css = str_replace('</style>', '<\/style>', $css);
+
+                    return new HtmlString("<style id=\"newslot-filament-custom\">{$css}</style>");
+                },
+            )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                function (): HtmlString {
+                    $path = public_path('js/filament-briefing-bbcode.js');
+
+                    if (! is_file($path)) {
+                        return new HtmlString('');
+                    }
+
+                    $javascript = file_get_contents($path);
+
+                    if ($javascript === false) {
+                        return new HtmlString('');
+                    }
+
+                    // Fallback de producción: el toolbar BBCode es funcionalidad del editor,
+                    // por lo que no debe depender únicamente de que el proxy/navegador sirva
+                    // el asset estático inmediatamente después de un despliegue. El propio
+                    // script lleva un guard global para no inicializarse dos veces.
+                    $javascript = str_replace('</script>', '<\/script>', $javascript);
+
+                    return new HtmlString("<script id=\"newslot-filament-briefing-bbcode-inline\">{$javascript}</script>");
+                },
+            )
             ->assets([
-                Css::make(
-                    'filament-custom',
-                    asset('css/filament-custom.css')
-                        . '?v='
-                        . filemtime(public_path('css/filament-custom.css'))
-                ),
                 Js::make(
                     'filament-briefing-bbcode',
                     asset('js/filament-briefing-bbcode.js')
@@ -65,7 +107,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Streams'),
                 NavigationGroup::make('Comunidad'),
                 NavigationGroup::make('Usuarios'),
-                NavigationGroup::make('Sistema'),    
+                NavigationGroup::make('Sistema'),
             ])
             ->navigationItems([
                 NavigationItem::make('Volver a la web')
