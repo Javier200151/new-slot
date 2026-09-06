@@ -63,37 +63,7 @@ class AdminPanelProvider extends PanelProvider
                     return new HtmlString("<style id=\"newslot-filament-custom\">{$css}</style>");
                 },
             )
-            ->renderHook(
-                PanelsRenderHook::BODY_END,
-                function (): HtmlString {
-                    $path = public_path('js/filament-briefing-bbcode.js');
-
-                    if (! is_file($path)) {
-                        return new HtmlString('');
-                    }
-
-                    $javascript = file_get_contents($path);
-
-                    if ($javascript === false) {
-                        return new HtmlString('');
-                    }
-
-                    // Fallback de producción: el toolbar BBCode es funcionalidad del editor,
-                    // por lo que no debe depender únicamente de que el proxy/navegador sirva
-                    // el asset estático inmediatamente después de un despliegue. El propio
-                    // script lleva un guard global para no inicializarse dos veces.
-                    $javascript = str_replace('</script>', '<\/script>', $javascript);
-
-                    return new HtmlString("<script id=\"newslot-filament-briefing-bbcode-inline\">{$javascript}</script>");
-                },
-            )
             ->assets([
-                Js::make(
-                    'filament-briefing-bbcode',
-                    asset('js/filament-briefing-bbcode.js')
-                        . '?v='
-                        . filemtime(public_path('js/filament-briefing-bbcode.js'))
-                )->defer(),
                 Js::make(
                     'filament-orbat-layout',
                     asset('js/filament-orbat-layout.js')
