@@ -65,12 +65,6 @@ class AdminPanelProvider extends PanelProvider
             )
             ->assets([
                 Js::make(
-                    'filament-briefing-bbcode',
-                    asset('js/filament-briefing-bbcode.js')
-                        . '?v='
-                        . filemtime(public_path('js/filament-briefing-bbcode.js'))
-                )->defer(),
-                Js::make(
                     'filament-orbat-layout',
                     asset('js/filament-orbat-layout.js')
                         . '?v='

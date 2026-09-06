@@ -417,6 +417,151 @@ class EditActivity extends EditRecord
             ->all();
     }
 
+    private static function briefingBbcodeToolbar(): HtmlString
+    {
+        $alpine = <<<'JS'
+{
+    field(source) {
+        return source.closest('[data-field-wrapper]')?.querySelector('textarea') ?? null;
+    },
+    sync(field) {
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+    replace(source, value, relativeStart = null, relativeEnd = null) {
+        const field = this.field(source);
+        if (! field) return;
+
+        const start = field.selectionStart ?? field.value.length;
+        const end = field.selectionEnd ?? start;
+        field.setRangeText(value, start, end, 'end');
+        this.sync(field);
+        field.focus();
+
+        if (relativeStart !== null) {
+            field.setSelectionRange(
+                start + relativeStart,
+                start + (relativeEnd ?? relativeStart),
+            );
+        }
+    },
+    wrap(source, tag, parameter = null) {
+        const field = this.field(source);
+        if (! field) return;
+
+        const start = field.selectionStart ?? field.value.length;
+        const end = field.selectionEnd ?? start;
+        const selected = field.value.slice(start, end);
+        const open = parameter === null ? `[${tag}]` : `[${tag}=${parameter}]`;
+        const close = `[/${tag}]`;
+
+        this.replace(
+            source,
+            `${open}${selected}${close}`,
+            open.length,
+            open.length + selected.length,
+        );
+    },
+    quote(source) {
+        const author = window.prompt('Autor de la cita (opcional):', '') ?? '';
+        this.wrap(source, 'quote', author.trim() || null);
+    },
+    spoiler(source) {
+        const label = window.prompt('Texto del spoiler (opcional):', '') ?? '';
+        this.wrap(source, 'spoiler', label.trim() || null);
+    },
+    list(source) {
+        const field = this.field(source);
+        if (! field) return;
+
+        const start = field.selectionStart ?? field.value.length;
+        const end = field.selectionEnd ?? start;
+        const selected = field.value.slice(start, end).trim();
+        const lines = selected === ''
+            ? ['Elemento']
+            : selected.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+
+        this.replace(source, `[list]\n${lines.map((line) => `[*]${line}`).join('\n')}\n[/list]`);
+    },
+    link(source) {
+        const url = window.prompt('URL http(s):', 'https://');
+        if (! url) return;
+        this.wrap(source, 'url', url.trim());
+    },
+    image(source) {
+        const url = window.prompt('URL de la imagen http(s):', 'https://');
+        if (! url) return;
+        this.replace(source, `[img]${url.trim()}[/img]`);
+    },
+}
+JS;
+
+        $buttons = [
+            ['<strong>B</strong>', 'Negrita', "wrap(\$el, 'b')"],
+            ['<em>I</em>', 'Cursiva', "wrap(\$el, 'i')"],
+            ['<u>U</u>', 'Subrayado', "wrap(\$el, 'u')"],
+            ['<s>S</s>', 'Tachado', "wrap(\$el, 's')"],
+            ['H2', 'Título grande', "wrap(\$el, 'h2')"],
+            ['H3', 'Subtítulo', "wrap(\$el, 'h3')"],
+            ['❝', 'Cita', 'quote($el)'],
+            ['Spoiler', 'Spoiler', 'spoiler($el)'],
+            ['&lt;/&gt;', 'Código', "wrap(\$el, 'code')"],
+            ['☷', 'Lista', 'list($el)'],
+            ['🔗', 'Enlace', 'link($el)'],
+            ['🖼', 'Imagen por URL', 'image($el)'],
+            ['―', 'Separador', "replace(\$el, '[hr]')"],
+        ];
+
+        $html = '<div class="briefing-bbcode-toolbar" role="toolbar" aria-label="Formato BBCode" x-data="'
+            . e($alpine)
+            . '">';
+
+        foreach ($buttons as [$label, $title, $action]) {
+            $html .= '<button type="button" class="briefing-bbcode-toolbar__button" title="'
+                . e($title)
+                . '" aria-label="'
+                . e($title)
+                . '" x-on:click.prevent.stop="'
+                . e($action)
+                . '">'
+                . $label
+                . '</button>';
+        }
+
+        $colors = [
+            '#f8fafc' => 'Blanco',
+            '#94a3b8' => 'Gris',
+            '#f87171' => 'Rojo',
+            '#fb923c' => 'Naranja',
+            '#facc15' => 'Amarillo',
+            '#4ade80' => 'Verde',
+            '#22d3ee' => 'Cian',
+            '#60a5fa' => 'Azul',
+            '#c084fc' => 'Morado',
+            '#f472b6' => 'Rosa',
+        ];
+
+        $html .= '<span class="briefing-bbcode-toolbar__colors" aria-label="Color de texto">';
+
+        foreach ($colors as $color => $label) {
+            $action = "wrap(\$el, 'color', '" . $color . "')";
+
+            $html .= '<button type="button" class="briefing-bbcode-toolbar__button briefing-bbcode-toolbar__color" style="--bbcode-color:'
+                . e($color)
+                . '" title="'
+                . e($label)
+                . '" aria-label="'
+                . e($label)
+                . '" x-on:click.prevent.stop="'
+                . e($action)
+                . '"></button>';
+        }
+
+        $html .= '</span></div>';
+
+        return new HtmlString($html);
+    }
+
     private static function slotPickerSchema(): array
     {
         $groups = SlotQuickSelection::pickerGroups();
@@ -814,24 +959,16 @@ class EditActivity extends EditRecord
                             ->required()
                             ->rows(2)
                             ->maxLength(1000)
-                            ->helperText(
-                                'Admite BBCode seguro: [b], [i], [u], [color=#ff8800], [url=...], [img]...[/img], etc.'
-                            )
-                            ->extraInputAttributes([
-                                'data-briefing-bbcode' => '1',
-                            ])
+                            ->aboveContent(self::briefingBbcodeToolbar())
+                            ->helperText('Puedes usar BBCode.')
                             ->columnSpanFull(),
 
                         Textarea::make('content')
                             ->label('Contenido')
                             ->rows(10)
                             ->maxLength(50000)
-                            ->helperText(
-                                'BBCode seguro como en foro/AAR. Para imágenes remotas usa [img]https://...[/img]. No se admite HTML directo.'
-                            )
-                            ->extraInputAttributes([
-                                'data-briefing-bbcode' => '1',
-                            ])
+                            ->aboveContent(self::briefingBbcodeToolbar())
+                            ->helperText('Puedes usar BBCode. Imagen por URL: [img]URL[/img].')
                             ->columnSpanFull(),
 
                         FileUpload::make('image_upload')
@@ -841,18 +978,14 @@ class EditActivity extends EditRecord
                             ->directory('activities/briefings')
                             ->visibility('public')
                             ->maxSize(5120)
-                            ->helperText(
-                                'Opcional. Sube una imagen desde tu equipo (máx. 5 MB). Las imágenes por URL se insertan dentro del BBCode con [img]...[/img].'
-                            )
+                            ->helperText('Opcional. Máx. 5 MB.')
                             ->columnSpanFull(),
 
                         Hidden::make('legacy_image'),
 
                         Toggle::make('remove_legacy_image')
                             ->label('Quitar imagen antigua por URL')
-                            ->helperText(
-                                'Solo aparece en briefings antiguos que todavía guardan una URL en el campo de imagen.'
-                            )
+                            ->helperText('Solo para imágenes antiguas por URL.')
                             ->visible(
                                 fn (Get $get): bool => filled(
                                     $get('legacy_image')
