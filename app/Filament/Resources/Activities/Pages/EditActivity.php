@@ -1906,6 +1906,130 @@ JS;
                             }),
 
                         
+                        Action::make('bulkAssignRadioModel')
+                            ->label('Asignar modelo a varias')
+                            ->icon('heroicon-o-check-circle')
+                            ->modalHeading('Asignar modelo de radio')
+                            ->modalDescription('Selecciona un modelo y las redes a las que quieres aplicarlo.')
+                            ->modalSubmitActionLabel('Aplicar modelo')
+                            ->modalWidth('2xl')
+                            ->fillForm(fn (): array => [
+                                'radio_model_id' => null,
+                                'network_indexes' => [],
+                            ])
+                            ->schema(function (Get $get): array {
+                                $networks = collect($get('networks') ?? [])->values();
+
+                                $options = $networks
+                                    ->mapWithKeys(function (array $network, int $index): array {
+                                        $name = trim((string) ($network['name'] ?? ''));
+                                        $modelName = trim((string) ($network['radio_model_name'] ?? ''));
+
+                                        if ($name === '') {
+                                            $name = 'Red ' . ($index + 1);
+                                        }
+
+                                        $label = $modelName !== ''
+                                            ? $name . ' — ' . $modelName
+                                            : $name;
+
+                                        return [(string) $index => $label];
+                                    })
+                                    ->all();
+
+                                return [
+                                    Select::make('radio_model_id')
+                                        ->label('Modelo de radio')
+                                        ->options(fn (): array => RadioModel::query()
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id')
+                                            ->all())
+                                        ->searchable()
+                                        ->preload()
+                                        ->required(),
+
+                                    CheckboxList::make('network_indexes')
+                                        ->label('Redes')
+                                        ->options($options)
+                                        ->bulkToggleable()
+                                        ->selectAllAction(
+                                            fn (Action $action): Action => $action->label('Seleccionar todas')
+                                        )
+                                        ->deselectAllAction(
+                                            fn (Action $action): Action => $action->label('Deseleccionar todas')
+                                        )
+                                        ->columns(1)
+                                        ->required(),
+                                ];
+                            })
+                            ->action(function (array $data, Get $get, Set $set): void {
+                                $radioModelId = isset($data['radio_model_id'])
+                                    ? (int) $data['radio_model_id']
+                                    : 0;
+
+                                $selectedIndexes = collect($data['network_indexes'] ?? [])
+                                    ->map(fn ($index): int => (int) $index)
+                                    ->unique()
+                                    ->values();
+
+                                if ($radioModelId <= 0 || $selectedIndexes->isEmpty()) {
+                                    Notification::make()
+                                        ->title('Selecciona un modelo y al menos una red.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $radioModel = RadioModel::query()->find($radioModelId);
+
+                                if (! $radioModel) {
+                                    Notification::make()
+                                        ->title('El modelo de radio seleccionado ya no existe.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $networks = collect($get('networks') ?? [])
+                                    ->values()
+                                    ->map(function (array $network, int $index) use (
+                                        $selectedIndexes,
+                                        $radioModel,
+                                    ): array {
+                                        if (! $selectedIndexes->contains($index)) {
+                                            return $network;
+                                        }
+
+                                        $configuration = $network['configuration'] ?? [];
+
+                                        $network['radio_model_id'] = (int) $radioModel->id;
+                                        $network['radio_model_name'] = $radioModel->name;
+                                        $network['configuration'] = [
+                                            'channel' => $radioModel->channel
+                                                ? ($configuration['channel'] ?? null)
+                                                : null,
+                                            'block' => $radioModel->block
+                                                ? ($configuration['block'] ?? null)
+                                                : null,
+                                            'frequency' => $radioModel->frequency
+                                                ? ($configuration['frequency'] ?? null)
+                                                : null,
+                                        ];
+
+                                        return $network;
+                                    })
+                                    ->all();
+
+                                $set('networks', $networks);
+
+                                Notification::make()
+                                    ->title($selectedIndexes->count() . ' redes actualizadas.')
+                                    ->success()
+                                    ->send();
+                            }),
+
                         Action::make('addVehiclesRadioNetwork')
                             ->label('Vehículos')
                             ->action(fn (Get $get, Set $set) => $set(
