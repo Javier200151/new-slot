@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\EventSlot;
 use App\Models\EventSlotHistory;
+use App\Models\EventReservation;
 use App\Models\Faction;
 use App\Models\ActivityType;
 use App\Models\SlotType;
@@ -176,6 +177,7 @@ class PublicEventController extends Controller
             'activity.enemyFactions.side',
             'slots.user.mainSqaGroup',
             'slots.ally',
+            'reservations.user.mainSqaGroup',
         ]);
 
         // MySQL suele comparar los estados sin distinguir mayúsculas/minúsculas,
@@ -264,6 +266,24 @@ class PublicEventController extends Controller
             ? $event->slots->firstWhere('user_id', auth()->id())
             : null;
 
+        $eventReservations = $event->reservations
+            ->filter(fn (EventReservation $reservation): bool => $reservation->user !== null)
+            ->values();
+        $currentUserReservation = auth()->check()
+            ? $eventReservations->firstWhere('user_id', auth()->id())
+            : null;
+        $currentUserCanReserve = auth()->check()
+            && in_array(
+                strtoupper(trim((string) auth()->user()->status?->name)),
+                ['ACTIVO', 'RESERVA', 'RECLUTA'],
+                true,
+            );
+        $reservedUserIds = $eventReservations
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->values();
+
         $rouletteLockRoom = $isReadOnly
             ? null
             : app(CommunityRouletteService::class)->activeRoomForEvent($event);
@@ -325,7 +345,22 @@ class PublicEventController extends Controller
                     ->get([
                         'id',
                         'nick',
-                    ]);
+                    ])
+                    ->each(function (User $candidate) use ($reservedUserIds): void {
+                        $candidate->setAttribute(
+                            'is_event_reservation',
+                            $reservedUserIds->contains((int) $candidate->id),
+                        );
+                    })
+                    ->sort(function (User $a, User $b): int {
+                        $reserveComparison = ((int) ! $a->getAttribute('is_event_reservation'))
+                            <=> ((int) ! $b->getAttribute('is_event_reservation'));
+
+                        return $reserveComparison !== 0
+                            ? $reserveComparison
+                            : strcasecmp((string) $a->nick, (string) $b->nick);
+                    })
+                    ->values();
 
             $orbatAssignableAllies =
                 Ally::query()
@@ -616,6 +651,10 @@ class PublicEventController extends Controller
             'courseMetopaAwardUrl',
             'isReadOnly',
             'rouletteLockRoom',
+            'eventReservations',
+            'currentUserReservation',
+            'currentUserCanReserve',
+            'currentUserSlot',
         ));
     }
 
@@ -874,6 +913,99 @@ class PublicEventController extends Controller
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
+    public function reserve(Event $event, Request $request): RedirectResponse
+    {
+        app(CommunityRouletteService::class)->assertEventUnlocked($event);
+        $user = $request->user();
+        $user->loadMissing('status');
+
+        $statusName = strtoupper(trim((string) $user->status?->name));
+        if (! in_array($statusName, ['ACTIVO', 'RESERVA', 'RECLUTA'], true)) {
+            throw ValidationException::withMessages([
+                'reservation' => 'Tu estado actual no permite entrar en la cola de reservas.',
+            ]);
+        }
+
+        DB::transaction(function () use ($event, $user): void {
+            $lockedEvent = Event::query()
+                ->whereKey($event->id)
+                ->with('eventStatus')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            app(CommunityRouletteService::class)->assertEventUnlocked($lockedEvent);
+
+            if (strtoupper(trim((string) $lockedEvent->eventStatus?->name)) !== 'ACTIVO') {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Este evento ya no admite reservas.',
+                ]);
+            }
+
+            if (! $lockedEvent->reservations_enabled) {
+                throw ValidationException::withMessages([
+                    'reservation' => 'La cola de reservas no está habilitada para este evento.',
+                ]);
+            }
+
+            $alreadyAssigned = EventSlot::query()
+                ->where('event_id', $lockedEvent->id)
+                ->where('user_id', $user->id)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($alreadyAssigned) {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Ya estás apuntado en el ORBAT de este evento.',
+                ]);
+            }
+
+            EventReservation::query()->firstOrCreate(
+                [
+                    'event_id' => $lockedEvent->id,
+                    'user_id' => $user->id,
+                ],
+                [
+                    'created_by' => $user->id,
+                ],
+            );
+        });
+
+        return redirect()
+            ->to(route('events.show', $event).'#reservas')
+            ->with('status', 'Te has añadido a la cola de reservas.');
+    }
+
+    public function unreserve(Event $event, Request $request): RedirectResponse
+    {
+        app(CommunityRouletteService::class)->assertEventUnlocked($event);
+        $user = $request->user();
+
+        DB::transaction(function () use ($event, $user): void {
+            $lockedEvent = Event::query()
+                ->whereKey($event->id)
+                ->with('eventStatus')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            app(CommunityRouletteService::class)->assertEventUnlocked($lockedEvent);
+
+            if (strtoupper(trim((string) $lockedEvent->eventStatus?->name)) !== 'ACTIVO') {
+                throw ValidationException::withMessages([
+                    'reservation' => 'La cola de reservas ya no puede modificarse.',
+                ]);
+            }
+
+            EventReservation::query()
+                ->where('event_id', $lockedEvent->id)
+                ->where('user_id', $user->id)
+                ->delete();
+        });
+
+        return redirect()
+            ->to(route('events.show', $event).'#reservas')
+            ->with('status', 'Has salido de la cola de reservas.');
+    }
+
     public function registerSlot(Event $event, string $slotKey): RedirectResponse
     {
         app(CommunityRouletteService::class)->assertEventUnlocked($event);
@@ -935,6 +1067,11 @@ class PublicEventController extends Controller
                 ->first();
 
             if ($targetSlot?->user_id === $user->id) {
+                EventReservation::query()
+                    ->where('event_id', $lockedEvent->id)
+                    ->where('user_id', $user->id)
+                    ->delete();
+
                 return;
             }
 
@@ -1009,6 +1146,11 @@ class PublicEventController extends Controller
                 'changed_by_user_id' => $user->id,
                 'created_at' => now(),
             ]);
+
+            EventReservation::query()
+                ->where('event_id', $lockedEvent->id)
+                ->where('user_id', $user->id)
+                ->delete();
         });
 
         return redirect()
@@ -1581,6 +1723,13 @@ class PublicEventController extends Controller
                     now(),
             ]);
 
+
+            if ($assignedUser) {
+                EventReservation::query()
+                    ->where('event_id', $lockedEvent->id)
+                    ->where('user_id', $assignedUser->id)
+                    ->delete();
+            }
 
             /*
             |--------------------------------------------------------------------------

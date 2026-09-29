@@ -64,13 +64,20 @@
         </div>
     @endif
 
-    @if($isOwner && $missingEvents->isNotEmpty())
+    @if($isOwner)
+        <script type="application/json" id="diary-all-users-data">{!! json_encode($allUsers ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+    @endif
+
+    @if($isOwner)
         <section class="community-panel forum-compose diary-compose">
             <div class="forum-compose__head">
                 <div>
                     <span class="community-kicker">NUEVA ENTRADA</span>
                     <h2>Publicar en mi diario</h2>
-                    <small>Solo aparecen eventos en los que constas en el ORBAT y que todavía no tienen entrada.</small>
+                    <small>
+                        Puedes vincular la entrada a un evento en el que hayas participado,
+                        o dejarlo vacío si fue una tutoría, academia, práctica u otra actividad no programada.
+                    </small>
                 </div>
             </div>
 
@@ -78,20 +85,53 @@
                 @csrf
 
                 <div class="forum-field">
-                    <label for="diary-event-id">Evento / actividad en el que participaste</label>
-                    <select id="diary-event-id" name="event_id" required>
-                        <option value="">Selecciona un evento…</option>
-                        @foreach($missingEvents as $event)
-                            <option value="{{ $event->id }}" @selected((string) old('event_id') === (string) $event->id)>
+                    <label for="diary-entry-title">Título de la actividad realizada</label>
+                    <input
+                        id="diary-entry-title"
+                        type="text"
+                        name="entry_title"
+                        maxlength="255"
+                        required
+                        value="{{ old('entry_title') }}"
+                        placeholder="Ej. Tutoría de fusilero, práctica de academia, Lunes de prácticas..."
+                        data-diary-entry-title
+                    >
+                </div>
+
+                <div class="forum-field">
+                    <label for="diary-event-id">Evento relacionado (opcional)</label>
+                    <select id="diary-event-id" name="event_id" data-diary-event-select>
+                        <option value="">Sin evento programado</option>
+                        @foreach($availableEvents as $event)
+                            <option
+                                value="{{ $event->id }}"
+                                data-entry-title="{{ $event->name }}"
+                                @selected((string) old('event_id') === (string) $event->id)
+                            >
                                 {{ $event->date?->format('d/m/Y') }} · {{ $event->activity?->name ?? 'Actividad' }} · {{ $event->name }}
                             </option>
                         @endforeach
                     </select>
                 </div>
 
+                <div class="forum-field">
+                    <label for="diary-squad-group">Escuadra / grupo (opcional)</label>
+                    <input
+                        id="diary-squad-group"
+                        type="text"
+                        name="squad_group"
+                        maxlength="255"
+                        value="{{ old('squad_group') }}"
+                        placeholder="Ej. ALPHA 2-1"
+                        data-diary-squad-group
+                        @readonly(old('event_id'))
+                    >
+                </div>
+
                 @include('community.partials.diary-roster-builder', [
                     'id' => 'new-entry-roster',
                     'eventSelectId' => 'diary-event-id',
+                    'squadGroupInputId' => 'diary-squad-group',
                     'initialEventId' => old('event_id'),
                     'roster' => json_decode(old('squad_roster', '[]'), true) ?: [],
                 ])
@@ -109,8 +149,6 @@
                 </div>
             </form>
         </section>
-    @elseif($isOwner && $missingEvents->isEmpty())
-        <div class="community-notice">No tienes eventos pendientes de añadir al diario.</div>
     @endif
 
     <section class="diary-thread">
@@ -128,15 +166,20 @@
                     </div>
 
                     <div class="diary-entry-event">
-                        <span class="community-kicker">EVENTO</span>
-                        <h2>{{ $entry->event?->name ?? 'Evento eliminado' }}</h2>
+                        <span class="community-kicker">ACTIVIDAD</span>
+                        <h2>{{ $entry->entry_title }}</h2>
                         <small>
-                            {{ $entry->event?->date?->format('d/m/Y H:i') }}
-                            @if($entry->event?->activity?->name)
-                                · {{ $entry->event->activity->name }}
-                            @endif
-                            @if($entry->event?->activity?->activityType?->name)
-                                · {{ $entry->event->activity->activityType->name }}
+                            @if($entry->event)
+                                {{ $entry->event->date?->format('d/m/Y H:i') }}
+                                · {{ $entry->event->name }}
+                                @if($entry->event->activity?->name)
+                                    · {{ $entry->event->activity->name }}
+                                @endif
+                                @if($entry->event?->activity?->activityType?->name)
+                                    · {{ $entry->event->activity->activityType->name }}
+                                @endif
+                            @else
+                                Sin evento programado vinculado
                             @endif
                         </small>
                     </div>
@@ -164,9 +207,37 @@
                                     @csrf
                                     @method('PATCH')
 
+                                    <div class="forum-field">
+                                        <label for="edit-entry-title-{{ $entry->id }}">Título de la actividad</label>
+                                        <input
+                                            id="edit-entry-title-{{ $entry->id }}"
+                                            type="text"
+                                            name="entry_title"
+                                            maxlength="255"
+                                            required
+                                            value="{{ $entry->event?->name ?? $entry->entry_title }}"
+                                            @readonly($entry->event_id)
+                                        >
+                                    </div>
+
+                                    <div class="forum-field">
+                                        <label for="edit-entry-group-{{ $entry->id }}">Escuadra / grupo (opcional)</label>
+                                        <input
+                                            id="edit-entry-group-{{ $entry->id }}"
+                                            type="text"
+                                            name="squad_group"
+                                            maxlength="255"
+                                            value="{{ $entry->squad_group }}"
+                                            placeholder="Ej. ALPHA 2-1"
+                                            data-diary-squad-group
+                                            @readonly($entry->event_id)
+                                        >
+                                    </div>
+
                                     @include('community.partials.diary-roster-builder', [
                                         'id' => 'edit-entry-roster-' . $entry->id,
                                         'eventId' => $entry->event_id,
+                                        'squadGroupInputId' => 'edit-entry-group-' . $entry->id,
                                         'roster' => $entry->squad_roster ?? [],
                                     ])
 

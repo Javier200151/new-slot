@@ -25,6 +25,7 @@ class Event extends Model
         'event_result_id',
         'ocap_url',
         'multiclans',
+        'reservations_enabled',
         'created_by',
         'updated_by',
     ];
@@ -37,6 +38,7 @@ class Event extends Model
             'duration' => 'integer',
             'orbat' => 'array',
             'multiclans' => 'boolean',
+            'reservations_enabled' => 'boolean',
         ];
     }
 
@@ -105,6 +107,13 @@ class Event extends Model
     public function slots()
     {
         return $this->hasMany(EventSlot::class);
+    }
+
+    public function reservations()
+    {
+        return $this->hasMany(EventReservation::class)
+            ->orderBy('created_at')
+            ->orderBy('id');
     }
 
     public function campaignAar()

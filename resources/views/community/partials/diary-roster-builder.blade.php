@@ -2,6 +2,7 @@
     $builderId = $id ?? ('diary-roster-' . uniqid());
     $eventSelectId = $eventSelectId ?? null;
     $eventId = $eventId ?? null;
+    $squadGroupInputId = $squadGroupInputId ?? null;
     $initialEventId = $initialEventId ?? $eventId;
     $rosterValue = $roster ?? [];
     $squadUrlTemplate = str_replace('/0/escuadra', '/__EVENT__/escuadra', route('community.diary.event-squad', 0));
@@ -13,6 +14,7 @@
     data-diary-roster-builder
     data-event-select="{{ $eventSelectId }}"
     data-event-id="{{ $eventId }}"
+    data-squad-group-input="{{ $squadGroupInputId }}"
     data-initial-event-id="{{ $initialEventId }}"
     data-squad-url-template="{{ $squadUrlTemplate }}"
     data-initial-roster="{{ e(json_encode($rosterValue, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}"
@@ -22,18 +24,40 @@
     <div class="diary-roster-builder__head">
         <div>
             <span class="community-kicker">NUMERACIÓN DE ESCUADRA</span>
-            <h3>Cómo os numerasteis en la partida</h3>
+            <h3>Quién estuvo contigo en esa escuadra</h3>
             <p>
-                Se cargan los jugadores que compartieron tu grupo ORBAT. Ordénalos, asigna un número y un color de equipo.
-                Los números pueden repetirse, por ejemplo 1–4 rojo y 1–4 azul.
+                Si seleccionas un evento, se carga automáticamente la escuadra detectada.
+                Puedes quitar integrantes o añadir otros usuarios de Squad Alpha solo para esta entrada del diario.
             </p>
         </div>
-        <span class="diary-roster-builder__group" data-diary-roster-group>Selecciona primero un evento</span>
+        <span class="diary-roster-builder__group" data-diary-roster-group>Selecciona un evento o añade usuarios</span>
+    </div>
+
+    <div class="diary-roster-builder__controls">
+        <div class="diary-roster-builder__control-group">
+            <label for="{{ $builderId }}-existing">Añadir participante del evento</label>
+            <div class="diary-roster-builder__inline">
+                <select id="{{ $builderId }}-existing" data-roster-add-existing>
+                    <option value="">Selecciona un participante…</option>
+                </select>
+                <button type="button" class="community-btn community-btn--ghost" data-roster-add-existing-button>Añadir</button>
+            </div>
+        </div>
+
+        <div class="diary-roster-builder__control-group">
+            <label for="{{ $builderId }}-user">Añadir cualquier usuario</label>
+            <div class="diary-roster-builder__inline">
+                <select id="{{ $builderId }}-user" data-roster-add-user>
+                    <option value="">Selecciona un usuario…</option>
+                </select>
+                <button type="button" class="community-btn community-btn--ghost" data-roster-add-user-button>Añadir</button>
+            </div>
+        </div>
     </div>
 
     <div class="diary-roster-builder__loading" data-diary-roster-loading hidden>Cargando escuadra…</div>
     <div class="diary-roster-builder__empty" data-diary-roster-empty>
-        Selecciona un evento para cargar automáticamente tu escuadra.
+        Selecciona un evento para cargar automáticamente tu escuadra, o añade usuarios desde la lista.
     </div>
     <div class="diary-roster-builder__list" data-diary-roster-list></div>
 
@@ -45,9 +69,15 @@
                 <button type="button" data-roster-down title="Bajar">↓</button>
             </div>
             <img data-roster-avatar alt="" loading="lazy">
-            <div class="diary-roster-edit-row__identity">
-                <strong data-roster-nick></strong>
-                <small data-roster-slot></small>
+            <div class="diary-roster-edit-row__fields">
+                <div class="diary-roster-edit-row__identity">
+                    <span>Usuario</span>
+                    <strong data-roster-nick></strong>
+                </div>
+                <label>
+                    <span>Nombre del slot</span>
+                    <input data-roster-slot-name type="text" maxlength="120" placeholder="Ej. Fusilero, Líder de escuadra...">
+                </label>
             </div>
             <label>
                 <span>Nº</span>
@@ -68,6 +98,7 @@
                     <option value="cyan">Cian</option>
                 </select>
             </label>
+            <button type="button" class="diary-roster-edit-row__remove" data-roster-remove title="Quitar de este diario">×</button>
         </article>
     </template>
 </section>

@@ -331,6 +331,16 @@ Route::middleware([
 ])->group(function (): void {
 
     Route::post(
+        '/eventos/{event}/reservas',
+        [PublicEventController::class, 'reserve']
+    )->name('events.reservations.store');
+
+    Route::delete(
+        '/eventos/{event}/reservas',
+        [PublicEventController::class, 'unreserve']
+    )->name('events.reservations.destroy');
+
+    Route::post(
         '/eventos/{event}/slots/{slotKey}',
         [PublicEventController::class, 'registerSlot']
     )->name('events.slots.register');
@@ -732,6 +742,21 @@ Route::middleware('auth')->group(function (): void {
         '/area/ruleta/salas/{room}',
         [CommunityRouletteController::class, 'update']
     )->whereNumber('room')->name('community.roulette.update');
+
+    Route::post(
+        '/area/ruleta/salas/{room}/candidatos',
+        [CommunityRouletteController::class, 'addCandidate']
+    )->whereNumber('room')->name('community.roulette.candidates.store');
+
+    Route::delete(
+        '/area/ruleta/salas/{room}/candidatos/{user}',
+        [CommunityRouletteController::class, 'removeCandidate']
+    )->whereNumber('room')->whereNumber('user')->name('community.roulette.candidates.destroy');
+
+    Route::patch(
+        '/area/ruleta/salas/{room}/candidatos/{user}/papeletas',
+        [CommunityRouletteController::class, 'adjustCandidateTickets']
+    )->whereNumber('room')->whereNumber('user')->name('community.roulette.candidates.tickets');
 
     Route::post(
         '/area/ruleta/salas/{room}/girar',

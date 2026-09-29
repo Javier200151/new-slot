@@ -1010,3 +1010,119 @@
         text-align: center;
     }
 }
+
+/* ================================================================
+   Reservas, participantes excepcionales y ajustes manuales
+   ================================================================ */
+
+.roulette-candidate__badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    margin-top: 5px;
+    padding: 3px 7px;
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 999px;
+    font-size: .6rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.roulette-candidate__badge.is-reserve {
+    border-color: rgba(59, 130, 246, .26);
+    color: #93c5fd;
+    background: rgba(59, 130, 246, .07);
+}
+
+.roulette-candidate__badge.is-exceptional {
+    border-color: rgba(168, 85, 247, .28);
+    color: #d8b4fe;
+    background: rgba(168, 85, 247, .07);
+}
+
+.roulette-candidate__manual {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px solid rgba(148, 163, 184, .08);
+}
+
+.roulette-candidate__manual > span {
+    color: #728094;
+    font-size: .62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.roulette-candidate__manual > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.roulette-candidate__manual form {
+    margin: 0;
+}
+
+.roulette-candidate__manual button {
+    min-width: 34px;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 138, 0, .24);
+    border-radius: 7px;
+    color: #ffb252;
+    background: rgba(255, 138, 0, .07);
+    font: inherit;
+    font-size: .66rem;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.roulette-candidate__manual button:hover {
+    border-color: rgba(255, 138, 0, .5);
+    background: rgba(255, 138, 0, .13);
+}
+
+.roulette-candidate__manual button.is-reset {
+    border-color: rgba(148, 163, 184, .2);
+    color: #aeb9c7;
+    background: rgba(148, 163, 184, .06);
+}
+
+.roulette-candidate__manual button.is-remove {
+    border-color: rgba(239, 68, 68, .24);
+    color: #fca5a5;
+    background: rgba(239, 68, 68, .06);
+}
+
+.roulette-exceptional-add {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.roulette-config__muted {
+    color: #788699 !important;
+    font-size: .72rem !important;
+}
+
+@media (max-width: 680px) {
+    .roulette-candidate__manual {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .roulette-candidate__manual > div {
+        justify-content: flex-start;
+    }
+
+    .roulette-exceptional-add {
+        grid-template-columns: 1fr;
+    }
+}

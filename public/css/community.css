@@ -1712,30 +1712,38 @@
 .diary-roster-builder__head h3 { margin:3px 0 4px; color:#fff; font-size:.98rem; }
 .diary-roster-builder__head p { max-width:760px; margin:0; color:#7f8da0; font-size:.67rem; line-height:1.5; }
 .diary-roster-builder__group { flex:0 0 auto; padding:6px 9px; border:1px solid rgba(96,165,250,.2); border-radius:999px; color:#93c5fd; background:rgba(96,165,250,.05); font-size:.62rem; font-weight:800; }
+.diary-roster-builder__controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.diary-roster-builder__control-group { display:grid; gap:6px; padding:10px 12px; border:1px solid rgba(148,163,184,.12); border-radius:8px; background:rgba(8,13,20,.45); }
+.diary-roster-builder__control-group > label { color:#94a3b8; font-size:.62rem; font-weight:800; text-transform:uppercase; }
+.diary-roster-builder__control-group--manual { align-content:start; }
+.diary-roster-builder__inline { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
 .diary-roster-builder__empty, .diary-roster-builder__loading { padding:14px; border:1px dashed rgba(148,163,184,.16); border-radius:8px; color:#728095; font-size:.68rem; text-align:center; }
 .diary-roster-builder__list { display:grid; gap:7px; }
 .diary-roster-edit-row {
     display:grid;
-    grid-template-columns: 58px 38px minmax(0,1fr) 90px 150px;
+    grid-template-columns: 58px 38px minmax(0,1.6fr) 90px 150px 34px;
     gap:10px;
-    align-items:center;
+    align-items:start;
     padding:9px;
     border:1px solid rgba(148,163,184,.12);
     border-radius:9px;
     background:rgba(8,13,20,.8);
 }
 .diary-roster-edit-row.is-dragging { opacity:.45; border-color:rgba(245,158,11,.5); }
-.diary-roster-edit-row > img { width:34px; height:34px; object-fit:cover; border-radius:7px; border:1px solid rgba(148,163,184,.14); }
-.diary-roster-edit-row__move { display:flex; align-items:center; gap:3px; }
+.diary-roster-edit-row > img { width:34px; height:34px; margin-top:22px; object-fit:cover; border-radius:7px; border:1px solid rgba(148,163,184,.14); }
+.diary-roster-edit-row__move { display:flex; align-items:center; gap:3px; min-height:34px; margin-top:22px; }
 .diary-roster-edit-row__move button { width:22px; height:25px; padding:0; border:1px solid rgba(148,163,184,.13); border-radius:5px; color:#9ba8b8; background:transparent; cursor:pointer; }
 .diary-roster-edit-row__move button:hover { color:#fbbf24; border-color:rgba(245,158,11,.4); }
 .diary-roster-edit-row__drag { color:#596579; cursor:grab; letter-spacing:-2px; }
-.diary-roster-edit-row__identity { display:grid; min-width:0; gap:2px; }
-.diary-roster-edit-row__identity strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.77rem; }
-.diary-roster-edit-row__identity small { overflow:hidden; color:#6f7d90; font-size:.6rem; text-overflow:ellipsis; white-space:nowrap; }
+.diary-roster-edit-row__fields { display:grid; gap:7px; }
+.diary-roster-edit-row__identity { display:grid; gap:3px; min-width:0; }
+.diary-roster-edit-row__identity span { color:#7d8998; font-size:.55rem; font-weight:800; text-transform:uppercase; }
+.diary-roster-edit-row__identity strong { min-height:34px; display:flex; align-items:center; overflow:hidden; padding:6px 8px; border:1px solid rgba(148,163,184,.10); border-radius:6px; background:rgba(255,255,255,.018); font-size:.73rem; text-overflow:ellipsis; white-space:nowrap; }
 .diary-roster-edit-row label { display:grid; gap:3px; margin:0; }
 .diary-roster-edit-row label span { color:#7d8998; font-size:.55rem; font-weight:800; text-transform:uppercase; }
 .diary-roster-edit-row input, .diary-roster-edit-row select { min-height:34px; padding:6px 8px; }
+.diary-roster-edit-row__remove { width:34px; height:34px; margin-top:22px; padding:0; border:1px solid rgba(239,68,68,.22); border-radius:7px; color:#fda4af; background:rgba(127,29,29,.18); cursor:pointer; font-size:1rem; font-weight:900; }
+.diary-roster-edit-row__remove:hover { color:#fff; border-color:rgba(239,68,68,.45); background:rgba(239,68,68,.18); }
 
 .diary-roster-snapshot { margin:14px 0 18px; padding:13px; border:1px solid rgba(148,163,184,.12); border-radius:9px; background:rgba(3,7,12,.35); }
 .diary-roster-snapshot__head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
@@ -1748,7 +1756,8 @@
 
 @media (max-width: 900px) {
     .forum-category-grid { grid-template-columns:1fr; }
-    .diary-roster-edit-row { grid-template-columns:50px 34px minmax(0,1fr) 78px 125px; }
+    .diary-roster-builder__controls { grid-template-columns:1fr; }
+    .diary-roster-edit-row { grid-template-columns:50px 34px minmax(0,1fr) 78px 125px 34px; }
 }
 
 @media (max-width: 680px) {
@@ -1756,13 +1765,12 @@
     .forum-category-card__arrow { display:none; }
     .forum-category-permission-note { text-align:left; }
     .diary-thread-page .thread-title-row, .diary-roster-builder__head { flex-direction:column; }
+    .diary-roster-builder__inline { grid-template-columns:1fr; }
     .diary-roster-edit-row { grid-template-columns:42px 34px minmax(0,1fr); }
-    .diary-roster-edit-row > label { grid-column:span 1; }
-    .diary-roster-edit-row > label:first-of-type { grid-column:2 / 3; }
-    .diary-roster-edit-row > label:last-of-type { grid-column:3 / 4; }
+    .diary-roster-edit-row__fields, .diary-roster-edit-row > label { grid-column:1 / -1; }
+    .diary-roster-edit-row__remove { margin-top:0; grid-column:3; justify-self:end; }
     .diary-roster-snapshot__grid { grid-template-columns:1fr; }
 }
-
 /* ================================================================
    Identidad visual del foro y conversaciones por entrada de diario
    ================================================================ */
@@ -2095,101 +2103,3 @@
     }
 }
 
-
-/* =========================================================
-   FORO - MENSAJES NO LEÍDOS
-========================================================= */
-
-.forum-page-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 9px;
-}
-
-.forum-unread-button {
-    gap: 8px;
-    text-decoration: none;
-}
-
-.forum-unread-button strong {
-    display: inline-grid;
-    min-width: 22px;
-    height: 22px;
-    place-items: center;
-    padding: 0 6px;
-    border-radius: 999px;
-    color: #071019;
-    background: #f59e0b;
-    font-size: .62rem;
-    line-height: 1;
-}
-
-.forum-unread-button.is-active {
-    color: #071019 !important;
-    border-color: #f59e0b !important;
-    background: #f59e0b !important;
-}
-
-.forum-unread-button.is-active strong {
-    color: #f59e0b;
-    background: #071019;
-}
-
-.forum-category-card.has-unread {
-    border-color: color-mix(in srgb, var(--forum-category-color) 72%, #f59e0b 28%);
-    box-shadow:
-        0 14px 34px rgba(0, 0, 0, .20),
-        0 0 0 1px color-mix(in srgb, var(--forum-category-color) 18%, transparent);
-}
-
-.forum-category-card__unread {
-    display: inline-flex;
-    align-items: center;
-    min-height: 22px;
-    padding: 3px 8px;
-    border: 1px solid rgba(245, 158, 11, .42);
-    border-radius: 999px;
-    color: #fbbf24;
-    background: rgba(245, 158, 11, .10);
-    font-size: .56rem;
-    font-weight: 950;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-}
-
-.forum-body .forum-row--real.is-unread {
-    border-left-color: #f59e0b;
-    background:
-        linear-gradient(90deg, rgba(245, 158, 11, .08), transparent 28%),
-        linear-gradient(145deg, rgba(17, 27, 43, .98), rgba(8, 13, 23, .98));
-}
-
-.forum-body .forum-row--real.is-unread h3 {
-    color: #fff;
-    font-weight: 900;
-}
-
-.forum-row__badges .is-unread {
-    color: #fbbf24;
-    border-color: rgba(245, 158, 11, .42);
-    background: rgba(245, 158, 11, .11);
-}
-
-.forum-row__badges .is-category {
-    color: #7dd3fc;
-    border-color: rgba(56, 189, 248, .30);
-    background: rgba(56, 189, 248, .07);
-}
-
-@media (max-width: 720px) {
-    .forum-page-actions {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    .forum-unread-button {
-        width: auto;
-    }
-}

@@ -163,6 +163,15 @@ class EventForm
                     ->inline(false)
                     ->default(false),
 
+
+                Toggle::make('reservations_enabled')
+                    ->label('Habilitar reservas')
+                    ->helperText(
+                        'Habilítalo para permitir reservas en el evento.'
+                    )
+                    ->inline(false)
+                    ->default(false),
+
                 Select::make('event_status_id')
                     ->label('Estado')
                     ->options(

@@ -9,6 +9,7 @@ use App\Models\CommunityRouletteRoom;
 use App\Models\CommunityRouletteSlotTypeRule;
 use App\Models\CommunityRouletteViewer;
 use App\Models\Event;
+use App\Models\EventReservation;
 use App\Models\EventSlot;
 use App\Models\EventSlotHistory;
 use App\Models\Faction;
@@ -374,6 +375,202 @@ class CommunityRouletteService
         });
     }
 
+    public function exceptionalCandidateOptions(CommunityRouletteRoom $room): Collection
+    {
+        if (! $room->canBeConfigured()) {
+            return collect();
+        }
+
+        $existingUserIds = CommunityRouletteCandidate::query()
+            ->where('room_id', $room->id)
+            ->pluck('user_id')
+            ->filter();
+
+        return User::query()
+            ->with('status')
+            ->when(
+                $existingUserIds->isNotEmpty(),
+                fn (Builder $query) => $query->whereNotIn('id', $existingUserIds),
+            )
+            ->whereHas('status', function (Builder $query): void {
+                $query->whereRaw("UPPER(TRIM(name)) IN ('ACTIVO', 'RESERVA', 'RECLUTA')");
+            })
+            ->orderBy('nick')
+            ->get(['id', 'nick', 'status_id']);
+    }
+
+    public function addExceptionalCandidate(
+        CommunityRouletteRoom $room,
+        User $actor,
+        User $candidateUser,
+    ): CommunityRouletteCandidate {
+        $room = $this->refreshRoomLifecycle($room);
+        $this->assertConfigurable($room, $actor);
+
+        $candidateUser->loadMissing('status');
+        $statusName = strtoupper(trim((string) $candidateUser->status?->name));
+        if (! in_array($statusName, ['ACTIVO', 'RESERVA', 'RECLUTA'], true)) {
+            throw ValidationException::withMessages([
+                'candidate' => 'Ese usuario no tiene un estado válido para participar en la ruleta.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($room, $candidateUser): CommunityRouletteCandidate {
+            $locked = CommunityRouletteRoom::query()
+                ->whereKey($room->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $locked->canBeConfigured()) {
+                throw ValidationException::withMessages([
+                    'candidate' => 'La sala ya no puede modificarse.',
+                ]);
+            }
+
+            if (CommunityRouletteCandidate::query()
+                ->where('room_id', $locked->id)
+                ->where('user_id', $candidateUser->id)
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'candidate' => 'Ese usuario ya participa en la ruleta.',
+                ]);
+            }
+
+            $locked->loadMissing('previousEvents');
+            $rules = CommunityRouletteSlotTypeRule::query()
+                ->where('room_id', $locked->id)
+                ->get()
+                ->keyBy('slot_type_id');
+            $previousIds = $locked->previousEvents
+                ->pluck('event_id')
+                ->filter()
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+            $previousSnapshots = $locked->previousEvents->keyBy('event_id');
+            $historicalSlots = collect();
+
+            if ($previousIds !== []) {
+                $historicalSlots = EventSlot::query()
+                    ->whereIn('event_id', $previousIds)
+                    ->where('user_id', $candidateUser->id)
+                    ->with('slotType')
+                    ->get()
+                    ->keyBy(fn (EventSlot $slot): string => $slot->event_id.':'.$slot->user_id);
+            }
+
+            $previousWinnerIds = CommunityRouletteCandidate::query()
+                ->where('room_id', $locked->id)
+                ->where('is_winner', true)
+                ->pluck('user_id')
+                ->filter()
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+
+            return CommunityRouletteCandidate::query()->create(
+                $this->candidatePayload(
+                    room: $locked,
+                    user: $candidateUser,
+                    currentSlot: null,
+                    source: 'exceptional',
+                    isExceptional: true,
+                    rules: $rules,
+                    historicalSlots: $historicalSlots,
+                    previousSnapshots: $previousSnapshots,
+                    previousWinnerIds: $previousWinnerIds,
+                    membershipCutoff: now()->subMonthsNoOverflow(3)->startOfDay(),
+                )
+            );
+        });
+    }
+
+    public function removeExceptionalCandidate(
+        CommunityRouletteRoom $room,
+        User $actor,
+        int $candidateUserId,
+    ): void {
+        $room = $this->refreshRoomLifecycle($room);
+        $this->assertConfigurable($room, $actor);
+
+        DB::transaction(function () use ($room, $candidateUserId): void {
+            $locked = CommunityRouletteRoom::query()
+                ->whereKey($room->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $locked->canBeConfigured()) {
+                throw ValidationException::withMessages([
+                    'candidate' => 'La sala ya no puede modificarse.',
+                ]);
+            }
+
+            $deleted = CommunityRouletteCandidate::query()
+                ->where('room_id', $locked->id)
+                ->where('user_id', $candidateUserId)
+                ->where('is_exceptional', true)
+                ->delete();
+
+            if ($deleted < 1) {
+                throw ValidationException::withMessages([
+                    'candidate' => 'Ese participante no es una incorporación excepcional de esta sala.',
+                ]);
+            }
+        });
+    }
+
+    public function adjustCandidateTickets(
+        CommunityRouletteRoom $room,
+        User $actor,
+        int $candidateUserId,
+        int $delta = 0,
+        bool $reset = false,
+    ): CommunityRouletteCandidate {
+        $room = $this->refreshRoomLifecycle($room);
+        $this->assertConfigurable($room, $actor);
+
+        return DB::transaction(function () use ($room, $candidateUserId, $delta, $reset): CommunityRouletteCandidate {
+            $locked = CommunityRouletteRoom::query()
+                ->whereKey($room->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $locked->canBeConfigured()) {
+                throw ValidationException::withMessages([
+                    'candidate' => 'La sala ya no puede modificarse.',
+                ]);
+            }
+
+            $candidate = CommunityRouletteCandidate::query()
+                ->where('room_id', $locked->id)
+                ->where('user_id', $candidateUserId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $details = $candidate->details ?? [];
+            $automaticTickets = (int) ($details['automatic_tickets']
+                ?? max(0, (int) $candidate->tickets - (int) $candidate->manual_ticket_adjustment));
+
+            if ($reset) {
+                $newTickets = max(0, min(255, $automaticTickets));
+                $newAdjustment = 0;
+            } else {
+                $newTickets = max(0, min(255, (int) $candidate->tickets + $delta));
+                $actualDelta = $newTickets - (int) $candidate->tickets;
+                $newAdjustment = (int) $candidate->manual_ticket_adjustment + $actualDelta;
+            }
+
+            $details['automatic_tickets'] = $automaticTickets;
+            $details['manual_ticket_adjustment'] = $newAdjustment;
+
+            $candidate->forceFill([
+                'tickets' => $newTickets,
+                'manual_ticket_adjustment' => $newAdjustment,
+                'details' => $details,
+            ])->save();
+
+            return $candidate->fresh();
+        });
+    }
+
     public function startSpin(CommunityRouletteRoom $room, User $user): CommunityRouletteRoom
     {
         $room = $this->refreshRoomLifecycle($room);
@@ -605,92 +802,138 @@ class CommunityRouletteService
                  * desplazar a un tercero mientras el ORBAT vuelve a bloquearse.
                  */
                 if ($targetSlot && (int) $targetSlot->user_id === $previousWinnerId) {
-                    $originalSnapshot = $candidate->current_slot_key
-                        ? $this->findVisibleOrbatSlot($event, $candidate->current_slot_key)
-                        : null;
-
+                    $candidateDetails = $candidate->details ?? [];
+                    $source = (string) data_get($candidateDetails, 'current.source', 'orbat');
                     $restored = false;
-                    if ($originalSnapshot && $candidate->current_slot_key !== $locked->target_slot_key) {
-                        $originalSlot = EventSlot::query()
-                            ->where('event_id', $event->id)
-                            ->where('slot_key', $candidate->current_slot_key)
-                            ->with('faction')
-                            ->lockForUpdate()
-                            ->first();
 
-                        $originalOccupied = $originalSlot
-                            && ($originalSlot->user_id || $originalSlot->ally_id);
+                    // Si el ganador venía de la cola de reservas, al repetir
+                    // lo devolvemos a esa cola. Si fue añadido de forma
+                    // excepcional, simplemente vuelve a quedar fuera del ORBAT.
+                    if (in_array($source, ['reservation', 'exceptional'], true)) {
+                        EventSlotHistory::query()->create([
+                            'event_slot_id' => $targetSlot->id,
+                            'event_id' => $event->id,
+                            'user_id' => $previousWinnerId,
+                            'ally_id' => null,
+                            'action' => 'unassigned',
+                            'from_slot_key' => $targetSlot->slot_key,
+                            'from_slot_name' => $targetSlot->name,
+                            'from_slot_type_id' => $targetSlot->slot_type_id,
+                            'from_slot_group' => $targetSlot->slot_group,
+                            'from_army_id' => $targetSlot->faction?->army_id,
+                            'to_slot_key' => null,
+                            'to_slot_name' => null,
+                            'to_slot_type_id' => null,
+                            'to_slot_group' => null,
+                            'to_army_id' => null,
+                            'changed_by_user_id' => $locked->created_by,
+                            'created_at' => now(),
+                        ]);
 
-                        if (! $originalOccupied) {
-                            $originalFactionId = (int) ($originalSnapshot['group']['faction_id'] ?? 0);
-                            $originalArmyId = Faction::query()->whereKey($originalFactionId)->value('army_id');
-                            $from = [
-                                'slot_key' => $targetSlot->slot_key,
-                                'name' => $targetSlot->name,
-                                'slot_type_id' => $targetSlot->slot_type_id,
-                                'slot_group' => $targetSlot->slot_group,
-                                'army_id' => $targetSlot->faction?->army_id,
-                            ];
-                            $to = [
-                                'slot_key' => (string) $candidate->current_slot_key,
-                                'name' => (string) ($originalSnapshot['slot']['name'] ?? $candidate->current_slot_name ?? 'Slot'),
-                                'slot_type_id' => (int) ($originalSnapshot['slot']['slot_type_id'] ?? $candidate->current_slot_type_id),
-                                'slot_group' => (string) ($originalSnapshot['group']['name'] ?? ''),
-                                'faction_id' => $originalFactionId,
-                                'army_id' => $originalArmyId,
-                            ];
+                        $targetSlot->delete();
 
-                            if ($originalSlot) {
-                                $targetSlot->forceFill([
-                                    'user_id' => null,
-                                    'ally_id' => null,
-                                ])->save();
+                        if ($source === 'reservation') {
+                            EventReservation::query()->firstOrCreate(
+                                [
+                                    'event_id' => $event->id,
+                                    'user_id' => $previousWinnerId,
+                                ],
+                                [
+                                    'created_by' => $locked->created_by,
+                                ],
+                            );
+                        }
 
-                                $originalSlot->forceFill([
-                                    'name' => $to['name'],
-                                    'slot_type_id' => $to['slot_type_id'],
-                                    'slot_group' => $to['slot_group'],
-                                    'faction_id' => $to['faction_id'],
+                        $restored = true;
+                    }
+
+                    if (! $restored) {
+                        $originalSnapshot = $candidate->current_slot_key
+                            ? $this->findVisibleOrbatSlot($event, $candidate->current_slot_key)
+                            : null;
+
+                        if ($originalSnapshot && $candidate->current_slot_key !== $locked->target_slot_key) {
+                            $originalSlot = EventSlot::query()
+                                ->where('event_id', $event->id)
+                                ->where('slot_key', $candidate->current_slot_key)
+                                ->with('faction')
+                                ->lockForUpdate()
+                                ->first();
+
+                            $originalOccupied = $originalSlot
+                                && ($originalSlot->user_id || $originalSlot->ally_id);
+
+                            if (! $originalOccupied) {
+                                $originalFactionId = (int) ($originalSnapshot['group']['faction_id'] ?? 0);
+                                $originalArmyId = Faction::query()->whereKey($originalFactionId)->value('army_id');
+                                $from = [
+                                    'slot_key' => $targetSlot->slot_key,
+                                    'name' => $targetSlot->name,
+                                    'slot_type_id' => $targetSlot->slot_type_id,
+                                    'slot_group' => $targetSlot->slot_group,
+                                    'army_id' => $targetSlot->faction?->army_id,
+                                ];
+                                $to = [
+                                    'slot_key' => (string) $candidate->current_slot_key,
+                                    'name' => (string) ($originalSnapshot['slot']['name'] ?? $candidate->current_slot_name ?? 'Slot'),
+                                    'slot_type_id' => (int) ($originalSnapshot['slot']['slot_type_id'] ?? $candidate->current_slot_type_id),
+                                    'slot_group' => (string) ($originalSnapshot['group']['name'] ?? ''),
+                                    'faction_id' => $originalFactionId,
+                                    'army_id' => $originalArmyId,
+                                ];
+
+                                if ($originalSlot) {
+                                    $targetSlot->forceFill([
+                                        'user_id' => null,
+                                        'ally_id' => null,
+                                    ])->save();
+
+                                    $originalSlot->forceFill([
+                                        'name' => $to['name'],
+                                        'slot_type_id' => $to['slot_type_id'],
+                                        'slot_group' => $to['slot_group'],
+                                        'faction_id' => $to['faction_id'],
+                                        'user_id' => $previousWinnerId,
+                                        'ally_id' => null,
+                                    ])->save();
+
+                                    $historySlot = $originalSlot;
+                                } else {
+                                    $targetSlot->forceFill([
+                                        'slot_key' => $to['slot_key'],
+                                        'name' => $to['name'],
+                                        'slot_type_id' => $to['slot_type_id'],
+                                        'slot_group' => $to['slot_group'],
+                                        'faction_id' => $to['faction_id'],
+                                        'user_id' => $previousWinnerId,
+                                        'ally_id' => null,
+                                    ])->save();
+
+                                    $historySlot = $targetSlot;
+                                }
+
+                                EventSlotHistory::query()->create([
+                                    'event_slot_id' => $historySlot->id,
+                                    'event_id' => $event->id,
                                     'user_id' => $previousWinnerId,
                                     'ally_id' => null,
-                                ])->save();
+                                    'action' => 'moved',
+                                    'from_slot_key' => $from['slot_key'],
+                                    'from_slot_name' => $from['name'],
+                                    'from_slot_type_id' => $from['slot_type_id'],
+                                    'from_slot_group' => $from['slot_group'],
+                                    'from_army_id' => $from['army_id'],
+                                    'to_slot_key' => $to['slot_key'],
+                                    'to_slot_name' => $to['name'],
+                                    'to_slot_type_id' => $to['slot_type_id'],
+                                    'to_slot_group' => $to['slot_group'],
+                                    'to_army_id' => $to['army_id'],
+                                    'changed_by_user_id' => $locked->created_by,
+                                    'created_at' => now(),
+                                ]);
 
-                                $historySlot = $originalSlot;
-                            } else {
-                                $targetSlot->forceFill([
-                                    'slot_key' => $to['slot_key'],
-                                    'name' => $to['name'],
-                                    'slot_type_id' => $to['slot_type_id'],
-                                    'slot_group' => $to['slot_group'],
-                                    'faction_id' => $to['faction_id'],
-                                    'user_id' => $previousWinnerId,
-                                    'ally_id' => null,
-                                ])->save();
-
-                                $historySlot = $targetSlot;
+                                $restored = true;
                             }
-
-                            EventSlotHistory::query()->create([
-                                'event_slot_id' => $historySlot->id,
-                                'event_id' => $event->id,
-                                'user_id' => $previousWinnerId,
-                                'ally_id' => null,
-                                'action' => 'moved',
-                                'from_slot_key' => $from['slot_key'],
-                                'from_slot_name' => $from['name'],
-                                'from_slot_type_id' => $from['slot_type_id'],
-                                'from_slot_group' => $from['slot_group'],
-                                'from_army_id' => $from['army_id'],
-                                'to_slot_key' => $to['slot_key'],
-                                'to_slot_name' => $to['name'],
-                                'to_slot_type_id' => $to['slot_type_id'],
-                                'to_slot_group' => $to['slot_group'],
-                                'to_army_id' => $to['army_id'],
-                                'changed_by_user_id' => $locked->created_by,
-                                'created_at' => now(),
-                            ]);
-
-                            $restored = true;
                         }
                     }
 
@@ -1108,18 +1351,39 @@ class CommunityRouletteService
                 return;
             }
 
-            if (! $currentSlot) {
+            $winnerCandidate = CommunityRouletteCandidate::query()
+                ->where('room_id', $room->id)
+                ->where('user_id', $winner->id)
+                ->first();
+            $winnerSource = (string) data_get(
+                $winnerCandidate?->details ?? [],
+                'current.source',
+                'orbat',
+            );
+
+            $reservation = EventReservation::query()
+                ->where('event_id', $event->id)
+                ->where('user_id', $winner->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $currentSlot && ! in_array($winnerSource, ['reservation', 'exceptional'], true)) {
                 $this->failLocked($room, 'El ganador ya no está asignado al ORBAT de este evento.');
                 return;
             }
 
-            $from = [
+            if (! $currentSlot && $winnerSource === 'reservation' && ! $reservation) {
+                $this->failLocked($room, 'El ganador ya no figura en la cola de reservas del evento.');
+                return;
+            }
+
+            $from = $currentSlot ? [
                 'slot_key' => $currentSlot->slot_key,
                 'name' => $currentSlot->name,
                 'slot_type_id' => $currentSlot->slot_type_id,
                 'slot_group' => $currentSlot->slot_group,
                 'army_id' => $currentSlot->faction?->army_id,
-            ];
+            ] : null;
 
             $targetFactionId = (int) ($targetSnapshot['group']['faction_id'] ?? 0);
             $targetArmyId = Faction::query()->whereKey($targetFactionId)->value('army_id');
@@ -1133,10 +1397,12 @@ class CommunityRouletteService
             ];
 
             if ($targetSlot) {
-                $currentSlot->forceFill([
-                    'user_id' => null,
-                    'ally_id' => null,
-                ])->save();
+                if ($currentSlot) {
+                    $currentSlot->forceFill([
+                        'user_id' => null,
+                        'ally_id' => null,
+                    ])->save();
+                }
 
                 $targetSlot->forceFill([
                     'name' => $to['name'],
@@ -1148,7 +1414,7 @@ class CommunityRouletteService
                 ])->save();
 
                 $eventSlot = $targetSlot;
-            } else {
+            } elseif ($currentSlot) {
                 $currentSlot->forceFill([
                     'slot_key' => $to['slot_key'],
                     'name' => $to['name'],
@@ -1160,6 +1426,21 @@ class CommunityRouletteService
                 ])->save();
 
                 $eventSlot = $currentSlot;
+            } else {
+                $eventSlot = EventSlot::query()->create([
+                    'event_id' => $event->id,
+                    'slot_key' => $to['slot_key'],
+                    'name' => $to['name'],
+                    'slot_type_id' => $to['slot_type_id'],
+                    'slot_group' => $to['slot_group'],
+                    'faction_id' => $to['faction_id'],
+                    'user_id' => $winner->id,
+                    'ally_id' => null,
+                ]);
+            }
+
+            if ($reservation) {
+                $reservation->delete();
             }
 
             EventSlotHistory::query()->create([
@@ -1167,12 +1448,12 @@ class CommunityRouletteService
                 'event_id' => $event->id,
                 'user_id' => $winner->id,
                 'ally_id' => null,
-                'action' => 'moved',
-                'from_slot_key' => $from['slot_key'],
-                'from_slot_name' => $from['name'],
-                'from_slot_type_id' => $from['slot_type_id'],
-                'from_slot_group' => $from['slot_group'],
-                'from_army_id' => $from['army_id'],
+                'action' => $from ? 'moved' : 'assigned',
+                'from_slot_key' => $from['slot_key'] ?? null,
+                'from_slot_name' => $from['name'] ?? null,
+                'from_slot_type_id' => $from['slot_type_id'] ?? null,
+                'from_slot_group' => $from['slot_group'] ?? null,
+                'from_army_id' => $from['army_id'] ?? null,
                 'to_slot_key' => $to['slot_key'],
                 'to_slot_name' => $to['name'],
                 'to_slot_type_id' => $to['slot_type_id'],
@@ -1325,11 +1606,95 @@ class CommunityRouletteService
             ->with(['user.status', 'slotType'])
             ->get()
             ->filter(fn (EventSlot $slot): bool => $slot->user !== null)
-            ->sortBy(fn (EventSlot $slot): string => mb_strtolower((string) $slot->user?->nick))
             ->values();
 
-        $userIds = $currentSlots->pluck('user_id')->filter()->unique()->values();
-        $previousIds = $room->previousEvents->pluck('event_id')->filter()->map(fn ($id): int => (int) $id)->all();
+        $reservations = EventReservation::query()
+            ->where('event_id', $room->event_id)
+            ->with(['user.status'])
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (EventReservation $reservation): bool => $reservation->user !== null)
+            ->values();
+
+        // Los añadidos excepcionalmente sobreviven a "Recalcular papeletas",
+        // pero sus ajustes manuales se reinician a 0 y vuelven a pasar por todas
+        // las reglas automáticas.
+        $exceptionalUserIds = CommunityRouletteCandidate::query()
+            ->where('room_id', $room->id)
+            ->where('is_exceptional', true)
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $entries = collect();
+        $seenUserIds = collect();
+
+        foreach ($currentSlots as $currentSlot) {
+            $user = $currentSlot->user;
+            if (! $user || $seenUserIds->contains((int) $user->id)) {
+                continue;
+            }
+
+            $entries->push([
+                'user' => $user,
+                'current_slot' => $currentSlot,
+                'source' => 'orbat',
+                'is_exceptional' => false,
+            ]);
+            $seenUserIds->push((int) $user->id);
+        }
+
+        foreach ($reservations as $reservation) {
+            $user = $reservation->user;
+            if (! $user || $seenUserIds->contains((int) $user->id)) {
+                continue;
+            }
+
+            $entries->push([
+                'user' => $user,
+                'current_slot' => null,
+                'source' => 'reservation',
+                'is_exceptional' => false,
+            ]);
+            $seenUserIds->push((int) $user->id);
+        }
+
+        if ($exceptionalUserIds->isNotEmpty()) {
+            User::query()
+                ->with('status')
+                ->whereIn('id', $exceptionalUserIds)
+                ->get()
+                ->each(function (User $user) use ($entries, $seenUserIds): void {
+                    if ($seenUserIds->contains((int) $user->id)) {
+                        return;
+                    }
+
+                    $entries->push([
+                        'user' => $user,
+                        'current_slot' => null,
+                        'source' => 'exceptional',
+                        'is_exceptional' => true,
+                    ]);
+                    $seenUserIds->push((int) $user->id);
+                });
+        }
+
+        $entries = $entries
+            ->sortBy(fn (array $entry): string => mb_strtolower((string) $entry['user']->nick))
+            ->values();
+
+        $userIds = $entries
+            ->map(fn (array $entry): int => (int) $entry['user']->id)
+            ->unique()
+            ->values();
+        $previousIds = $room->previousEvents
+            ->pluck('event_id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->all();
         $previousSnapshots = $room->previousEvents->keyBy('event_id');
 
         $historicalSlots = collect();
@@ -1339,7 +1704,7 @@ class CommunityRouletteService
                 ->whereIn('user_id', $userIds)
                 ->with(['slotType'])
                 ->get()
-                ->keyBy(fn (EventSlot $slot): string => $slot->event_id . ':' . $slot->user_id);
+                ->keyBy(fn (EventSlot $slot): string => $slot->event_id.':'.$slot->user_id);
         }
 
         $previousWinnerIds = CommunityRouletteCandidate::query()
@@ -1356,116 +1721,157 @@ class CommunityRouletteService
 
         $membershipCutoff = now()->subMonthsNoOverflow(3)->startOfDay();
 
-        foreach ($currentSlots as $currentSlot) {
-            $user = $currentSlot->user;
-            if (! $user) {
+        foreach ($entries as $entry) {
+            CommunityRouletteCandidate::query()->create(
+                $this->candidatePayload(
+                    room: $room,
+                    user: $entry['user'],
+                    currentSlot: $entry['current_slot'],
+                    source: $entry['source'],
+                    isExceptional: (bool) $entry['is_exceptional'],
+                    rules: $rules,
+                    historicalSlots: $historicalSlots,
+                    previousSnapshots: $previousSnapshots,
+                    previousWinnerIds: $previousWinnerIds,
+                    membershipCutoff: $membershipCutoff,
+                )
+            );
+        }
+    }
+
+    private function candidatePayload(
+        CommunityRouletteRoom $room,
+        User $user,
+        ?EventSlot $currentSlot,
+        string $source,
+        bool $isExceptional,
+        Collection $rules,
+        Collection $historicalSlots,
+        Collection $previousSnapshots,
+        array $previousWinnerIds,
+        $membershipCutoff,
+    ): array {
+        $user->loadMissing('status');
+
+        $statusName = strtoupper(trim((string) $user->status?->name));
+        $memberAt = $user->member_at;
+        $exclusions = [];
+        $history = [];
+        $previousResponsibilityCount = 0;
+        $wasPreviousHq = false;
+
+        foreach ($room->previousEvents as $previousSelection) {
+            if (! $previousSelection->event_id) {
                 continue;
             }
 
-            $statusName = strtoupper(trim((string) $user->status?->name));
-            $memberAt = $user->member_at;
-            $exclusions = [];
-            $history = [];
-            $previousResponsibilityCount = 0;
-            $wasPreviousHq = false;
-
-            foreach ($room->previousEvents as $previousSelection) {
-                if (! $previousSelection->event_id) {
-                    continue;
-                }
-
-                $historicalSlot = $historicalSlots->get($previousSelection->event_id . ':' . $user->id);
-                if (! $historicalSlot) {
-                    continue;
-                }
-
-                $rule = $rules->get($historicalSlot->slot_type_id);
-                $isHq = (bool) ($rule?->is_hq)
-                    || $this->isHqSlotTypeName((string) $historicalSlot->slotType?->name);
-                $isResponsibility = $isHq || (bool) ($rule?->is_responsibility);
-
-                if ($isResponsibility) {
-                    $previousResponsibilityCount++;
-                }
-
-                if ($isHq) {
-                    $wasPreviousHq = true;
-                }
-
-                $snapshot = $previousSnapshots->get($previousSelection->event_id);
-                $history[] = [
-                    'event_id' => (int) $previousSelection->event_id,
-                    'event_name' => $snapshot?->event_name_snapshot ?: 'Evento',
-                    'event_date' => $snapshot?->event_date_snapshot?->format('d/m/Y'),
-                    'slot_name' => $historicalSlot->name,
-                    'slot_type' => $historicalSlot->slotType?->name ?: 'Sin tipo',
-                    'responsibility' => $isResponsibility,
-                    'hq' => $isHq,
-                ];
+            $historicalSlot = $historicalSlots->get($previousSelection->event_id.':'.$user->id);
+            if (! $historicalSlot) {
+                continue;
             }
 
-            $currentRule = $rules->get($currentSlot->slot_type_id);
-            $currentIsHq = (bool) ($currentRule?->is_hq)
-                || $this->isHqSlotTypeName((string) $currentSlot->slotType?->name);
-            $currentIsResponsibility = $currentIsHq || (bool) ($currentRule?->is_responsibility);
+            $rule = $rules->get($historicalSlot->slot_type_id);
+            $isHq = (bool) ($rule?->is_hq)
+                || $this->isHqSlotTypeName((string) $historicalSlot->slotType?->name);
+            $isResponsibility = $isHq || (bool) ($rule?->is_responsibility);
 
-            if ($statusName === 'RECLUTA') {
-                $exclusions[] = 'Recluta: 0 papeletas';
+            if ($isResponsibility) {
+                $previousResponsibilityCount++;
             }
 
-            // La antigüedad mínima solo condiciona a los miembros ACTIVO.
-            // Un RESERVA no queda fuera por tener member_at reciente o vacío.
-            if ($statusName === 'ACTIVO') {
-                if (! $memberAt) {
-                    $exclusions[] = 'Sin fecha de alta como miembro: 0 papeletas';
-                } elseif ($memberAt->startOfDay()->gt($membershipCutoff)) {
-                    $exclusions[] = 'Menos de 3 meses como miembro: 0 papeletas';
-                }
+            if ($isHq) {
+                $wasPreviousHq = true;
             }
 
-            $wasAlreadyDrawn = in_array((int) $user->id, $previousWinnerIds, true);
-            if ($wasAlreadyDrawn) {
-                $exclusions[] = 'Ganador anterior descartado para repetir el sorteo';
-            }
-
-            if ($currentIsResponsibility) {
-                $exclusions[] = 'Responsabilidad en la partida actual: 0 papeletas';
-            }
-
-            if ($wasPreviousHq) {
-                $exclusions[] = 'Mando global en una de las 3 partidas anteriores: 0 papeletas';
-            }
-
-            $tickets = $exclusions !== []
-                ? 0
-                : max(1, 4 - $previousResponsibilityCount);
-
-            CommunityRouletteCandidate::query()->create([
-                'room_id' => $room->id,
-                'user_id' => $user->id,
-                'nick_snapshot' => $user->nick,
-                'status_snapshot' => $statusName ?: null,
-                'member_at_snapshot' => $memberAt,
-                'current_slot_key' => $currentSlot->slot_key,
-                'current_slot_name' => $currentSlot->name,
-                'current_slot_type_id' => $currentSlot->slot_type_id,
-                'base_tickets' => 4,
-                'tickets' => $tickets,
-                'previous_responsibility_count' => min(3, $previousResponsibilityCount),
-                'excluded_reason' => $exclusions !== [] ? implode(' · ', $exclusions) : null,
-                'details' => [
-                    'current' => [
-                        'slot_name' => $currentSlot->name,
-                        'slot_type' => $currentSlot->slotType?->name ?: 'Sin tipo',
-                        'responsibility' => $currentIsResponsibility,
-                        'hq' => $currentIsHq,
-                    ],
-                    'history' => $history,
-                    'exclusions' => $exclusions,
-                ],
-                'is_winner' => $wasAlreadyDrawn,
-            ]);
+            $snapshot = $previousSnapshots->get($previousSelection->event_id);
+            $history[] = [
+                'event_id' => (int) $previousSelection->event_id,
+                'event_name' => $snapshot?->event_name_snapshot ?: 'Evento',
+                'event_date' => $snapshot?->event_date_snapshot?->format('d/m/Y'),
+                'slot_name' => $historicalSlot->name,
+                'slot_type' => $historicalSlot->slotType?->name ?: 'Sin tipo',
+                'responsibility' => $isResponsibility,
+                'hq' => $isHq,
+            ];
         }
+
+        $currentRule = $currentSlot
+            ? $rules->get($currentSlot->slot_type_id)
+            : null;
+        $currentIsHq = $currentSlot
+            ? ((bool) ($currentRule?->is_hq)
+                || $this->isHqSlotTypeName((string) $currentSlot->slotType?->name))
+            : false;
+        $currentIsResponsibility = $currentSlot
+            ? ($currentIsHq || (bool) ($currentRule?->is_responsibility))
+            : false;
+
+        if ($statusName === 'RECLUTA') {
+            $exclusions[] = 'Recluta: 0 papeletas';
+        } elseif (! in_array($statusName, ['ACTIVO', 'RESERVA'], true)) {
+            $exclusions[] = 'Estado no elegible para la ruleta: 0 papeletas';
+        }
+
+        if ($statusName === 'ACTIVO') {
+            if (! $memberAt) {
+                $exclusions[] = 'Sin fecha de alta como miembro: 0 papeletas';
+            } elseif ($memberAt->copy()->startOfDay()->gt($membershipCutoff)) {
+                $exclusions[] = 'Menos de 3 meses como miembro: 0 papeletas';
+            }
+        }
+
+        $wasAlreadyDrawn = in_array((int) $user->id, $previousWinnerIds, true);
+        if ($wasAlreadyDrawn) {
+            $exclusions[] = 'Ganador anterior descartado para repetir el sorteo';
+        }
+
+        if ($currentIsResponsibility) {
+            $exclusions[] = 'Responsabilidad en la partida actual: 0 papeletas';
+        }
+
+        if ($wasPreviousHq) {
+            $exclusions[] = 'Mando global en una de las 3 partidas anteriores: 0 papeletas';
+        }
+
+        $automaticTickets = $exclusions !== []
+            ? 0
+            : max(1, 4 - $previousResponsibilityCount);
+
+        $currentLabel = match ($source) {
+            'reservation' => 'Reserva del evento',
+            'exceptional' => 'Añadido excepcionalmente',
+            default => $currentSlot?->slotType?->name ?: 'Sin tipo',
+        };
+
+        return [
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'nick_snapshot' => $user->nick,
+            'status_snapshot' => $statusName ?: null,
+            'member_at_snapshot' => $memberAt,
+            'current_slot_key' => $currentSlot?->slot_key,
+            'current_slot_name' => $currentSlot?->name,
+            'current_slot_type_id' => $currentSlot?->slot_type_id,
+            'base_tickets' => 4,
+            'tickets' => $automaticTickets,
+            'manual_ticket_adjustment' => 0,
+            'is_exceptional' => $isExceptional,
+            'previous_responsibility_count' => min(3, $previousResponsibilityCount),
+            'excluded_reason' => $exclusions !== [] ? implode(' · ', $exclusions) : null,
+            'details' => [
+                'current' => [
+                    'source' => $source,
+                    'slot_name' => $currentSlot?->name ?: $currentLabel,
+                    'slot_type' => $currentLabel,
+                    'responsibility' => $currentIsResponsibility,
+                    'hq' => $currentIsHq,
+                ],
+                'automatic_tickets' => $automaticTickets,
+                'history' => $history,
+                'exclusions' => $exclusions,
+            ],
+            'is_winner' => $wasAlreadyDrawn,
+        ];
     }
 
     private function relevantSlotTypeIds(CommunityRouletteRoom $room): array

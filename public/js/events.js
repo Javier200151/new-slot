@@ -311,6 +311,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         /*
+         * Si la acción ha movido a una persona desde la cola de
+         * reservas al ORBAT, mantenemos también esa sección al día
+         * sin recargar toda la página.
+         */
+        const currentReservations =
+            document.querySelector('#reservas');
+
+        const updatedReservations =
+            documentUpdated.querySelector('#reservas');
+
+        if (currentReservations && updatedReservations) {
+            currentReservations.replaceWith(
+                updatedReservations
+            );
+        }
+
+        /*
          * Pequeño destello sobre el slot modificado.
          */
         if (highlightSlotKey) {
