@@ -11,6 +11,28 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+/*
+ * ORBAT público y actualizado de un evento, con asignaciones y reservas.
+ *
+ * No requiere Bearer Token. Se mantiene rate limiting para evitar abuso.
+ *
+ * GET /api/eventos/404/orbat
+ */
+Route::get(
+    '/eventos/{event}/orbat',
+    [
+        EventOrbatController::class,
+        'show',
+    ]
+)
+    ->whereNumber('event')
+    ->middleware('throttle:60,1')
+    ->name('api.events.orbat');
+
+
+/*
+ * El resto de la API externa continúa protegida mediante Bearer Token.
+ */
 Route::middleware([
     AuthenticateExternalApi::class,
     'throttle:60,1',
@@ -45,18 +67,4 @@ Route::middleware([
                 'show',
             ]
         )->name('users.show');
-
-
-        /*
-         * ORBAT actual de un evento, con asignaciones y reservas.
-         *
-         * GET /api/eventos/404/orbat
-         */
-        Route::get(
-            '/eventos/{event}/orbat',
-            [
-                EventOrbatController::class,
-                'show',
-            ]
-        )->whereNumber('event')->name('events.orbat');
     });
