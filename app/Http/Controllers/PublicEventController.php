@@ -176,6 +176,7 @@ class PublicEventController extends Controller
             'activity.enemyFactions.army.country',
             'activity.enemyFactions.side',
             'slots.user.mainSqaGroup',
+            'slots.user.status',
             'slots.ally',
             'reservations.user.mainSqaGroup',
         ]);
