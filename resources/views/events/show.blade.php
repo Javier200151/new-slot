@@ -1420,13 +1420,7 @@
                                                                 <x-user-link
                                                                     :user="$assignment->user"
                                                                     class="event-orbat__occupant-user"
-                                                                    @style([
-                                                                        '--member-group-color: '
-                                                                        . ($assignment->user->mainSqaGroup?->color ?? '')
-                                                                        => filled(
-                                                                            $assignment->user->mainSqaGroup?->color
-                                                                        ),
-                                                                    ])
+                                                                    style="--member-group-color: {{ $assignment->user->getStatusColor() }};"
                                                                 />
 
                                                                 <button
@@ -1446,13 +1440,7 @@
 
                                                             <strong
                                                                 class="event-orbat__occupant-user"
-                                                                @style([
-                                                                    '--member-group-color: '
-                                                                    . ($assignment->user->mainSqaGroup?->color ?? '')
-                                                                    => filled(
-                                                                        $assignment->user->mainSqaGroup?->color
-                                                                    ),
-                                                                ])
+                                                                style="--member-group-color: {{ $assignment->user->getStatusColor() }};"
                                                             >
                                                                 {{ $assignment->user->nick }}
                                                             </strong>

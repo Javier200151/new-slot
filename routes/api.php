@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\EventOrbatController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Middleware\AuthenticateExternalApi;
 use Illuminate\Support\Facades\Route;
@@ -44,4 +45,18 @@ Route::middleware([
                 'show',
             ]
         )->name('users.show');
+
+
+        /*
+         * ORBAT actual de un evento, con asignaciones y reservas.
+         *
+         * GET /api/eventos/404/orbat
+         */
+        Route::get(
+            '/eventos/{event}/orbat',
+            [
+                EventOrbatController::class,
+                'show',
+            ]
+        )->whereNumber('event')->name('events.orbat');
     });
