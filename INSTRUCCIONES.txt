@@ -1,12 +1,10 @@
-Este hotfix va encima de newslot_diario_titulo_slot_simplificado_hotfix.
+Este hotfix va encima de newslot_api_orbat_status_colors_hotfix.
 
-Cambios:
-- Añadir integrantes al diario mediante lista de usuarios reales de NewSlot.
-- Ya no se pueden escribir/inventar nombres de usuarios manualmente.
-- El backend valida el user_id y guarda el nick real de la cuenta.
-- Si se selecciona un evento, el nombre de la escuadra se detecta automáticamente y queda bloqueado.
-- Si no se selecciona evento, el nombre de escuadra sigue siendo editable.
-- No hay migraciones nuevas.
+Cambio único:
+- GET /api/eventos/{event}/orbat pasa a ser público y no requiere Bearer Token.
+- Mantiene throttle de 60 peticiones por minuto.
+- /api/users y /api/users/{identifier} siguen protegidos por AuthenticateExternalApi.
 
+No hay migraciones.
 Después de copiar:
 php artisan optimize:clear
