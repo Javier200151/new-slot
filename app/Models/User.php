@@ -56,6 +56,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             'birth_at' => 'date',
             'member_at' => 'date',
             'forum_unread_baseline_at' => 'datetime',
+            'diary_unread_baseline_at' => 'datetime',
         ];
     }
 

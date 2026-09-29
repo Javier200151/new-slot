@@ -2103,3 +2103,149 @@
     }
 }
 
+
+/* ================================================================
+   Foro: novedades por categoría + diarios no leídos
+   ================================================================ */
+
+.forum-category-card.has-unread {
+    border-color: color-mix(in srgb, var(--forum-category-color) 82%, #fff 18%);
+    box-shadow:
+        0 14px 34px rgba(0, 0, 0, .22),
+        0 0 0 1px color-mix(in srgb, var(--forum-category-color) 30%, transparent),
+        0 0 28px color-mix(in srgb, var(--forum-category-color) 28%, transparent);
+}
+
+.forum-category-card.has-unread::after {
+    width: 4px;
+    box-shadow:
+        0 0 12px color-mix(in srgb, var(--forum-category-color) 85%, transparent),
+        0 0 28px color-mix(in srgb, var(--forum-category-color) 55%, transparent);
+}
+
+.forum-category-card__unread {
+    display: inline-flex;
+    align-items: center;
+    min-height: 23px;
+    padding: 3px 8px;
+    border: 1px solid color-mix(in srgb, var(--forum-category-color) 58%, transparent);
+    border-radius: 999px;
+    color: #fff;
+    background: color-mix(in srgb, var(--forum-category-color) 20%, rgba(8, 13, 23, .96));
+    box-shadow: 0 0 15px color-mix(in srgb, var(--forum-category-color) 18%, transparent);
+    font-size: .58rem;
+    font-weight: 900;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+}
+
+.forum-unread-button {
+    position: relative;
+}
+
+.forum-unread-button > strong {
+    display: inline-grid;
+    min-width: 22px;
+    min-height: 22px;
+    margin-left: 5px;
+    place-items: center;
+    border-radius: 999px;
+    color: #111827;
+    background: #fbbf24;
+    font-size: .62rem;
+    font-weight: 950;
+    box-shadow: 0 0 15px rgba(251, 191, 36, .25);
+}
+
+.forum-row.is-unread {
+    border-color: rgba(245, 158, 11, .34);
+    box-shadow:
+        0 13px 30px rgba(0, 0, 0, .16),
+        0 0 22px rgba(245, 158, 11, .08);
+}
+
+.forum-row__badges .is-unread {
+    color: #fbbf24;
+    font-weight: 900;
+}
+
+.forum-unread-diaries {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.forum-unread-diaries__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 2px;
+}
+
+.forum-unread-diaries__head > strong {
+    display: inline-grid;
+    min-width: 27px;
+    min-height: 27px;
+    place-items: center;
+    border: 1px solid rgba(245, 158, 11, .24);
+    border-radius: 999px;
+    color: #fbbf24;
+    background: rgba(245, 158, 11, .08);
+    font-size: .66rem;
+}
+
+.forum-row--diary {
+    border-left-color: rgba(245, 158, 11, .72) !important;
+}
+
+/* ================================================================
+   Diario: selector de orden de entradas
+   ================================================================ */
+
+.diary-order-switch {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    margin: -2px 0 16px;
+    flex-wrap: wrap;
+}
+
+.diary-order-switch > span {
+    color: #748196;
+    font-size: .64rem;
+    font-weight: 750;
+}
+
+.diary-order-switch > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 5px 9px;
+    border: 1px solid rgba(148, 163, 184, .14);
+    border-radius: 999px;
+    color: #91a0b4;
+    background: rgba(15, 23, 42, .36);
+    font-size: .62rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+
+.diary-order-switch > a:hover {
+    border-color: rgba(245, 158, 11, .34);
+    color: #f8fafc;
+}
+
+.diary-order-switch > a.is-active {
+    border-color: rgba(245, 158, 11, .38);
+    color: #fbbf24;
+    background: rgba(245, 158, 11, .08);
+}
+
+@media (max-width: 680px) {
+    .diary-order-switch {
+        justify-content: flex-start;
+    }
+}

@@ -88,12 +88,16 @@ class CommunityDiaryController extends Controller
     {
         $this->authorizeDiary($request);
 
+        $entryOrder = $request->query('orden') === 'antiguos'
+            ? 'antiguos'
+            : 'nuevos';
+
         $diary->load([
             'author.status',
             'author.mainSqaGroup',
-            'entries' => fn ($entries) => $entries
-                ->latest('created_at')
-                ->latest('id'),
+            'entries' => fn ($entries) => $entryOrder === 'antiguos'
+                ? $entries->oldest('created_at')->oldest('id')
+                : $entries->latest('created_at')->latest('id'),
             'entries.event.activity.activityType',
             'entries.event.eventStatus',
             'entries.comments.author.status',
@@ -101,6 +105,8 @@ class CommunityDiaryController extends Controller
             'comments.author.status',
             'comments.author.mainSqaGroup',
         ]);
+
+        $diary->markReadBy($request->user());
 
         $authors = collect([$diary->author])
             ->merge($diary->entries->flatMap(
@@ -153,6 +159,7 @@ class CommunityDiaryController extends Controller
             'allUsers' => $allUsers,
             'isSubscribed' => $isSubscribed,
             'teamColors' => self::TEAM_COLORS,
+            'entryOrder' => $entryOrder,
         ]);
     }
 
