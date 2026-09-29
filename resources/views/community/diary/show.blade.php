@@ -47,6 +47,18 @@
         ])
     </div>
 
+    <div class="diary-order-switch" aria-label="Orden de las entradas del diario">
+        <span>Ordenar entradas:</span>
+        <a
+            @class(['is-active' => ($entryOrder ?? 'nuevos') === 'nuevos'])
+            href="{{ route('community.diary.show', ['diary' => $diary, 'orden' => 'nuevos']) }}"
+        >Más nuevas primero</a>
+        <a
+            @class(['is-active' => ($entryOrder ?? 'nuevos') === 'antiguos'])
+            href="{{ route('community.diary.show', ['diary' => $diary, 'orden' => 'antiguos']) }}"
+        >Más antiguas primero</a>
+    </div>
+
     @if(session('status') === 'subscription-enabled')
         <div class="community-flash">🔔 Recibirás avisos cuando haya nuevas entradas o respuestas en este diario.</div>
     @elseif(session('status') === 'subscription-disabled')

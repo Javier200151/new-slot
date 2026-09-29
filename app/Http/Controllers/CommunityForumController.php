@@ -97,6 +97,42 @@ class CommunityForumController extends Controller
             default => null,
         };
 
+        $unreadDiaries = collect();
+
+        if (
+            $filter === 'all'
+            && CommunityForumCategory::canView($user, CommunityForumCategory::DIARY)
+        ) {
+            $diaryQuery = CommunityDiary::query()
+                ->with([
+                    'author.status',
+                    'author.mainSqaGroup',
+                ])
+                ->withCount(['entries', 'comments'])
+                ->unreadFor($user);
+
+            if ($search !== '') {
+                $diaryQuery->where(function ($builder) use ($search): void {
+                    $builder
+                        ->where('author_nick', 'like', "%{$search}%")
+                        ->orWhereHas(
+                            'author',
+                            fn ($author) => $author->where('nick', 'like', "%{$search}%"),
+                        )
+                        ->orWhereHas(
+                            'entries',
+                            fn ($entries) => $entries
+                                ->where('entry_title', 'like', "%{$search}%")
+                                ->orWhere('content', 'like', "%{$search}%"),
+                        );
+                });
+            }
+
+            $unreadDiaries = $diaryQuery
+                ->latest('updated_at')
+                ->get();
+        }
+
         $posts = $query
             ->latest('updated_at')
             ->paginate(20)
@@ -110,6 +146,7 @@ class CommunityForumController extends Controller
             'category' => null,
             'categoryKey' => null,
             'posts' => $posts,
+            'unreadDiaries' => $unreadDiaries,
             'search' => $search,
             'filter' => $filter,
             'canCreate' => false,
@@ -560,7 +597,7 @@ class CommunityForumController extends Controller
                             ? 'Diario de ' . ($lastDiary->author?->nick ?: $lastDiary->author_nick)
                             : null,
                         'can_create' => $myDiaryExists || $canStartDiary,
-                        'unread_count' => 0,
+                        'unread_count' => CommunityDiary::query()->unreadFor($user)->count(),
                     ];
                 }
 
@@ -902,9 +939,17 @@ class CommunityForumController extends Controller
 
     private function unreadForumCount(User $user): int
     {
-        return $this->visibleForumPostQuery($user)
+        $count = $this->visibleForumPostQuery($user)
             ->unreadFor($user)
             ->count();
+
+        if (CommunityForumCategory::canView($user, CommunityForumCategory::DIARY)) {
+            $count += CommunityDiary::query()
+                ->unreadFor($user)
+                ->count();
+        }
+
+        return $count;
     }
 
     private function canModerate(Request $request, string $categoryKey): bool

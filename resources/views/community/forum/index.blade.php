@@ -258,6 +258,47 @@
             </section>
         @endif
 
+        @if(($isUnreadView ?? false) && ($unreadDiaries ?? collect())->isNotEmpty())
+            <div class="forum-unread-diaries">
+                <div class="forum-unread-diaries__head">
+                    <span class="community-kicker">DIARIOS CON NOVEDADES</span>
+                    <strong>{{ $unreadDiaries->count() }}</strong>
+                </div>
+
+                <div class="forum-list forum-list--real">
+                    @foreach($unreadDiaries as $unreadDiary)
+                        @php
+                            $diaryAuthor = $unreadDiary->author;
+                            $diaryAuthorName = $diaryAuthor?->nick ?: $unreadDiary->author_nick;
+                        @endphp
+
+                        <article class="forum-row forum-row--real forum-row--diary is-unread">
+                            <a class="forum-row__main" href="{{ route('community.diary.show', $unreadDiary) }}">
+                                <div class="forum-row__badges">
+                                    <span class="is-unread">● Nuevo</span>
+                                    <span class="is-category">Diarios</span>
+                                </div>
+                                <h3>Diario de {{ $diaryAuthorName }}</h3>
+                                <div class="forum-row__meta">
+                                    <span class="thread-author-label">AUTOR</span>
+                                    <span
+                                        class="forum-row__author"
+                                        style="--author-color: {{ $diaryAuthor?->getFrontendColor() ?? '#fff' }}"
+                                    >{{ $diaryAuthorName }}</span>
+                                    · última actividad {{ $unreadDiary->updated_at->format('d/m/Y H:i') }}
+                                </div>
+                            </a>
+
+                            <div class="forum-row__stats">
+                                <strong>{{ $unreadDiary->entries_count }}</strong><span>entradas</span>
+                                <small>{{ $unreadDiary->comments_count }} comentarios</small>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="forum-list forum-list--real">
             @forelse($posts as $post)
                 @php
@@ -315,11 +356,13 @@
                     @endif
                 </article>
             @empty
-                <div class="community-empty">
-                    {{ ($isUnreadView ?? false)
-                        ? 'No tienes mensajes nuevos pendientes de leer.'
-                        : 'Todavía no hay hilos en esta categoría.' }}
-                </div>
+                @if(!($isUnreadView ?? false) || ($unreadDiaries ?? collect())->isEmpty())
+                    <div class="community-empty">
+                        {{ ($isUnreadView ?? false)
+                            ? 'No tienes mensajes nuevos pendientes de leer.'
+                            : 'Todavía no hay hilos en esta categoría.' }}
+                    </div>
+                @endif
             @endforelse
         </div>
 
