@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CommunityRouletteRoom;
 use App\Models\Event;
+use App\Models\User;
 use App\Services\CommunityRouletteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -108,11 +109,16 @@ class CommunityRouletteController extends Controller
         ]);
         $this->roulette->heartbeat($room, $request->user());
 
+        $canControl = $this->roulette->canControlRoom($request->user(), $room);
+
         return view('community.roulette.show', [
             'room' => $room,
             'previousEventOptions' => $this->roulette->previousEventOptions($room->event),
-            'canControl' => $this->roulette->canControlRoom($request->user(), $room),
+            'canControl' => $canControl,
             'initialState' => $this->roulette->state($room, $request->user()),
+            'exceptionalCandidateOptions' => $canControl
+                ? $this->roulette->exceptionalCandidateOptions($room)
+                : collect(),
         ]);
     }
 
@@ -145,7 +151,73 @@ class CommunityRouletteController extends Controller
 
         return redirect()
             ->route('community.roulette.show', $room)
-            ->with('roulette_status', 'Criterios recalculados. Las papeletas se han actualizado.');
+            ->with('roulette_status', 'Criterios recalculados. Las papeletas automáticas se han actualizado y los ajustes manuales se han reiniciado.');
+    }
+
+    public function addCandidate(Request $request, CommunityRouletteRoom $room): RedirectResponse
+    {
+        $this->assertCanView($request);
+
+        $validated = $request->validate([
+            'user_id' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->whereNull('deleted_at'),
+            ],
+        ]);
+
+        $candidateUser = User::query()->findOrFail((int) $validated['user_id']);
+        $this->roulette->addExceptionalCandidate(
+            $room,
+            $request->user(),
+            $candidateUser,
+        );
+
+        return redirect()
+            ->route('community.roulette.show', $room)
+            ->with('roulette_status', $candidateUser->nick.' añadido excepcionalmente a la ruleta.');
+    }
+
+    public function removeCandidate(
+        Request $request,
+        CommunityRouletteRoom $room,
+        int $user,
+    ): RedirectResponse {
+        $this->assertCanView($request);
+        $this->roulette->removeExceptionalCandidate(
+            $room,
+            $request->user(),
+            $user,
+        );
+
+        return redirect()
+            ->route('community.roulette.show', $room)
+            ->with('roulette_status', 'Participante excepcional eliminado de esta sala.');
+    }
+
+    public function adjustCandidateTickets(
+        Request $request,
+        CommunityRouletteRoom $room,
+        int $user,
+    ): RedirectResponse {
+        $this->assertCanView($request);
+
+        $validated = $request->validate([
+            'delta' => ['nullable', 'integer', 'between:-50,50'],
+            'reset' => ['nullable', 'boolean'],
+        ]);
+
+        $this->roulette->adjustCandidateTickets(
+            $room,
+            $request->user(),
+            $user,
+            (int) ($validated['delta'] ?? 0),
+            (bool) ($validated['reset'] ?? false),
+        );
+
+        return redirect()
+            ->route('community.roulette.show', $room)
+            ->with('roulette_status', 'Ajuste manual de papeletas aplicado.');
     }
 
     public function spin(Request $request, CommunityRouletteRoom $room): JsonResponse

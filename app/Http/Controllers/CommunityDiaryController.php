@@ -8,6 +8,7 @@ use App\Models\CommunityDiaryEntry;
 use App\Models\Event;
 use App\Models\EventSlot;
 use App\Models\EventSlotHistory;
+use App\Models\User;
 use App\Services\CommunitySubscriptionService;
 use App\Support\CommunityArea;
 use Illuminate\Http\JsonResponse;
@@ -112,18 +113,33 @@ class CommunityDiaryController extends Controller
         $this->hydrateAuthorActivity($authors);
 
         $isOwner = $diary->user_id === $request->user()->id;
-        $missingEvents = collect();
+        $availableEvents = collect();
+        $allUsers = collect();
 
         if ($isOwner) {
             $eventIds = $this->participatedEventIds($request->user()->id);
             $existingEventIds = $diary->entries->pluck('event_id')->filter();
 
-            $missingEvents = Event::query()
+            $availableEvents = Event::query()
                 ->with(['activity.activityType', 'eventStatus'])
                 ->whereIn('id', $eventIds)
                 ->whereNotIn('id', $existingEventIds)
                 ->latest('date')
                 ->get();
+
+            $allUsers = User::query()
+                ->with(['status', 'mainSqaGroup'])
+                ->orderBy('nick')
+                ->get()
+                ->map(fn (User $user): array => [
+                    'user_id' => (int) $user->id,
+                    'nick' => (string) $user->nick,
+                    'avatar' => filled($user->image)
+                        ? asset('storage/' . ltrim((string) $user->image, '/'))
+                        : asset('images/sqa-shield-white.png'),
+                    'profile_color' => $user->getFrontendColor(),
+                ])
+                ->values();
         }
 
         $isSubscribed = $diary->subscriptions()
@@ -133,7 +149,8 @@ class CommunityDiaryController extends Controller
         return view('community.diary.show', [
             'diary' => $diary,
             'isOwner' => $isOwner,
-            'missingEvents' => $missingEvents,
+            'availableEvents' => $availableEvents,
+            'allUsers' => $allUsers,
             'isSubscribed' => $isSubscribed,
             'teamColors' => self::TEAM_COLORS,
         ]);
@@ -150,12 +167,16 @@ class CommunityDiaryController extends Controller
         );
 
         $squad = $this->squadMembersForEvent($request->user()->id, $event);
+        $participants = $this->eventParticipantPool($event, $request->user()->id)
+            ->values()
+            ->all();
 
         return response()->json([
             'event_id' => $event->id,
             'event_name' => $event->name,
             'group' => $squad['group'],
             'members' => $squad['members'],
+            'available_members' => $participants,
             'colors' => self::TEAM_COLORS,
         ]);
     }
@@ -169,37 +190,73 @@ class CommunityDiaryController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
-            'event_id' => ['required', 'integer', 'exists:events,id'],
+            'event_id' => ['nullable', 'integer', 'exists:events,id'],
+            'entry_title' => ['nullable', 'string', 'min:2', 'max:255'],
             'content' => ['required', 'string', 'min:10', 'max:30000'],
+            'squad_group' => ['nullable', 'string', 'max:255'],
             'squad_roster' => ['nullable', 'string', 'max:30000'],
         ]);
 
-        $eventId = (int) $validated['event_id'];
-        abort_unless(
-            $this->participatedEventIds($request->user()->id)->contains($eventId),
-            403,
-            'Solo puedes escribir sobre eventos en los que hayas participado.'
-        );
+        $event = null;
+        $eventId = filled($validated['event_id'] ?? null)
+            ? (int) $validated['event_id']
+            : null;
 
-        $event = Event::query()->findOrFail($eventId);
-        $squad = $this->squadMembersForEvent($request->user()->id, $event);
+        $detectedGroup = null;
+
+        if ($eventId) {
+            abort_unless(
+                $this->participatedEventIds($request->user()->id)->contains($eventId),
+                403,
+                'Solo puedes escribir sobre eventos en los que hayas participado.'
+            );
+
+            $event = Event::query()->findOrFail($eventId);
+            $detectedGroup = $this->squadMembersForEvent($request->user()->id, $event)['group'];
+        }
+
+        if (! $event && blank($validated['entry_title'] ?? null)) {
+            throw ValidationException::withMessages([
+                'entry_title' => 'Indica un título para la actividad realizada.',
+            ]);
+        }
+
         $squadRoster = $this->validatedSquadRoster(
-            $squad,
+            $event,
+            $request->user()->id,
             $validated['squad_roster'] ?? null,
         );
 
-        CommunityDiaryEntry::updateOrCreate(
-            [
+        $entryPayload = [
+            'entry_title' => $event
+                ? (string) $event->name
+                : trim((string) ($validated['entry_title'] ?? '')),
+            'content' => $validated['content'],
+            'squad_group' => $event
+                ? $detectedGroup
+                : (filled($validated['squad_group'] ?? null)
+                    ? trim((string) $validated['squad_group'])
+                    : null),
+            'squad_roster' => $squadRoster,
+        ];
+
+        if ($eventId) {
+            CommunityDiaryEntry::updateOrCreate(
+                [
+                    'community_diary_id' => $diary->id,
+                    'user_id' => $request->user()->id,
+                    'event_id' => $eventId,
+                ],
+                $entryPayload,
+            );
+        } else {
+            CommunityDiaryEntry::create([
                 'community_diary_id' => $diary->id,
                 'user_id' => $request->user()->id,
-                'event_id' => $eventId,
-            ],
-            [
-                'content' => $validated['content'],
-                'squad_group' => $squad['group'],
-                'squad_roster' => $squadRoster,
-            ],
-        );
+                'event_id' => null,
+                ...$entryPayload,
+            ]);
+        }
 
         $diary->touch();
         $subscriptions->notifyDiary($diary, $request->user(), 'new_entry');
@@ -218,18 +275,42 @@ class CommunityDiaryController extends Controller
         abort_unless($entry->user_id === $request->user()->id, 403);
 
         $validated = $request->validate([
+            'entry_title' => ['nullable', 'string', 'min:2', 'max:255'],
             'content' => ['required', 'string', 'min:10', 'max:30000'],
+            'squad_group' => ['nullable', 'string', 'max:255'],
             'squad_roster' => ['nullable', 'string', 'max:30000'],
         ]);
 
-        $event = Event::query()->findOrFail($entry->event_id);
-        $payload = ['content' => $validated['content']];
+        $event = $entry->event_id
+            ? Event::query()->find($entry->event_id)
+            : null;
+
+        if (! $event && blank($validated['entry_title'] ?? null)) {
+            throw ValidationException::withMessages([
+                'entry_title' => 'Indica un título para la actividad realizada.',
+            ]);
+        }
+
+        $detectedGroup = $event
+            ? $this->squadMembersForEvent($request->user()->id, $event)['group']
+            : null;
+
+        $payload = [
+            'entry_title' => $event
+                ? (string) $event->name
+                : trim((string) ($validated['entry_title'] ?? '')),
+            'content' => $validated['content'],
+            'squad_group' => $event
+                ? $detectedGroup
+                : (filled($validated['squad_group'] ?? null)
+                    ? trim((string) $validated['squad_group'])
+                    : null),
+        ];
 
         if ($request->has('squad_roster')) {
-            $squad = $this->squadMembersForEvent($request->user()->id, $event);
-            $payload['squad_group'] = $squad['group'];
             $payload['squad_roster'] = $this->validatedSquadRoster(
-                $squad,
+                $event,
+                $request->user()->id,
                 $validated['squad_roster'] ?? null,
             );
         }
@@ -417,20 +498,22 @@ class CommunityDiaryController extends Controller
 
     private function squadMembersForEvent(int $userId, Event $event): array
     {
-        $event->loadMissing('slots.user.status', 'slots.user.mainSqaGroup', 'slots.slotType');
+        $participants = $this->eventParticipantPool($event, $userId);
+
+        $event->loadMissing('slots.user.status', 'slots.user.mainSqaGroup');
 
         $ownCurrentSlot = $event->slots
             ->first(fn (EventSlot $slot): bool => (int) $slot->user_id === $userId);
 
-        $ownHistory = EventSlotHistory::query()
-            ->with(['user.status', 'user.mainSqaGroup', 'fromSlotType', 'toSlotType'])
-            ->where('event_id', $event->id)
-            ->where('user_id', $userId)
-            ->latest('created_at')
-            ->get();
-
         $group = trim((string) ($ownCurrentSlot?->slot_group ?? ''));
+
         if ($group === '') {
+            $ownHistory = EventSlotHistory::query()
+                ->where('event_id', $event->id)
+                ->where('user_id', $userId)
+                ->latest('created_at')
+                ->get();
+
             foreach ($ownHistory as $movement) {
                 $candidate = trim((string) ($movement->to_slot_group ?: $movement->from_slot_group));
                 if ($candidate !== '') {
@@ -444,81 +527,100 @@ class CommunityDiaryController extends Controller
             return ['group' => null, 'members' => []];
         }
 
-        $orbatOrder = collect($event->orbat['groups'] ?? [])
-            ->filter(fn (array $item): bool => trim((string) ($item['name'] ?? '')) === $group)
-            ->flatMap(fn (array $item): array => $item['slots'] ?? [])
+        $members = $participants
+            ->filter(fn (array $member): bool => trim((string) ($member['slot_group'] ?? '')) === $group)
+            ->values()
+            ->map(function (array $member): array {
+                unset($member['slot_group'], $member['orbat_order']);
+                return $member;
+            })
+            ->all();
+
+        return [
+            'group' => $group,
+            'members' => $members,
+        ];
+    }
+
+    private function eventParticipantPool(Event $event, int $ownerId): Collection
+    {
+        $event->loadMissing('slots.user.status', 'slots.user.mainSqaGroup');
+
+        $orbatGroups = collect($event->orbat['groups'] ?? []);
+        $groupOrder = $orbatGroups
+            ->values()
+            ->mapWithKeys(fn (array $group, int $index): array => [
+                trim((string) ($group['name'] ?? '')) => $index,
+            ]);
+
+        $slotOrder = $orbatGroups
+            ->flatMap(fn (array $group): array => $group['slots'] ?? [])
             ->values()
             ->mapWithKeys(fn (array $slot, int $index): array => [
                 (string) ($slot['slot_key'] ?? '') => $index,
             ]);
 
-        $members = collect();
+        $participants = collect();
 
-        foreach ($event->slots->where('slot_group', $group) as $slot) {
+        foreach ($event->slots as $slot) {
             if (! $slot->user_id || ! $slot->user) {
                 continue;
             }
 
-            $members->put((int) $slot->user_id, $this->squadMemberPayload(
+            $participants->put((int) $slot->user_id, $this->participantPayload(
                 $slot->user,
                 $slot->name,
-                $slot->slotType?->name,
                 $slot->slot_key,
-                (int) ($orbatOrder[(string) $slot->slot_key] ?? 9999),
-                $userId,
+                $slot->slot_group,
+                (int) ($groupOrder[trim((string) $slot->slot_group)] ?? 9999),
+                (int) ($slotOrder[(string) $slot->slot_key] ?? 9999),
+                $ownerId,
             ));
         }
 
         $history = EventSlotHistory::query()
-            ->with(['user.status', 'user.mainSqaGroup', 'fromSlotType', 'toSlotType'])
+            ->with(['user.status', 'user.mainSqaGroup'])
             ->where('event_id', $event->id)
             ->whereNotNull('user_id')
-            ->where(function ($query) use ($group): void {
-                $query->where('to_slot_group', $group)
-                    ->orWhere('from_slot_group', $group);
-            })
             ->latest('created_at')
             ->get();
 
         foreach ($history as $movement) {
             $memberId = (int) $movement->user_id;
-            if ($memberId < 1 || $members->has($memberId) || ! $movement->user) {
+            if ($memberId < 1 || $participants->has($memberId) || ! $movement->user) {
                 continue;
             }
 
-            $usesTo = trim((string) $movement->to_slot_group) === $group;
-            $slotName = $usesTo ? $movement->to_slot_name : $movement->from_slot_name;
-            $slotTypeName = $usesTo ? $movement->toSlotType?->name : $movement->fromSlotType?->name;
-            $slotKey = $usesTo ? $movement->to_slot_key : $movement->from_slot_key;
-
-            $members->put($memberId, $this->squadMemberPayload(
+            $slotKey = trim((string) ($movement->to_slot_key ?: $movement->from_slot_key));
+            $slotGroup = trim((string) ($movement->to_slot_group ?: $movement->from_slot_group));
+            $slotName = $movement->to_slot_name ?: $movement->from_slot_name;
+            $participants->put($memberId, $this->participantPayload(
                 $movement->user,
                 $slotName,
-                $slotTypeName,
                 $slotKey,
-                (int) ($orbatOrder[(string) $slotKey] ?? 9999),
-                $userId,
+                $slotGroup,
+                (int) ($groupOrder[$slotGroup] ?? 9999),
+                (int) ($slotOrder[$slotKey] ?? 9999),
+                $ownerId,
             ));
         }
 
-        return [
-            'group' => $group,
-            'members' => $members
-                ->sortBy(fn (array $member): string => sprintf('%05d-%s', $member['orbat_order'], mb_strtolower($member['nick'])))
-                ->values()
-                ->map(function (array $member): array {
-                    unset($member['orbat_order']);
-                    return $member;
-                })
-                ->all(),
-        ];
+        return $participants
+            ->sortBy(fn (array $member): string => sprintf(
+                '%05d-%05d-%s',
+                (int) ($member['group_order'] ?? 9999),
+                (int) ($member['orbat_order'] ?? 9999),
+                mb_strtolower((string) ($member['nick'] ?? '')),
+            ))
+            ->values();
     }
 
-    private function squadMemberPayload(
+    private function participantPayload(
         $user,
         ?string $slotName,
-        ?string $slotTypeName,
         ?string $slotKey,
+        ?string $slotGroup,
+        int $groupOrder,
         int $orbatOrder,
         int $ownerId,
     ): array {
@@ -526,25 +628,20 @@ class CommunityDiaryController extends Controller
             'user_id' => (int) $user->id,
             'nick' => (string) $user->nick,
             'slot_name' => trim((string) $slotName),
-            'slot_type' => trim((string) $slotTypeName),
             'slot_key' => (string) $slotKey,
+            'slot_group' => trim((string) $slotGroup),
             'avatar' => filled($user->image)
                 ? asset('storage/' . ltrim((string) $user->image, '/'))
                 : asset('images/sqa-shield-white.png'),
             'profile_color' => $user->getFrontendColor(),
             'is_owner' => (int) $user->id === $ownerId,
+            'group_order' => $groupOrder,
             'orbat_order' => $orbatOrder,
         ];
     }
 
-    private function validatedSquadRoster(array $squad, ?string $json): array
+    private function validatedSquadRoster(?Event $event, int $userId, ?string $json): array
     {
-        $allowed = collect($squad['members'] ?? [])->keyBy('user_id');
-
-        if ($allowed->isEmpty()) {
-            return [];
-        }
-
         $submitted = blank($json) ? [] : json_decode($json, true);
         if (! is_array($submitted)) {
             throw ValidationException::withMessages([
@@ -552,14 +649,62 @@ class CommunityDiaryController extends Controller
             ]);
         }
 
+        $rows = collect(array_slice($submitted, 0, 100));
+        $memberIds = $rows
+            ->pluck('user_id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($rows->isNotEmpty() && $memberIds->isEmpty()) {
+            throw ValidationException::withMessages([
+                'squad_roster' => 'Selecciona usuarios existentes para formar la escuadra del diario.',
+            ]);
+        }
+
+        $users = User::withTrashed()
+            ->whereIn('id', $memberIds)
+            ->get()
+            ->keyBy('id');
+
+        if ($users->count() !== $memberIds->count()) {
+            throw ValidationException::withMessages([
+                'squad_roster' => 'Uno de los usuarios seleccionados ya no existe.',
+            ]);
+        }
+
+        $eventParticipants = $event
+            ? $this->eventParticipantPool($event, $userId)->keyBy('user_id')
+            : collect();
+
         $colors = array_keys(self::TEAM_COLORS);
         $normalized = [];
-        $seen = [];
+        $seenUsers = [];
 
-        foreach (array_slice($submitted, 0, 50) as $row) {
+        foreach ($rows as $row) {
             $memberId = (int) ($row['user_id'] ?? 0);
-            if ($memberId < 1 || isset($seen[$memberId]) || ! $allowed->has($memberId)) {
+
+            if ($memberId < 1 || isset($seenUsers[$memberId])) {
                 continue;
+            }
+
+            $user = $users->get($memberId);
+            if (! $user) {
+                continue;
+            }
+
+            $eventSource = $eventParticipants->get($memberId);
+            $slotName = trim((string) ($row['slot_name'] ?? ''));
+
+            if ($slotName === '' && $eventSource) {
+                $slotName = trim((string) ($eventSource['slot_name'] ?? ''));
+            }
+
+            if (mb_strlen($slotName) > 120) {
+                throw ValidationException::withMessages([
+                    'squad_roster' => 'Los nombres de slot no pueden superar 120 caracteres.',
+                ]);
             }
 
             $number = trim((string) ($row['number'] ?? ''));
@@ -576,34 +721,15 @@ class CommunityDiaryController extends Controller
                 ]);
             }
 
-            $source = $allowed->get($memberId);
             $normalized[] = [
                 'user_id' => $memberId,
-                'nick' => $source['nick'],
-                'slot_name' => $source['slot_name'],
-                'slot_type' => $source['slot_type'],
+                'nick' => (string) $user->nick,
+                'slot_name' => $slotName !== '' ? $slotName : null,
                 'number' => $number === '' ? null : (int) $number,
                 'color' => $color === '' ? null : $color,
             ];
-            $seen[$memberId] = true;
-        }
 
-        // El snapshot siempre conserva a todos los compañeros detectados en la
-        // escuadra. Si el usuario no los ordenó manualmente, se añaden al final
-        // siguiendo el orden del ORBAT y sin número/color asignados.
-        foreach ($allowed as $memberId => $source) {
-            if (isset($seen[(int) $memberId])) {
-                continue;
-            }
-
-            $normalized[] = [
-                'user_id' => (int) $memberId,
-                'nick' => $source['nick'],
-                'slot_name' => $source['slot_name'],
-                'slot_type' => $source['slot_type'],
-                'number' => null,
-                'color' => null,
-            ];
+            $seenUsers[$memberId] = true;
         }
 
         return $normalized;

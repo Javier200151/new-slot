@@ -26,6 +26,7 @@ use App\Models\User;
 use App\Support\FactionOptionLabel;
 use App\Support\ActivityTypeConfiguration;
 use App\Services\CourseMetopaAwardService;
+use App\Services\EventOrbatSyncService;
 
 class EditEvent extends EditRecord
 {
@@ -329,81 +330,34 @@ class EditEvent extends EditRecord
                         ->send();
                 }),
 
-            Action::make('restoreOperationOrbat')
-                ->label('Recuperar ORBAT original')
+            Action::make('syncOperationOrbat')
+                ->label('Sincronizar ORBAT')
+                ->icon('heroicon-o-arrow-path')
                 ->extraAttributes([
                     'class' =>
                         'event-header-action--secondary',
                 ])
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Recuperar ORBAT original')
+                ->modalHeading('Sincronizar ORBAT del evento')
                 ->modalDescription(
-                    'Se reemplazará el ORBAT del evento por el ORBAT '
-                    . 'actual del actividad asignado. Si existen usuarios '
-                    . 'o aliados ocupando slots que ya no existen o están '
-                    . 'ocultos en el nuevo ORBAT, la operación será bloqueada.'
+                    fn (): string => app(EventOrbatSyncService::class)
+                        ->confirmationText($this->record)
                 )
+                ->modalSubmitActionLabel('Sí, sincronizar')
                 ->action(function (): void {
-                    $this->record->load(
-                        'activity'
-                    );
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | ORBAT que queremos recuperar
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $newOrbat =
-                        $this->record
-                            ->activity
-                            ?->orbat
-                        ?? [
-                            'groups' => [],
-                        ];
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Comprobar asignaciones
-                    |--------------------------------------------------------------------------
-                    |
-                    | Si el ORBAT actual del actividad ya no contiene alguno
-                    | de los slots ocupados del evento, no permitimos reemplazarlo.
-                    |
-                    */
-
-                    $conflicts =
-                        $this
-                            ->findAssignedSlotsUnavailableInOrbat(
-                                $newOrbat
-                            );
-
-                    if ($conflicts !== []) {
-                        $this
-                            ->notifyOrbatAssignmentConflicts(
-                                $conflicts,
-                                'No se puede recuperar el ORBAT'
-                            );
-
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Recuperar
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $this->record->forceFill([
-                        'orbat' => $newOrbat,
-                    ])->save();
+                    $result = app(EventOrbatSyncService::class)
+                        ->sync(
+                            $this->record,
+                            auth()->user(),
+                        );
 
                     Notification::make()
-                        ->title(
-                            'ORBAT original recuperado.'
+                        ->title('ORBAT sincronizado')
+                        ->body(
+                            $result['slots'].' slots sincronizados · '
+                            .$result['updated_assignments'].' asignaciones actualizadas · '
+                            .$result['removed_slots'].' registros eliminados porque sus slots ya no existen.'
                         )
                         ->success()
                         ->send();
@@ -411,10 +365,7 @@ class EditEvent extends EditRecord
                     $this->redirect(
                         EventResource::getUrl(
                             'edit',
-                            [
-                                'record' =>
-                                    $this->record,
-                            ]
+                            ['record' => $this->record],
                         )
                     );
                 }),

@@ -13,6 +13,7 @@ class CommunityDiaryEntry extends Model
         'community_diary_id',
         'user_id',
         'event_id',
+        'entry_title',
         'content',
         'squad_group',
         'squad_roster',

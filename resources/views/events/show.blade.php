@@ -200,6 +200,9 @@
                         @if($descriptionSections->isNotEmpty())
                             <a href="#briefing">Briefing</a>
                         @endif
+                        @if($event->reservations_enabled || $eventReservations->isNotEmpty())
+                            <a href="#reservas">Reservas</a>
+                        @endif
                         <a href="#orbat">ORBAT</a>
                         {{-- <a href="#movimientos">Movimientos</a> --}}
                         @if(
@@ -1199,6 +1202,94 @@
                 </section>
             @endif
 
+            @if($event->reservations_enabled || $eventReservations->isNotEmpty())
+                <section
+                    id="reservas"
+                    class="event-detail__section event-detail__reservations"
+                    aria-labelledby="event-reservations-title"
+                >
+                    <header>
+                        <span id="event-reservations-title">RESERVAS</span>
+                        <strong>{{ $eventReservations->count() }}</strong>
+                    </header>
+
+                    <div class="event-reservations">
+                        <div class="event-reservations__intro">
+                            <div>
+                                <h3>Cola de reservas</h3>
+                                <p>
+                                    Los miembros de esta cola no ocupan un slot del ORBAT. Cuando aparezca un hueco libre,
+                                    un gestor puede asignarlos manualmente desde el botón <b>Asignar</b> del slot.
+                                </p>
+                            </div>
+
+                            @if($event->eventStatus?->name === 'ACTIVO' && ! $isReadOnly)
+                                <div class="event-reservations__action">
+                                    @if($rouletteLockRoom)
+                                        <span class="event-reservations__paused">Pausado mientras la ruleta está activa</span>
+                                    @elseif(auth()->check())
+                                        @if($currentUserSlot)
+                                            <span class="event-reservations__already">Ya estás apuntado en el ORBAT</span>
+                                        @elseif($currentUserReservation)
+                                            <form method="POST" action="{{ route('events.reservations.destroy', $event) }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="event-reservations__button event-reservations__button--outline">Salir de reserva</button>
+                                            </form>
+                                        @elseif($event->reservations_enabled && $currentUserCanReserve)
+                                            <form method="POST" action="{{ route('events.reservations.store', $event) }}">
+                                                @csrf
+                                                <button type="submit" class="event-reservations__button">Reservar</button>
+                                            </form>
+                                        @elseif($event->reservations_enabled)
+                                            <span class="event-reservations__paused">Tu estado actual no permite reservar</span>
+                                        @else
+                                            <span class="event-reservations__paused">Reservas cerradas</span>
+                                        @endif
+                                    @elseif($event->reservations_enabled)
+                                        <a class="event-reservations__button" href="#login-modal">Inicia sesión para reservar</a>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+
+                        <details class="event-reservations__dropdown" @if($eventReservations->isNotEmpty()) open @endif>
+                            <summary>
+                                <span>Ver cola de reservas</span>
+                                <strong>{{ $eventReservations->count() }}</strong>
+                            </summary>
+
+                            <div class="event-reservations__dropdown-body">
+                                @if($eventReservations->isEmpty())
+                                    <p class="event-reservations__empty">Todavía no hay nadie en reserva.</p>
+                                @else
+                                    <ol class="event-reservations__queue">
+                                        @foreach($eventReservations as $reservation)
+                                            <li>
+                                                <span class="event-reservations__position">{{ $loop->iteration }}</span>
+                                                <div class="event-reservations__member">
+                                                    <x-user-link
+                                                        :user="$reservation->user"
+                                                        @style([
+                                                            '--member-group-color: '.($reservation->user?->mainSqaGroup?->color ?? '')
+                                                            => filled($reservation->user?->mainSqaGroup?->color),
+                                                        ])
+                                                    />
+                                                    <small>En reserva desde {{ $reservation->created_at?->format('d/m H:i') }}</small>
+                                                </div>
+                                                @if($canManageOrbat && $event->eventStatus?->name === 'ACTIVO')
+                                                    <span class="event-reservations__manager-note">Disponible para asignar</span>
+                                                @endif
+                                            </li>
+                                        @endforeach
+                                    </ol>
+                                @endif
+                            </div>
+                        </details>
+                    </div>
+                </section>
+            @endif
+
             <section
                 id="orbat"
                 class="event-detail__section event-detail__orbat"
@@ -1620,7 +1711,7 @@
                                                     </strong>
 
                                                     <small>
-                                                        Miembro
+                                                        {{ $assignableUser->getAttribute('is_event_reservation') ? 'Reserva · Miembro' : 'Miembro' }}
                                                     </small>
                                                 </span>
                                             </button>

@@ -125,7 +125,12 @@
 
             <div class="roulette-candidates">
                 @forelse($room->candidates as $candidate)
-                    @php $details = $candidate->details ?? []; @endphp
+                    @php
+                        $details = $candidate->details ?? [];
+                        $automaticTickets = (int) ($details['automatic_tickets'] ?? max(0, (int) $candidate->tickets - (int) $candidate->manual_ticket_adjustment));
+                        $manualAdjustment = (int) $candidate->manual_ticket_adjustment;
+                        $candidateSource = $details['current']['source'] ?? 'orbat';
+                    @endphp
                     <article
                         data-roulette-candidate-user-id="{{ $candidate->user_id }}"
                         @class([
@@ -139,20 +144,62 @@
                             <div>
                                 <strong>{{ $candidate->nick_snapshot }}</strong>
                                 <small>{{ $details['current']['slot_type'] ?? $candidate->currentSlotType?->name ?? 'Sin tipo' }}</small>
+                                @if($candidateSource === 'reservation')
+                                    <span class="roulette-candidate__badge is-reserve">Reserva</span>
+                                @elseif($candidate->is_exceptional)
+                                    <span class="roulette-candidate__badge is-exceptional">Excepcional</span>
+                                @endif
                             </div>
                             <span class="roulette-ticket-count">{{ $candidate->tickets }}</span>
                         </div>
 
                         @if($candidate->excluded_reason)
                             <p class="roulette-candidate__exclusion">{{ $candidate->excluded_reason }}</p>
-                        @else
-                            <p class="roulette-candidate__math">
-                                4 iniciales
-                                @if($candidate->previous_responsibility_count > 0)
-                                    − {{ $candidate->previous_responsibility_count }} responsabilidad(es)
-                                @endif
-                                = <b>{{ $candidate->tickets }}</b>
-                            </p>
+                        @endif
+
+                        <p class="roulette-candidate__math">
+                            Automáticas <b>{{ $automaticTickets }}</b>
+                            @if($manualAdjustment !== 0)
+                                {{ $manualAdjustment > 0 ? '+' : '−' }} {{ abs($manualAdjustment) }} manual
+                            @endif
+                            = <b>{{ $candidate->tickets }}</b>
+                        </p>
+
+                        @if($canControl && $room->canBeConfigured())
+                            <div class="roulette-candidate__manual">
+                                <span>Ajuste manual</span>
+                                <div>
+                                    @foreach([-4, -1, 1, 4] as $delta)
+                                        <form method="POST" action="{{ route('community.roulette.candidates.tickets', [$room, $candidate->user_id]) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="delta" value="{{ $delta }}">
+                                            <button type="submit">{{ $delta > 0 ? '+' : '' }}{{ $delta }}</button>
+                                        </form>
+                                    @endforeach
+
+                                    @if($manualAdjustment !== 0)
+                                        <form method="POST" action="{{ route('community.roulette.candidates.tickets', [$room, $candidate->user_id]) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="reset" value="1">
+                                            <button type="submit" class="is-reset">Reset</button>
+                                        </form>
+                                    @endif
+
+                                    @if($candidate->is_exceptional)
+                                        <form
+                                            method="POST"
+                                            action="{{ route('community.roulette.candidates.destroy', [$room, $candidate->user_id]) }}"
+                                            onsubmit="return confirm('¿Quitar a {{ addslashes($candidate->nick_snapshot) }} de esta ruleta?')"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="is-remove">Quitar</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
                         @endif
 
                         @if(! empty($details['history']))
@@ -187,9 +234,38 @@
                 <span>Editar criterios</span>
             </summary>
 
+            <form id="roulette-add-exceptional" method="POST" action="{{ route('community.roulette.candidates.store', $room) }}" hidden>
+                @csrf
+            </form>
+
             <form method="POST" action="{{ route('community.roulette.update', $room) }}" class="roulette-config__form">
                 @csrf
                 @method('PATCH')
+
+                <section>
+                    <h3>Participantes excepcionales</h3>
+                    <p>
+                        Las personas apuntadas en el ORBAT y en la cola de reservas entran automáticamente.
+                        Si necesitas incluir a alguien más solo para esta sala, añádelo aquí. Al recalcular se mantienen
+                        los participantes excepcionales, pero se borran todos los ajustes manuales de papeletas.
+                    </p>
+
+                    @if($exceptionalCandidateOptions->isNotEmpty())
+                        <div class="roulette-exceptional-add">
+                            <select form="roulette-add-exceptional" name="user_id" aria-label="Usuario excepcional">
+                                <option value="">Selecciona un miembro...</option>
+                                @foreach($exceptionalCandidateOptions as $candidateOption)
+                                    <option value="{{ $candidateOption->id }}">
+                                        {{ $candidateOption->nick }} · {{ $candidateOption->status?->name ?? 'Sin estado' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button class="community-btn" type="submit" form="roulette-add-exceptional">Añadir a la ruleta</button>
+                        </div>
+                    @else
+                        <p class="roulette-config__muted">No hay más miembros disponibles para añadir.</p>
+                    @endif
+                </section>
 
                 <section>
                     <h3>Operaciones históricas</h3>

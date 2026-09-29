@@ -36,9 +36,6 @@
                         <strong>{{ $member['nick'] ?? 'Jugador' }}</strong>
                         <small>
                             {{ $member['slot_name'] ?? 'Slot' }}
-                            @if(filled($member['slot_type'] ?? null))
-                                · {{ $member['slot_type'] }}
-                            @endif
                             @if($color)
                                 · Equipo {{ $color['label'] }}
                             @endif
