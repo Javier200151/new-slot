@@ -1590,6 +1590,19 @@ border-radius: 10px;
     font-size: 0.68rem;
 }
 
+.event-orbat__slot-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+}
+
+.event-orbat__slot-type-icon {
+    width: 1em;
+    height: 1em;
+    object-fit: contain;
+    flex: none;
+}
+
 .event-orbat__slot-action {
     display: flex;
     align-items: center;
@@ -3450,15 +3463,26 @@ border-radius: 10px;
         grid-template-columns: 1fr;
     }
 
-    .event-orbat__slot,
     .event-slot-history__content li {
         align-items: flex-start;
         flex-direction: column;
     }
 
+    .event-orbat__slot {
+        align-items: center;
+        flex-direction: row;
+    }
+
+    .event-orbat__slot-info {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
     .event-orbat__slot-action {
-        justify-content: space-between;
-        width: 100%;
+        flex: 0 0 auto;
+        justify-content: flex-end;
+        margin-left: auto;
+        width: auto;
     }
 
     .event-slot-history__meta {

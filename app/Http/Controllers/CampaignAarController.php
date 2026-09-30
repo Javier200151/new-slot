@@ -18,7 +18,7 @@ class CampaignAarController extends Controller
         private readonly CommunityNotificationService $communityNotifications,
     ) {}
 
-    public function index(Campaign $campaign): View
+    public function index(Request $request, Campaign $campaign): View
     {
         $events = Event::query()
             ->whereHas(
@@ -37,7 +37,17 @@ class CampaignAarController extends Controller
             ])
             ->orderBy('date')
             ->orderBy('id')
-            ->get();
+            ->get()
+            ->filter(function (Event $event) use ($request): bool {
+                $aar = $event->campaignAar;
+
+                if (! $aar || $aar->is_visible) {
+                    return true;
+                }
+
+                return $request->user()?->can('view', $aar) ?? false;
+            })
+            ->values();
 
         $allCampaignEventIds = Event::query()
             ->whereHas(
@@ -87,6 +97,7 @@ class CampaignAarController extends Controller
         $aar = $this->aarService->ensureForFinalizedEvent($event, false);
 
         abort_unless($aar, 404);
+        abort_unless($request->user()?->can('view', $aar) ?? $aar->is_visible, 404);
 
         $aar->load([
             'commander',
@@ -107,6 +118,45 @@ class CampaignAarController extends Controller
             'editing',
             'sequence',
         ));
+    }
+
+    public function updateVisibility(
+        Request $request,
+        Campaign $campaign,
+        Event $event,
+    ): RedirectResponse {
+        $event->loadMissing('activity');
+
+        abort_unless(
+            (int) $event->activity?->campaign_id === (int) $campaign->id,
+            404,
+        );
+
+        $aar = CampaignAar::query()
+            ->where('campaign_id', $campaign->id)
+            ->where('event_id', $event->id)
+            ->firstOrFail();
+
+        abort_unless(
+            $request->user()->can('update', $aar),
+            403,
+        );
+
+        $validated = $request->validate([
+            'is_visible' => ['required', 'boolean'],
+        ]);
+
+        $aar->forceFill([
+            'is_visible' => (bool) $validated['is_visible'],
+            'updated_by' => $request->user()->id,
+        ])->save();
+
+        return back()->with(
+            'status',
+            $aar->is_visible
+                ? 'El AAR vuelve a ser visible públicamente.'
+                : 'El AAR se ha ocultado del historial público.',
+        );
     }
 
     public function update(

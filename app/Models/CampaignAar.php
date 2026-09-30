@@ -16,6 +16,7 @@ class CampaignAar extends Model
         'sections',
         'orbat_snapshot',
         'published_at',
+        'is_visible',
         'updated_by',
     ];
 
@@ -25,6 +26,7 @@ class CampaignAar extends Model
             'sections' => 'array',
             'orbat_snapshot' => 'array',
             'published_at' => 'datetime',
+            'is_visible' => 'boolean',
         ];
     }
 

@@ -266,6 +266,27 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         return $this->belongsTo(User::class, 'tutor_id');
     }
 
+    public function recruitmentPeriods()
+    {
+        return $this->hasMany(RecruitmentPeriod::class)
+            ->orderBy('period_number');
+    }
+
+    public function currentRecruitmentPeriod()
+    {
+        return $this->hasOne(RecruitmentPeriod::class, 'open_user_id');
+    }
+
+    public function recruitmentReentryReviews()
+    {
+        return $this->hasMany(RecruitmentReentryReview::class);
+    }
+
+    public function pendingRecruitmentReentryReview()
+    {
+        return $this->hasOne(RecruitmentReentryReview::class, 'pending_user_id');
+    }
+
     // Para que en las listas podamos mostrar el nombre de usuario
     public function createdBy()
     {
@@ -278,6 +299,12 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     }
     public function getStatusColor(): string
     {
+        if (filled($this->status?->color)) {
+            return (string) $this->status->color;
+        }
+
+        // Fallback compatible con instalaciones donde la migración de color
+        // todavía no se haya aplicado o con datos históricos incompletos.
         return match (strtoupper(trim((string) ($this->status?->name ?? '')))) {
             'ACTIVO' => '#4ade80',
             'RESERVA' => '#60a5fa',

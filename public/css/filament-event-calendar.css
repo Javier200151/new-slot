@@ -1,34 +1,83 @@
+.admin-calendar-theme {
+    --calendar-surface: #ffffff;
+    --calendar-surface-soft: #f8fafc;
+    --calendar-surface-muted: #f1f5f9;
+    --calendar-surface-outside: #e2e8f0;
+    --calendar-border: rgba(100, 116, 139, .22);
+    --calendar-border-soft: rgba(100, 116, 139, .14);
+    --calendar-text: #0f172a;
+    --calendar-text-soft: #334155;
+    --calendar-text-muted: #64748b;
+    --calendar-weekday-bg: #e2e8f0;
+    --calendar-weekday-text: #475569;
+    --calendar-input-bg: #ffffff;
+    --calendar-event-base: #ffffff;
+    --calendar-reservation-bg: rgba(34, 197, 94, .08);
+    --calendar-reservation-text: #166534;
+    --calendar-reservation-border: rgba(34, 197, 94, .28);
+    --calendar-accent: #f59e0b;
+    --calendar-accent-text: #b45309;
+}
+
+.dark .admin-calendar-theme {
+    --calendar-surface: rgba(15, 23, 42, .55);
+    --calendar-surface-soft: rgba(15, 23, 42, .75);
+    --calendar-surface-muted: rgba(9, 14, 24, .52);
+    --calendar-surface-outside: rgba(2, 6, 23, .5);
+    --calendar-border: rgba(148, 163, 184, .20);
+    --calendar-border-soft: rgba(148, 163, 184, .15);
+    --calendar-text: #f8fafc;
+    --calendar-text-soft: #e2e8f0;
+    --calendar-text-muted: #94a3b8;
+    --calendar-weekday-bg: rgba(15, 23, 42, .75);
+    --calendar-weekday-text: #94a3b8;
+    --calendar-input-bg: rgba(15, 23, 42, .78);
+    --calendar-event-base: rgba(15, 23, 42, .82);
+    --calendar-reservation-bg: rgba(34, 197, 94, .08);
+    --calendar-reservation-text: #bbf7d0;
+    --calendar-reservation-border: rgba(34, 197, 94, .32);
+    --calendar-accent: #f59e0b;
+    --calendar-accent-text: #fbbf24;
+}
+
 .admin-calendar-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
     padding: 1.1rem 1.2rem;
-    border: 1px solid rgba(148, 163, 184, .18);
+    border: 1px solid var(--calendar-border);
     border-radius: .85rem;
-    background: rgba(15, 23, 42, .55);
+    background: var(--calendar-surface);
+    color: var(--calendar-text);
 }
 
 .admin-calendar-head span,
 .admin-calendar-form > div:first-child span {
-    color: rgb(245 158 11);
+    color: var(--calendar-accent);
     font-size: .7rem;
     font-weight: 800;
     letter-spacing: .09em;
     text-transform: uppercase;
 }
 
-.admin-calendar-head h2 { margin: .2rem 0; font-size: 1.45rem; font-weight: 800; }
-.admin-calendar-head p { margin: 0; color: rgb(148 163 184); font-size: .82rem; }
+.admin-calendar-head h2 { margin: .2rem 0; color: var(--calendar-text); font-size: 1.45rem; font-weight: 800; }
+.admin-calendar-head p { margin: 0; color: var(--calendar-text-muted); font-size: .82rem; }
 .admin-calendar-nav { display: flex; gap: .45rem; }
 .admin-calendar-nav a {
     display: grid;
     width: 2.3rem;
     height: 2.3rem;
     place-items: center;
-    border: 1px solid rgba(245, 158, 11, .3);
+    border: 1px solid color-mix(in srgb, var(--calendar-accent) 35%, transparent);
     border-radius: .55rem;
-    color: rgb(251 191 36);
+    color: var(--calendar-accent-text);
+    background: color-mix(in srgb, var(--calendar-accent) 5%, transparent);
+    transition: background-color .15s ease, border-color .15s ease;
+}
+.admin-calendar-nav a:hover {
+    border-color: color-mix(in srgb, var(--calendar-accent) 55%, transparent);
+    background: color-mix(in srgb, var(--calendar-accent) 11%, transparent);
 }
 
 .admin-calendar-form {
@@ -37,31 +86,35 @@
     gap: .85rem;
     align-items: end;
     padding: 1rem;
-    border: 1px solid rgba(34, 197, 94, .3);
+    border: 1px solid var(--calendar-reservation-border);
     border-radius: .8rem;
-    background: rgba(20, 83, 45, .08);
+    background: var(--calendar-reservation-bg);
+    color: var(--calendar-text);
 }
 
 .admin-calendar-form > div:first-child { display: grid; gap: .15rem; align-self: center; }
-.admin-calendar-form label { display: grid; gap: .3rem; font-size: .75rem; font-weight: 700; }
+.admin-calendar-form label { display: grid; gap: .3rem; color: var(--calendar-text-soft); font-size: .75rem; font-weight: 700; }
 .admin-calendar-form input,
 .admin-calendar-form select {
     min-height: 2.55rem;
     padding: .55rem .7rem;
-    border: 1px solid rgba(148, 163, 184, .25);
+    border: 1px solid var(--calendar-border);
     border-radius: .5rem;
-    background: rgba(15, 23, 42, .78);
+    color: var(--calendar-text);
+    background: var(--calendar-input-bg);
 }
-.admin-calendar-form small { color: rgb(248 113 113); }
+.admin-calendar-form input::placeholder { color: var(--calendar-text-muted); }
+.admin-calendar-form small { color: #ef4444; }
+.dark .admin-calendar-form small { color: #f87171; }
 .admin-calendar-form__actions { display: flex; gap: .4rem; }
 .admin-calendar-form__actions button,
 .admin-calendar__day header button,
 .admin-calendar__reservation button {
     padding: .45rem .65rem;
-    border: 1px solid rgba(245, 158, 11, .3);
+    border: 1px solid color-mix(in srgb, var(--calendar-accent) 35%, transparent);
     border-radius: .45rem;
-    color: rgb(251 191 36);
-    background: rgba(245, 158, 11, .07);
+    color: var(--calendar-accent-text);
+    background: color-mix(in srgb, var(--calendar-accent) 7%, transparent);
     font-size: .68rem;
     font-weight: 800;
 }
@@ -72,13 +125,15 @@
     min-width: 920px;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     overflow: hidden;
-    border: 1px solid rgba(148, 163, 184, .2);
+    border: 1px solid var(--calendar-border);
     border-radius: .9rem;
+    background: var(--calendar-surface-soft);
+    color: var(--calendar-text);
 }
 .admin-calendar__weekday {
     padding: .65rem;
-    color: rgb(148 163 184);
-    background: rgba(15, 23, 42, .75);
+    color: var(--calendar-weekday-text);
+    background: var(--calendar-weekday-bg);
     font-size: .7rem;
     font-weight: 800;
     text-align: center;
@@ -87,15 +142,16 @@
 .admin-calendar__day {
     min-height: 148px;
     padding: .55rem;
-    border-top: 1px solid rgba(148, 163, 184, .15);
-    border-right: 1px solid rgba(148, 163, 184, .15);
-    background: rgba(9, 14, 24, .52);
+    border-top: 1px solid var(--calendar-border-soft);
+    border-right: 1px solid var(--calendar-border-soft);
+    color: var(--calendar-text);
+    background: var(--calendar-surface);
 }
 .admin-calendar__day:nth-child(7n) { border-right: 0; }
-.admin-calendar__day.is-outside { opacity: .35; background: rgba(2, 6, 23, .5); }
-.admin-calendar__day.is-today { box-shadow: inset 0 0 0 2px rgba(245, 158, 11, .48); }
+.admin-calendar__day.is-outside { opacity: .58; background: var(--calendar-surface-outside); }
+.admin-calendar__day.is-today { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--calendar-accent) 55%, transparent); }
 .admin-calendar__day header { display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
-.admin-calendar__day time { font-size: .78rem; font-weight: 800; }
+.admin-calendar__day time { color: var(--calendar-text); font-size: .78rem; font-weight: 800; }
 .admin-calendar__items { display: grid; gap: .35rem; margin-top: .45rem; }
 .admin-calendar__event {
     display: grid;
@@ -103,18 +159,23 @@
     padding: .42rem .48rem;
     border-left: 3px solid var(--event-color);
     border-radius: .38rem;
-    color: inherit;
-    background: color-mix(in srgb, var(--event-color) 10%, rgba(15,23,42,.82));
+    color: var(--calendar-text);
+    background: color-mix(in srgb, var(--event-color) 12%, var(--calendar-event-base));
+    transition: transform .12s ease, background-color .12s ease;
 }
-.admin-calendar__event small { color: rgb(148 163 184); font-size: .52rem; font-weight: 800; }
-.admin-calendar__event span { overflow: hidden; font-size: .67rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.admin-calendar__event:hover {
+    transform: translateY(-1px);
+    background: color-mix(in srgb, var(--event-color) 18%, var(--calendar-event-base));
+}
+.admin-calendar__event small { color: var(--calendar-text-muted); font-size: .52rem; font-weight: 800; }
+.admin-calendar__event span { overflow: hidden; color: var(--calendar-text); font-size: .67rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
 .admin-calendar__event.is-disabled { opacity: .55; }
 .admin-calendar__reservation {
     padding: .5rem;
-    border: 1px solid rgba(34, 197, 94, .32);
+    border: 1px solid var(--calendar-reservation-border);
     border-radius: .42rem;
-    color: rgb(187 247 208);
-    background: rgba(34, 197, 94, .08);
+    color: var(--calendar-reservation-text);
+    background: var(--calendar-reservation-bg);
     font-size: .64rem;
     line-height: 1.35;
 }

@@ -74,13 +74,6 @@ class UserForm
                     ->displayFormat('d/m/Y')
                     ->native(false),
 
-                Select::make('tutor_id')
-                    ->label('Tutor')
-                    ->relationship('tutor', 'nick')
-                    ->searchable()
-                    ->preload()
-                    ->nullable(),
-
                 Select::make('roles')
                     ->label('Rol')
                     ->relationship('roles', 'name')

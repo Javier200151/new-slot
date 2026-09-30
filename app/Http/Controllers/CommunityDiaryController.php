@@ -490,9 +490,19 @@ class CommunityDiaryController extends Controller
             ->where('user_id', $userId)
             ->pluck('event_id');
 
+        // EventSlotHistory is a movement log, not an attendance table. A user
+        // only counts through history when their latest known movement in that
+        // event still leaves them assigned to a slot. Older assignments must
+        // not survive a later unassignment.
         $historical = EventSlotHistory::query()
             ->where('user_id', $userId)
             ->whereNotNull('event_id')
+            ->orderBy('event_id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get(['id', 'event_id', 'action', 'to_slot_key'])
+            ->unique('event_id')
+            ->filter(fn (EventSlotHistory $movement): bool => $this->historyLeavesUserAssigned($movement))
             ->pluck('event_id');
 
         return $current
@@ -518,15 +528,12 @@ class CommunityDiaryController extends Controller
             $ownHistory = EventSlotHistory::query()
                 ->where('event_id', $event->id)
                 ->where('user_id', $userId)
-                ->latest('created_at')
-                ->get();
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->first();
 
-            foreach ($ownHistory as $movement) {
-                $candidate = trim((string) ($movement->to_slot_group ?: $movement->from_slot_group));
-                if ($candidate !== '') {
-                    $group = $candidate;
-                    break;
-                }
+            if ($ownHistory && $this->historyLeavesUserAssigned($ownHistory)) {
+                $group = trim((string) $ownHistory->to_slot_group);
             }
         }
 
@@ -589,18 +596,29 @@ class CommunityDiaryController extends Controller
             ->with(['user.status', 'user.mainSqaGroup'])
             ->where('event_id', $event->id)
             ->whereNotNull('user_id')
-            ->latest('created_at')
-            ->get();
+            ->orderBy('user_id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('user_id');
 
         foreach ($history as $movement) {
             $memberId = (int) $movement->user_id;
-            if ($memberId < 1 || $participants->has($memberId) || ! $movement->user) {
+            if (
+                $memberId < 1
+                || $participants->has($memberId)
+                || ! $movement->user
+                || ! $this->historyLeavesUserAssigned($movement)
+            ) {
                 continue;
             }
 
-            $slotKey = trim((string) ($movement->to_slot_key ?: $movement->from_slot_key));
-            $slotGroup = trim((string) ($movement->to_slot_group ?: $movement->from_slot_group));
-            $slotName = $movement->to_slot_name ?: $movement->from_slot_name;
+            // Only the destination of the latest effective assignment is a
+            // valid fallback. Never resurrect an older `from_*` slot after an
+            // unassignment, which could wrongly attribute a role or squad.
+            $slotKey = trim((string) $movement->to_slot_key);
+            $slotGroup = trim((string) $movement->to_slot_group);
+            $slotName = $movement->to_slot_name;
             $participants->put($memberId, $this->participantPayload(
                 $movement->user,
                 $slotName,
@@ -620,6 +638,12 @@ class CommunityDiaryController extends Controller
                 mb_strtolower((string) ($member['nick'] ?? '')),
             ))
             ->values();
+    }
+
+    private function historyLeavesUserAssigned(EventSlotHistory $movement): bool
+    {
+        return in_array((string) $movement->action, ['assigned', 'moved'], true)
+            && filled($movement->to_slot_key);
     }
 
     private function participantPayload(

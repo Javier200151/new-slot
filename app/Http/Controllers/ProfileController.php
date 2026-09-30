@@ -20,7 +20,7 @@ class ProfileController extends Controller
         $user = $request->user()->load([
             'promo',
             'status',
-            'tutor',
+            'currentRecruitmentPeriod.tutor',
             'sqaGroups',
             'mainSqaGroup',
         ]);

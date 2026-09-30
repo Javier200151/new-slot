@@ -111,6 +111,23 @@ class SlotQuickSelection
         return self::choiceMetadata($choice)['slot_type_name'] ?? null;
     }
 
+    public static function selectedImage(mixed $choice): ?string
+    {
+        if (! is_string($choice) || blank($choice)) {
+            return null;
+        }
+
+        $metadata = self::choiceMetadata($choice);
+
+        if (! $metadata) {
+            return null;
+        }
+
+        self::buildPickerCache();
+
+        return self::$pickerImagesCache[$metadata['slot_type_name'] ?? ''] ?? null;
+    }
+
     public static function prepareOrbat(array $orbat): array
     {
         self::buildPickerCache();

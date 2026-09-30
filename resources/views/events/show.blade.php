@@ -1387,8 +1387,18 @@
                                                         {{ $slot['name'] ?? 'Slot sin nombre' }}
                                                     </strong>
 
-                                                    <span>
-                                                        {{ $slot['slot_type']?->name ?? 'Sin tipo' }}
+                                                    <span class="event-orbat__slot-type">
+                                                        @if($slot['slot_type']?->image)
+                                                            <img
+                                                                src="{{ asset('storage/' . $slot['slot_type']->image) }}"
+                                                                alt="{{ $slot['slot_type']->name ?? 'Tipo de slot' }}"
+                                                                class="event-orbat__slot-type-icon"
+                                                            >
+                                                        @endif
+
+                                                        <span>
+                                                            {{ $slot['slot_type']?->name ?? 'Sin tipo' }}
+                                                        </span>
                                                     </span>
                                                 </div>
 

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use App\Models\Concerns\Auditable;
+use App\Services\CampaignAarService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -55,6 +56,44 @@ class Event extends Model
             if (Auth::check()) {
                 $event->updated_by = Auth::id();
             }
+        });
+
+        /*
+         * Inicializa el AAR de campaña en el momento en que el evento entra
+         * realmente en FINALIZADO. La lógica vive en CampaignAarService para
+         * mantener una única fuente de verdad y este hook cubre cualquier
+         * actualización Eloquent del evento, no solo el formulario Filament.
+         *
+         * Los AAR históricos que ya estuviesen FINALIZADOS antes de desplegar
+         * este cambio siguen siendo responsabilidad de campaign-aars:backfill.
+         */
+        static::saved(function (Event $event): void {
+            if (
+                ! $event->wasRecentlyCreated
+                && ! $event->wasChanged('event_status_id')
+            ) {
+                return;
+            }
+
+            /*
+             * La relación eventStatus puede haber quedado cargada con el
+             * estado anterior durante la edición. La descartamos para que el
+             * servicio valide siempre el estado que acaba de persistirse.
+             */
+            $event->unsetRelation('eventStatus');
+
+            $statusName = mb_strtoupper(
+                trim((string) $event->eventStatus()->value('name'))
+            );
+
+            if ($statusName !== 'FINALIZADO') {
+                return;
+            }
+
+            $event->unsetRelation('activity');
+
+            app(CampaignAarService::class)
+                ->ensureForFinalizedEvent($event);
         });
     }
 

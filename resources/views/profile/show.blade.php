@@ -274,7 +274,7 @@
                             <div>
                                 <dt>Tutor</dt>
                                 <dd>
-                                    {{ $user->tutor?->nick
+                                    {{ $user->currentRecruitmentPeriod?->tutor?->nick
                                         ?? 'Sin tutor asignado'
                                     }}
                                 </dd>

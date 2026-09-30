@@ -58,7 +58,7 @@ class PublicCampaignController extends Controller
                     'activity.period',
                     'activity.platform',
                     'activity.map',
-                    'campaignAar:id,event_id,status',
+                    'campaignAar:id,event_id,status,is_visible',
                     'slots:id,event_id,slot_key,user_id,ally_id',
                 ])
                 ->withCount([
@@ -157,11 +157,18 @@ class PublicCampaignController extends Controller
                     mb_strtoupper(trim((string) $event->eventStatus?->name)) === 'FINALIZADO'
             );
 
-        $campaignAarPublishedCount = $finalizedCampaignEvents
+        $publicFinalizedCampaignEvents = $finalizedCampaignEvents
+            ->filter(
+                fn ($event): bool =>
+                    $event->campaignAar === null
+                    || $event->campaignAar->is_visible
+            );
+
+        $campaignAarPublishedCount = $publicFinalizedCampaignEvents
             ->filter(fn ($event): bool => $event->campaignAar?->status === 'published')
             ->count();
 
-        $campaignAarPendingCount = $finalizedCampaignEvents->count()
+        $campaignAarPendingCount = $publicFinalizedCampaignEvents->count()
             - $campaignAarPublishedCount;
 
         $campaignEventIdsAscending = $campaign->events
@@ -169,7 +176,7 @@ class PublicCampaignController extends Controller
             ->pluck('id')
             ->values();
 
-        $campaignAarPendingEvent = $finalizedCampaignEvents
+        $campaignAarPendingEvent = $publicFinalizedCampaignEvents
             ->filter(fn ($event): bool => $event->campaignAar?->status !== 'published')
             ->sortByDesc(fn ($event) => $event->date?->getTimestamp() ?? 0)
             ->first();

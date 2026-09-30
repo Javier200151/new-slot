@@ -8,12 +8,20 @@ use App\Models\CampaignAar;
 use App\Models\Operation;
 use App\Models\GameMap;
 use App\Models\Role;
+use App\Models\RecruitmentPeriod;
+use App\Models\RecruitmentReentryReview;
+use App\Models\RecruitmentReinforcementArea;
+use App\Models\User;
+use App\Observers\UserRecruitmentObserver;
 use App\Policies\ActivityPolicy;
 use App\Policies\CampaignAarPolicy;
 use App\Policies\AuditLogPolicy;
 use App\Policies\OperationPolicy;
 use App\Policies\MapPolicy;
 use App\Policies\RolePolicy;
+use App\Policies\RecruitmentPeriodPolicy;
+use App\Policies\RecruitmentReentryReviewPolicy;
+use App\Policies\RecruitmentReinforcementAreaPolicy;
 use App\Services\AuditLogger;
 use App\Support\AuditContext;
 use Filament\Forms\Components\RichEditor;
@@ -71,6 +79,21 @@ class AppServiceProvider extends ServiceProvider
             CampaignAarPolicy::class
         );
 
+        Gate::policy(
+            RecruitmentPeriod::class,
+            RecruitmentPeriodPolicy::class
+        );
+
+        Gate::policy(
+            RecruitmentReentryReview::class,
+            RecruitmentReentryReviewPolicy::class
+        );
+
+        Gate::policy(
+            RecruitmentReinforcementArea::class,
+            RecruitmentReinforcementAreaPolicy::class
+        );
+
         /*
          * Policies que Laravel no puede descubrir por convención:
          *
@@ -98,6 +121,13 @@ class AppServiceProvider extends ServiceProvider
             SpatieActivity::class,
             AuditLogPolicy::class
         );
+
+        /*
+         * La transición RECLUTA <-> otros estados debe ejecutarse desde una
+         * única capa independientemente de si el cambio viene de Filament,
+         * importaciones u otra ruta Eloquent.
+         */
+        User::observe(UserRecruitmentObserver::class);
 
         $this->registerActivityEnrichment();
 

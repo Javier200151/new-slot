@@ -27,6 +27,20 @@ return [
             ],
         ],
 
+        'recruitment' => [
+            'label' => 'Área de tutores',
+            'icon' => 'heroicon-o-academic-cap',
+            'resources' => [
+                'recruitment-area' => [
+                    'label' => 'Área de tutores',
+                    'actions' => [
+                        'access' => 'Acceso a área de tutores',
+                        'assign' => 'Se puede asignar reclutas',
+                    ],
+                ],
+            ],
+        ],
+
         'metopas' => [
             'label' => 'Metopas y promociones',
             'icon' => 'heroicon-o-trophy',

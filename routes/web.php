@@ -402,6 +402,11 @@ Route::middleware('auth')->group(function (): void {
         '/campanas/{campaign}/aar/{event}',
         [CampaignAarController::class, 'update'],
     )->name('campaigns.aars.update');
+
+    Route::patch(
+        '/campanas/{campaign}/aar/{event}/visibilidad',
+        [CampaignAarController::class, 'updateVisibility'],
+    )->name('campaigns.aars.visibility');
 });
 
 /*
