@@ -34,8 +34,8 @@
                 <h1>Directos</h1>
 
                 <p>
-                    Sigue las retransmisiones de los
-                    miembros de Squad ALPHA.
+                    Sigue las retransmisiones de los miembros de Squad ALPHA.
+                    Twitch y YouTube se comprueban automáticamente.
                 </p>
             </div>
 
@@ -140,12 +140,12 @@
                         <div class="live-event__title">
 
                             <span>
-                                Evento
+                                {{ $event ? 'Evento' : 'Comunidad' }}
                             </span>
 
                             <strong>
                                 {{ $event?->name
-                                    ?? 'Emisión en directo'
+                                    ?? 'Directos de la comunidad'
                                 }}
                             </strong>
 
@@ -224,10 +224,16 @@
 
                             @foreach($eventStreams as $stream)
 
+                                @php
+                                    $publicStreamId = $stream->getAttribute('public_key')
+                                        ?: ('manual-' . $stream->id);
+                                    $isAutomatic = $stream->getAttribute('discovery_source') === 'automatic';
+                                @endphp
+
                                 <article
                                     class="live-card"
-                                    id="directo-{{ $stream->id }}"
-                                    data-stream-id="{{ $stream->id }}"
+                                    id="directo-{{ $publicStreamId }}"
+                                    data-stream-id="{{ $publicStreamId }}"
                                     draggable="true"
                                 >
 
@@ -270,23 +276,34 @@
 
                                         </div>
 
-                                        <span
-                                            class="
-                                                platform-badge
-                                                platform-badge--{{
-                                                    $stream
-                                                        ->platform
+                                        <div class="live-card__badges">
+                                            @if($isAutomatic)
+                                                <span
+                                                    class="live-auto-badge"
+                                                    title="Directo detectado automáticamente"
+                                                >
+                                                    AUTO
+                                                </span>
+                                            @endif
+
+                                            <span
+                                                class="
+                                                    platform-badge
+                                                    platform-badge--{{
+                                                        $stream
+                                                            ->platform
+                                                    }}
+                                                "
+                                            >
+                                                {{
+                                                    strtoupper(
+                                                        $stream
+                                                            ->platform
+                                                            ?? ''
+                                                    )
                                                 }}
-                                            "
-                                        >
-                                            {{
-                                                strtoupper(
-                                                    $stream
-                                                        ->platform
-                                                        ?? ''
-                                                )
-                                            }}
-                                        </span>
+                                            </span>
+                                        </div>
 
                                     </header>
 
@@ -426,8 +443,8 @@
                     </strong>
 
                     <p>
-                        Cuando un streamer active su
-                        emisión aparecerá aquí.
+                        Cuando NewSlot detecte un directo en los canales configurados,
+                        aparecerá aquí automáticamente.
                     </p>
                 </div>
                 <button
@@ -468,8 +485,8 @@
                         </h2>
 
                         <p>
-                            Controla la emisión que se
-                            muestra al resto de usuarios.
+                            Tus canales configurados se detectan automáticamente.
+                            La publicación manual queda disponible como respaldo.
                         </p>
 
                     </header>
@@ -493,6 +510,20 @@
                         </div>
 
                     @else
+
+                        @if($myAutomaticStreams->isNotEmpty())
+                            <div class="streams-alert streams-alert--info">
+                                <strong>Detección automática activa.</strong>
+                                NewSlot está viendo tu directo en
+                                {{ $myAutomaticStreams->pluck('platform')->map(fn ($platform) => strtoupper($platform))->implode(' + ') }}.
+                                No necesitas publicar la emisión manualmente.
+                            </div>
+                        @elseif($myStreamer->twitch_channel || $myStreamer->youtube_channel)
+                            <div class="streams-alert streams-alert--info">
+                                NewSlot comprueba automáticamente tus canales de Twitch y YouTube.
+                                Si una plataforma no puede detectarse temporalmente, puedes usar el formulario manual de respaldo.
+                            </div>
+                        @endif
 
                         @if($myActiveStream)
 
