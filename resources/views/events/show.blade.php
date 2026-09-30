@@ -115,6 +115,31 @@
                 <div class="event-detail__notice is-error" role="alert">{{ $message }}</div>
             @enderror
 
+            @error('reservation')
+                <div class="event-detail__notice is-error" role="alert">{{ $message }}</div>
+            @enderror
+
+            @if($hasPendingReserveRetutoring)
+                <div class="event-roulette-lock event-retutoring-lock" data-event-retutoring-lock>
+                    <div class="event-roulette-lock__backdrop" data-event-retutoring-lock-close></div>
+                    <section class="event-roulette-lock__dialog" role="dialog" aria-modal="true" aria-labelledby="retutoring-lock-title">
+                        <span class="event-roulette-lock__eyebrow">REINCORPORACIÓN PENDIENTE</span>
+                        <h2 id="retutoring-lock-title">Todavía no puedes apuntarte a eventos</h2>
+                        <p>
+                            Has vuelto desde RESERVA y tu reincorporación todavía debe ser aprobada por el Área de Tutores.
+                            Hasta entonces no puedes apuntarte a slots ni entrar en reservas de ningún evento.
+                        </p>
+                        <div class="event-roulette-lock__meta">
+                            <span>La revisión puede resolverse con una <b>retutoría aprobada</b> o confirmando que <b>no es necesaria</b>.</span>
+                            <span>Tu estado seguirá siendo <b>ACTIVO</b> mientras se completa este proceso.</span>
+                        </div>
+                        <div class="event-roulette-lock__actions">
+                            <button type="button" class="btn btn-outline" data-event-retutoring-lock-close>Entendido</button>
+                        </div>
+                    </section>
+                </div>
+            @endif
+
             @if($rouletteLockRoom)
                 <div class="event-roulette-lock" data-event-roulette-lock>
                     <div class="event-roulette-lock__backdrop" data-event-roulette-lock-close></div>
@@ -1242,7 +1267,12 @@
                                                 <button type="submit" class="event-reservations__button">Reservar</button>
                                             </form>
                                         @elseif($event->reservations_enabled)
-                                            <span class="event-reservations__paused">Tu estado actual no permite reservar</span>
+                                            <span class="event-reservations__paused">
+                                                {{ $hasPendingReserveRetutoring
+                                                    ? 'Reincorporación pendiente de aprobación por Tutores'
+                                                    : 'Tu estado actual no permite reservar'
+                                                }}
+                                            </span>
                                         @else
                                             <span class="event-reservations__paused">Reservas cerradas</span>
                                         @endif
@@ -1593,7 +1623,10 @@
                                                                 </a>
                                                             @else
                                                                 <span class="event-orbat__unavailable">
-                                                                    No disponible para reclutas
+                                                                    {{ $hasPendingReserveRetutoring
+                                                                        ? 'Retutoría pendiente'
+                                                                        : 'No disponible para reclutas'
+                                                                    }}
                                                                 </span>
                                                             @endguest
                                                             @endif

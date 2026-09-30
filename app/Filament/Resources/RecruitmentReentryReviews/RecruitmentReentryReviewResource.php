@@ -18,7 +18,7 @@ class RecruitmentReentryReviewResource extends Resource
  protected static ?string $pluralModelLabel='Reincorporaciones pendientes';
  protected static ?int $navigationSort=3;
  public static function table(Table $table):Table{return RecruitmentReentryReviewsTable::configure($table);}
- public static function getEloquentQuery():Builder{return parent::getEloquentQuery()->whereNull('resolved_at')->whereNotNull('pending_user_id')->with(['user','previousPeriod']);}
+ public static function getEloquentQuery():Builder{return parent::getEloquentQuery()->whereNull('resolved_at')->whereNotNull('pending_user_id')->with(['user','previousPeriod','tutorialTutor']);}
  public static function getPages():array{return['index'=>ListRecruitmentReentryReviews::route('/')];}
  public static function canCreate():bool{return false;}
  public static function getNavigationBadge():?string{return(string)static::getEloquentQuery()->count();}

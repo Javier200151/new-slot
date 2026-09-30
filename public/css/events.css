@@ -1601,6 +1601,8 @@ border-radius: 10px;
     height: 1em;
     object-fit: contain;
     flex: none;
+    transform: scale(1.4);
+    transform-origin: center;
 }
 
 .event-orbat__slot-action {
@@ -5151,6 +5153,10 @@ a.event-comment__author:hover {
     padding: 22px;
     opacity: 1;
     transition: opacity .18s ease;
+}
+
+.event-retutoring-lock {
+    z-index: 9600;
 }
 
 .event-roulette-lock.is-dismissed {

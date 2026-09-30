@@ -34,6 +34,10 @@ class RecruitmentPeriodService
             return;
         }
 
+        if ($previousStatusName === 'RESERVA' && $currentStatusName === 'ACTIVO') {
+            $this->createReserveReturnReview($user);
+        }
+
         if ($currentStatusName === 'RECLUTA') {
             $this->enterRecruitment($user, 'status_transition');
 
@@ -42,7 +46,11 @@ class RecruitmentPeriodService
 
         if ($previousStatusName === 'RECLUTA') {
             $this->leaveRecruitment($user, $currentStatusName);
+
+            return;
         }
+
+        $this->resolveReserveReturnIfNoLongerActive($user, $currentStatusName);
     }
 
     public function syncLegacyTutorChange(User $user): void
@@ -73,6 +81,8 @@ class RecruitmentPeriodService
             'process_status' => RecruitmentPeriod::PROCESS_PENDING_PROMOTION,
             'promotion_pending_at' => now(),
             'promotion_pending_by' => $actorId ?? Auth::id(),
+            'dismissal_pending_at' => null,
+            'dismissal_pending_by' => null,
         ]);
     }
 
@@ -88,6 +98,36 @@ class RecruitmentPeriodService
                 : RecruitmentPeriod::PROCESS_PENDING_TUTOR,
             'promotion_pending_at' => null,
             'promotion_pending_by' => null,
+        ]);
+    }
+
+    public function markDismissalPending(RecruitmentPeriod $period, ?int $actorId = null): void
+    {
+        if (! $period->isOpen()) {
+            throw new \LogicException('Solo puede marcarse un periodo abierto.');
+        }
+
+        $period->update([
+            'process_status' => RecruitmentPeriod::PROCESS_PENDING_DISMISSAL,
+            'dismissal_pending_at' => now(),
+            'dismissal_pending_by' => $actorId ?? Auth::id(),
+            'promotion_pending_at' => null,
+            'promotion_pending_by' => null,
+        ]);
+    }
+
+    public function clearDismissalPending(RecruitmentPeriod $period): void
+    {
+        if (! $period->isOpen()) {
+            throw new \LogicException('Solo puede modificarse un periodo abierto.');
+        }
+
+        $period->update([
+            'process_status' => $period->tutor_id
+                ? RecruitmentPeriod::PROCESS_IN_PROGRESS
+                : RecruitmentPeriod::PROCESS_PENDING_TUTOR,
+            'dismissal_pending_at' => null,
+            'dismissal_pending_by' => null,
         ]);
     }
 
@@ -110,6 +150,67 @@ class RecruitmentPeriodService
                 'resolution' => RecruitmentReentryReview::RESOLUTION_STATUS_CHANGE_ERROR,
                 'resolved_by_user_id' => $resolvedByUserId ?? Auth::id(),
                 'resolution_note' => 'Reincorporación descartada manualmente: cambio de status considerado administrativo/erróneo.',
+            ]);
+        });
+    }
+
+    public function approveReserveReturnTutoring(
+        RecruitmentReentryReview $review,
+        int $tutorialTutorUserId,
+        ?int $resolvedByUserId = null,
+    ): void {
+        DB::transaction(function () use ($review, $tutorialTutorUserId, $resolvedByUserId): void {
+            $locked = RecruitmentReentryReview::query()
+                ->lockForUpdate()
+                ->findOrFail($review->id);
+
+            if (! $locked->isPending()) {
+                return;
+            }
+
+            if (! $locked->isReserveReturn()) {
+                throw new \LogicException('Esta revisión no corresponde a un retorno desde reserva.');
+            }
+
+            $tutorialTutor = User::withTrashed()->findOrFail($tutorialTutorUserId);
+
+            $locked->update([
+                'pending_user_id' => null,
+                'tutorial_tutor_user_id' => $tutorialTutor->id,
+                'tutorial_approved_at' => now(),
+                'resolved_at' => now(),
+                'resolution' => RecruitmentReentryReview::RESOLUTION_TUTORING_APPROVED,
+                'resolved_by_user_id' => $resolvedByUserId ?? Auth::id(),
+                'resolution_note' => 'Retutoría de reincorporación desde RESERVA aprobada.',
+            ]);
+        });
+    }
+
+    public function approveReserveReturnWithoutTutoring(
+        RecruitmentReentryReview $review,
+        ?int $resolvedByUserId = null,
+    ): void {
+        DB::transaction(function () use ($review, $resolvedByUserId): void {
+            $locked = RecruitmentReentryReview::query()
+                ->lockForUpdate()
+                ->findOrFail($review->id);
+
+            if (! $locked->isPending()) {
+                return;
+            }
+
+            if (! $locked->isReserveReturn()) {
+                throw new \LogicException('Esta revisión no corresponde a un retorno desde reserva.');
+            }
+
+            $locked->update([
+                'pending_user_id' => null,
+                'tutorial_tutor_user_id' => null,
+                'tutorial_approved_at' => null,
+                'resolved_at' => now(),
+                'resolution' => RecruitmentReentryReview::RESOLUTION_NO_TUTORING_REQUIRED,
+                'resolved_by_user_id' => $resolvedByUserId ?? Auth::id(),
+                'resolution_note' => 'Reincorporación desde RESERVA aprobada sin necesidad de retutoría.',
             ]);
         });
     }
@@ -180,6 +281,7 @@ class RecruitmentPeriodService
                     'user_id' => $lockedUser->id,
                     'pending_user_id' => $lockedUser->id,
                     'previous_period_id' => $lastPeriod->id,
+                    'review_type' => RecruitmentReentryReview::TYPE_PROMOTED_TO_RECRUIT,
                     'detected_at' => now(),
                 ]);
 
@@ -187,6 +289,34 @@ class RecruitmentPeriodService
             }
 
             $this->createPeriod($lockedUser, $startedAtSource, $lastPeriod);
+        });
+    }
+
+    private function createReserveReturnReview(User $user): void
+    {
+        DB::transaction(function () use ($user): void {
+            $lockedUser = User::withTrashed()->lockForUpdate()->findOrFail($user->id);
+
+            if ($this->statusName($lockedUser->status_id) !== 'ACTIVO') {
+                return;
+            }
+
+            if (RecruitmentReentryReview::query()->where('pending_user_id', $lockedUser->id)->exists()) {
+                return;
+            }
+
+            $lastPeriod = RecruitmentPeriod::query()
+                ->where('user_id', $lockedUser->id)
+                ->orderByDesc('period_number')
+                ->first();
+
+            RecruitmentReentryReview::query()->create([
+                'user_id' => $lockedUser->id,
+                'pending_user_id' => $lockedUser->id,
+                'previous_period_id' => $lastPeriod?->id,
+                'review_type' => RecruitmentReentryReview::TYPE_RESERVE_TO_ACTIVE,
+                'detected_at' => $lockedUser->updated_at ?? now(),
+            ]);
         });
     }
 
@@ -235,6 +365,8 @@ class RecruitmentPeriodService
             'current_note' => null,
             'promotion_pending_at' => null,
             'promotion_pending_by' => null,
+            'dismissal_pending_at' => null,
+            'dismissal_pending_by' => null,
             'started_at' => $startedAt,
             'started_at_source' => $startedAtSource,
         ]);
@@ -311,6 +443,31 @@ class RecruitmentPeriodService
             'resolution' => RecruitmentReentryReview::RESOLUTION_STATUS_CHANGE_ERROR,
             'resolved_by_user_id' => Auth::id(),
             'resolution_note' => 'El usuario dejó de estar en RECLUTA antes de iniciar un nuevo periodo.',
+        ]);
+    }
+
+    private function resolveReserveReturnIfNoLongerActive(User $user, string $currentStatusName): void
+    {
+        if ($currentStatusName === 'ACTIVO') {
+            return;
+        }
+
+        $review = RecruitmentReentryReview::query()
+            ->where('pending_user_id', $user->id)
+            ->where('review_type', RecruitmentReentryReview::TYPE_RESERVE_TO_ACTIVE)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $review) {
+            return;
+        }
+
+        $review->update([
+            'pending_user_id' => null,
+            'resolved_at' => now(),
+            'resolution' => RecruitmentReentryReview::RESOLUTION_STATUS_CHANGE_ERROR,
+            'resolved_by_user_id' => Auth::id(),
+            'resolution_note' => 'La reincorporación desde RESERVA dejó de estar en ACTIVO antes de aprobar la retutoría.',
         ]);
     }
 

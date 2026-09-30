@@ -160,7 +160,14 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             ])->saveQuietly();
         }
 
-        app(SignatureBannerGenerator::class)->generate($this);
+        // La generación de la firma es un efecto secundario. Si falla por un
+        // problema de filesystem/imagen, no debe abortar el cambio de estado ni
+        // impedir que otros observers (por ejemplo, Reclutamiento) terminen.
+        try {
+            app(SignatureBannerGenerator::class)->generate($this);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     public function status()
