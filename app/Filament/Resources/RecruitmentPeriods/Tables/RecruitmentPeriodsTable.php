@@ -38,11 +38,13 @@ class RecruitmentPeriodsTable
                         RecruitmentPeriod::PROCESS_PENDING_TUTOR => 'Pendiente de tutor',
                         RecruitmentPeriod::PROCESS_IN_PROGRESS => 'En curso',
                         RecruitmentPeriod::PROCESS_PENDING_PROMOTION => 'Pendiente de promocionar',
+                        RecruitmentPeriod::PROCESS_PENDING_DISMISSAL => 'Pendiente de baja',
                         default => $state,
                     })
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         RecruitmentPeriod::PROCESS_PENDING_PROMOTION => 'success',
+                        RecruitmentPeriod::PROCESS_PENDING_DISMISSAL => 'danger',
                         RecruitmentPeriod::PROCESS_PENDING_TUTOR => 'warning',
                         default => 'info',
                     }),
@@ -113,6 +115,7 @@ class RecruitmentPeriodsTable
                         RecruitmentPeriod::PROCESS_PENDING_TUTOR => 'Pendiente de tutor',
                         RecruitmentPeriod::PROCESS_IN_PROGRESS => 'En curso',
                         RecruitmentPeriod::PROCESS_PENDING_PROMOTION => 'Pendiente de promocionar',
+                        RecruitmentPeriod::PROCESS_PENDING_DISMISSAL => 'Pendiente de baja',
                     ]),
             ])
             ->recordActions([

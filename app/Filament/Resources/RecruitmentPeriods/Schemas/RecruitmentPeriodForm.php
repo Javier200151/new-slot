@@ -49,6 +49,7 @@ class RecruitmentPeriodForm
                             RecruitmentPeriod::PROCESS_PENDING_TUTOR => 'Pendiente de tutor',
                             RecruitmentPeriod::PROCESS_IN_PROGRESS => 'En curso',
                             RecruitmentPeriod::PROCESS_PENDING_PROMOTION => 'Pendiente de promocionar',
+                            RecruitmentPeriod::PROCESS_PENDING_DISMISSAL => 'Pendiente de baja',
                             RecruitmentPeriod::PROCESS_CLOSED => 'Cerrado',
                         ])
                         ->disabled(),
@@ -56,6 +57,11 @@ class RecruitmentPeriodForm
                         ->label('Pendiente de promoción')
                         ->content(fn (?RecruitmentPeriod $record): string => $record?->promotion_pending_at
                             ? $record->promotion_pending_at->format('d/m/Y H:i') . ' · ' . ($record->promotionPendingBy?->nick ?? 'Sistema')
+                            : 'No marcado'),
+                    Placeholder::make('dismissal_pending_trace')
+                        ->label('Pendiente de baja')
+                        ->content(fn (?RecruitmentPeriod $record): string => $record?->dismissal_pending_at
+                            ? $record->dismissal_pending_at->format('d/m/Y H:i') . ' · ' . ($record->dismissalPendingBy?->nick ?? 'Sistema')
                             : 'No marcado'),
                     Textarea::make('current_note')
                         ->label('Nota / disponibilidad')

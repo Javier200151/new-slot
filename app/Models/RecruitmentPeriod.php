@@ -43,6 +43,7 @@ class RecruitmentPeriod extends Model
     public const PROCESS_PENDING_TUTOR = 'PENDING_TUTOR';
     public const PROCESS_IN_PROGRESS = 'IN_PROGRESS';
     public const PROCESS_PENDING_PROMOTION = 'PENDING_PROMOTION';
+    public const PROCESS_PENDING_DISMISSAL = 'PENDING_DISMISSAL';
     public const PROCESS_CLOSED = 'CLOSED';
 
     public const RESULT_PROMOTED = 'PROMOTED';
@@ -70,6 +71,8 @@ class RecruitmentPeriod extends Model
         'current_note',
         'promotion_pending_at',
         'promotion_pending_by',
+        'dismissal_pending_at',
+        'dismissal_pending_by',
         'started_at',
         'started_at_source',
         'ended_at',
@@ -86,6 +89,7 @@ class RecruitmentPeriod extends Model
         return [
             'official_events_allowed' => 'boolean',
             'promotion_pending_at' => 'datetime',
+            'dismissal_pending_at' => 'datetime',
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
         ];
@@ -114,6 +118,11 @@ class RecruitmentPeriod extends Model
     public function promotionPendingBy()
     {
         return $this->belongsTo(User::class, 'promotion_pending_by')->withTrashed();
+    }
+
+    public function dismissalPendingBy()
+    {
+        return $this->belongsTo(User::class, 'dismissal_pending_by')->withTrashed();
     }
 
     public function closedBy()

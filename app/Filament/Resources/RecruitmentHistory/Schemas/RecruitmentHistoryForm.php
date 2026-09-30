@@ -69,7 +69,14 @@ class RecruitmentHistoryForm
                         ->displayFormat('d/m/Y H:i')
                         ->disabled(),
                     TextInput::make('promotionPendingBy.nick')
-                        ->label('Marcado por')
+                        ->label('Promoción marcada por')
+                        ->disabled(),
+                    DateTimePicker::make('dismissal_pending_at')
+                        ->label('Marcado pendiente de baja')
+                        ->displayFormat('d/m/Y H:i')
+                        ->disabled(),
+                    TextInput::make('dismissalPendingBy.nick')
+                        ->label('Baja marcada por')
                         ->disabled(),
                 ])->columns(2),
         ]);

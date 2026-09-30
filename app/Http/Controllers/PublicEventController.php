@@ -10,6 +10,7 @@ use App\Models\EventSlotHistory;
 use App\Models\EventReservation;
 use App\Models\Faction;
 use App\Models\ActivityType;
+use App\Models\RecruitmentReentryReview;
 use App\Models\SlotType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -274,7 +275,13 @@ class PublicEventController extends Controller
         $currentUserReservation = auth()->check()
             ? $eventReservations->firstWhere('user_id', auth()->id())
             : null;
+
+        $recruitmentEligibility = app(RecruitmentOfficialEventEligibilityService::class);
+        $hasPendingReserveRetutoring = auth()->check()
+            && $recruitmentEligibility->hasPendingReserveRetutoring(auth()->user());
+
         $currentUserCanReserve = auth()->check()
+            && ! $hasPendingReserveRetutoring
             && in_array(
                 strtoupper(trim((string) auth()->user()->status?->name)),
                 ['ACTIVO', 'RESERVA', 'RECLUTA'],
@@ -342,6 +349,12 @@ class PublicEventController extends Controller
                                 'id',
                                 $assignedUserIds
                             )
+                    )
+                    ->whereDoesntHave(
+                        'pendingRecruitmentReentryReview',
+                        fn ($query) => $query
+                            ->where('review_type', RecruitmentReentryReview::TYPE_RESERVE_TO_ACTIVE)
+                            ->whereNull('resolved_at')
                     )
                     ->orderBy('nick')
                     ->get([
@@ -483,11 +496,11 @@ class PublicEventController extends Controller
             || $canEditEvent;
 
         $visibleOrbatGroups = $groups
-            ->map(function (array $group) use ($assignments, $currentUserSlot, $factions, $isRegistrationOpen, $slotTypes): array {
+            ->map(function (array $group) use ($assignments, $currentUserSlot, $factions, $isRegistrationOpen, $slotTypes, $hasPendingReserveRetutoring): array {
                 $group['faction'] = $factions->get((int) ($group['faction_id'] ?? 0));
                 $group['slots'] = collect($group['slots'] ?? [])
                     ->filter(fn (array $slot): bool => (bool) ($slot['visible'] ?? true))
-                    ->map(function (array $slot) use ($assignments, $currentUserSlot, $isRegistrationOpen, $slotTypes): array {
+                    ->map(function (array $slot) use ($assignments, $currentUserSlot, $isRegistrationOpen, $slotTypes, $hasPendingReserveRetutoring): array {
                         $slotKey = $slot['slot_key'] ?? null;
                         $slot['slot_key'] = $slotKey;
                         $slot['slot_type'] = $slotTypes->get((int) ($slot['slot_type_id'] ?? 0));
@@ -499,6 +512,7 @@ class PublicEventController extends Controller
                             && $slot['slot_type']?->statuses->contains('id', auth()->user()->status_id);
                         $slot['can_register'] = $isRegistrationOpen
                             && auth()->check()
+                            && ! $hasPendingReserveRetutoring
                             && filled($slotKey)
                             && ! $slot['is_occupied']
                             && $slot['is_allowed_for_user'];
@@ -657,6 +671,7 @@ class PublicEventController extends Controller
             'currentUserReservation',
             'currentUserCanReserve',
             'currentUserSlot',
+            'hasPendingReserveRetutoring',
         ));
     }
 
@@ -1523,6 +1538,15 @@ class PublicEventController extends Controller
                     throw ValidationException::withMessages([
                         'slot' =>
                             'El usuario seleccionado no existe.',
+                    ]);
+                }
+
+                if (
+                    app(RecruitmentOfficialEventEligibilityService::class)
+                        ->hasPendingReserveRetutoring($assignedUser)
+                ) {
+                    throw ValidationException::withMessages([
+                        'slot' => "{$assignedUser->nick} tiene una retutoría de reincorporación pendiente y no puede ser asignado a ningún evento hasta que Tutores la resuelva.",
                     ]);
                 }
 

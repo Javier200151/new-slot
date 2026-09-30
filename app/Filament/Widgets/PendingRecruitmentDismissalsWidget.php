@@ -9,11 +9,11 @@ use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 
-class PendingRecruitmentPromotionsWidget extends TableWidget
+class PendingRecruitmentDismissalsWidget extends TableWidget
 {
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 2;
 
     public static function canView(): bool
     {
@@ -23,12 +23,12 @@ class PendingRecruitmentPromotionsWidget extends TableWidget
     public function table(Table $table): Table
     {
         return $table
-            ->heading('Reclutas pendientes de promocionar')
+            ->heading('Reclutas pendientes de baja')
             ->description('Aviso visible para todos los usuarios con acceso a Filament.')
             ->query(fn (): Builder => RecruitmentPeriod::query()
                 ->whereNull('ended_at')
                 ->whereNotNull('open_user_id')
-                ->where('process_status', RecruitmentPeriod::PROCESS_PENDING_PROMOTION)
+                ->where('process_status', RecruitmentPeriod::PROCESS_PENDING_DISMISSAL)
                 ->with(['user', 'tutor']))
             ->columns([
                 TextColumn::make('user.nick')
@@ -38,8 +38,10 @@ class PendingRecruitmentPromotionsWidget extends TableWidget
                             ? RecruitmentPeriodResource::getUrl('edit', ['record' => $record])
                             : null
                     ),
-                TextColumn::make('tutor.nick')->label('Tutor')->default('—'),
-                TextColumn::make('promotion_pending_at')
+                TextColumn::make('tutor.nick')
+                    ->label('Tutor')
+                    ->default('—'),
+                TextColumn::make('dismissal_pending_at')
                     ->label('Pendiente desde')
                     ->since()
                     ->placeholder('—'),

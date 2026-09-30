@@ -37,6 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->registration(\App\Filament\Pages\Auth\Register::class)
             ->globalSearch(false)
+            ->sidebarFullyCollapsibleOnDesktop()
             ->colors([
                 'primary' => Color::Amber,
             ])

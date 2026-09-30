@@ -2395,6 +2395,25 @@ document.addEventListener(
     }
 );
 document.addEventListener('DOMContentLoaded', () => {
+    const retutoringLock = document.querySelector('[data-event-retutoring-lock]');
+
+    if (retutoringLock) {
+        const closeRetutoringLock = () => {
+            retutoringLock.classList.add('is-dismissed');
+            window.setTimeout(() => retutoringLock.remove(), 180);
+        };
+
+        retutoringLock.querySelectorAll('[data-event-retutoring-lock-close]').forEach((button) => {
+            button.addEventListener('click', closeRetutoringLock);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && document.body.contains(retutoringLock)) {
+                closeRetutoringLock();
+            }
+        });
+    }
+
     const rouletteWatch = document.querySelector('[data-event-roulette-watch]');
     const rouletteLock = document.querySelector('[data-event-roulette-lock]');
 

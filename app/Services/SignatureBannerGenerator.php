@@ -133,8 +133,20 @@ class SignatureBannerGenerator
 
         $fileName = 'firmas/' . $user->nick . '.png';
         $outputPath = storage_path('app/public/' . $fileName);
+        $outputDirectory = dirname($outputPath);
 
-        imagepng($image, $outputPath);
+        // La carpeta de firmas puede no existir todavía en una instalación nueva
+        // o en un entorno local. La creación de una firma nunca debe depender de
+        // que esa carpeta se haya creado manualmente previamente.
+        if (! is_dir($outputDirectory)
+            && ! @mkdir($outputDirectory, 0775, true)
+            && ! is_dir($outputDirectory)) {
+            throw new Exception("No se pudo crear el directorio de firmas: {$outputDirectory}");
+        }
+
+        if (! @imagepng($image, $outputPath)) {
+            throw new Exception("No se pudo guardar la firma generada: {$outputPath}");
+        }
 
         //imagedestroy($image);
         //imagedestroy($textLayer);

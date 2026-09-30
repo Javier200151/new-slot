@@ -20,7 +20,10 @@ class EditRecruitmentPeriod extends EditRecord
             unset($data['tutor_id']);
         }
 
-        if ($this->record->process_status !== RecruitmentPeriod::PROCESS_PENDING_PROMOTION) {
+        if (! in_array($this->record->process_status, [
+            RecruitmentPeriod::PROCESS_PENDING_PROMOTION,
+            RecruitmentPeriod::PROCESS_PENDING_DISMISSAL,
+        ], true)) {
             $data['process_status'] = filled($data['tutor_id'] ?? $this->record->tutor_id)
                 ? RecruitmentPeriod::PROCESS_IN_PROGRESS
                 : RecruitmentPeriod::PROCESS_PENDING_TUTOR;
@@ -50,7 +53,13 @@ class EditRecruitmentPeriod extends EditRecord
                 ->action(function (): void {
                     app(RecruitmentPeriodService::class)->markPromotionPending($this->record, auth()->id());
                     Notification::make()->success()->title('Recluta marcado como pendiente de promocionar')->send();
-                    $this->refreshFormData(['process_status', 'promotion_pending_at', 'promotion_pending_by']);
+                    $this->refreshFormData([
+                        'process_status',
+                        'promotion_pending_at',
+                        'promotion_pending_by',
+                        'dismissal_pending_at',
+                        'dismissal_pending_by',
+                    ]);
                 }),
 
             Action::make('clearPromotion')
@@ -62,6 +71,36 @@ class EditRecruitmentPeriod extends EditRecord
                     app(RecruitmentPeriodService::class)->clearPromotionPending($this->record);
                     Notification::make()->success()->title('Pendiente de promoción retirado')->send();
                     $this->refreshFormData(['process_status', 'promotion_pending_at', 'promotion_pending_by']);
+                }),
+
+            Action::make('markDismissal')
+                ->label('Marcar pendiente de baja')
+                ->icon('heroicon-o-user-minus')
+                ->color('danger')
+                ->visible(fn (): bool => $this->record->process_status !== RecruitmentPeriod::PROCESS_PENDING_DISMISSAL)
+                ->requiresConfirmation()
+                ->modalDescription('Esto no cambia el estado del usuario. Solo deja marcada la propuesta de baja para revisión.')
+                ->action(function (): void {
+                    app(RecruitmentPeriodService::class)->markDismissalPending($this->record, auth()->id());
+                    Notification::make()->success()->title('Recluta marcado como pendiente de baja')->send();
+                    $this->refreshFormData([
+                        'process_status',
+                        'promotion_pending_at',
+                        'promotion_pending_by',
+                        'dismissal_pending_at',
+                        'dismissal_pending_by',
+                    ]);
+                }),
+
+            Action::make('clearDismissal')
+                ->label('Quitar pendiente de baja')
+                ->icon('heroicon-o-arrow-uturn-left')
+                ->visible(fn (): bool => $this->record->process_status === RecruitmentPeriod::PROCESS_PENDING_DISMISSAL)
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    app(RecruitmentPeriodService::class)->clearDismissalPending($this->record);
+                    Notification::make()->success()->title('Pendiente de baja retirado')->send();
+                    $this->refreshFormData(['process_status', 'dismissal_pending_at', 'dismissal_pending_by']);
                 }),
         ];
     }
