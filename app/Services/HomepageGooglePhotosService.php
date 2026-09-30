@@ -39,10 +39,26 @@ class HomepageGooglePhotosService
      */
     public function refresh(int $limit = 6, ?string $albumUrl = null): Collection
     {
+        return $this->refreshWithResult($limit, $albumUrl)['photos'];
+    }
+
+    /**
+     * Fuerza una lectura remota y permite distinguir una actualización real
+     * de un fallback a la última caché válida. Es útil para acciones manuales
+     * de administración, donde mostrar "actualizado" tras un fallo de Google
+     * sería engañoso.
+     *
+     * @return array{photos: Collection<int, array<string, mixed>>, refreshed: bool}
+     */
+    public function refreshWithResult(int $limit = 6, ?string $albumUrl = null): array
+    {
         [$limit, $albumUrl] = $this->normaliseRequest($limit, $albumUrl);
 
         if ($albumUrl === '') {
-            return collect();
+            return [
+                'photos' => collect(),
+                'refreshed' => false,
+            ];
         }
 
         $fetched = $this->fetchMedia($albumUrl, $limit);
@@ -50,10 +66,16 @@ class HomepageGooglePhotosService
         if ($fetched !== []) {
             Cache::forever($this->lastSuccessKey($albumUrl, $limit), $fetched);
 
-            return collect($fetched)->take($limit)->values();
+            return [
+                'photos' => collect($fetched)->take($limit)->values(),
+                'refreshed' => true,
+            ];
         }
 
-        return $this->latest($limit, $albumUrl);
+        return [
+            'photos' => $this->latest($limit, $albumUrl),
+            'refreshed' => false,
+        ];
     }
 
     private function normaliseRequest(int $limit, ?string $albumUrl): array

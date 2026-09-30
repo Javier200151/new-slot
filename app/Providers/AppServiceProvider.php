@@ -25,6 +25,7 @@ use App\Policies\RecruitmentReinforcementAreaPolicy;
 use App\Services\AuditLogger;
 use App\Support\AuditContext;
 use Filament\Forms\Components\RichEditor;
+use App\Support\OrbatEditorProfiler;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
@@ -48,6 +49,29 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        /*
+         * El límite debe ser el mismo en web, Artisan y workers. El valor
+         * también está reflejado en public/.user.ini para PHP-FPM/CGI, pero
+         * lo aplicamos aquí para no depender de la configuración interna del
+         * contenedor. Si el host prohíbe ini_set(), PHP conserva su límite.
+         */
+        $memoryLimit = trim((string) config('newslot.php_memory_limit', '256M'));
+        $targetBytes = OrbatEditorProfiler::iniBytes($memoryLimit);
+        $currentLimit = (string) ini_get('memory_limit');
+        $currentBytes = OrbatEditorProfiler::iniBytes($currentLimit);
+
+        // Solo elevamos el límite: si el contenedor ya ofrece más memoria (o
+        // memoria ilimitada) no lo reducimos desde la aplicación.
+        if (
+            $memoryLimit !== ''
+            && $targetBytes !== null
+            && $targetBytes > 0
+            && $currentBytes !== -1
+            && ($currentBytes === null || $currentBytes < $targetBytes)
+        ) {
+            @ini_set('memory_limit', $memoryLimit);
+        }
+
         /*
          * Un contexto diferente por petición/job.
          */

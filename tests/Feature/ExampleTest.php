@@ -2,11 +2,64 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\HomepageGooglePhotosService;
+use App\Services\HomepageInstagramService;
+use App\Services\HomepageVodService;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Schema::create('homepage_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->boolean('recruitment_open')->default(false);
+            $table->string('contact_email')->nullable();
+            $table->string('instagram_url')->nullable();
+            $table->text('google_photos_url')->nullable();
+            $table->string('news_title')->default('Actualidad de Squad ALPHA');
+            $table->text('news_intro')->nullable();
+            $table->string('streams_title')->default('Últimos VODs de la comunidad');
+            $table->text('streams_intro')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('homepage_news', function (Blueprint $table): void {
+            $table->id();
+            $table->string('title', 180);
+            $table->text('excerpt')->nullable();
+            $table->longText('body')->nullable();
+            $table->string('image')->nullable();
+            $table->string('external_url')->nullable();
+            $table->boolean('is_published')->default(true);
+            $table->timestamp('published_at')->nullable();
+            $table->unsignedSmallInteger('sort_order')->default(100);
+            $table->timestamps();
+        });
+
+        $this->mock(HomepageVodService::class)
+            ->shouldReceive('latest')
+            ->once()
+            ->with(6)
+            ->andReturn(collect());
+
+        $this->mock(HomepageInstagramService::class)
+            ->shouldReceive('latest')
+            ->once()
+            ->with(3)
+            ->andReturn(collect());
+
+        $this->mock(HomepageGooglePhotosService::class)
+            ->shouldReceive('latest')
+            ->once()
+            ->andReturnUsing(fn (): Collection => collect());
+    }
+
     /**
      * A basic test example.
      */
