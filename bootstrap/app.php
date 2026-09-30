@@ -22,6 +22,9 @@ return Application::configure(
     )
 
 
+    // Registrar los comandos de app/Console/Commands además de routes/console.php.
+    ->withCommands()
+
     ->withMiddleware(
         function (
             Middleware $middleware

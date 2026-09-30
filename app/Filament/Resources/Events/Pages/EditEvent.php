@@ -23,8 +23,10 @@ use App\Models\EventStatus;
 use App\Models\Activity;
 use App\Models\User;
 use App\Support\ActivityTypeConfiguration;
+use App\Support\OrbatEditorProfiler;
 use App\Services\CourseMetopaAwardService;
 use App\Services\EventOrbatSyncService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
@@ -544,126 +546,173 @@ class EditEvent extends EditRecord
 
     protected function orbatVisibilitySchema(): array
     {
-        $groups = $this->record->orbat['groups'] ?? [];
+        $orbat = is_array($this->record->orbat) ? $this->record->orbat : ['groups' => []];
+        $groups = is_array($orbat['groups'] ?? null) ? $orbat['groups'] : [];
 
-        $slotTypeIds = collect($groups)
-            ->flatMap(fn (array $group): array => $group['slots'] ?? [])
-            ->pluck('slot_type_id')
-            ->filter()
-            ->map(fn ($id): int => (int) $id)
-            ->unique()
-            ->values();
+        /*
+         * Este modal llegó a superar 128 MB con ORBAT grandes. Evitamos aquí
+         * varias colecciones intermedias y construimos el árbol de Filament en
+         * un único recorrido. La cantidad de componentes visuales se mantiene,
+         * por lo que no cambia el aspecto que ya está validado en producción.
+         */
+        $profile = (bool) config('newslot.orbat_editor.profile', false);
+        $startedAt = $profile ? hrtime(true) : 0;
+        $memoryBefore = $profile ? memory_get_usage(true) : 0;
 
-        $slotTypes = SlotType::query()
-            ->whereIn('id', $slotTypeIds)
-            ->get(['id', 'name', 'image'])
-            ->keyBy('id');
+        $slotTypeIds = [];
 
-        return collect($groups)
-            ->map(function (array $group, int $groupIndex) use ($slotTypes): \Filament\Schemas\Components\Section {
-                $groupName = trim((string) ($group['name'] ?? '')) ?: 'Grupo sin nombre';
-                $slots = $group['slots'] ?? [];
+        foreach ($groups as $group) {
+            foreach (($group['slots'] ?? []) as $slot) {
+                $slotTypeId = (int) ($slot['slot_type_id'] ?? 0);
 
-                $slotRows = collect($slots)
-                    ->map(function (array $slot, int $slotIndex) use ($groupIndex, $slotTypes): Flex {
-                        $slotName = trim((string) ($slot['name'] ?? '')) ?: 'Slot sin nombre';
-                        $slotType = $slotTypes->get((int) ($slot['slot_type_id'] ?? 0));
-                        $slotTypeName = $slotType?->name ?: 'Sin tipo';
+                if ($slotTypeId > 0) {
+                    $slotTypeIds[$slotTypeId] = true;
+                }
+            }
+        }
 
-                        $imageMarkup = filled($slotType?->image)
-                            ? '<img src="' . e(Storage::disk('public')->url((string) $slotType->image)) . '" alt="" style="width:1em;height:1em;object-fit:contain;flex:none;">'
-                            : '';
+        $slotTypes = [];
 
-                        $label = new HtmlString(
-                            '<div style="display:flex;align-items:center;gap:.45rem;min-width:0;">'
-                            . $imageMarkup
-                            . '<div style="min-width:0;">'
-                            . '<strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' . e($slotName) . '</strong>'
-                            . '<span style="display:block;color:#8b95a5;font-size:.75rem;">' . e($slotTypeName) . '</span>'
-                            . '</div>'
-                            . '</div>'
-                        );
+        if ($slotTypeIds !== []) {
+            foreach (
+                SlotType::query()
+                    ->whereIn('id', array_keys($slotTypeIds))
+                    ->get(['id', 'name', 'image']) as $slotType
+            ) {
+                $slotTypes[(int) $slotType->id] = [
+                    'name' => (string) $slotType->name,
+                    'image_url' => filled($slotType->image)
+                        ? Storage::disk('public')->url((string) $slotType->image)
+                        : null,
+                ];
+            }
+        }
 
-                        return Flex::make([
-                            Placeholder::make("slot_label_{$groupIndex}_{$slotIndex}")
-                                ->hiddenLabel()
-                                ->content($label)
-                                ->grow(false)
-                                ->extraAttributes([
-                                    'class' => 'event-orbat-visibility-copy',
-                                ]),
-                            Flex::make([
-                                Placeholder::make("slot_visible_label_{$groupIndex}_{$slotIndex}")
-                                    ->hiddenLabel()
-                                    ->content('Visible')
-                                    ->grow(false),
-                                Toggle::make(static::orbatSlotVisibilityField($groupIndex, $slotIndex))
-                                    ->hiddenLabel()
-                                    ->default((bool) ($slot['visible'] ?? true))
-                                    ->grow(false),
-                            ])
-                                ->dense()
-                                ->verticalAlignment(VerticalAlignment::Center)
-                                ->grow(false)
-                                ->extraAttributes([
-                                    'class' => 'event-orbat-visibility-control',
-                                ]),
-                        ])
-                            ->verticalAlignment(VerticalAlignment::Center)
-                            ->extraAttributes([
-                                'class' => 'event-orbat-visibility-row',
-                            ]);
-                    })
-                    ->all();
+        $sections = [];
 
-                return \Filament\Schemas\Components\Section::make()
-                    ->schema([
-                        Flex::make([
-                            Placeholder::make("group_label_{$groupIndex}")
-                                ->hiddenLabel()
-                                ->content(new HtmlString('<strong style="font-size:1rem;">' . e($groupName) . '</strong>'))
-                                ->grow(false)
-                                ->extraAttributes([
-                                    'class' => 'event-orbat-visibility-copy',
-                                ]),
-                            Flex::make([
-                                Placeholder::make("group_visible_label_{$groupIndex}")
-                                    ->hiddenLabel()
-                                    ->content('Visible')
-                                    ->grow(false),
-                                Toggle::make(static::orbatGroupVisibilityField($groupIndex))
-                                    ->hiddenLabel()
-                                    ->live()
-                                    ->afterStateUpdated(function ($state, Set $set) use ($groupIndex, $slots): void {
-                                        foreach (array_keys($slots) as $slotIndex) {
-                                            $set(
-                                                static::orbatSlotVisibilityField($groupIndex, (int) $slotIndex),
-                                                (bool) $state,
-                                            );
-                                        }
-                                    })
-                                    ->default((bool) ($group['visible'] ?? true))
-                                    ->grow(false),
-                            ])
-                                ->dense()
-                                ->verticalAlignment(VerticalAlignment::Center)
-                                ->grow(false)
-                                ->extraAttributes([
-                                    'class' => 'event-orbat-visibility-control',
-                                ]),
-                        ])
-                            ->verticalAlignment(VerticalAlignment::Center)
-                            ->extraAttributes([
-                                'class' => 'event-orbat-visibility-group-row',
-                            ]),
-                        ...$slotRows,
+        foreach ($groups as $groupIndex => $group) {
+            $groupIndex = (int) $groupIndex;
+            $groupName = trim((string) ($group['name'] ?? '')) ?: 'Grupo sin nombre';
+            $slots = is_array($group['slots'] ?? null) ? $group['slots'] : [];
+            $slotRows = [];
+
+            foreach ($slots as $slotIndex => $slot) {
+                $slotIndex = (int) $slotIndex;
+                $slotName = trim((string) ($slot['name'] ?? '')) ?: 'Slot sin nombre';
+                $slotTypeId = (int) ($slot['slot_type_id'] ?? 0);
+                $slotType = $slotTypes[$slotTypeId] ?? null;
+                $slotTypeName = $slotType['name'] ?? 'Sin tipo';
+
+                $imageMarkup = filled($slotType['image_url'] ?? null)
+                    ? '<img src="' . e((string) $slotType['image_url']) . '" alt="" style="width:1em;height:1em;object-fit:contain;flex:none;">'
+                    : '';
+
+                $label = new HtmlString(
+                    '<div style="display:flex;align-items:center;gap:.45rem;min-width:0;">'
+                    . $imageMarkup
+                    . '<div style="min-width:0;">'
+                    . '<strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' . e($slotName) . '</strong>'
+                    . '<span style="display:block;color:#8b95a5;font-size:.75rem;">' . e($slotTypeName) . '</span>'
+                    . '</div>'
+                    . '</div>'
+                );
+
+                $slotRows[] = Flex::make([
+                    Placeholder::make("slot_label_{$groupIndex}_{$slotIndex}")
+                        ->hiddenLabel()
+                        ->content($label)
+                        ->grow(false)
+                        ->extraAttributes([
+                            'class' => 'event-orbat-visibility-copy',
+                        ]),
+                    Flex::make([
+                        Placeholder::make("slot_visible_label_{$groupIndex}_{$slotIndex}")
+                            ->hiddenLabel()
+                            ->content('Visible')
+                            ->grow(false),
+                        Toggle::make(static::orbatSlotVisibilityField($groupIndex, $slotIndex))
+                            ->hiddenLabel()
+                            ->default((bool) ($slot['visible'] ?? true))
+                            ->grow(false),
                     ])
-                    ->compact()
+                        ->dense()
+                        ->verticalAlignment(VerticalAlignment::Center)
+                        ->grow(false)
+                        ->extraAttributes([
+                            'class' => 'event-orbat-visibility-control',
+                        ]),
+                ])
+                    ->verticalAlignment(VerticalAlignment::Center)
                     ->extraAttributes([
-                        'class' => 'event-orbat-visibility-section',
+                        'class' => 'event-orbat-visibility-row',
                     ]);
-            })
-            ->all();
+            }
+
+            $sections[] = \Filament\Schemas\Components\Section::make()
+                ->schema([
+                    Flex::make([
+                        Placeholder::make("group_label_{$groupIndex}")
+                            ->hiddenLabel()
+                            ->content(new HtmlString('<strong style="font-size:1rem;">' . e($groupName) . '</strong>'))
+                            ->grow(false)
+                            ->extraAttributes([
+                                'class' => 'event-orbat-visibility-copy',
+                            ]),
+                        Flex::make([
+                            Placeholder::make("group_visible_label_{$groupIndex}")
+                                ->hiddenLabel()
+                                ->content('Visible')
+                                ->grow(false),
+                            Toggle::make(static::orbatGroupVisibilityField($groupIndex))
+                                ->hiddenLabel()
+                                ->live()
+                                ->afterStateUpdated(function ($state, Set $set) use ($groupIndex, $slots): void {
+                                    foreach (array_keys($slots) as $slotIndex) {
+                                        $set(
+                                            static::orbatSlotVisibilityField($groupIndex, (int) $slotIndex),
+                                            (bool) $state,
+                                        );
+                                    }
+                                })
+                                ->default((bool) ($group['visible'] ?? true))
+                                ->grow(false),
+                        ])
+                            ->dense()
+                            ->verticalAlignment(VerticalAlignment::Center)
+                            ->grow(false)
+                            ->extraAttributes([
+                                'class' => 'event-orbat-visibility-control',
+                            ]),
+                    ])
+                        ->verticalAlignment(VerticalAlignment::Center)
+                        ->extraAttributes([
+                            'class' => 'event-orbat-visibility-group-row',
+                        ]),
+                    ...$slotRows,
+                ])
+                ->compact()
+                ->extraAttributes([
+                    'class' => 'event-orbat-visibility-section',
+                ]);
+        }
+
+        if ($profile) {
+            $metrics = OrbatEditorProfiler::analyze($orbat);
+            $memoryAfter = memory_get_usage(true);
+
+            Log::info('orbat_editor_schema_profile', [
+                'event_id' => (int) $this->record->id,
+                ...$metrics,
+                'elapsed_ms' => round((hrtime(true) - $startedAt) / 1_000_000, 2),
+                'memory_before_bytes' => $memoryBefore,
+                'memory_after_bytes' => $memoryAfter,
+                'memory_delta_bytes' => max(0, $memoryAfter - $memoryBefore),
+                'memory_peak_bytes' => memory_get_peak_usage(true),
+                'memory_limit' => ini_get('memory_limit'),
+            ]);
+        }
+
+        return $sections;
     }
 
     protected static function prepareOrbatVisibilityForm(array $orbat): array

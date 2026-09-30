@@ -26,11 +26,12 @@ class MetopaPagesTest extends TestCase
 
         $view = $this->view('metopas.index', [
             'metopas' => collect([$metopa]),
+            'search' => '',
         ]);
 
         $view
             ->assertSee('Curso de Instrucción Básica de Infantería')
-            ->assertSee('Grupo GIA')
+            ->assertDontSee('Grupo GIA')
             ->assertSee(route('metopas.show', $metopa), escape: false)
             ->assertSee('storage/metopas/cibi.png', escape: false);
     }

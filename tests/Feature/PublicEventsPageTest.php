@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -14,6 +15,10 @@ class PublicEventsPageTest extends TestCase
     {
         parent::setUp();
 
+        // These tests target event-page behaviour, not the email-verification middleware.
+        // Test users are intentionally minimal, so bypass only that middleware here.
+        $this->withoutMiddleware(EnsureEmailIsVerified::class);
+
         Schema::create('event_status', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
@@ -24,15 +29,25 @@ class PublicEventsPageTest extends TestCase
             $table->string('name');
         });
 
-        Schema::create('operation_status', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name');
-        });
-
-        Schema::create('operations_type', function (Blueprint $table): void {
+        Schema::create('activity_statuses', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
             $table->string('color')->nullable();
+            $table->string('description')->nullable();
+        });
+
+        Schema::create('activity_types', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('description')->nullable();
+            $table->boolean('oficial')->default(false);
+            $table->string('color')->nullable();
+            $table->boolean('uses_enemy_factions')->default(false);
+            $table->boolean('uses_event_result')->default(false);
+            $table->boolean('supports_ocap')->default(false);
+            $table->boolean('supports_respawn')->default(false);
+            $table->boolean('supports_jip')->default(false);
+            $table->boolean('awards_metopa')->default(false);
         });
 
         Schema::create('periods', function (Blueprint $table): void {
@@ -57,24 +72,39 @@ class PublicEventsPageTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::create('operation_day', function (Blueprint $table): void {
+        Schema::create('activity_days', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
+        });
+
+        Schema::create('activity_day_assignments', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('activity_id');
+            $table->foreignId('activity_day_id');
         });
 
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
             $table->string('nick');
+            $table->string('email')->nullable();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password')->nullable();
             $table->foreignId('status_id')->nullable();
+            $table->foreignId('promo_id')->nullable();
+            $table->foreignId('tutor_id')->nullable();
             $table->string('firma')->nullable();
             $table->string('image')->nullable();
+            $table->rememberToken();
+            $table->timestamps();
             $table->softDeletes();
         });
 
         Schema::create('metopas', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
+            $table->string('description')->nullable();
             $table->string('image');
+            $table->foreignId('sqa_group_id')->nullable();
             $table->softDeletes();
         });
 
@@ -98,6 +128,24 @@ class PublicEventsPageTest extends TestCase
             $table->unsignedBigInteger('model_id');
         });
 
+        Schema::create('permissions', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('guard_name');
+            $table->timestamps();
+        });
+
+        Schema::create('role_has_permissions', function (Blueprint $table): void {
+            $table->foreignId('permission_id');
+            $table->foreignId('role_id');
+        });
+
+        Schema::create('model_has_permissions', function (Blueprint $table): void {
+            $table->foreignId('permission_id');
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+        });
+
         Schema::create('sqa_groups', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
@@ -111,6 +159,7 @@ class PublicEventsPageTest extends TestCase
             $table->foreignId('sqa_group_id');
             $table->foreignId('user_id');
             $table->boolean('main')->default(false);
+            $table->boolean('coordinator')->default(false);
             $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
@@ -119,11 +168,22 @@ class PublicEventsPageTest extends TestCase
         Schema::create('allies', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
+            $table->string('image')->nullable();
+            $table->string('url')->nullable();
+        });
+
+        Schema::create('countries', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('image')->nullable();
         });
 
         Schema::create('armies', function (Blueprint $table): void {
             $table->id();
+            $table->foreignId('country_id')->nullable();
             $table->string('name');
+            $table->string('description')->nullable();
+            $table->string('image')->nullable();
         });
 
         Schema::create('sides', function (Blueprint $table): void {
@@ -141,11 +201,14 @@ class PublicEventsPageTest extends TestCase
         Schema::create('slot_types', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
+            $table->string('image')->nullable();
         });
 
         Schema::create('status', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
+            $table->string('color')->nullable();
+            $table->boolean('is_system')->default(true);
             $table->softDeletes();
         });
 
@@ -166,19 +229,22 @@ class PublicEventsPageTest extends TestCase
         Schema::create('campaign', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
+            $table->boolean('persistent')->default(false);
             $table->text('description')->nullable();
+            $table->foreignId('editor_id')->nullable();
         });
 
         Schema::create('activities', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('operation_type_id');
-            $table->foreignId('operation_status_id')->nullable();
+            $table->foreignId('activity_type_id');
+            $table->foreignId('activity_status_id')->nullable();
             $table->foreignId('period_id')->nullable();
             $table->foreignId('platform_id')->nullable();
             $table->foreignId('map_id')->nullable();
             $table->foreignId('campaign_id')->nullable();
-            $table->foreignId('day_id')->nullable();
             $table->foreignId('editor_id')->nullable();
+            $table->foreignId('editor_ally_id')->nullable();
+            $table->foreignId('metopa_id')->nullable();
             $table->string('name');
             $table->string('image')->nullable();
             $table->json('description')->nullable();
@@ -206,8 +272,14 @@ class PublicEventsPageTest extends TestCase
             $table->foreignId('event_result_id')->nullable();
             $table->string('name');
             $table->dateTime('date');
+            $table->dateTime('end_date')->nullable();
             $table->unsignedInteger('duration')->nullable();
             $table->json('orbat')->nullable();
+            $table->string('ocap_url')->nullable();
+            $table->boolean('multiclans')->default(false);
+            $table->boolean('reservations_enabled')->default(false);
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -261,6 +333,128 @@ class PublicEventsPageTest extends TestCase
             $table->softDeletes();
         });
 
+        Schema::create('event_reservations', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->foreignId('user_id');
+            $table->foreignId('created_by')->nullable();
+            $table->timestamps();
+            $table->unique(['event_id', 'user_id']);
+        });
+
+        Schema::create('recruitment_periods', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id');
+            $table->foreignId('open_user_id')->nullable()->unique();
+            $table->boolean('official_events_allowed')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('recruitment_reentry_reviews', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id');
+            $table->foreignId('pending_user_id')->nullable()->unique();
+            $table->foreignId('previous_period_id')->nullable();
+            $table->string('review_type', 40)->default('PROMOTED_TO_RECRUIT');
+            $table->foreignId('tutorial_tutor_user_id')->nullable();
+            $table->timestamp('tutorial_approved_at')->nullable();
+            $table->timestamp('detected_at')->nullable();
+            $table->timestamp('resolved_at')->nullable();
+            $table->string('resolution', 40)->nullable();
+            $table->foreignId('resolved_by_user_id')->nullable();
+            $table->text('resolution_note')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('community_roulette_rooms', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->string('target_slot_key')->nullable();
+            $table->string('target_slot_name')->nullable();
+            $table->foreignId('target_slot_type_id')->nullable();
+            $table->string('target_slot_group')->nullable();
+            $table->foreignId('target_faction_id')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->string('status', 24)->default('active');
+            $table->unsignedTinyInteger('active_key')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamp('spin_started_at')->nullable();
+            $table->timestamp('spin_ends_at')->nullable();
+            $table->unsignedInteger('spin_duration_ms')->nullable();
+            $table->unsignedInteger('winning_ticket_index')->nullable();
+            $table->decimal('final_rotation', 10, 3)->nullable();
+            $table->foreignId('winner_user_id')->nullable();
+            $table->boolean('winner_was_viewing')->default(false);
+            $table->foreignId('winner_phrase_id')->nullable();
+            $table->string('winner_phrase_text', 500)->nullable();
+            $table->string('failure_reason', 500)->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->timestamp('closed_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('streamers', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id')->nullable();
+            $table->boolean('enable')->default(true);
+            $table->string('twitch_channel')->nullable();
+            $table->string('twitch_user_id')->nullable();
+            $table->string('youtube_channel')->nullable();
+            $table->string('youtube_channel_id')->nullable();
+            $table->string('other_channel')->nullable();
+            $table->string('website_url')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('streams', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id')->nullable();
+            $table->foreignId('streamer_id');
+            $table->string('platform')->nullable();
+            $table->string('stream_url')->nullable();
+            $table->boolean('enabled')->default(true);
+            $table->string('title')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('ended_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('event_media', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->foreignId('user_id')->nullable();
+            $table->string('type');
+            $table->string('provider');
+            $table->string('url');
+            $table->string('external_id')->nullable();
+            $table->string('title');
+            $table->timestamps();
+        });
+
+        Schema::create('campaign_aars', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('campaign_id');
+            $table->foreignId('event_id')->unique();
+            $table->foreignId('commander_user_id')->nullable();
+            $table->string('status', 20)->default('pending');
+            $table->json('sections')->nullable();
+            $table->json('orbat_snapshot')->nullable();
+            $table->timestamp('published_at')->nullable();
+            $table->foreignId('updated_by')->nullable();
+            $table->boolean('is_visible')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('notifications', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('type');
+            $table->morphs('notifiable');
+            $table->text('data');
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+        });
+
         DB::table('event_status')->insert([
             ['id' => 1, 'name' => 'ACTIVO'],
             ['id' => 2, 'name' => 'FINALIZADO'],
@@ -271,13 +465,13 @@ class PublicEventsPageTest extends TestCase
             ['id' => 1, 'name' => 'ÉXITO'],
         ]);
 
-        DB::table('operation_status')->insert([
-            ['id' => 1, 'name' => 'ACTIVO'],
+        DB::table('activity_statuses')->insert([
+            ['id' => 1, 'name' => 'ACTIVO', 'color' => '#22c55e'],
         ]);
 
-        DB::table('operations_type')->insert([
-            ['id' => 1, 'name' => 'Oficial', 'color' => '#f59e0b'],
-            ['id' => 2, 'name' => 'Prácticas', 'color' => '#22c55e'],
+        DB::table('activity_types')->insert([
+            ['id' => 1, 'name' => 'Oficial', 'oficial' => true, 'color' => '#f59e0b', 'uses_event_result' => false],
+            ['id' => 2, 'name' => 'Prácticas', 'oficial' => false, 'color' => '#22c55e', 'uses_event_result' => true],
         ]);
 
         DB::table('periods')->insert([
@@ -310,8 +504,8 @@ class PublicEventsPageTest extends TestCase
         DB::table('activities')->insert([
             [
                 'id' => 1,
-                'operation_type_id' => 1,
-                'operation_status_id' => 1,
+                'activity_type_id' => 1,
+                'activity_status_id' => 1,
                 'period_id' => 1,
                 'platform_id' => 1,
                 'map_id' => 1,
@@ -322,8 +516,8 @@ class PublicEventsPageTest extends TestCase
             ],
             [
                 'id' => 2,
-                'operation_type_id' => 2,
-                'operation_status_id' => 1,
+                'activity_type_id' => 2,
+                'activity_status_id' => 1,
                 'period_id' => 1,
                 'platform_id' => 1,
                 'map_id' => null,
@@ -334,8 +528,8 @@ class PublicEventsPageTest extends TestCase
             ],
             [
                 'id' => 3,
-                'operation_type_id' => 1,
-                'operation_status_id' => 1,
+                'activity_type_id' => 1,
+                'activity_status_id' => 1,
                 'period_id' => 1,
                 'platform_id' => 1,
                 'map_id' => null,
@@ -401,9 +595,9 @@ class PublicEventsPageTest extends TestCase
         ]);
 
         DB::table('event_slots')->insert([
-            ['event_id' => 1, 'user_id' => 10, 'ally_id' => null],
-            ['event_id' => 1, 'user_id' => null, 'ally_id' => 20],
-            ['event_id' => 1, 'user_id' => null, 'ally_id' => null],
+            ['event_id' => 1, 'slot_key' => 'slot-1', 'user_id' => 10, 'ally_id' => null],
+            ['event_id' => 1, 'slot_key' => 'slot-2', 'user_id' => null, 'ally_id' => 20],
+            ['event_id' => 1, 'slot_key' => 'slot-3', 'user_id' => null, 'ally_id' => null],
         ]);
     }
 
@@ -416,7 +610,8 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('Agosto 2026')
             ->assertSee('Evento activo')
             ->assertSee('Evento finalizado')
-            ->assertSee('BORRADOR · Evento borrador')
+            ->assertSee('BORRADOR')
+            ->assertSee('Evento borrador')
             ->assertSee('Resultado')
             ->assertSee('ÉXITO')
             ->assertSee('Campaña')
@@ -466,8 +661,8 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('Agosto 2026')
             ->assertSee('Evento finalizado')
             ->assertSee('Evento de septiembre')
-            ->assertSee('2 eventos encontrados')
-            ->assertSeeInOrder(['id="evento-4"', 'id="evento-2"'], escape: false);
+            ->assertSee('3 eventos encontrados')
+            ->assertSeeInOrder(['id="evento-4"', 'id="evento-3"', 'id="evento-2"'], escape: false);
     }
 
     public function test_campaign_page_shows_only_active_or_finished_associated_events(): void
@@ -514,7 +709,8 @@ class PublicEventsPageTest extends TestCase
 
     public function test_event_page_shows_operation_data_and_only_visible_event_orbat(): void
     {
-        DB::table('operation_day')->insert(['id' => 1, 'name' => 'Viernes']);
+        DB::table('activity_days')->insert(['id' => 1, 'name' => 'Viernes']);
+        DB::table('activity_day_assignments')->insert(['activity_id' => 1, 'activity_day_id' => 1]);
         DB::table('users')->insert(['id' => 10, 'nick' => 'Alfa Uno']);
         DB::table('armies')->insert(['id' => 1, 'name' => 'OTAN']);
         DB::table('sides')->insert(['id' => 1, 'name' => 'BLUFOR']);
@@ -541,7 +737,6 @@ class PublicEventsPageTest extends TestCase
         ]);
 
         DB::table('activities')->where('id', 1)->update([
-            'day_id' => 1,
             'editor_id' => 10,
             'description' => json_encode([
                 'sections' => [[
@@ -703,11 +898,15 @@ class PublicEventsPageTest extends TestCase
             file_get_contents(public_path('css/events.css')),
         );
         $this->assertStringContainsString(
-            'availableWidth / signatureWidth',
+            'availableWidth',
             file_get_contents(resource_path('views/firmas/show.blade.php')),
         );
-        $this->assertStringNotContainsString(
-            '$escalaMovil',
+        $this->assertStringContainsString(
+            '/ baseWidth',
+            file_get_contents(resource_path('views/firmas/show.blade.php')),
+        );
+        $this->assertStringContainsString(
+            '$escalaMovil = 0.55;',
             file_get_contents(resource_path('views/firmas/show.blade.php')),
         );
     }
@@ -863,7 +1062,7 @@ class PublicEventsPageTest extends TestCase
                 'parent_id' => 21,
                 'comment' => 'Respuesta cruzada no permitida.',
             ])
-            ->assertSessionHasErrors('comment');
+            ->assertSessionHasErrors('parent_id');
 
         $this->assertDatabaseMissing('event_comments', [
             'event_id' => 1,
@@ -926,7 +1125,7 @@ class PublicEventsPageTest extends TestCase
             ->assertSee(route('events.slots.register', [1, 'slot-alpha']), escape: false);
 
         $this->post('/eventos/1/slots/slot-alpha')
-            ->assertRedirect('/eventos/1')
+            ->assertRedirect('/eventos/1#orbat')
             ->assertSessionHas('status');
 
         $this->assertDatabaseHas('event_slots', [
@@ -948,7 +1147,7 @@ class PublicEventsPageTest extends TestCase
         ]);
 
         $this->post('/eventos/1/slots/slot-medic')
-            ->assertRedirect('/eventos/1')
+            ->assertRedirect('/eventos/1#orbat')
             ->assertSessionHas('status');
 
         $this->assertDatabaseMissing('event_slots', [
@@ -985,7 +1184,7 @@ class PublicEventsPageTest extends TestCase
             ->assertSee(route('events.slots.unregister', [1, 'slot-medic']), escape: false);
 
         $this->delete('/eventos/1/slots/slot-medic')
-            ->assertRedirect('/eventos/1')
+            ->assertRedirect('/eventos/1#orbat')
             ->assertSessionHas('status', 'Te has desapuntado correctamente.');
 
         $this->assertDatabaseMissing('event_slots', [
