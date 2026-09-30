@@ -66,7 +66,7 @@ class CommunityArea
             self::DIARY => CommunityForumCategory::canView(
                 $user,
                 CommunityForumCategory::DIARY,
-            ),
+            ) || $user->getAllPermissions()->contains('name', 'recruitment-area.access'),
 
             self::CANTINA => CommunityForumCategory::canView(
                 $user,

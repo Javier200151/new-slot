@@ -1,6 +1,7 @@
 <x-filament-panels::page>
     <link rel="stylesheet" href="{{ asset('css/filament-event-calendar.css') }}?v={{ filemtime(public_path('css/filament-event-calendar.css')) }}">
 
+    <div class="admin-calendar-theme">
     <div class="admin-calendar-head">
         <div>
             <span>Calendario compartido</span>
@@ -116,5 +117,6 @@
                 </section>
             @endforeach
         </div>
+    </div>
     </div>
 </x-filament-panels::page>

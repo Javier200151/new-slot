@@ -15,12 +15,12 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class StatusResource extends Resource
 {
-    protected static bool $shouldRegisterNavigation = false;
+    protected static string|UnitEnum|null $navigationGroup = 'Usuarios';
 
-    //protected static string|\UnitEnum|null $navigationGroup = 'Configuración';
     protected static ?string $navigationLabel = 'Estados';
     protected static ?string $modelLabel = 'Estado';
     protected static ?string $pluralModelLabel = 'Estados';
@@ -40,13 +40,10 @@ class StatusResource extends Resource
     {
         return StatusesTable::configure($table);
     }
-    
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

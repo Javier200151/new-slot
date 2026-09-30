@@ -29,6 +29,7 @@ use App\Models\EventMedia;
 use App\Filament\Resources\Events\EventResource;
 use App\Services\CourseMetopaAwardService;
 use App\Services\CommunityRouletteService;
+use App\Services\RecruitmentOfficialEventEligibilityService;
 use App\Support\ActivityTypeAccess;
 use App\Support\BriefingMarkup;
 
@@ -918,6 +919,8 @@ class PublicEventController extends Controller
     {
         app(CommunityRouletteService::class)->assertEventUnlocked($event);
         $user = $request->user();
+        app(RecruitmentOfficialEventEligibilityService::class)
+            ->assertCanSelfRegister($user, $event, 'reservation');
         $user->loadMissing('status');
 
         $statusName = strtoupper(trim((string) $user->status?->name));
@@ -1012,6 +1015,8 @@ class PublicEventController extends Controller
         app(CommunityRouletteService::class)->assertEventUnlocked($event);
 
         $user = request()->user();
+        app(RecruitmentOfficialEventEligibilityService::class)
+            ->assertCanSelfRegister($user, $event, 'slot');
 
         DB::transaction(function () use ($event, $slotKey, $user): void {
             $lockedEvent = Event::query()

@@ -1234,6 +1234,12 @@ JS;
                             'class' => 'orbat-group-cards',
                         ])
                         ->schema([
+                            TextInput::make('name')
+                                ->label('Nombre')
+                                ->required()
+                                ->maxLength(255)
+                                ->columnSpan(10),
+
                             Toggle::make('visible')
                                 ->label('Visible')
                                 ->inline(false)
@@ -1252,12 +1258,6 @@ JS;
                                 })
                                 ->default(true)
                                 ->columnSpan(2),
-
-                            TextInput::make('name')
-                                ->label('Nombre')
-                                ->required()
-                                ->maxLength(255)
-                                ->columnSpan(10),
 
                             /*
                             |--------------------------------------------------------------------------
@@ -1460,8 +1460,8 @@ JS;
                                 ->extraAttributes([
                                     'class' => 'orbat-faction-clickable-actions',
                                 ])
-                                ->columnStart(3)
-                                ->columnSpan(10),
+                                ->columnStart(1)
+                                ->columnSpan(12),
 
                             Hidden::make('faction_id')
                                 ->required(),
@@ -1512,16 +1512,29 @@ JS;
                                                             $choice
                                                         );
 
+                                                        $slotTypeImage = SlotQuickSelection::selectedImage(
+                                                            $choice
+                                                        );
+
                                                         $primary = $selectedName !== ''
                                                             ? $selectedName
                                                             : ($manualName !== ''
                                                                 ? $manualName
                                                                 : 'Sin seleccionar');
 
+                                                        $slotTypeMarkup = $slotType
+                                                            ? '<span style="display:inline-flex;align-items:center;gap:.35rem;">'
+                                                                . (filled($slotTypeImage)
+                                                                    ? '<img src="' . e(Storage::disk('public')->url($slotTypeImage)) . '" alt="" style="width:1em;height:1em;object-fit:contain;flex:none;">'
+                                                                    : '')
+                                                                . '<span>' . e($slotType) . '</span>'
+                                                                . '</span>'
+                                                            : e('Escoge tipo y nombre base');
+
                                                         return new HtmlString(
                                                             '<div class="orbat-slot-choice-display">'
                                                             . '<strong>' . e($primary) . '</strong>'
-                                                            . '<small>' . e($slotType ?? 'Escoge tipo y nombre base') . '</small>'
+                                                            . '<small>' . $slotTypeMarkup . '</small>'
                                                             . '</div>'
                                                         );
                                                     }

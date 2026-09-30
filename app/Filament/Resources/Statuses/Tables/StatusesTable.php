@@ -2,11 +2,10 @@
 
 namespace App\Filament\Resources\Statuses\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\RestoreBulkAction;
+use Filament\Tables\Columns\ColorColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
@@ -16,7 +15,29 @@ class StatusesTable
     {
         return $table
             ->columns([
-                //
+                TextColumn::make('name')
+                    ->label('Nombre')
+                    ->searchable()
+                    ->sortable(),
+
+                ColorColumn::make('color')
+                    ->label('Color'),
+
+                IconColumn::make('is_system')
+                    ->label('Sistema')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-lock-closed')
+                    ->falseIcon('heroicon-o-pencil-square')
+                    ->tooltip(fn ($record): string => $record->is_system
+                        ? 'Estado protegido del sistema'
+                        : 'Estado creado desde Filament'
+                    ),
+
+                TextColumn::make('protection')
+                    ->label('Protección')
+                    ->state(fn ($record): string => $record->is_system ? 'Protegido' : 'Editable')
+                    ->badge()
+                    ->color(fn ($record): string => $record->is_system ? 'warning' : 'success'),
             ])
             ->filters([
                 TrashedFilter::make(),
@@ -24,12 +45,6 @@ class StatusesTable
             ->recordActions([
                 EditAction::make(),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                ]),
-            ]);
+            ->toolbarActions([]);
     }
 }

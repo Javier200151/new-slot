@@ -15,12 +15,19 @@ class CampaignAarPolicy
 
     public function view(?User $user, CampaignAar $aar): bool
     {
-        return true;
+        if ($aar->is_visible) {
+            return true;
+        }
+
+        return $user !== null && $this->update($user, $aar);
     }
 
     public function update(User $user, CampaignAar $aar): bool
     {
-        if ($user->hasPermissionTo('campaign-aars.manage')) {
+        // Do not use hasPermissionTo() here: Spatie throws PermissionDoesNotExist
+        // when the permission catalog and the database have not yet been synced.
+        // A stale permissions table must not turn a public AAR page into a 500.
+        if ($user->getAllPermissions()->contains('name', 'campaign-aars.manage')) {
             return true;
         }
 

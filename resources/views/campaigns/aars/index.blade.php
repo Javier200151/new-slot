@@ -43,10 +43,11 @@
                         @php
                             $aar = $event->campaignAar;
                             $published = $aar?->status === 'published';
+                            $hidden = $aar && ! $aar->is_visible;
                             $canEdit = $aar && auth()->check() && auth()->user()->can('update', $aar);
                         @endphp
 
-                        <article @class(['aar-file', 'is-pending' => ! $published])>
+                        <article @class(['aar-file', 'is-pending' => ! $published, 'is-hidden' => $hidden])>
                             <div class="aar-file__sequence">
                                 <small>Operativo de campaña</small>
                                 <strong>{{ str_pad((string) $event->campaign_sequence, 2, '0', STR_PAD_LEFT) }}</strong>
@@ -57,6 +58,9 @@
                                     <span @class(['aar-status', 'is-published' => $published, 'is-pending' => ! $published])>
                                         {{ $published ? 'AAR PUBLICADO' : 'PENDIENTE AAR' }}
                                     </span>
+                                    @if($hidden)
+                                        <span class="aar-status is-hidden">AAR OCULTO</span>
+                                    @endif
                                     <time datetime="{{ $event->date?->toIso8601String() }}">
                                         {{ $event->date?->format('d/m/Y · H:i') }}
                                     </time>
@@ -86,6 +90,26 @@
                                         <a class="aar-file__edit" href="{{ route('campaigns.aars.show', ['campaign' => $campaign, 'event' => $event, 'editar' => 1]) }}">
                                             {{ $published ? 'Editar' : 'Completar AAR' }}
                                         </a>
+
+                                        <form method="POST" action="{{ route('campaigns.aars.visibility', [$campaign, $event]) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="is_visible" value="{{ $hidden ? 1 : 0 }}">
+                                            <button
+                                                class="aar-visibility-toggle"
+                                                type="submit"
+                                                title="{{ $hidden ? 'Hacer visible públicamente' : 'Ocultar del historial público' }}"
+                                                aria-label="{{ $hidden ? 'Hacer visible públicamente' : 'Ocultar del historial público' }}"
+                                            >
+                                                @if($hidden)
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                    <span>Mostrar</span>
+                                                @else
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a15.6 15.6 0 0 1-2.1 3M6.6 6.6C3.7 8.2 2 12 2 12s3.5 7 10 7a10 10 0 0 0 3.4-.6"/></svg>
+                                                    <span>Ocultar</span>
+                                                @endif
+                                            </button>
+                                        </form>
                                     @endif
                                 @else
                                     <span class="aar-file__unavailable">Pendiente de inicializar</span>

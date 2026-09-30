@@ -1163,3 +1163,99 @@
         max-height: 520px;
     }
 }
+
+/* Visibilidad reversible de AAR */
+.aar-file.is-hidden {
+    border-left-color: #64748b;
+    opacity: .78;
+}
+
+.aar-status.is-hidden {
+    color: #cbd5e1;
+    background: rgba(100, 116, 139, .14);
+    border: 1px solid rgba(148, 163, 184, .28);
+}
+
+.aar-file__actions form {
+    margin: 0;
+}
+
+.aar-visibility-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    color: #94a3b8;
+    background: transparent;
+    font: inherit;
+    font-size: .62rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.aar-visibility-toggle:hover {
+    color: var(--aar-orange);
+}
+
+.aar-visibility-toggle svg,
+.aar-visibility-button svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.aar-visibility-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 22px;
+    padding: 16px 18px;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 10px;
+    background: rgba(9, 13, 18, .76);
+}
+
+.aar-visibility-panel > div {
+    display: grid;
+    gap: 4px;
+}
+
+.aar-visibility-panel strong {
+    color: #fff;
+    font-size: .84rem;
+}
+
+.aar-visibility-panel p {
+    margin: 0;
+    color: var(--aar-muted);
+    font-size: .7rem;
+    line-height: 1.45;
+}
+
+.aar-visibility-panel form {
+    flex: 0 0 auto;
+}
+
+.aar-visibility-button {
+    gap: 8px;
+    white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+    .aar-visibility-panel {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .aar-visibility-panel form,
+    .aar-visibility-button {
+        width: 100%;
+    }
+}

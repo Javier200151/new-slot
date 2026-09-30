@@ -118,8 +118,8 @@ class UsersTable
                     ->date('d/m/Y')
                     ->sortable(),
 
-                TextColumn::make('tutor.nick')
-                    ->label('Tutor')
+                TextColumn::make('currentRecruitmentPeriod.tutor.nick')
+                    ->label('Tutor actual')
                     ->sortable()
                     ->searchable(),
                 TextColumn::make('deleted_at')

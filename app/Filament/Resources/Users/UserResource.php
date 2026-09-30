@@ -50,6 +50,7 @@ class UserResource extends Resource
             ->with([
                 'status',
                 'mainSqaGroup',
+                'currentRecruitmentPeriod.tutor',
             ]);
     }
 
