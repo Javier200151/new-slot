@@ -17,7 +17,7 @@ use UnitEnum;
 class RecruitmentHistoryResource extends Resource
 {
     protected static ?string $model=RecruitmentPeriod::class;
-    protected static string|UnitEnum|null $navigationGroup='Tutores';
+    protected static string|UnitEnum|null $navigationGroup='Reclutamiento';
     protected static string|BackedEnum|null $navigationIcon=Heroicon::OutlinedArchiveBox;
     protected static ?string $navigationLabel='Histórico de reclutas';
     protected static ?string $modelLabel='periodo histórico';

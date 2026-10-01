@@ -538,6 +538,18 @@
                                                 placeholder="+34 ..."
                                             >
                                         </label>
+
+                                        <label class="form-field form-field--full">
+                                            <span>Perfil de Discord <small>(opcional)</small></span>
+                                            <input
+                                                type="text"
+                                                name="discord_profile"
+                                                value="{{ old('discord_profile') }}"
+                                                maxlength="160"
+                                                autocomplete="off"
+                                                placeholder="Usuario de Discord o enlace al perfil"
+                                            >
+                                        </label>
                                     </div>
                                 </div>
 

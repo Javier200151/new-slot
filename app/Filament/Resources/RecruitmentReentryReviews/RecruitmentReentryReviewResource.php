@@ -12,7 +12,7 @@ use UnitEnum;
 class RecruitmentReentryReviewResource extends Resource
 {
  protected static ?string $model=RecruitmentReentryReview::class;
- protected static string|UnitEnum|null $navigationGroup='Tutores';
+ protected static string|UnitEnum|null $navigationGroup='Reclutamiento';
  protected static string|BackedEnum|null $navigationIcon=Heroicon::OutlinedExclamationTriangle;
  protected static ?string $navigationLabel='Reincorporaciones pendientes';
  protected static ?string $pluralModelLabel='Reincorporaciones pendientes';

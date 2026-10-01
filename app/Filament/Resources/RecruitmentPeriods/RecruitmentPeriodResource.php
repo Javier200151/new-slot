@@ -19,7 +19,7 @@ use UnitEnum;
 class RecruitmentPeriodResource extends Resource
 {
     protected static ?string $model = RecruitmentPeriod::class;
-    protected static string|UnitEnum|null $navigationGroup = 'Tutores';
+    protected static string|UnitEnum|null $navigationGroup = 'Reclutamiento';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
     protected static ?string $navigationLabel = 'Área de tutores';
     protected static ?string $modelLabel = 'periodo de recluta';

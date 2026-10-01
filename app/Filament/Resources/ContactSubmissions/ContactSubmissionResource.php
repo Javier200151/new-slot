@@ -17,7 +17,9 @@ use UnitEnum;
 class ContactSubmissionResource extends Resource
 {
     protected static ?string $model = ContactSubmission::class;
-    protected static string|UnitEnum|null $navigationGroup = 'Sistema';
+
+    protected static bool $shouldRegisterNavigation = false;
+    protected static string|UnitEnum|null $navigationGroup = 'Reclutamiento';
     protected static ?int $navigationSort = 3;
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInbox;
     protected static ?string $navigationLabel = 'Contacto / Alistamiento';

@@ -84,6 +84,12 @@
                                                     <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">WhatsApp</td>
                                                     <td style="padding:12px 14px;background:#090c11;border:1px solid #252b35;border-left:0;border-radius:0 8px 8px 0;color:#f7f7f8;font-size:14px;">{{ $submission->phone_whatsapp }}</td>
                                                 </tr>
+                                                @if(filled($submission->discord_profile))
+                                                    <tr>
+                                                        <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">Discord</td>
+                                                        <td style="padding:12px 14px;background:#090c11;border:1px solid #252b35;border-left:0;border-radius:0 8px 8px 0;color:#f7f7f8;font-size:14px;">{{ $submission->discord_profile }}</td>
+                                                    </tr>
+                                                @endif
                                             @endif
                                             <tr>
                                                 <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">Recibido</td>

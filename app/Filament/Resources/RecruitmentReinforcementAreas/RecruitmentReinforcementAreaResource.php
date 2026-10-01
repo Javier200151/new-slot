@@ -17,7 +17,7 @@ use UnitEnum;
 class RecruitmentReinforcementAreaResource extends Resource
 {
     protected static ?string $model = RecruitmentReinforcementArea::class;
-    protected static string|UnitEnum|null $navigationGroup = 'Tutores';
+    protected static string|UnitEnum|null $navigationGroup = 'Reclutamiento';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWrenchScrewdriver;
     protected static ?string $navigationLabel = 'Áreas de refuerzo';
     protected static ?string $modelLabel = 'área de refuerzo';

@@ -38,6 +38,12 @@ return [
                         'assign' => 'Se puede asignar reclutas',
                     ],
                 ],
+                'recruitment-applications' => [
+                    'label' => 'Gestión de alistados',
+                    'actions' => [
+                        'manage' => 'Gestión de alistados',
+                    ],
+                ],
             ],
         ],
 
