@@ -17,11 +17,7 @@ class InfrastructureSetting extends Model
         'reforger_operations_host',
         'reforger_operations_query_port',
         'ts3_enabled',
-        'ts3_host',
-        'ts3_query_port',
-        'ts3_virtual_server_id',
-        'ts3_query_user',
-        'ts3_query_password',
+        'tsviewer_server_id',
     ];
 
     protected function casts(): array
@@ -32,20 +28,18 @@ class InfrastructureSetting extends Model
             'reforger_academy_query_port' => 'integer',
             'reforger_operations_query_port' => 'integer',
             'ts3_enabled' => 'boolean',
-            'ts3_query_port' => 'integer',
-            'ts3_virtual_server_id' => 'integer',
-            'ts3_query_password' => 'encrypted',
+            'tsviewer_server_id' => 'integer',
         ];
     }
 
     protected static function booted(): void
     {
         static::saved(function (): void {
-            Cache::forget('public.infrastructure.status.v1');
+            Cache::forget('public.infrastructure.status.v2');
         });
 
         static::deleted(function (): void {
-            Cache::forget('public.infrastructure.status.v1');
+            Cache::forget('public.infrastructure.status.v2');
         });
     }
 
@@ -53,8 +47,6 @@ class InfrastructureSetting extends Model
     {
         return static::query()->firstOrCreate([], [
             'ts3_enabled' => false,
-            'ts3_query_port' => 10011,
-            'ts3_virtual_server_id' => 1,
         ]);
     }
 }

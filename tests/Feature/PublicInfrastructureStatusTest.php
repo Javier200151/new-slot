@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Cache;
+use App\Models\InfrastructureSetting;
 use App\Models\Status;
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -15,7 +17,7 @@ class PublicInfrastructureStatusTest extends TestCase
     {
         parent::setUp();
 
-        Cache::forget('public.infrastructure.status.v1');
+        Cache::forget('public.infrastructure.status.v2');
         Schema::dropIfExists('infrastructure_settings');
 
         Schema::create('infrastructure_settings', function (Blueprint $table): void {
@@ -29,18 +31,14 @@ class PublicInfrastructureStatusTest extends TestCase
             $table->string('reforger_operations_host')->nullable();
             $table->unsignedSmallInteger('reforger_operations_query_port')->nullable();
             $table->boolean('ts3_enabled')->default(false);
-            $table->string('ts3_host')->nullable();
-            $table->unsignedSmallInteger('ts3_query_port')->default(10011);
-            $table->unsignedSmallInteger('ts3_virtual_server_id')->default(1);
-            $table->string('ts3_query_user')->nullable();
-            $table->text('ts3_query_password')->nullable();
+            $table->unsignedBigInteger('tsviewer_server_id')->nullable();
             $table->timestamps();
         });
     }
 
     protected function tearDown(): void
     {
-        Cache::forget('public.infrastructure.status.v1');
+        Cache::forget('public.infrastructure.status.v2');
         Schema::dropIfExists('infrastructure_settings');
         parent::tearDown();
     }
@@ -73,7 +71,8 @@ class PublicInfrastructureStatusTest extends TestCase
             ->assertJsonPath('services.1.key', 'arma3_operations')
             ->assertJsonPath('services.2.key', 'reforger_academy')
             ->assertJsonPath('services.3.key', 'reforger_operations')
-            ->assertJsonPath('teamspeak.enabled', false);
+            ->assertJsonPath('teamspeak.enabled', false)
+            ->assertJsonPath('teamspeak.provider', 'tsviewer');
     }
 
     public function test_recruit_can_read_infrastructure_status(): void
@@ -88,5 +87,57 @@ class PublicInfrastructureStatusTest extends TestCase
         $this->actingAs($this->userWithStatus('RESERVA'));
 
         $this->getJson(route('infrastructure.status'))->assertForbidden();
+    }
+
+    public function test_tsviewer_reports_online_state_and_connected_count(): void
+    {
+        InfrastructureSetting::query()->create([
+            'ts3_enabled' => true,
+            'tsviewer_server_id' => 1121394,
+        ]);
+
+        Http::fake([
+            'www.tsviewer.com/*' => Http::response(
+                "document.write('<div class=\"serverstatus_online\">online</div><span>7 / 32</span>');",
+                200,
+                ['Content-Type' => 'application/javascript'],
+            ),
+        ]);
+
+        $this->actingAs($this->userWithStatus('ACTIVO'));
+
+        $this->getJson(route('infrastructure.status'))
+            ->assertOk()
+            ->assertJsonPath('teamspeak.enabled', true)
+            ->assertJsonPath('teamspeak.configured', true)
+            ->assertJsonPath('teamspeak.available', true)
+            ->assertJsonPath('teamspeak.online', true)
+            ->assertJsonPath('teamspeak.players', 7)
+            ->assertJsonPath('teamspeak.max_players', 32)
+            ->assertJsonPath('teamspeak.provider', 'tsviewer');
+    }
+
+    public function test_tsviewer_offline_state_is_exposed_without_serverquery(): void
+    {
+        InfrastructureSetting::query()->create([
+            'ts3_enabled' => true,
+            'tsviewer_server_id' => 1121394,
+        ]);
+
+        Http::fake([
+            'www.tsviewer.com/*' => Http::response(
+                "document.write('<div class=\"serverstatus_offline\">offline</div>');",
+                200,
+                ['Content-Type' => 'application/javascript'],
+            ),
+        ]);
+
+        $this->actingAs($this->userWithStatus('ACTIVO'));
+
+        $this->getJson(route('infrastructure.status'))
+            ->assertOk()
+            ->assertJsonPath('teamspeak.available', true)
+            ->assertJsonPath('teamspeak.online', false)
+            ->assertJsonPath('teamspeak.players', null);
     }
 }

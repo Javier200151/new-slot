@@ -3,14 +3,17 @@
 namespace App\Services;
 
 use App\Models\InfrastructureSetting;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class InfrastructureStatusService
 {
-    private const CACHE_KEY = 'public.infrastructure.status.v1';
-    private const CACHE_SECONDS = 45;
+    private const CACHE_KEY = 'public.infrastructure.status.v2';
+    private const CACHE_SECONDS = 60;
     private const SOCKET_TIMEOUT_SECONDS = 1.0;
+    private const TSVIEWER_WIDGET_URL = 'https://www.tsviewer.com/ts3viewer.php';
 
     public function snapshot(bool $force = false): array
     {
@@ -134,7 +137,6 @@ class InfrastructureStatusService
                 return null;
             }
 
-            // Algunos servidores exigen un challenge A2S antes de responder INFO.
             if (substr($response, 0, 4) === "\xFF\xFF\xFF\xFF" && ord($response[4]) === 0x41 && strlen($response) >= 9) {
                 $challenge = substr($response, 5, 4);
                 fwrite($socket, $query . $challenge);
@@ -145,8 +147,6 @@ class InfrastructureStatusService
                 }
             }
 
-            // Una respuesta fragmentada sigue demostrando que el servidor responde,
-            // aunque para el footer no necesitemos reconstruir todos los paquetes.
             if (substr($response, 0, 4) === "\xFE\xFF\xFF\xFF") {
                 return [
                     'name' => null,
@@ -167,14 +167,13 @@ class InfrastructureStatusService
 
     private function parseA2sInfo(string $response): array
     {
-        $offset = 6; // cabecera (4), tipo I (1), protocolo (1)
+        $offset = 6;
 
         $name = $this->readCString($response, $offset);
-        $this->readCString($response, $offset); // map
-        $this->readCString($response, $offset); // folder
-        $this->readCString($response, $offset); // game
+        $this->readCString($response, $offset);
+        $this->readCString($response, $offset);
+        $this->readCString($response, $offset);
 
-        // app id uint16 little-endian
         $offset += 2;
 
         $players = isset($response[$offset]) ? ord($response[$offset]) : null;
@@ -210,199 +209,131 @@ class InfrastructureStatusService
         if (! $settings->ts3_enabled) {
             return [
                 'enabled' => false,
+                'configured' => false,
                 'available' => false,
-                'users' => [],
+                'online' => false,
+                'players' => null,
+                'max_players' => null,
+                'provider' => 'tsviewer',
             ];
         }
 
-        $host = trim((string) $settings->ts3_host);
-        $port = (int) ($settings->ts3_query_port ?: 10011);
-        $sid = (int) ($settings->ts3_virtual_server_id ?: 1);
-        $username = trim((string) $settings->ts3_query_user);
-        $password = (string) $settings->ts3_query_password;
+        $serverId = (int) $settings->tsviewer_server_id;
 
-        if ($host === '' || $port < 1 || $username === '' || $password === '') {
+        if ($serverId < 1) {
             return [
                 'enabled' => true,
+                'configured' => false,
                 'available' => false,
-                'users' => [],
+                'online' => false,
+                'players' => null,
+                'max_players' => null,
+                'provider' => 'tsviewer',
             ];
         }
 
         try {
-            $users = $this->queryTeamSpeakUsers($host, $port, $sid, $username, $password);
+            $response = Http::accept('text/html,application/javascript;q=0.9,*/*;q=0.8')
+                ->withUserAgent('NewSlot/1.0 (+https://squadalpha.es)')
+                ->timeout(4)
+                ->get(self::TSVIEWER_WIDGET_URL, [
+                    'ID' => $serverId,
+                    'js' => 1,
+                ]);
+
+            $parsed = $this->parseTsViewerWidget($response);
+
+            if ($parsed === null) {
+                return [
+                    'enabled' => true,
+                    'configured' => true,
+                    'available' => false,
+                    'online' => false,
+                    'players' => null,
+                    'max_players' => null,
+                    'provider' => 'tsviewer',
+                ];
+            }
 
             return [
                 'enabled' => true,
-                'available' => $users !== null,
-                'users' => $users ?? [],
+                'configured' => true,
+                'available' => true,
+                'online' => $parsed['online'],
+                'players' => $parsed['players'],
+                'max_players' => $parsed['max_players'],
+                'provider' => 'tsviewer',
             ];
         } catch (Throwable) {
             return [
                 'enabled' => true,
+                'configured' => true,
                 'available' => false,
-                'users' => [],
+                'online' => false,
+                'players' => null,
+                'max_players' => null,
+                'provider' => 'tsviewer',
             ];
         }
     }
 
-    private function queryTeamSpeakUsers(
-        string $host,
-        int $port,
-        int $sid,
-        string $username,
-        string $password,
-    ): ?array {
-        $errno = 0;
-        $error = '';
-
-        $socket = @stream_socket_client(
-            "tcp://{$host}:{$port}",
-            $errno,
-            $error,
-            self::SOCKET_TIMEOUT_SECONDS,
-            STREAM_CLIENT_CONNECT,
-        );
-
-        if (! is_resource($socket)) {
+    private function parseTsViewerWidget(Response $response): ?array
+    {
+        if (! $response->successful()) {
             return null;
         }
 
-        try {
-            stream_set_timeout($socket, 1, 0);
+        $body = trim($response->body());
 
-            $login = sprintf(
-                "login client_login_name=%s client_login_password=%s\n",
-                $this->escapeTeamSpeakValue($username),
-                $this->escapeTeamSpeakValue($password),
-            );
-
-            fwrite($socket, $login);
-            if (! $this->teamSpeakCommandSucceeded($socket)) {
-                return null;
-            }
-
-            fwrite($socket, 'use sid=' . max(1, $sid) . "\n");
-            if (! $this->teamSpeakCommandSucceeded($socket)) {
-                return null;
-            }
-
-            fwrite($socket, "clientlist\n");
-            $result = $this->readTeamSpeakCommand($socket);
-
-            if (! $result['ok']) {
-                return null;
-            }
-
-            fwrite($socket, "quit\n");
-
-            $users = [];
-            foreach ($result['data'] as $line) {
-                foreach (explode('|', $line) as $record) {
-                    $fields = $this->parseTeamSpeakRecord($record);
-
-                    if (($fields['client_type'] ?? '1') !== '0') {
-                        continue;
-                    }
-
-                    $nickname = trim((string) ($fields['client_nickname'] ?? ''));
-                    if ($nickname !== '') {
-                        $users[] = $nickname;
-                    }
-                }
-            }
-
-            natcasesort($users);
-
-            return array_values(array_unique($users));
-        } finally {
-            fclose($socket);
-        }
-    }
-
-    private function teamSpeakCommandSucceeded($socket): bool
-    {
-        return $this->readTeamSpeakCommand($socket)['ok'];
-    }
-
-    private function readTeamSpeakCommand($socket): array
-    {
-        $data = [];
-        $deadline = microtime(true) + 2.0;
-
-        while (! feof($socket) && microtime(true) < $deadline) {
-            $line = fgets($socket);
-
-            if ($line === false) {
-                $meta = stream_get_meta_data($socket);
-                if (($meta['timed_out'] ?? false) === true) {
-                    break;
-                }
-                continue;
-            }
-
-            $line = trim($line);
-            if ($line === '' || $line === 'TS3') {
-                continue;
-            }
-
-            if (str_starts_with($line, 'error ')) {
-                return [
-                    'ok' => str_contains($line, 'id=0'),
-                    'data' => $data,
-                ];
-            }
-
-            // El saludo del ServerQuery puede quedar pendiente al abrir el socket.
-            if (str_starts_with($line, 'Welcome to the TeamSpeak')) {
-                continue;
-            }
-
-            $data[] = $line;
+        if ($body === '') {
+            return null;
         }
 
-        return ['ok' => false, 'data' => $data];
-    }
+        $normalized = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $normalized = str_replace(
+            ['\\n', '\\r', '\\t', '\\/', '\\"', "\\'"],
+            [' ', ' ', ' ', '/', '"', "'"],
+            $normalized,
+        );
 
-    private function parseTeamSpeakRecord(string $record): array
-    {
-        $fields = [];
+        // TSViewer suele incluir el estado en clases como
+        // serverstatus_online / serverstatus_offline. Las comprobamos antes
+        // de limpiar el HTML para no perder esa información.
+        $offline = preg_match('/serverstatus[_-]?offline/i', $normalized) === 1;
+        $online = preg_match('/serverstatus[_-]?online/i', $normalized) === 1;
 
-        foreach (preg_split('/\s+/', trim($record)) ?: [] as $pair) {
-            if (! str_contains($pair, '=')) {
-                continue;
-            }
+        // Al eliminar etiquetas, insertamos espacios en su lugar. strip_tags()
+        // uniría por ejemplo "online</div><span>7 / 32" como "online7 / 32",
+        // impidiendo reconocer correctamente la palabra online.
+        $plainText = preg_replace('/<[^>]*>/', ' ', $normalized) ?? $normalized;
+        $plainText = preg_replace('/\s+/', ' ', $plainText) ?? $plainText;
 
-            [$key, $value] = explode('=', $pair, 2);
-            $fields[$key] = $this->unescapeTeamSpeakValue($value);
+        if (! $offline) {
+            $offline = preg_match('/(?:server[\s_-]*)?status[\s_-]*[:=]?\s*offline|\bserver\s+offline\b|\boffline\b/i', $plainText) === 1;
         }
 
-        return $fields;
-    }
+        if (! $online) {
+            $online = preg_match('/(?:server[\s_-]*)?status[\s_-]*[:=]?\s*online|\bserver\s+online\b|\bonline\b/i', $plainText) === 1;
+        }
 
-    private function escapeTeamSpeakValue(string $value): string
-    {
-        return strtr($value, [
-            '\\' => '\\\\',
-            '/' => '\\/',
-            ' ' => '\\s',
-            '|' => '\\p',
-            "\n" => '\\n',
-            "\r" => '\\r',
-            "\t" => '\\t',
-        ]);
-    }
+        if (! $offline && ! $online) {
+            return null;
+        }
 
-    private function unescapeTeamSpeakValue(string $value): string
-    {
-        return strtr($value, [
-            '\\s' => ' ',
-            '\\p' => '|',
-            '\\/' => '/',
-            '\\n' => "\n",
-            '\\r' => "\r",
-            '\\t' => "\t",
-            '\\\\' => '\\',
-        ]);
+        $players = null;
+        $maxPlayers = null;
+
+        if (preg_match('/\b(\d{1,4})\s*\/\s*(\d{1,4})\b/', $normalized, $matches) === 1) {
+            $players = (int) $matches[1];
+            $maxPlayers = (int) $matches[2];
+        } elseif (preg_match('/\b(\d{1,4})\s+(?:connected|clients?|users?)\b/i', $normalized, $matches) === 1) {
+            $players = (int) $matches[1];
+        }
+
+        return [
+            'online' => ! $offline && $online,
+            'players' => $players,
+            'max_players' => $maxPlayers,
+        ];
     }
 }
