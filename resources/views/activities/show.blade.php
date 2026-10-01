@@ -78,6 +78,18 @@
                 </span>
             </nav>
 
+            @if($canEditActivity)
+                <div class="event-editor-mode">
+                    <a
+                        href="{{ \App\Filament\Resources\Activities\ActivityResource::getUrl('edit', ['record' => $activity]) }}"
+                        class="event-editor-mode__toggle"
+                    >
+                        <span aria-hidden="true">✎</span>
+                        Editar actividad
+                    </a>
+                </div>
+            @endif
+
 
             {{-- =====================================================
                 HERO
@@ -150,7 +162,7 @@
                             </a>
                         @endif
 
-                        @if($addons->isNotEmpty())
+                        @if($addons->isNotEmpty() || filled($addonPackageUrl))
                             <a href="#addons">
                                 Addons
                             </a>
@@ -167,7 +179,7 @@
                 </div>
 
 
-                @if($activity->image)
+                @if(($activity->activityType?->usesImage() ?? true) && $activity->image)
 
                     <figure class="event-detail__cover">
 
@@ -217,7 +229,7 @@
                 @endif
 
 
-                @if($activity->period)
+                @if(($activity->activityType?->usesPeriod() ?? true) && $activity->period)
 
                     <div>
                         <dt>Periodo</dt>
@@ -231,7 +243,7 @@
 
 
 
-                @if($activity->map)
+                @if(($activity->activityType?->usesMap() ?? true) && $activity->map)
 
                     <div>
                         <dt>Mapa</dt>
@@ -251,7 +263,7 @@
                 @endif
 
 
-                @if(filled($dayOrNight))
+                @if(($activity->activityType?->usesDayOrNight() ?? true) && filled($dayOrNight))
 
                     <div>
                         <dt>Ambientación</dt>
@@ -264,7 +276,7 @@
                 @endif
 
 
-                @if(filled($activityDays))
+                @if(($activity->activityType?->usesDays() ?? true) && filled($activityDays))
 
                     <div>
                         <dt>Días</dt>
@@ -277,7 +289,7 @@
                 @endif
 
 
-                @if($activity->editor || $activity->editorAlly)
+                @if(($activity->activityType?->usesEditor() ?? true) && ($activity->editor || $activity->editorAlly))
 
                     <div>
                         <dt>Editor</dt>
@@ -297,7 +309,7 @@
                 @endif
 
 
-                @if($activity->campaign)
+                @if(($activity->activityType?->usesCampaign() ?? true) && $activity->campaign)
 
                     <div>
                         <dt>Campaña</dt>
@@ -875,7 +887,22 @@
                 ADDONS
             ====================================================== --}}
 
-            @if($addons->isNotEmpty())
+            @if(filled($addonPackageUrl))
+                <section id="addons" class="event-detail__section">
+                    <header>
+                        <span>Addons</span>
+                    </header>
+                    <div class="event-detail__addon-package">
+                        <div>
+                            <strong>Paquete de addons de Reforger</strong>
+                            <p>Utiliza este enlace para abrir el paquete configurado para la actividad.</p>
+                        </div>
+                        <a href="{{ $addonPackageUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                            Abrir paquete ↗
+                        </a>
+                    </div>
+                </section>
+            @elseif($addons->isNotEmpty())
 
                 <details
                     id="addons"

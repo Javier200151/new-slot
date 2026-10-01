@@ -101,7 +101,7 @@
                                         @php
                                             $isCancelled =
                                                 $event->isCancelled();
-                                            $isDraft = $event->eventStatus?->name === 'BORRADOR';
+                                            $isDraft = strtoupper(trim((string) $event->eventStatus?->name)) === 'BORRADOR';
                                         @endphp
 
                                         <div
@@ -120,7 +120,6 @@
                                                     => $isCancelled,
                                             ])
                                         >
-
                                             @if($isCancelled)
                                                 <div
                                                     class="events-calendar__event-main"
@@ -181,7 +180,7 @@
 
 
                                                 <span class="events-calendar__event-name">
-                                                    @if($isDraft)<small>BORRADOR · </small>@endif{{ $event->name ?: $event->activity?->name }}
+                                                    {{ $event->name ?: $event->activity?->name }}
                                                 </span>
 
                                             @if($isCancelled)

@@ -27,6 +27,8 @@ class EventMedia extends Model
 
     public const TYPE_VOD = 'vod';
 
+    public const TYPE_PHOTO = 'photo';
+
 
     /*
     |--------------------------------------------------------------------------
@@ -37,6 +39,8 @@ class EventMedia extends Model
     public const PROVIDER_YOUTUBE = 'youtube';
 
     public const PROVIDER_TWITCH = 'twitch';
+
+    public const PROVIDER_LOCAL = 'local';
 
 
     /*
@@ -51,6 +55,7 @@ class EventMedia extends Model
         'type',
         'provider',
         'url',
+        'file_path',
         'external_id',
         'title',
     ];
@@ -97,6 +102,12 @@ class EventMedia extends Model
             === self::TYPE_VOD;
     }
 
+    public function isPhoto(): bool
+    {
+        return $this->type
+            === self::TYPE_PHOTO;
+    }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -117,6 +128,12 @@ class EventMedia extends Model
             === self::PROVIDER_TWITCH;
     }
 
+    public function isLocal(): bool
+    {
+        return $this->provider
+            === self::PROVIDER_LOCAL;
+    }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -133,6 +150,9 @@ class EventMedia extends Model
 
             self::PROVIDER_TWITCH =>
                 'Twitch',
+
+            self::PROVIDER_LOCAL =>
+                'NewSlot',
 
             default =>
                 ucfirst(
@@ -265,6 +285,10 @@ class EventMedia extends Model
 
         if ($this->isClip()) {
             return 'Clip';
+        }
+
+        if ($this->isPhoto()) {
+            return 'Foto';
         }
 
         return 'Partida completa';

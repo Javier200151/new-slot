@@ -35,6 +35,7 @@ class Activity extends Model
         'jip',
         'pbo',
         'addons',
+        'addon_package_url',
         'created_by',
         'updated_by',
         'platform_id',

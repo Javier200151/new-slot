@@ -222,10 +222,10 @@
 
                     <nav class="event-detail__section-nav" aria-label="Secciones del evento">
                         {{-- <a href="#datos-evento">Datos</a> --}}
-                        @if($descriptionSections->isNotEmpty())
+                        @if(filled($eventBriefingExtra) || $descriptionSections->isNotEmpty())
                             <a href="#briefing">Briefing</a>
                         @endif
-                        @if($event->reservations_enabled || $eventReservations->isNotEmpty())
+                        @if(($activity->activityType?->usesReservations() ?? true) && ($event->reservations_enabled || $eventReservations->isNotEmpty()))
                             <a href="#reservas">Reservas</a>
                         @endif
                         <a href="#orbat">ORBAT</a>
@@ -239,7 +239,7 @@
                         @if($radioNetworks->isNotEmpty())
                             <a href="#comunicaciones">Comunicaciones</a>
                         @endif
-                        @if($addons->isNotEmpty())
+                        @if($addons->isNotEmpty() || filled($addonPackageUrl))
                             <a href="#addons">Addons</a>
                         @endif
 
@@ -248,6 +248,7 @@
                             && (
                                 $eventClips->isNotEmpty()
                                 || $eventVods->isNotEmpty()
+                                || $eventPhotos->isNotEmpty()
                                 || $canAddEventMedia
                             )
                         )
@@ -266,7 +267,7 @@
 
                 </div>
 
-                @if($activity->image)
+                @if(($activity->activityType?->usesImage() ?? true) && $activity->image)
                     <figure class="event-detail__cover">
                         <img src="{{ asset('storage/' . $activity->image) }}" alt="{{ $activity->name }}">
                     </figure>
@@ -295,12 +296,12 @@
                 @foreach([
                     // ['Tipo', $activity->activityType?->name],
                     // ['Estado del evento', $event->eventStatus?->name],
-                    ['Periodo', $activity->period?->name],
-                    ['Mapa', $activity->map?->name],
-                    ['Ambientación', $dayOrNight],
-                    ['Duración', $event->duration ? $event->duration . ' min' : null],
+                    ['Periodo', ($activity->activityType?->usesPeriod() ?? true) ? $activity->period?->name : null],
+                    ['Mapa', ($activity->activityType?->usesMap() ?? true) ? $activity->map?->name : null],
+                    ['Ambientación', ($activity->activityType?->usesDayOrNight() ?? true) ? $dayOrNight : null],
+                    ['Duración', ($activity->activityType?->usesEventEndDate() ?? true) && $event->duration ? $event->duration . ' min' : null],
                     ['Resultado', ($activity->activityType?->usesEventResult() ?? true) ? $event->eventResult?->name : null],
-                    ['Editor', $activity->editor_display_name],
+                    ['Editor', ($activity->activityType?->usesEditor() ?? true) ? $activity->editor_display_name : null],
                 ] as [$label, $value])
                     @if(filled($value))
                         <div>
@@ -318,7 +319,7 @@
                 @endforeach
 
 
-                @if($activity->campaign)
+                @if(($activity->activityType?->usesCampaign() ?? true) && $activity->campaign)
                     <div>
                         <dt>Campaña</dt>
                         <dd><a href="{{ route('campaigns.show', $activity->campaign) }}">{{ $activity->campaign->name }}</a></dd>
@@ -327,14 +328,14 @@
             </section>
 
             @if(
-                $event->multiclans
+                (($activity->activityType?->usesMulticlans() ?? true) && $event->multiclans)
                 || ($activity->activityType?->supportsOcap() ?? false)
                 || ($activity->activityType?->supportsRespawn() ?? false)
                 || ($activity->activityType?->supportsJip() ?? false)
             )
                 <section class="event-detail__options" aria-label="Opciones de la actividad">
 
-                    @if($event->multiclans)
+                    @if(($activity->activityType?->usesMulticlans() ?? true) && $event->multiclans)
                         <span class="is-enabled event-detail__option--multiclans">
                             Multiclán
                         </span>
@@ -407,6 +408,7 @@
                 && (
                     $eventClips->isNotEmpty()
                     || $eventVods->isNotEmpty()
+                    || $eventPhotos->isNotEmpty()
                     || $canAddEventMedia
                 )
             )
@@ -432,7 +434,7 @@
                             </span>
 
                             <small>
-                                Clips y retransmisiones de la partida
+                                Clips, fotos y retransmisiones de la partida
                             </small>
                         </div>
 
@@ -447,6 +449,7 @@
                                     $errors->has('type')
                                     || $errors->has('title')
                                     || $errors->has('url')
+                                    || $errors->has('photo')
                                     || $errors->has('media')
                                         ? 'true'
                                         : 'false'
@@ -511,6 +514,7 @@
                                 $errors->has('type')
                                 || $errors->has('title')
                                 || $errors->has('url')
+                                || $errors->has('photo')
                                 || $errors->has('media');
                         @endphp
 
@@ -529,6 +533,7 @@
                                     )
                                 }}"
                                 class="event-media-form__form"
+                                enctype="multipart/form-data"
                             >
                                 @csrf
 
@@ -558,6 +563,13 @@
                                             {{ old('type') === 'vod' ? 'selected' : '' }}
                                         >
                                             VOD / Partida completa
+                                        </option>
+
+                                        <option
+                                            value="photo"
+                                            {{ old('type') === 'photo' ? 'selected' : '' }}
+                                        >
+                                            Foto
                                         </option>
                                     </select>
 
@@ -590,7 +602,6 @@
                                         value="{{ old('title') }}"
                                         maxlength="160"
                                         placeholder="Ej. Asalto final al complejo"
-                                        required
                                     >
 
                                     @error('title')
@@ -609,6 +620,7 @@
                                         event-media-form__field
                                         event-media-form__field--url
                                     "
+                                    data-event-media-url-field
                                 >
 
                                     <label for="event-media-url">
@@ -621,7 +633,6 @@
                                         name="url"
                                         value="{{ old('url') }}"
                                         placeholder="https://..."
-                                        required
                                     >
 
                                     @error('url')
@@ -630,6 +641,31 @@
                                         </small>
                                     @enderror
 
+                                </div>
+
+                                <div
+                                    class="event-media-form__field event-media-form__field--url"
+                                    data-event-media-photo-field
+                                    hidden
+                                >
+                                    <label for="event-media-photo">
+                                        Foto
+                                    </label>
+
+                                    <input
+                                        id="event-media-photo"
+                                        type="file"
+                                        name="photo"
+                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                    >
+
+                                    <small>JPG, PNG, WEBP o GIF. Máximo 10 MB.</small>
+
+                                    @error('photo')
+                                        <small class="is-error">
+                                            {{ $message }}
+                                        </small>
+                                    @enderror
                                 </div>
 
 
@@ -913,6 +949,67 @@
 
 
                     {{-- =================================================
+                        FOTOS
+                    ================================================== --}}
+
+                    @if($eventPhotos->isNotEmpty())
+                        <div class="event-media__photos">
+                            <div class="event-media__subheading">
+                                <div>
+                                    <span>Fotos</span>
+                                    <small>Imágenes compartidas por miembros ACTIVO</small>
+                                </div>
+                                <strong>{{ $eventPhotos->count() }}</strong>
+                            </div>
+
+                            <div class="event-media-photos">
+                                @foreach($eventPhotos as $photo)
+                                    @php
+                                        $canDeletePhoto = auth()->check()
+                                            && ((int) auth()->id() === (int) $photo->user_id || $canModerateEventMedia);
+                                    @endphp
+
+                                    <article class="event-media-photo">
+                                        <button
+                                            type="button"
+                                            class="event-media-photo__image"
+                                            data-event-image-zoom
+                                            data-image-src="{{ $photo->url }}"
+                                            data-image-alt="{{ $photo->getDisplayTitle() }}"
+                                        >
+                                            <img
+                                                src="{{ $photo->url }}"
+                                                alt="{{ $photo->getDisplayTitle() }}"
+                                                loading="lazy"
+                                            >
+                                        </button>
+
+                                        <div class="event-media-photo__meta">
+                                            <div>
+                                                <strong>{{ $photo->getDisplayTitle() }}</strong>
+                                                <small>Añadida por {{ $photo->getAddedByName() }}</small>
+                                            </div>
+
+                                            @if($canDeletePhoto)
+                                                <form
+                                                    method="POST"
+                                                    action="{{ route('events.media.destroy', [$event, $photo]) }}"
+                                                    onsubmit="return confirm('¿Eliminar esta foto?');"
+                                                >
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" title="Eliminar foto" aria-label="Eliminar foto">×</button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </article>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+
+                    {{-- =================================================
                         VODS
                     ================================================== --}}
 
@@ -1079,6 +1176,7 @@
                     @if(
                         $eventClips->isEmpty()
                         && $eventVods->isEmpty()
+                        && $eventPhotos->isEmpty()
                     )
 
                         <div class="event-media__empty">
@@ -1089,7 +1187,7 @@
 
                             <p>
                                 @if($canAddEventMedia)
-                                    Puedes añadir el primer clip o VOD
+                                    Puedes añadir el primer clip, foto o VOD
                                     de esta partida.
                                 @else
                                     Aún no se han compartido clips o
@@ -1106,7 +1204,7 @@
             @endif
 
 
-            @if($descriptionSections->isNotEmpty())
+            @if(filled($eventBriefingExtra) || $descriptionSections->isNotEmpty())
                 <section
                     id="briefing"
                     class="event-detail__section"
@@ -1116,6 +1214,17 @@
                     </header>
 
                     <div class="event-detail__descriptions">
+
+                        @if(filled($eventBriefingExtra))
+                            <section class="event-briefing-extra">
+                                <div class="briefing-section__heading" role="heading" aria-level="3">
+                                    Información del evento
+                                </div>
+                                <div class="briefing-section__content event-rich-content briefing-rich">
+                                    {{ $eventBriefingExtra }}
+                                </div>
+                            </section>
+                        @endif
 
                         @foreach($descriptionSections as $section)
 
@@ -1463,17 +1572,48 @@
                                                                     style="--member-group-color: {{ $assignment->user->getStatusColor() }};"
                                                                 />
 
-                                                                <button
-                                                                    type="button"
-                                                                    class="event-orbat__remove-player"
-                                                                    data-orbat-remove
-                                                                    data-user-name="{{ $assignment->user->nick }}"
-                                                                    draggable="false"
-                                                                    title="Eliminar del ORBAT"
-                                                                    aria-label="Eliminar a {{ $assignment->user->nick }} del ORBAT"
-                                                                >
-                                                                    ×
-                                                                </button>
+                                                                @if($slot['is_owned_by_user'])
+                                                                    <form
+                                                                        method="POST"
+                                                                        action="{{ route(
+                                                                            'events.slots.unregister',
+                                                                            [
+                                                                                $event,
+                                                                                $slotKey,
+                                                                            ]
+                                                                        ) }}"
+                                                                        data-event-unregister-form
+                                                                        data-slot-name="{{ $slot['name'] ?? 'Slot sin nombre' }}"
+                                                                        class="event-orbat__self-unregister-form"
+                                                                    >
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <input type="hidden" name="reason" value="" data-event-unregister-reason>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            class="event-orbat__remove-player"
+                                                                            data-event-unregister-open
+                                                                            draggable="false"
+                                                                            title="Desapuntarme del ORBAT"
+                                                                            aria-label="Desapuntarme del ORBAT"
+                                                                        >
+                                                                            ×
+                                                                        </button>
+                                                                    </form>
+                                                                @else
+                                                                    <button
+                                                                        type="button"
+                                                                        class="event-orbat__remove-player"
+                                                                        data-orbat-remove
+                                                                        data-user-name="{{ $assignment->user->nick }}"
+                                                                        draggable="false"
+                                                                        title="Eliminar del ORBAT"
+                                                                        aria-label="Eliminar a {{ $assignment->user->nick }} del ORBAT"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                @endif
                                                             </div>
 
                                                         @else
@@ -1562,13 +1702,17 @@
                                                                             $slotKey,
                                                                         ]
                                                                     ) }}"
+                                                                    data-event-unregister-form
+                                                                    data-slot-name="{{ $slot['name'] ?? 'Slot sin nombre' }}"
                                                                 >
                                                                     @csrf
                                                                     @method('DELETE')
+                                                                    <input type="hidden" name="reason" value="" data-event-unregister-reason>
 
                                                                     <button
-                                                                        type="submit"
+                                                                        type="button"
                                                                         class="event-orbat__unregister-button"
+                                                                        data-event-unregister-open
                                                                     >
                                                                         Desapuntarme
                                                                     </button>
@@ -2016,7 +2160,22 @@
                 </details>
             @endif
 
-            @if($addons->isNotEmpty())
+            @if(filled($addonPackageUrl))
+                <section id="addons" class="event-detail__section">
+                    <header>
+                        <span>Addons</span>
+                    </header>
+                    <div class="event-detail__addon-package">
+                        <div>
+                            <strong>Paquete de addons de Reforger</strong>
+                            <p>Abre el paquete configurado para esta actividad.</p>
+                        </div>
+                        <a href="{{ $addonPackageUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                            Abrir paquete ↗
+                        </a>
+                    </div>
+                </section>
+            @elseif($addons->isNotEmpty())
                 <details
                     id="addons"
                     class="
@@ -2070,6 +2229,33 @@
                 </details>
             @endif
             
+            <dialog class="event-unregister-dialog" data-event-unregister-dialog>
+                <form method="dialog" class="event-unregister-dialog__panel">
+                    <header>
+                        <div>
+                            <span>Desapuntarse del ORBAT</span>
+                            <small data-event-unregister-slot></small>
+                        </div>
+                        <button type="button" class="event-unregister-dialog__close" data-event-unregister-cancel aria-label="Cerrar">×</button>
+                    </header>
+
+                    <label for="event-unregister-reason-text">Motivo</label>
+                    <textarea
+                        id="event-unregister-reason-text"
+                        rows="4"
+                        maxlength="1000"
+                        placeholder="Puedes indicar por qué te desapuntas."
+                        data-event-unregister-text
+                    ></textarea>
+                    <p>Si escribes un motivo, quedará publicado en los comentarios del evento junto al desapunte.</p>
+
+                    <footer>
+                        <button type="button" class="btn btn-outline" data-event-unregister-cancel>Cancelar</button>
+                        <button type="button" class="btn event-unregister-dialog__confirm" data-event-unregister-confirm>Desapuntarme</button>
+                    </footer>
+                </form>
+            </dialog>
+
             <section id="comentarios" class="event-detail__section event-comments" aria-labelledby="event-comments-title">
                 <header class="event-comments__header">
                     <span id="event-comments-title">Comentarios</span>

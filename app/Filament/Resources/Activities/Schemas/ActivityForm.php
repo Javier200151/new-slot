@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Activities\Schemas;
 
 use App\Models\GameMap;
+use App\Models\Platform;
 use App\Models\ActivityType;
 use App\Support\ActivityTypeAccess;
 use App\Support\ActivityEditorSelection;
@@ -101,6 +102,7 @@ class ActivityForm
                     ->relationship('campaign', 'name')
                     ->searchable()
                     ->preload()
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesCampaign() ?? false)
                     ->nullable(),
 
                 Select::make('platform_id')
@@ -120,7 +122,8 @@ class ActivityForm
                 ->preload()
                 ->helperText(
                     'Déjalo vacío si puede jugarse cualquier día.'
-                ),
+                )
+                ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesDays() ?? false),
                 
                 FileUpload::make('image')
                     ->label('Imagen')
@@ -128,7 +131,8 @@ class ActivityForm
                     ->directory('activities')
                     ->visibility('public')
                     ->preserveFilenames()
-                    ->image(),
+                    ->image()
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesImage() ?? false),
                 
 
                 Section::make('Opciones')
@@ -195,6 +199,7 @@ class ActivityForm
                     ->searchable()
                     ->preload()
                     ->disabled(fn (Get $get): bool => blank($get('platform_id')))
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesMap() ?? false)
                     ->nullable(),
 
                 Select::make('period_id')
@@ -202,6 +207,7 @@ class ActivityForm
                     ->relationship('period', 'name')
                     ->searchable()
                     ->preload()
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesPeriod() ?? false)
                     ->nullable(),
 
                 Hidden::make('enemy_faction_country_filter')
@@ -564,6 +570,7 @@ class ActivityForm
                     ->searchable()
                     ->preload()
                     ->nullable()
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesEditor() ?? false)
                     ->helperText(
                         'Puedes seleccionar un miembro SQA o un aliado. ' .
                         'Si el editor es un aliado, sus eventos serán multiclán.'
@@ -575,34 +582,57 @@ class ActivityForm
                         'day' => 'Día',
                         'night' => 'Noche',
                         'both' => 'Ambos',
-                    ]),
+                    ])
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesDayOrNight() ?? false),
                 TextInput::make('pbo')
-                    ->label('PBO'),                                        
+                    ->label('PBO')
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesPbo() ?? false),
+
+                TextInput::make('addon_package_url')
+                    ->label('Paquete de addons')
+                    ->url()
+                    ->maxLength(1000)
+                    ->placeholder('https://...')
+                    ->helperText('En Reforger se publica un único enlace al paquete de addons.')
+                    ->visible(function (Get $get): bool {
+                        $type = ActivityTypeConfiguration::find($get('activity_type_id'));
+                        $platform = Platform::query()->find($get('platform_id'));
+
+                        return (bool) ($type?->usesAddons() && $platform?->isReforger());
+                    }),
      
 
                 Section::make('Descripción')
                     ->schema([
                         Html::make(fn ($record) => $record?->getDescriptionSummaryHtml()),
                     ])
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesBriefing() ?? false)
                     ->columnSpanFull(),
 
                 Section::make('ORBAT')
                     ->schema([
                         Html::make(fn ($record) => $record?->getOrbatSummaryHtml()),
                     ])
-                    //->hidden(fn ($record): bool => blank($record?->orbat['groups'] ?? []))
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesOrbat() ?? false)
                     ->columnSpanFull(),
 
                 Section::make('Radio')
                     ->schema([
                         Html::make(fn ($record) => $record?->getRadioSummaryHtml()),
                     ])
+                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesRadio() ?? false)
                     ->columnSpanFull(),
 
                 Section::make('Addons')
                     ->schema([
                         Html::make(fn ($record) => $record?->getAddonsSummaryHtml()),
                     ])
+                    ->visible(function (Get $get): bool {
+                        $type = ActivityTypeConfiguration::find($get('activity_type_id'));
+                        $platform = Platform::query()->find($get('platform_id'));
+
+                        return (bool) ($type?->usesAddons() && ! $platform?->isReforger());
+                    })
                     ->columnSpanFull(),
                 
 
