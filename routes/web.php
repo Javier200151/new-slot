@@ -20,6 +20,7 @@ use App\Http\Controllers\PublicLoginController;
 use App\Http\Controllers\PublicMapController;
 use App\Http\Controllers\PublicRegisterController;
 use App\Http\Controllers\PublicActivityController;
+use App\Http\Controllers\PublicInfrastructureController;
 use App\Models\User;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
@@ -792,6 +793,19 @@ Route::middleware('auth')->group(function (): void {
         [CommunityRouletteController::class, 'destroy']
     )->whereNumber('room')->name('community.roulette.destroy');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Estado público de infraestructura
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/infraestructura/estado',
+    [PublicInfrastructureController::class, 'status'],
+)
+    ->middleware('throttle:30,1')
+    ->name('infrastructure.status');
 
 /*
 |--------------------------------------------------------------------------
