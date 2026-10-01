@@ -38,7 +38,7 @@
         </div>
     </header>
 
-    <p class="event-comment__body">{{ $comment->comment }}</p>
+    <div class="event-comment__body bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($comment->comment) !!}</div>
 
     @auth
         @unless($isReadOnly ?? false)
@@ -48,17 +48,16 @@
                 <form method="POST" action="{{ route('events.comments.store', $comment->event_id) }}">
                     @csrf
                     <input type="hidden" name="parent_id" value="{{ $comment->id }}">
-                    <label class="sr-only" for="event-comment-reply-{{ $comment->id }}">
-                        Responder a {{ $author?->nick ?? 'este comentario' }}
-                    </label>
-                    <textarea
-                        id="event-comment-reply-{{ $comment->id }}"
-                        name="comment"
-                        rows="3"
-                        maxlength="5000"
-                        required
-                        placeholder="Escribe tu respuesta..."
-                    ></textarea>
+                    @include('partials.bbcode-editor', [
+                        'id' => 'event-comment-reply-' . $comment->id,
+                        'name' => 'comment',
+                        'label' => 'Responder a ' . ($author?->nick ?? 'este comentario'),
+                        'value' => '',
+                        'rows' => 3,
+                        'maxlength' => 5000,
+                        'required' => true,
+                        'placeholder' => 'Escribe tu respuesta...',
+                    ])
                     <button type="submit">Publicar respuesta</button>
                 </form>
             </details>
@@ -69,14 +68,15 @@
                     <form method="POST" action="{{ route('events.comments.update', [$comment->event_id, $comment]) }}">
                         @csrf
                         @method('PATCH')
-                        <label class="sr-only" for="event-comment-{{ $comment->id }}">Editar comentario</label>
-                        <textarea
-                            id="event-comment-{{ $comment->id }}"
-                            name="comment"
-                            rows="4"
-                            maxlength="5000"
-                            required
-                        >{{ $comment->comment }}</textarea>
+                        @include('partials.bbcode-editor', [
+                            'id' => 'event-comment-' . $comment->id,
+                            'name' => 'comment',
+                            'label' => 'Editar comentario',
+                            'value' => $comment->comment,
+                            'rows' => 4,
+                            'maxlength' => 5000,
+                            'required' => true,
+                        ])
                         <button type="submit">Guardar cambios</button>
                     </form>
                 </details>

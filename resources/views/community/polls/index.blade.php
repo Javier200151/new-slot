@@ -73,7 +73,7 @@
                 </div>
 
                 @if($poll->description)
-                    <p class="community-lead" style="margin-bottom:16px">{{ $poll->description }}</p>
+                    <div class="community-lead bbcode-rich forum-rich" style="margin-bottom:16px">{!! \App\Support\BbcodeMarkup::render($poll->description) !!}</div>
                 @endif
 
                 <div class="poll-rules">

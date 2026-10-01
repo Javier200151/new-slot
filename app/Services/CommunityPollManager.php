@@ -108,6 +108,112 @@ class CommunityPollManager
         });
     }
 
+
+    public function updateForPost(
+        CommunityPoll $poll,
+        CommunityPost $post,
+        array $data,
+        bool $useCandidates = false,
+    ): CommunityPoll {
+        abort_unless((int) $poll->community_post_id === (int) $post->id, 404);
+
+        $post->loadMissing('process.activeApplications.user');
+        $poll->loadMissing('options.votes');
+
+        if ($useCandidates && $post->process?->applicationsAreOpen()) {
+            throw ValidationException::withMessages([
+                'use_candidates' => 'Cierra primero el plazo de postulaciones antes de usar las candidaturas como opciones de voto.',
+            ]);
+        }
+
+        $options = $useCandidates
+            ? $this->candidateOptions($post)
+            : $this->textOptions((string) ($data['poll_options'] ?? ''));
+
+        if ($options->count() < 2) {
+            throw ValidationException::withMessages([
+                'poll_options' => $useCandidates
+                    ? 'Se necesitan al menos dos postulaciones activas para usar las candidaturas como opciones.'
+                    : 'Añade al menos dos opciones, una por línea.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($poll, $post, $data, $options, $useCandidates): CommunityPoll {
+            $mode = ($data['poll_selection_mode'] ?? CommunityPoll::MODE_SINGLE) === CommunityPoll::MODE_MULTIPLE
+                ? CommunityPoll::MODE_MULTIPLE
+                : CommunityPoll::MODE_SINGLE;
+            $minChoices = $mode === CommunityPoll::MODE_MULTIPLE
+                ? max(1, (int) ($data['poll_min_choices'] ?? 1))
+                : 1;
+            $maxChoices = $mode === CommunityPoll::MODE_MULTIPLE
+                ? max($minChoices, min($options->count(), (int) ($data['poll_max_choices'] ?? $options->count())))
+                : 1;
+
+            $poll->update([
+                'title' => trim((string) ($data['poll_title'] ?? '')) ?: $post->title,
+                'description' => trim((string) ($data['poll_description'] ?? '')) ?: null,
+                'selection_mode' => $mode,
+                'min_choices' => $minChoices,
+                'max_choices' => $maxChoices,
+                'allow_vote_change' => (bool) ($data['poll_allow_vote_change'] ?? false),
+                'is_anonymous' => (bool) ($data['poll_is_anonymous'] ?? false),
+                'results_visibility' => $data['poll_results_visibility'] ?? CommunityPoll::RESULTS_ALWAYS,
+                'show_voter_names' => (bool) ($data['poll_show_voter_names'] ?? false),
+                'show_participation' => (bool) ($data['poll_show_participation'] ?? false),
+                'allow_abstain' => (bool) ($data['poll_allow_abstain'] ?? false),
+                'randomize_options' => (bool) ($data['poll_randomize_options'] ?? false),
+                'quorum_percent' => filled($data['poll_quorum_percent'] ?? null) ? (int) $data['poll_quorum_percent'] : null,
+                'starts_at' => $data['poll_starts_at'] ?? null,
+                'ends_at' => $data['poll_ends_at'] ?? null,
+            ]);
+
+            $existing = $poll->options()->withCount('votes')->orderBy('sort_order')->orderBy('id')->get();
+            $remaining = $existing->keyBy('id');
+
+            foreach ($options->values() as $index => $optionData) {
+                $candidateId = $optionData['candidate_user_id'] ?? null;
+                $label = trim((string) $optionData['label']);
+
+                $match = $useCandidates && $candidateId
+                    ? $remaining->first(fn ($option) => (int) $option->candidate_user_id === (int) $candidateId)
+                    : $remaining->first(
+                        fn ($option) => mb_strtolower(trim((string) $option->label)) === mb_strtolower($label)
+                    );
+
+                if ($match) {
+                    $match->update([
+                        'candidate_user_id' => $candidateId,
+                        'label' => $label,
+                        'sort_order' => ($index + 1) * 10,
+                    ]);
+                    $remaining->forget($match->id);
+                } else {
+                    $poll->options()->create([
+                        'candidate_user_id' => $candidateId,
+                        'label' => $label,
+                        'sort_order' => ($index + 1) * 10,
+                    ]);
+                }
+            }
+
+            $blocked = $remaining->first(fn ($option) => (int) ($option->votes_count ?? 0) > 0);
+
+            if ($blocked) {
+                throw ValidationException::withMessages([
+                    'poll_options' => 'No puedes eliminar ni renombrar una opción que ya tiene votos. Puedes reordenarla o añadir nuevas opciones.',
+                ]);
+            }
+
+            if ($remaining->isNotEmpty()) {
+                $poll->options()->whereIn('id', $remaining->keys())->delete();
+            }
+
+            $post->touch();
+
+            return $poll->fresh('options');
+        });
+    }
+
     private function textOptions(string $raw): Collection
     {
         return collect(preg_split('/\R/u', $raw) ?: [])

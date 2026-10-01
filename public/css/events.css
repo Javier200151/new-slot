@@ -5625,3 +5625,452 @@ a.event-comment__author:hover {
         justify-self: start;
     }
 }
+
+/* =========================================================
+   BLOQUE B - MULTIMEDIA, VISOR Y DESAPUNTE
+========================================================= */
+
+.event-media-form__field[hidden] {
+    display: none !important;
+}
+
+.event-media-form__field input[type="file"] {
+    width: 100%;
+}
+
+.event-media-photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.event-media-photo {
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, .44);
+}
+
+.event-media-photo__image {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: zoom-in;
+}
+
+.event-media-photo__image img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+}
+
+.event-media-photo__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 12px;
+}
+
+.event-media-photo__meta > div {
+    display: grid;
+    gap: 3px;
+}
+
+.event-media-photo__meta small {
+    color: var(--text-muted);
+}
+
+.event-media-photo__meta form button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(248, 113, 113, .28);
+    border-radius: 8px;
+    color: #fca5a5;
+    background: rgba(127, 29, 29, .14);
+    cursor: pointer;
+}
+
+.event-detail__addon-package {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px;
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, .38);
+}
+
+.event-detail__addon-package p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+}
+
+.event-briefing-extra {
+    padding: 18px;
+    border: 1px solid color-mix(in srgb, var(--event-color, #f59e0b) 26%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--event-color, #f59e0b) 7%, transparent);
+}
+
+.event-unregister-dialog {
+    width: min(540px, calc(100vw - 28px));
+    padding: 0;
+    border: 1px solid rgba(148, 163, 184, .22);
+    border-radius: 14px;
+    color: var(--text-main, #e5e7eb);
+    background: #111827;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .5);
+}
+
+.event-unregister-dialog::backdrop {
+    background: rgba(2, 6, 23, .78);
+    backdrop-filter: blur(3px);
+}
+
+.event-unregister-dialog__panel {
+    display: grid;
+    gap: 16px;
+    padding: 20px;
+}
+
+.event-unregister-dialog__panel header,
+.event-unregister-dialog__panel footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.event-unregister-dialog__panel header > div {
+    display: grid;
+    gap: 3px;
+}
+
+.event-unregister-dialog__panel header span {
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.event-unregister-dialog__panel header small,
+.event-unregister-dialog__panel p {
+    color: #94a3b8;
+}
+
+.event-unregister-dialog__panel label {
+    font-weight: 700;
+}
+
+.event-unregister-dialog__panel textarea {
+    width: 100%;
+    min-height: 110px;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, .22);
+    border-radius: 10px;
+    color: #e5e7eb;
+    background: rgba(15, 23, 42, .75);
+    resize: vertical;
+}
+
+.event-unregister-dialog__close {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, .1);
+    cursor: pointer;
+}
+
+.event-unregister-dialog__panel footer {
+    justify-content: flex-end;
+}
+
+.is-event-zoomable {
+    cursor: zoom-in !important;
+}
+
+.event-image-viewer[hidden] {
+    display: none !important;
+}
+
+.event-image-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+.event-image-viewer__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .88);
+    backdrop-filter: blur(4px);
+}
+
+.event-image-viewer__dialog {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    width: min(96vw, 1500px);
+    height: min(94vh, 1000px);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 14px;
+    background: #020617;
+    box-shadow: 0 30px 100px rgba(0, 0, 0, .65);
+}
+
+.event-image-viewer__toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 9px;
+    border-bottom: 1px solid rgba(148, 163, 184, .14);
+    background: rgba(15, 23, 42, .92);
+}
+
+.event-image-viewer__toolbar button {
+    min-width: 38px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 8px;
+    color: #e2e8f0;
+    background: rgba(30, 41, 59, .85);
+    cursor: pointer;
+}
+
+.event-image-viewer__stage {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.event-image-viewer__stage.is-zoomed {
+    cursor: grab;
+}
+
+.event-image-viewer__stage.is-zoomed:active {
+    cursor: grabbing;
+}
+
+.event-image-viewer__stage img {
+    display: block;
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+    transform-origin: center;
+    transition: transform 80ms ease-out;
+    user-select: none;
+    pointer-events: none;
+}
+
+.event-image-viewer-open {
+    overflow: hidden;
+}
+
+/* BORRADORES: lectura inmediata en calendario y tarjetas */
+.events-calendar__event.is-draft,
+.event-card.is-draft {
+    border-style: dashed;
+    border-width: 1px;
+    border-color: rgba(250, 204, 21, .55);
+    background-image:
+        repeating-linear-gradient(
+            -45deg,
+            rgba(250, 204, 21, .07) 0,
+            rgba(250, 204, 21, .07) 8px,
+            transparent 8px,
+            transparent 16px
+        );
+}
+
+.events-calendar__event.is-draft small,
+.event-card__status.is-draft {
+    color: #fde68a;
+}
+
+@media (max-width: 700px) {
+    .event-detail__addon-package {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .event-image-viewer {
+        padding: 0;
+    }
+
+    .event-image-viewer__dialog {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+    }
+}
+
+
+/* =========================================================
+   BORRADORES EN CALENDARIO — diferenciación clara
+   ========================================================= */
+
+.events-calendar__event.is-draft {
+    position: relative;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    padding: 5px 6px 6px;
+    border: 1px dashed rgba(96, 165, 250, .72);
+    border-left: 4px solid #60a5fa;
+    background:
+        linear-gradient(135deg, rgba(37, 99, 235, .20), rgba(30, 64, 175, .08)),
+        repeating-linear-gradient(
+            -45deg,
+            rgba(96, 165, 250, .05) 0,
+            rgba(96, 165, 250, .05) 7px,
+            transparent 7px,
+            transparent 14px
+        );
+    box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .08);
+}
+
+.events-calendar__event.is-draft::before {
+    content: "BORRADOR";
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    padding: 2px 5px;
+    border-radius: 999px;
+    color: #dbeafe;
+    background: rgba(37, 99, 235, .45);
+    font-size: .46rem;
+    font-weight: 950;
+    line-height: 1.1;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+}
+
+.events-calendar__event.is-draft .events-calendar__event-main {
+    width: 100%;
+}
+
+.events-calendar__event.is-draft .events-calendar__event-name {
+    color: #eff6ff;
+    font-weight: 850;
+}
+
+.event-orbat__self-unregister-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+
+/* =========================================================
+   HOTFIX B33-2 · BORRADOR visible + acción de desapunte
+   ========================================================= */
+.events-calendar__draft-badge {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 2px 5px;
+    border: 1px solid rgba(147, 197, 253, .38);
+    border-radius: 999px;
+    color: #dbeafe;
+    background: rgba(37, 99, 235, .58);
+    font-size: .46rem;
+    font-weight: 950;
+    line-height: 1.1;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+}
+
+.events-calendar__event.is-draft::before {
+    content: none;
+}
+
+.event-unregister-dialog__confirm {
+    border: 1px solid #f59e0b !important;
+    color: #111827 !important;
+    background: #f59e0b !important;
+    font-weight: 800;
+    box-shadow: none !important;
+}
+
+.event-unregister-dialog__confirm:hover:not(:disabled) {
+    border-color: #fbbf24 !important;
+    background: #fbbf24 !important;
+}
+
+.event-unregister-dialog__confirm:focus-visible {
+    outline: 2px solid rgba(251, 191, 36, .65);
+    outline-offset: 2px;
+}
+
+.event-unregister-dialog__confirm:disabled {
+    opacity: .58;
+    cursor: wait;
+}
+
+
+/* =========================================================
+   HOTFIX B33-4 · BORRADOR con color del tipo de actividad
+   Conserva borde discontinuo y trama, sin etiqueta adicional.
+   ========================================================= */
+.events-calendar__event.is-draft {
+    position: relative;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 5px;
+
+    border: 1px dashed color-mix(
+        in srgb,
+        var(--event-color, var(--primary)) 82%,
+        transparent
+    ) !important;
+    border-left: 4px dashed var(--event-color, var(--primary)) !important;
+
+    background-color: color-mix(
+        in srgb,
+        var(--event-color, var(--primary)) 12%,
+        transparent
+    ) !important;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        color-mix(in srgb, var(--event-color, var(--primary)) 12%, transparent) 0,
+        color-mix(in srgb, var(--event-color, var(--primary)) 12%, transparent) 7px,
+        transparent 7px,
+        transparent 14px
+    ) !important;
+    box-shadow: inset 0 0 0 1px color-mix(
+        in srgb,
+        var(--event-color, var(--primary)) 8%,
+        transparent
+    ) !important;
+}
+
+.events-calendar__event.is-draft::before {
+    content: none !important;
+    display: none !important;
+}
+
+.events-calendar__event.is-draft .events-calendar__event-main {
+    width: auto;
+}
+
+.events-calendar__event.is-draft .events-calendar__event-name {
+    color: #fff;
+    font-weight: 750;
+}
+
+.events-calendar__draft-badge {
+    display: none !important;
+}

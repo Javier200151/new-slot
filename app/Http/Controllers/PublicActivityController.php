@@ -1100,13 +1100,13 @@ class PublicActivityController extends Controller
         |
         */
 
-        $groups = collect(
-            $activity->orbat['groups'] ?? []
-        )
-            ->filter(
-                fn (array $group): bool =>
-                    (bool) ($group['visible'] ?? true)
-            );
+        $groups = ($activity->activityType?->usesOrbat() ?? true)
+            ? collect($activity->orbat['groups'] ?? [])
+                ->filter(
+                    fn (array $group): bool =>
+                        (bool) ($group['visible'] ?? true)
+                )
+            : collect();
 
         $factions = Faction::query()
             ->with([
@@ -1198,9 +1198,9 @@ class PublicActivityController extends Controller
         $description =
             $activity->description ?? [];
 
-        $descriptionSections = collect(
-            $description['sections'] ?? []
-        );
+        $descriptionSections = ($activity->activityType?->usesBriefing() ?? true)
+            ? collect($description['sections'] ?? [])
+            : collect();
 
         /*
          * Compatibilidad con el formato antiguo.
@@ -1349,18 +1349,20 @@ class PublicActivityController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $radioNetworks = collect(
-            $activity->radio['networks']
-            ?? []
-        )
-            ->filter(
-                fn (array $network): bool =>
-                    (bool) (
-                        $network['visible']
-                        ?? true
-                    )
+        $radioNetworks = ($activity->activityType?->usesRadio() ?? true)
+            ? collect(
+                $activity->radio['networks']
+                ?? []
             )
-            ->values();
+                ->filter(
+                    fn (array $network): bool =>
+                        (bool) (
+                            $network['visible']
+                            ?? true
+                        )
+                )
+                ->values()
+            : collect();
 
         /*
         |--------------------------------------------------------------------------
@@ -1368,16 +1370,31 @@ class PublicActivityController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $addons = Addon::query()
-            ->whereIn(
-                'id',
-                $activity
-                    ->addons['addon_ids']
-                    ?? []
-            )
-            ->orderByDesc('mandatory')
-            ->orderBy('name')
-            ->get();
+        $usesAddons = $activity->activityType?->usesAddons() ?? true;
+        $isReforger = $activity->platform?->isReforger() ?? false;
+
+        $addons = ($usesAddons && ! $isReforger)
+            ? Addon::query()
+                ->whereIn(
+                    'id',
+                    $activity
+                        ->addons['addon_ids']
+                        ?? []
+                )
+                ->orderByDesc('mandatory')
+                ->orderBy('name')
+                ->get()
+            : collect();
+
+        $addonPackageUrl = ($usesAddons && $isReforger)
+            ? trim((string) $activity->addon_package_url)
+            : '';
+
+        $user = auth()->user();
+        $isAdmin = $user?->hasRole('admin') ?? false;
+        $canAccessFilament = $isAdmin || ($user?->can('filament.access') ?? false);
+        $canEditActivity = $canAccessFilament
+            && ($isAdmin || ($user?->can('update', $activity) ?? false));
 
         return view(
             'activities.show',
@@ -1387,6 +1404,8 @@ class PublicActivityController extends Controller
                 'descriptionSections',
                 'radioNetworks',
                 'addons',
+                'addonPackageUrl',
+                'canEditActivity',
                 'activityEvents',
                 'upcomingEvents',
                 'pastEvents',

@@ -1,0 +1,59 @@
+/* Editor BBCode común de NewSlot */
+.forum-editor,
+.bbcode-editor { display:grid; gap:6px; min-width:0; }
+.forum-editor > label,
+.bbcode-editor > label { color:#dce4ef; font-size:.75rem; font-weight:850; }
+.forum-editor__toolbar,
+.bbcode-editor__toolbar {
+    display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:7px;
+    border:1px solid rgba(148,163,184,.18); border-bottom:0; border-radius:9px 9px 0 0;
+    background:#0e141d;
+}
+.forum-editor__toolbar > button,
+.bbcode-editor__toolbar > button {
+    min-width:31px; height:29px; padding:0 7px; border:1px solid rgba(148,163,184,.15);
+    border-radius:6px; color:#cbd5e1; background:rgba(255,255,255,.025); font:inherit;
+    font-size:.67rem; font-weight:800; cursor:pointer;
+}
+.forum-editor__toolbar > button:hover,
+.bbcode-editor__toolbar > button:hover { color:#111827; border-color:#f59e0b; background:#f59e0b; }
+.forum-editor__sep { width:1px; height:22px; margin:0 3px; background:rgba(148,163,184,.18); }
+.forum-editor__colors { display:flex; gap:3px; margin-left:3px; }
+.forum-editor__colors .forum-editor__color {
+    width:18px; min-width:18px; height:18px; padding:0; border:2px solid rgba(255,255,255,.16);
+    border-radius:50%; background:var(--editor-color); cursor:pointer;
+}
+.forum-editor__colors .forum-editor__color:hover { transform:scale(1.15); border-color:#fff; }
+.forum-editor__textarea,
+.bbcode-editor textarea {
+    width:100%; min-height:120px; margin:0; border-radius:0 0 9px 9px !important;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; line-height:1.6; resize:vertical;
+}
+.forum-editor__help { color:#657286; font-size:.65rem; line-height:1.45; }
+
+/* Render BBCode común. Se mantienen las clases forum-rich por compatibilidad. */
+.bbcode-rich,
+.forum-rich { min-width:0; overflow-wrap:anywhere; line-height:1.75; }
+.forum-rich__h2,.forum-rich__h3,.bbcode-rich__h2,.bbcode-rich__h3 { line-height:1.2; }
+.forum-rich__h2,.bbcode-rich__h2 { margin:18px 0 8px; font-size:1.45rem; }
+.forum-rich__h3,.bbcode-rich__h3 { margin:16px 0 7px; font-size:1.12rem; }
+.forum-rich__hr,.bbcode-rich__hr { border:0; border-top:1px solid rgba(148,163,184,.22); margin:18px 0; }
+.forum-rich__link,.bbcode-rich__link { color:#fbbf24; text-decoration:underline; text-underline-offset:2px; }
+.forum-rich__image-link,.bbcode-rich__image-link { display:block; width:fit-content; max-width:100%; margin:14px 0; }
+.forum-rich__image,.bbcode-rich__image { display:block; max-width:min(100%,820px); max-height:620px; object-fit:contain; border-radius:10px; }
+.forum-rich__quote,.bbcode-rich__quote { margin:14px 0; padding:12px 14px; border-left:3px solid rgba(245,158,11,.55); border-radius:0 8px 8px 0; background:rgba(245,158,11,.045); }
+.forum-rich__quote-author,.bbcode-rich__quote-author { margin-bottom:5px; color:#fbbf24; font-size:.66rem; font-weight:900; }
+.forum-rich__spoiler,.bbcode-rich__spoiler { margin:13px 0; overflow:hidden; border:1px solid rgba(148,163,184,.18); border-radius:9px; background:rgba(0,0,0,.18); }
+.forum-rich__spoiler summary,.bbcode-rich__spoiler summary { padding:9px 12px; font-size:.7rem; font-weight:850; cursor:pointer; }
+.forum-rich__spoiler-body,.bbcode-rich__spoiler-body { padding:0 12px 12px; }
+.forum-rich__code,.bbcode-rich__code { margin:13px 0; padding:12px; overflow-x:auto; border:1px solid rgba(148,163,184,.16); border-radius:9px; background:#070b10; font-size:.75rem; line-height:1.55; white-space:pre; }
+.forum-rich__list,.bbcode-rich__list { margin:10px 0; padding-left:26px; }
+.forum-rich__list li,.bbcode-rich__list li { margin:4px 0; }
+.bbcode-rich__align--left { text-align:left; }
+.bbcode-rich__align--center { text-align:center; }
+.bbcode-rich__align--right { text-align:right; }
+.bbcode-rich__align--justify { text-align:justify; }
+
+@media (max-width:700px) {
+    .forum-editor__colors { width:100%; margin:4px 0 0; }
+}

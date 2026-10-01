@@ -8,6 +8,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Concerns\Auditable;
 use App\Support\BriefingMarkup;
+use App\Support\BbcodeMarkup;
 
 /**
  * Modelo canónico de las actividades de NewSlot.
@@ -35,6 +36,7 @@ class Activity extends Model
         'jip',
         'pbo',
         'addons',
+        'addon_package_url',
         'created_by',
         'updated_by',
         'platform_id',
@@ -570,7 +572,7 @@ class Activity extends Model
 
         foreach ($addons as $addon) {
             $name = e($addon->name);
-            $description = e($addon->description ?? '');
+            $description = BbcodeMarkup::render($addon->description)->toHtml();
             $mandatory = $addon->mandatory
                 ? '<span style="background: #fee2e2; border-radius: 9999px; color: #991b1b; font-size: 0.75rem; padding: 0.125rem 0.5rem;">Obligatorio</span>'
                 : '<span style="background: #e5e7eb; border-radius: 9999px; color: #374151; font-size: 0.75rem; padding: 0.125rem 0.5rem;">Opcional</span>';

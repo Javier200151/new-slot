@@ -47,7 +47,7 @@
                     @if(filled($map->description))
                         <div>
                             <span>Descripción</span>
-                            <p>{{ $map->description }}</p>
+                            <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($map->description) !!}</div>
                         </div>
                     @endif
 

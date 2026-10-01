@@ -1,18 +1,6 @@
 @php
     $navUser = auth()->user();
-    $areaLabel = $navUser
-        ? \App\Support\CommunityArea::label($navUser)
-        : null;
-
-    $communityActive = request()->routeIs('activities.*')
-        || request()->routeIs('metopas.*')
-        || request()->routeIs('community.organization')
-        || request()->routeIs('campaigns.*');
-
-    $areaActive = request()->routeIs('community.diary.*')
-        || request()->routeIs('community.forum.*')
-        || request()->routeIs('community.polls.*')
-        || request()->routeIs('community.roulette.*');
+    $publicNavigationItems = \App\Support\PublicNavigation::items();
 @endphp
 
 <header class="landing-header">
@@ -23,15 +11,6 @@
                 alt="Squad ALPHA"
                 class="brand-logo-image"
             >
-        </a>
-
-        <a
-            href="https://foro.squadalpha.es/"
-            class="legacy-forum-link legacy-forum-link--header"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-            Foro antiguo <span aria-hidden="true">↗</span>
         </a>
 
         <div class="nav-mobile-tools">
@@ -51,58 +30,60 @@
 
         <div id="public-navigation" class="nav-menu" data-nav-menu>
             <nav class="landing-nav" aria-label="Navegación principal">
-                <a
-                    href="{{ route('pages.show', 'normativa') }}"
-                    @class([
-                        'is-active' => request()->routeIs('pages.show')
-                            && request()->route('page')?->slug === 'normativa',
-                    ])
-                >
-                    Normativa
-                </a>
+                @foreach($publicNavigationItems as $navigationItem)
+                    @if(($navigationItem['type'] ?? null) === 'link')
+                        @php
+                            $destination = (string) ($navigationItem['destination'] ?? '');
+                            $isExternal = \App\Support\PublicNavigation::isExternal($destination);
+                            $canDisplay = \App\Support\PublicNavigation::canDisplayItem($navigationItem)
+                                && \App\Support\PublicNavigation::canDisplayDestination($destination);
+                        @endphp
 
-                <a
-                    href="{{ route('events.index') }}"
-                    @class(['is-active' => request()->routeIs('events.*')])
-                >
-                    Eventos
-                </a>
+                        @if($canDisplay)
+                            <a
+                                href="{{ \App\Support\PublicNavigation::url($destination) }}"
+                                @class([
+                                    'is-active' => \App\Support\PublicNavigation::isActive($destination),
+                                ])
+                                @if($isExternal) target="_blank" rel="noopener noreferrer" @endif
+                            >
+                                {{ $navigationItem['label'] }}@if($isExternal) <span aria-hidden="true">↗</span>@endif
+                            </a>
+                        @endif
+                    @elseif(($navigationItem['type'] ?? null) === 'dropdown')
+                        @php
+                            $dropdownVisible = \App\Support\PublicNavigation::canDisplayItem($navigationItem);
+                            $children = $dropdownVisible
+                                ? \App\Support\PublicNavigation::visibleChildren($navigationItem['children'] ?? [])
+                                : [];
+                            $dropdownLabel = \App\Support\PublicNavigation::dropdownDisplayLabel($navigationItem);
+                        @endphp
 
-                <a
-                    href="{{ route('streams.index') }}"
-                    @class(['is-active' => request()->routeIs('streams.*')])
-                >
-                    Directos
-                </a>
+                        @if($children !== [])
+                            <details @class([
+                                'nav-dropdown',
+                                'is-active' => \App\Support\PublicNavigation::dropdownIsActive($children),
+                            ])>
+                                <summary>{{ $dropdownLabel }}</summary>
+                                <div class="nav-dropdown__menu">
+                                    @foreach($children as $navigationChild)
+                                        @php
+                                            $childDestination = (string) ($navigationChild['destination'] ?? '');
+                                            $childExternal = \App\Support\PublicNavigation::isExternal($childDestination);
+                                        @endphp
 
-                <details @class(['nav-dropdown', 'is-active' => $communityActive])>
-                    <summary>Comunidad</summary>
-                    <div class="nav-dropdown__menu">
-                        <a href="{{ route('activities.index') }}">Actividades</a>
-                        <a href="{{ route('metopas.index') }}">Metopas</a>
-                        <a href="{{ route('campaigns.index') }}">Campañas</a>
-                        <a href="{{ route('community.organization') }}">Organigrama</a>
-                        <a
-                            href="https://wiki.squadalpha.es/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Wiki ↗
-                        </a>
-                    </div>
-                </details>
-
-                @if($navUser && $areaLabel)
-                    <details @class(['nav-dropdown', 'nav-dropdown--area', 'is-active' => $areaActive])>
-                        <summary>{{ $areaLabel }}</summary>
-                        <div class="nav-dropdown__menu">
-                            <a href="{{ route('community.forum.home') }}">Foro</a>
-                            @if(\App\Support\CommunityArea::can($navUser, \App\Support\CommunityArea::ROULETTE))
-                                <a href="{{ route('community.roulette.index') }}">Ruleta</a>
-                            @endif
-                        </div>
-                    </details>
-                @endif
+                                        <a
+                                            href="{{ \App\Support\PublicNavigation::url($childDestination) }}"
+                                            @if($childExternal) target="_blank" rel="noopener noreferrer" @endif
+                                        >
+                                            {{ $navigationChild['label'] }}@if($childExternal) <span aria-hidden="true">↗</span>@endif
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </details>
+                        @endif
+                    @endif
+                @endforeach
             </nav>
 
             <div @class(['nav-actions', 'nav-actions--guest' => ! $navUser, 'nav-actions--authenticated' => (bool) $navUser])>

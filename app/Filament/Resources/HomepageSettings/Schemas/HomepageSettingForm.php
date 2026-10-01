@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\HomepageSettings\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -38,11 +39,11 @@ class HomepageSettingForm
                 ->columns(2),
             Section::make('Bloque de actualidad')->schema([
                 TextInput::make('news_title')->label('Título')->required()->maxLength(255),
-                Textarea::make('news_intro')->label('Introducción')->rows(3)->columnSpanFull(),
+                BbcodeTextarea::make('news_intro')->label('Introducción')->rows(3)->columnSpanFull(),
             ]),
             Section::make('Bloque de VODs')->schema([
                 TextInput::make('streams_title')->label('Título')->required()->maxLength(255),
-                Textarea::make('streams_intro')->label('Introducción')->rows(3)->columnSpanFull(),
+                BbcodeTextarea::make('streams_intro')->label('Introducción')->rows(3)->columnSpanFull(),
             ]),
         ]);
     }

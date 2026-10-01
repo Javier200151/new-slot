@@ -27,6 +27,7 @@ class Event extends Model
         'ocap_url',
         'multiclans',
         'reservations_enabled',
+        'briefing_extra',
         'created_by',
         'updated_by',
     ];

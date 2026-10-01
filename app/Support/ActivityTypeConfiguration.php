@@ -48,6 +48,40 @@ class ActivityTypeConfiguration
             $data['metopa_id'] = null;
         }
 
+        if (! $type->usesCampaign()) {
+            $data['campaign_id'] = null;
+        }
+
+        if (! $type->usesMap()) {
+            $data['map_id'] = null;
+        }
+
+        if (! $type->usesPeriod()) {
+            $data['period_id'] = null;
+        }
+
+        if (! $type->usesEditor()) {
+            $data['editor_id'] = null;
+            $data['editor_ally_id'] = null;
+            $data['editor_choice'] = null;
+        }
+
+        if (! $type->usesDayOrNight()) {
+            $data['day_or_night'] = null;
+        }
+
+        if (! $type->usesPbo()) {
+            $data['pbo'] = null;
+        }
+
+        if (! $type->usesImage()) {
+            $data['image'] = null;
+        }
+
+        if (! $type->usesAddons()) {
+            $data['addon_package_url'] = null;
+        }
+
         return $data;
     }
 
@@ -79,6 +113,23 @@ class ActivityTypeConfiguration
             || ! $activity->ocap
         ) {
             $data['ocap_url'] = null;
+        }
+
+        if (! ($activity->activityType?->usesMulticlans() ?? true)) {
+            $data['multiclans'] = false;
+        }
+
+        if (! ($activity->activityType?->usesReservations() ?? true)) {
+            $data['reservations_enabled'] = false;
+        }
+
+        if (! ($activity->activityType?->usesEventBriefing() ?? true)) {
+            $data['briefing_extra'] = null;
+        }
+
+        if (! ($activity->activityType?->usesEventEndDate() ?? true)) {
+            $data['end_date'] = null;
+            $data['duration'] = null;
         }
 
         return $data;

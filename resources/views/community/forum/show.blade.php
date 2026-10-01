@@ -80,6 +80,8 @@
         <div class="community-notice">Esta convocatoria no permite editar una candidatura ya enviada.</div>
     @elseif(session('status') === 'poll-created')
         <div class="community-flash">La votación se ha creado y queda vinculada a este hilo.</div>
+    @elseif(session('status') === 'poll-updated')
+        <div class="community-flash">La votación se ha actualizado y conserva los votos existentes.</div>
     @elseif(session('status') === 'vote-saved')
         <div class="community-flash">Tu voto se ha guardado.</div>
     @elseif(session('status') === 'poll-closed')
@@ -187,6 +189,26 @@
 
     @if($pollData)
         @include('community.polls._card', ['pollData' => $pollData, 'canVote' => $canVote])
+
+        @if($canManagePoll ?? false)
+            <details class="community-panel thread-add-poll" @if($errors->has('poll_options')) open @endif>
+                <summary>
+                    <span>⚙</span>
+                    <span><strong>Editar votación</strong><small>Actualiza su configuración sin perder los votos existentes.</small></span>
+                </summary>
+                <form method="POST" action="{{ route('community.polls.update-for-post', [$post, $pollData['poll']]) }}" class="community-form" style="margin-top:18px">
+                    @csrf
+                    @method('PATCH')
+                    @include('community.partials.poll-form', [
+                        'showEnableToggle' => false,
+                        'poll' => $pollData['poll'],
+                        'canUseCandidates' => (bool) ($process && !$process->applicationsAreOpen() && $process->activeApplications->count() >= 2),
+                        'candidateCount' => $process?->activeApplications->count() ?? 0,
+                    ])
+                    <button class="community-btn" type="submit">Guardar votación</button>
+                </form>
+            </details>
+        @endif
     @elseif($canCreatePoll)
         <details class="community-panel thread-add-poll" @if($errors->has('poll_options')) open @endif>
             <summary>

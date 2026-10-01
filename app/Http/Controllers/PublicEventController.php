@@ -18,6 +18,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
@@ -245,8 +246,10 @@ class PublicEventController extends Controller
                 )
                 ->get();
 
-        $groups = collect($event->orbat['groups'] ?? [])
-            ->filter(fn (array $group): bool => (bool) ($group['visible'] ?? true));
+        $groups = ($activity->activityType?->usesOrbat() ?? true)
+            ? collect($event->orbat['groups'] ?? [])
+                ->filter(fn (array $group): bool => (bool) ($group['visible'] ?? true))
+            : collect();
 
         $factions = Faction::query()
             ->with(['army', 'side'])
@@ -472,6 +475,14 @@ class PublicEventController extends Controller
                 )
                 ->values();
 
+        $eventPhotos =
+            $eventMedia
+                ->where(
+                    'type',
+                    EventMedia::TYPE_PHOTO
+                )
+                ->values();
+
 
         /*
         |--------------------------------------------------------------------------
@@ -527,7 +538,9 @@ class PublicEventController extends Controller
             ->values();
 
         $description = $activity->description ?? [];
-        $descriptionSections = collect($description['sections'] ?? []);
+        $descriptionSections = ($activity->activityType?->usesBriefing() ?? true)
+            ? collect($description['sections'] ?? [])
+            : collect();
 
         if ($descriptionSections->isEmpty() && filled($description['content'] ?? null)) {
             $descriptionSections = collect([[
@@ -606,15 +619,31 @@ class PublicEventController extends Controller
             ];
         });
 
-        $radioNetworks = collect($activity->radio['networks'] ?? [])
-            ->filter(fn (array $network): bool => (bool) ($network['visible'] ?? true))
-            ->values();
+        $radioNetworks = ($activity->activityType?->usesRadio() ?? true)
+            ? collect($activity->radio['networks'] ?? [])
+                ->filter(fn (array $network): bool => (bool) ($network['visible'] ?? true))
+                ->values()
+            : collect();
 
-        $addons = Addon::query()
-            ->whereIn('id', $activity->addons['addon_ids'] ?? [])
-            ->orderByDesc('mandatory')
-            ->orderBy('name')
-            ->get();
+        $usesAddons = $activity->activityType?->usesAddons() ?? true;
+        $isReforger = $activity->platform?->isReforger() ?? false;
+
+        $addons = ($usesAddons && ! $isReforger)
+            ? Addon::query()
+                ->whereIn('id', $activity->addons['addon_ids'] ?? [])
+                ->orderByDesc('mandatory')
+                ->orderBy('name')
+                ->get()
+            : collect();
+
+        $addonPackageUrl = ($usesAddons && $isReforger)
+            ? trim((string) $activity->addon_package_url)
+            : '';
+
+        $eventBriefingExtra = ($activity->activityType?->usesEventBriefing() ?? true)
+            && filled($event->briefing_extra)
+                ? BriefingMarkup::render((string) $event->briefing_extra)
+                : null;
 
         $eventComments = EventComment::query()
             ->where('event_id', $event->id)
@@ -661,6 +690,9 @@ class PublicEventController extends Controller
             'activeEventStreams',
             'eventClips',
             'eventVods',
+            'eventPhotos',
+            'addonPackageUrl',
+            'eventBriefingExtra',
             'canAddEventMedia',
             'canModerateEventMedia',
             'canAwardCourseMetopa',
@@ -685,176 +717,105 @@ class PublicEventController extends Controller
         Event $event,
         Request $request,
     ): RedirectResponse {
+        $event->loadMissing('eventStatus');
 
-        $event->loadMissing(
-            'eventStatus'
-        );
+        $user = $request->user();
 
-        $user =
-            $request->user();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Solo eventos finalizados
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $event->eventStatus?->name
-            !== 'FINALIZADO'
-        ) {
+        if ($event->eventStatus?->name !== 'FINALIZADO') {
             throw ValidationException::withMessages([
-                'media' =>
-                    'Solo se puede añadir contenido multimedia a eventos finalizados.',
+                'media' => 'Solo se puede añadir contenido multimedia a eventos finalizados.',
             ]);
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Solo Streamers habilitados
-        |--------------------------------------------------------------------------
-        */
 
         abort_unless(
-            $this->canAddEventMedia(
-                $event,
-                $user
-            ),
-            403
+            $this->canAddEventMedia($event, $user),
+            403,
         );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validación
-        |--------------------------------------------------------------------------
-        */
-
-        $validated =
-            $request->validate([
-                'type' => [
-                    'required',
-
-                    Rule::in([
-                        EventMedia::TYPE_CLIP,
-                        EventMedia::TYPE_VOD,
-                    ]),
-                ],
-
-                'title' => [
-                    'required',
-                    'string',
-                    'max:160',
-                ],
-
-                'url' => [
-                    'required',
-                    'string',
-                    'url:http,https',
-                    'max:500',
-                ],
-            ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Analizar URL
-        |--------------------------------------------------------------------------
-        */
-
-        $parsed =
-            $this->parseEventMediaUrl(
-                $validated['url'],
-                $validated['type']
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Evitar duplicados
-        |--------------------------------------------------------------------------
-        */
-
-        $alreadyExists =
-            EventMedia::query()
-                ->where(
-                    'event_id',
-                    $event->id
-                )
-                ->where(
-                    'url',
-                    $parsed['url']
-                )
-                ->exists();
-
-        if ($alreadyExists) {
-            throw ValidationException::withMessages([
-                'url' =>
-                    'Este enlace ya ha sido añadido al evento.',
-            ]);
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Crear
-        |--------------------------------------------------------------------------
-        */
-
-        EventMedia::query()->create([
-            'event_id' =>
-                $event->id,
-
-            'user_id' =>
-                $user->id,
-
-            'type' =>
-                $validated['type'],
-
-            'provider' =>
-                $parsed['provider'],
-
-            'url' =>
-                $parsed['url'],
-
-            'external_id' =>
-                $parsed['external_id'],
-
-            'title' =>
-                trim(
-                    $validated['title']
-                ),
+        $validated = $request->validate([
+            'type' => [
+                'required',
+                Rule::in([
+                    EventMedia::TYPE_CLIP,
+                    EventMedia::TYPE_VOD,
+                    EventMedia::TYPE_PHOTO,
+                ]),
+            ],
+            'title' => ['nullable', 'string', 'max:160'],
+            'url' => [
+                'nullable',
+                'required_unless:type,' . EventMedia::TYPE_PHOTO,
+                'string',
+                'url:http,https',
+                'max:500',
+            ],
+            'photo' => [
+                'nullable',
+                'required_if:type,' . EventMedia::TYPE_PHOTO,
+                'image',
+                'mimes:jpg,jpeg,png,webp,gif',
+                'max:10240',
+            ],
         ]);
 
+        $type = $validated['type'];
+        $title = trim((string) ($validated['title'] ?? ''));
+        $filePath = null;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Volver a multimedia
-        |--------------------------------------------------------------------------
-        */
+        if ($type === EventMedia::TYPE_PHOTO) {
+            $filePath = $request->file('photo')->store(
+                'events/' . $event->id . '/media',
+                'public',
+            );
+
+            $parsed = [
+                'provider' => EventMedia::PROVIDER_LOCAL,
+                'external_id' => null,
+                'url' => Storage::disk('public')->url($filePath),
+            ];
+        } else {
+            $parsed = $this->parseEventMediaUrl(
+                (string) $validated['url'],
+                $type,
+            );
+
+            $alreadyExists = EventMedia::query()
+                ->where('event_id', $event->id)
+                ->where('url', $parsed['url'])
+                ->exists();
+
+            if ($alreadyExists) {
+                throw ValidationException::withMessages([
+                    'url' => 'Este enlace ya ha sido añadido al evento.',
+                ]);
+            }
+        }
+
+        EventMedia::query()->create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'type' => $type,
+            'provider' => $parsed['provider'],
+            'url' => $parsed['url'],
+            'file_path' => $filePath,
+            'external_id' => $parsed['external_id'],
+            'title' => $title !== '' ? $title : null,
+        ]);
+
+        $message = match ($type) {
+            EventMedia::TYPE_PHOTO => 'La foto se ha añadido correctamente.',
+            EventMedia::TYPE_CLIP => 'El clip se ha añadido correctamente.',
+            default => 'El VOD se ha añadido correctamente.',
+        };
 
         return redirect()
-            ->to(
-                route(
-                    'events.show',
-                    $event
-                )
-                . '#multimedia'
-            )
-            ->with(
-                'media_status',
-                $validated['type']
-                    === EventMedia::TYPE_CLIP
-                        ? 'El clip se ha añadido correctamente.'
-                        : 'El VOD se ha añadido correctamente.'
-            );
+            ->to(route('events.show', $event) . '#multimedia')
+            ->with('media_status', $message);
     }
 
     /*
     |--------------------------------------------------------------------------
-    | ELIMINAR CLIP / VOD
+    | ELIMINAR MULTIMEDIA
     |--------------------------------------------------------------------------
     */
 
@@ -900,6 +861,10 @@ class PublicEventController extends Controller
             403
         );
 
+
+        if ($eventMedia->isPhoto() && filled($eventMedia->file_path)) {
+            Storage::disk('public')->delete($eventMedia->file_path);
+        }
 
         $eventMedia->delete();
 
@@ -1179,13 +1144,17 @@ class PublicEventController extends Controller
             ->with('status', 'Tu slot se ha actualizado correctamente.');
     }
 
-    public function unregisterSlot(Event $event, string $slotKey): RedirectResponse
+    public function unregisterSlot(Event $event, string $slotKey, Request $request): RedirectResponse
     {
         app(CommunityRouletteService::class)->assertEventUnlocked($event);
 
-        $user = request()->user();
+        $user = $request->user();
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $reason = trim((string) ($validated['reason'] ?? ''));
 
-        DB::transaction(function () use ($event, $slotKey, $user): void {
+        DB::transaction(function () use ($event, $slotKey, $user, $reason): void {
             $lockedEvent = Event::query()
                 ->whereKey($event->id)
                 ->lockForUpdate()
@@ -1232,6 +1201,20 @@ class PublicEventController extends Controller
                 'changed_by_user_id' => $user->id,
                 'created_at' => now(),
             ]);
+
+
+            if ($reason !== '') {
+                EventComment::query()->create([
+                    'event_id' => $lockedEvent->id,
+                    'user_id' => $user->id,
+                    'parent_id' => null,
+                    'comment' => sprintf(
+                        'Se desapuntó de %s. Motivo: %s',
+                        $eventSlot->name ?: 'su slot',
+                        $reason,
+                    ),
+                ]);
+            }
 
             $eventSlot->delete();
         });
@@ -2309,20 +2292,12 @@ class PublicEventController extends Controller
 
 
         /*
-        * Cargar perfil Streamer.
+        * Cualquier miembro ACTIVO puede aportar multimedia al finalizar.
         */
 
-        $user->loadMissing(
-            'streamer'
-        );
+        $user->loadMissing('status');
 
-
-        /*
-        * Solo Streamers habilitados.
-        */
-
-        return (bool)
-            $user->streamer?->enable;
+        return strtoupper(trim((string) $user->status?->name)) === 'ACTIVO';
     }
 
     /*

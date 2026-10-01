@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Page;
-use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use App\Support\BbcodeMarkup;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 
@@ -13,9 +13,7 @@ class PageController extends Controller
     {
         abort_unless($page->is_published, 404);
 
-        $content = new HtmlString(
-            RichContentRenderer::make($page->content)->toHtml(),
-        );
+        $content = BbcodeMarkup::render($page->content);
 
         return view('pages.show', compact('page', 'content'));
     }

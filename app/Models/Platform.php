@@ -14,4 +14,12 @@ class Platform extends Model
         'name',
         'image',
     ];
+
+    public function isReforger(): bool
+    {
+        return str_contains(
+            mb_strtolower(trim((string) $this->name)),
+            'reforger',
+        );
+    }
 }

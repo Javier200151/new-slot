@@ -42,7 +42,7 @@
     </div>
 
     @if($poll->description)
-        <p class="thread-poll__description">{{ $poll->description }}</p>
+        <div class="thread-poll__description bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($poll->description) !!}</div>
     @endif
 
     <div class="poll-rules">

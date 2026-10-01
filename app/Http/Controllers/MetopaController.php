@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Metopa;
-use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use App\Support\BbcodeMarkup;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
@@ -70,15 +70,11 @@ class MetopaController extends Controller
         ]);
 
         $descriptionOne = filled($metopa->despag1)
-            ? new HtmlString(
-                RichContentRenderer::make($metopa->despag1)->toHtml()
-            )
+            ? BbcodeMarkup::render($metopa->despag1)
             : new HtmlString('');
 
         $descriptionTwo = filled($metopa->despag2)
-            ? new HtmlString(
-                RichContentRenderer::make($metopa->despag2)->toHtml()
-            )
+            ? BbcodeMarkup::render($metopa->despag2)
             : new HtmlString('');
 
         return view('metopas.show', compact(

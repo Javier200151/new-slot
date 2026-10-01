@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RecruitmentHistory\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\RecruitmentPeriod;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -59,7 +60,7 @@ class RecruitmentHistoryForm
                         ->relationship('reinforcementAreas', 'name')
                         ->multiple()
                         ->disabled(),
-                    Textarea::make('current_note')
+                    BbcodeTextarea::make('current_note')
                         ->label('Nota / disponibilidad al cierre')
                         ->rows(3)
                         ->disabled()

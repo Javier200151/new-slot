@@ -13,7 +13,23 @@ class EditAddon extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->getSaveFormAction()
+                ->submit(null)
+                ->action('save')
+                ->label('Guardar'),
+
             DeleteAction::make(),
+        ];
+    }
+
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getSaveFormAction()
+                ->label('Guardar'),
+
+            $this->getCancelFormAction()
+                ->label('Cancelar'),
         ];
     }
 }

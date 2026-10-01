@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\GameMaps\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -26,7 +27,7 @@ class GameMapForm
                     ->preload()
                     ->nullable(),
 
-                Textarea::make('description')
+                BbcodeTextarea::make('description')
                     ->label('Descripción')
                     ->nullable()
                     ->columnSpanFull(),

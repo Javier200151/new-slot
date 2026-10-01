@@ -724,7 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
          */
         if (
             event.target.closest(
-                '[data-orbat-remove]'
+                '[data-orbat-remove], [data-event-unregister-open]'
             )
         ) {
             event.preventDefault();
@@ -2485,4 +2485,278 @@ document.addEventListener('DOMContentLoaded', () => {
             checking = false;
         }
     }, 4000);
+});
+
+/*
+|--------------------------------------------------------------------------
+| TIPO DE MULTIMEDIA: ENLACE O FOTO
+|--------------------------------------------------------------------------
+*/
+
+document.addEventListener('DOMContentLoaded', () => {
+    const typeSelect = document.querySelector('#event-media-type');
+    const urlField = document.querySelector('[data-event-media-url-field]');
+    const photoField = document.querySelector('[data-event-media-photo-field]');
+    const urlInput = document.querySelector('#event-media-url');
+    const photoInput = document.querySelector('#event-media-photo');
+
+    if (!typeSelect || !urlField || !photoField) {
+        return;
+    }
+
+    const syncMediaFields = () => {
+        const isPhoto = typeSelect.value === 'photo';
+
+        urlField.hidden = isPhoto;
+        photoField.hidden = !isPhoto;
+
+        if (urlInput) {
+            urlInput.required = !isPhoto;
+        }
+
+        if (photoInput) {
+            photoInput.required = isPhoto;
+        }
+    };
+
+    typeSelect.addEventListener('change', syncMediaFields);
+    syncMediaFields();
+});
+
+/*
+|--------------------------------------------------------------------------
+| DESAPUNTARSE DEL ORBAT CON MOTIVO OPCIONAL
+|--------------------------------------------------------------------------
+*/
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dialog = document.querySelector('[data-event-unregister-dialog]');
+
+    if (!(dialog instanceof HTMLDialogElement)) {
+        return;
+    }
+
+    const textarea = dialog.querySelector('[data-event-unregister-text]');
+    const slotLabel = dialog.querySelector('[data-event-unregister-slot]');
+    const confirmButton = dialog.querySelector('[data-event-unregister-confirm]');
+    const cancelButtons = dialog.querySelectorAll('[data-event-unregister-cancel]');
+    let activeForm = null;
+
+    document.querySelectorAll('[data-event-unregister-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const form = button.closest('[data-event-unregister-form]');
+
+            if (!form) {
+                return;
+            }
+
+            activeForm = form;
+
+            if (textarea) {
+                textarea.value = '';
+            }
+
+            if (slotLabel) {
+                slotLabel.textContent = form.dataset.slotName || '';
+            }
+
+            dialog.showModal();
+            window.requestAnimationFrame(() => textarea?.focus());
+        });
+    });
+
+    cancelButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            activeForm = null;
+            dialog.close();
+        });
+    });
+
+    dialog.addEventListener('cancel', () => {
+        activeForm = null;
+    });
+
+    confirmButton?.addEventListener('click', () => {
+        if (!activeForm) {
+            return;
+        }
+
+        const reasonInput = activeForm.querySelector('[data-event-unregister-reason]');
+
+        if (reasonInput) {
+            reasonInput.value = textarea?.value?.trim() || '';
+        }
+
+        confirmButton.disabled = true;
+        activeForm.submit();
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| VISOR DE IMÁGENES DEL EVENTO
+|--------------------------------------------------------------------------
+*/
+
+document.addEventListener('DOMContentLoaded', () => {
+    const imageElements = [
+        ...document.querySelectorAll(
+            '.event-detail__cover img, .briefing-section__image img, .event-rich-content img, [data-event-image-zoom] img'
+        ),
+    ];
+
+    if (imageElements.length === 0) {
+        return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'event-image-viewer';
+    overlay.hidden = true;
+    overlay.innerHTML = `
+        <div class="event-image-viewer__backdrop" data-image-viewer-close></div>
+        <div class="event-image-viewer__dialog" role="dialog" aria-modal="true" aria-label="Visor de imagen">
+            <div class="event-image-viewer__toolbar">
+                <button type="button" data-image-viewer-zoom-out aria-label="Alejar">−</button>
+                <button type="button" data-image-viewer-reset>100%</button>
+                <button type="button" data-image-viewer-zoom-in aria-label="Acercar">+</button>
+                <button type="button" data-image-viewer-close aria-label="Cerrar">×</button>
+            </div>
+            <div class="event-image-viewer__stage" data-image-viewer-stage>
+                <img data-image-viewer-image alt="">
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const viewerImage = overlay.querySelector('[data-image-viewer-image]');
+    const stage = overlay.querySelector('[data-image-viewer-stage]');
+    const resetButton = overlay.querySelector('[data-image-viewer-reset]');
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let dragging = false;
+    let dragOriginX = 0;
+    let dragOriginY = 0;
+
+    const applyTransform = () => {
+        viewerImage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        resetButton.textContent = `${Math.round(scale * 100)}%`;
+        stage.classList.toggle('is-zoomed', scale > 1);
+    };
+
+    const reset = () => {
+        scale = 1;
+        offsetX = 0;
+        offsetY = 0;
+        applyTransform();
+    };
+
+    const setScale = (nextScale) => {
+        scale = Math.min(5, Math.max(0.5, nextScale));
+
+        if (scale <= 1) {
+            offsetX = 0;
+            offsetY = 0;
+        }
+
+        applyTransform();
+    };
+
+    const openViewer = (sourceImage) => {
+        const wrapper = sourceImage.closest('[data-event-image-zoom]');
+        const src = wrapper?.dataset.imageSrc || sourceImage.currentSrc || sourceImage.src;
+        const alt = wrapper?.dataset.imageAlt || sourceImage.alt || '';
+
+        if (!src) {
+            return;
+        }
+
+        viewerImage.src = src;
+        viewerImage.alt = alt;
+        overlay.hidden = false;
+        document.documentElement.classList.add('event-image-viewer-open');
+        reset();
+    };
+
+    const closeViewer = () => {
+        overlay.hidden = true;
+        viewerImage.src = '';
+        document.documentElement.classList.remove('event-image-viewer-open');
+        dragging = false;
+    };
+
+    imageElements.forEach((image) => {
+        const trigger = image.closest('[data-event-image-zoom]') || image;
+        trigger.classList.add('is-event-zoomable');
+
+        trigger.addEventListener('click', (event) => {
+            if (trigger.tagName === 'A') {
+                event.preventDefault();
+            }
+
+            openViewer(image);
+        });
+    });
+
+    overlay.querySelectorAll('[data-image-viewer-close]').forEach((button) => {
+        button.addEventListener('click', closeViewer);
+    });
+
+    overlay.querySelector('[data-image-viewer-zoom-in]')?.addEventListener('click', () => {
+        setScale(scale + 0.25);
+    });
+
+    overlay.querySelector('[data-image-viewer-zoom-out]')?.addEventListener('click', () => {
+        setScale(scale - 0.25);
+    });
+
+    resetButton?.addEventListener('click', reset);
+
+    stage?.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        setScale(scale + (event.deltaY < 0 ? 0.2 : -0.2));
+    }, { passive: false });
+
+    stage?.addEventListener('pointerdown', (event) => {
+        if (scale <= 1) {
+            return;
+        }
+
+        dragging = true;
+        dragOriginX = event.clientX - offsetX;
+        dragOriginY = event.clientY - offsetY;
+        stage.setPointerCapture?.(event.pointerId);
+    });
+
+    stage?.addEventListener('pointermove', (event) => {
+        if (!dragging) {
+            return;
+        }
+
+        offsetX = event.clientX - dragOriginX;
+        offsetY = event.clientY - dragOriginY;
+        applyTransform();
+    });
+
+    stage?.addEventListener('pointerup', () => {
+        dragging = false;
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (overlay.hidden) {
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            closeViewer();
+        }
+
+        if (event.key === '+') {
+            setScale(scale + 0.25);
+        }
+
+        if (event.key === '-') {
+            setScale(scale - 0.25);
+        }
+    });
 });

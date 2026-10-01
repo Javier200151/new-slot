@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ContactSubmissionAdminMail;
+use App\Mail\ContactSubmissionConfirmationMail;
 use App\Models\ContactSubmission;
 use App\Models\HomepageSetting;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +33,7 @@ class PublicContactController extends Controller
                 'birth_date' => ['required', 'date', 'after_or_equal:1900-01-01', 'before_or_equal:' . now()->subYears(18)->toDateString()],
                 'residence' => ['required', 'string', 'max:160'],
                 'phone_whatsapp' => ['required', 'string', 'max:40', 'regex:/^[0-9+() .\-]{7,40}$/'],
+                'discord_profile' => ['nullable', 'string', 'max:160'],
                 'how_heard_us' => ['required', 'string', 'max:1500'],
                 'accepted_rules' => ['accepted'],
                 'is_adult' => ['accepted'],
@@ -71,6 +74,7 @@ class PublicContactController extends Controller
             'birth_date' => $recruitmentRequested ? $validated['birth_date'] : null,
             'residence' => $recruitmentRequested ? trim($validated['residence']) : null,
             'phone_whatsapp' => $recruitmentRequested ? trim($validated['phone_whatsapp']) : null,
+            'discord_profile' => $recruitmentRequested ? trim((string) ($validated['discord_profile'] ?? '')) ?: null : null,
             'how_heard_us' => $recruitmentRequested ? trim($validated['how_heard_us']) : null,
             'accepted_rules' => $recruitmentRequested && $request->boolean('accepted_rules'),
             'is_adult' => $recruitmentRequested && $request->boolean('is_adult'),
@@ -89,17 +93,9 @@ class PublicContactController extends Controller
         // Utiliza exactamente el mismo mailer SMTP y remitente global que ya
         // usa Laravel para verificación de correo y recuperación de contraseña.
         $to = config('mail.contact_to', 'contactosquadalpha@gmail.com');
-        $subject = $recruitmentRequested
-            ? 'Solicitud de alistamiento ' . $submission->nickname
-            : 'Consulta de contacto ' . $submission->nickname;
 
-        $html = view('emails.contact-submission', compact('submission'))->render();
-
-        Mail::html($html, function ($message) use ($to, $subject, $submission): void {
-            $message->to($to)
-                ->replyTo($submission->email, $submission->nickname)
-                ->subject($subject);
-        });
+        Mail::to($to)->send(new ContactSubmissionAdminMail($submission));
+        Mail::to($submission->email)->send(new ContactSubmissionConfirmationMail($submission));
 
         if ($recruitmentRequested && $request->user() === null) {
             return redirect()

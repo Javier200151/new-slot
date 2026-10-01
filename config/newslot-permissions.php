@@ -38,6 +38,12 @@ return [
                         'assign' => 'Se puede asignar reclutas',
                     ],
                 ],
+                'recruitment-applications' => [
+                    'label' => 'Gestión de alistados',
+                    'actions' => [
+                        'manage' => 'Gestión de alistados',
+                    ],
+                ],
             ],
         ],
 
@@ -277,8 +283,14 @@ return [
                 'homepage-settings' => [
                     'label' => 'Configuración de portada',
                 ],
+                'public-navigation' => [
+                    'label' => 'Navegación pública',
+                ],
                 'homepage-news' => [
                     'label' => 'Noticias de portada',
+                ],
+                'changelog' => [
+                    'label' => 'Changelog',
                 ],
                 'contact-submissions' => [
                     'label' => 'Contacto y alistamiento',

@@ -240,6 +240,10 @@ class CommunityForumController extends Controller
                 && ! $post->poll
                 && CommunityForumCategory::can($request->user(), $categoryKey, 'poll')
                 && ($post->user_id === $request->user()->id || $canModerate),
+            'canManagePoll' => $channel === 'personal'
+                && (bool) $post->poll
+                && CommunityForumCategory::can($request->user(), $categoryKey, 'poll')
+                && ($post->user_id === $request->user()->id || $request->user()->hasRole('admin') || $canModerate),
         ]);
     }
 

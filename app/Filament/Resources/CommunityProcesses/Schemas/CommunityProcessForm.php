@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CommunityProcesses\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\CommunityProcess;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
@@ -39,7 +40,7 @@ class CommunityProcessForm
                         ->maxLength(180)
                         ->columnSpanFull(),
 
-                    Textarea::make('description')
+                    BbcodeTextarea::make('description')
                         ->label('Descripción / convocatoria')
                         ->rows(7)
                         ->maxLength(20000)

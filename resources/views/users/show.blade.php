@@ -32,11 +32,7 @@
             ->sortBy('display_order')
             ->values();
 
-        $quote = trim(
-            strip_tags(
-                (string) $user->quote
-            )
-        );
+        $quote = trim((string) $user->quote);
     @endphp
 
 
@@ -132,8 +128,8 @@
 
 
                     @if($quote !== '')
-                        <blockquote>
-                            “{{ $quote }}”
+                        <blockquote class="bbcode-rich forum-rich">
+                            {!! \App\Support\BbcodeMarkup::render($quote) !!}
                         </blockquote>
                     @endif
 

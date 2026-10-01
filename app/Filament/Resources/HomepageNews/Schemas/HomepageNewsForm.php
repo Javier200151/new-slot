@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\HomepageNews\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
@@ -18,8 +19,8 @@ class HomepageNewsForm
         return $schema->components([
             Section::make('Contenido')->schema([
                 TextInput::make('title')->label('Título')->required()->maxLength(180),
-                Textarea::make('excerpt')->label('Entradilla')->rows(3)->maxLength(600)->columnSpanFull(),
-                RichEditor::make('body')->label('Contenido')->columnSpanFull(),
+                BbcodeTextarea::make('excerpt')->label('Entradilla')->rows(3)->maxLength(600)->columnSpanFull(),
+                BbcodeTextarea::make('body')->label('Contenido')->columnSpanFull(),
                 FileUpload::make('image')->label('Imagen')->image()->directory('homepage/news')->columnSpanFull(),
                 TextInput::make('external_url')->label('Enlace externo / Instagram')->url()->maxLength(255),
             ])->columns(2),

@@ -71,6 +71,12 @@ class AdminPanelProvider extends PanelProvider
                         . '?v='
                         . filemtime(public_path('js/filament-orbat-layout.js'))
                 )->defer(),
+                Js::make(
+                    'filament-bbcode-editor',
+                    asset('js/filament-bbcode-editor.js')
+                        . '?v='
+                        . filemtime(public_path('js/filament-bbcode-editor.js'))
+                )->defer(),
             ])
             ->navigationGroups([
                 NavigationGroup::make('Actividades'),
@@ -78,7 +84,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Streams'),
                 NavigationGroup::make('Comunidad'),
                 NavigationGroup::make('Usuarios'),
-                NavigationGroup::make('Tutores'),
+                NavigationGroup::make('Reclutamiento'),
                 NavigationGroup::make('Sistema'),
             ])
             ->navigationItems([

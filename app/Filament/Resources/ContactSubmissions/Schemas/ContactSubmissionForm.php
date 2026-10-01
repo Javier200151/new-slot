@@ -28,6 +28,7 @@ class ContactSubmissionForm
                 DatePicker::make('birth_date')->label('Fecha de nacimiento')->displayFormat('d/m/Y')->disabled(),
                 TextInput::make('residence')->label('Lugar de residencia')->disabled(),
                 TextInput::make('phone_whatsapp')->label('Teléfono / WhatsApp')->disabled(),
+                TextInput::make('discord_profile')->label('Discord')->disabled()->placeholder('No indicado'),
                 Textarea::make('how_heard_us')->label('Cómo nos conociste')->rows(4)->disabled()->columnSpanFull(),
                 Textarea::make('experience_summary')->label('Resumen de experiencia en simulación militar en Arma 3')->rows(6)->disabled()->columnSpanFull(),
             ])->columns(2),

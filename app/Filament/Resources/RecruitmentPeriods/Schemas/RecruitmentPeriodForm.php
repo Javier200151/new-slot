@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RecruitmentPeriods\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\RecruitmentPeriod;
 use App\Models\RecruitmentReinforcementArea;
 use App\Models\User;
@@ -63,7 +64,7 @@ class RecruitmentPeriodForm
                         ->content(fn (?RecruitmentPeriod $record): string => $record?->dismissal_pending_at
                             ? $record->dismissal_pending_at->format('d/m/Y H:i') . ' · ' . ($record->dismissalPendingBy?->nick ?? 'Sistema')
                             : 'No marcado'),
-                    Textarea::make('current_note')
+                    BbcodeTextarea::make('current_note')
                         ->label('Nota / disponibilidad')
                         ->rows(3)
                         ->disabled($readOnly)

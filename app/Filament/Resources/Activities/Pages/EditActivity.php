@@ -855,6 +855,7 @@ JS;
 
             Action::make('editDescription')
             ->label('Editar descripción')
+            ->visible(fn (): bool => $this->record->activityType?->usesBriefing() ?? true)
             ->extraAttributes([
                 'class' =>
                     'operation-header-action--secondary',
@@ -1216,6 +1217,7 @@ JS;
             }),
             Action::make('editOrbat')
                 ->label('Editar ORBAT')
+                ->visible(fn (): bool => $this->record->activityType?->usesOrbat() ?? true)
                 ->extraAttributes([
                     'class' =>
                         'operation-header-action--secondary',
@@ -1709,6 +1711,7 @@ JS;
 
             Action::make('editRadio')
                 ->label('Editar radios')
+                ->visible(fn (): bool => $this->record->activityType?->usesRadio() ?? true)
                 ->extraAttributes([
                     'class' =>
                         'operation-header-action--secondary',
@@ -2313,6 +2316,8 @@ JS;
 
             Action::make('editAddons')
                 ->label('Editar addons')
+                ->visible(fn (): bool => ($this->record->activityType?->usesAddons() ?? true)
+                    && ! ($this->record->platform?->isReforger() ?? false))
                 ->extraAttributes([
                     'class' =>
                         'operation-header-action--secondary',

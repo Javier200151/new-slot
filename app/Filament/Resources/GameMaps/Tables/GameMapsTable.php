@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\GameMaps\Tables;
 
+use App\Support\BbcodeMarkup;
+use Illuminate\Support\Str;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -30,7 +32,10 @@ class GameMapsTable
 
                 TextColumn::make('description')
                     ->label('Descripción')
-                    ->limit(50)
+                    ->formatStateUsing(fn ($state): string => Str::limit(
+                        trim(strip_tags(BbcodeMarkup::render((string) $state)->toHtml())),
+                        50
+                    ))
                     ->searchable(),
 
                 TextColumn::make('url')

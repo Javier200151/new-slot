@@ -56,7 +56,7 @@
                                 <span class="forum-category-card__readonly">Solo lectura</span>
                             @endunless
                         </div>
-                        <p>{{ $item['description'] }}</p>
+                        <div class="forum-category-card__description bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($item['description']) !!}</div>
                         <div class="forum-category-card__stats">
                             <span><strong>{{ $item['threads_count'] }}</strong> hilos</span>
                             <span><strong>{{ $item['replies_count'] }}</strong> respuestas</span>
@@ -94,12 +94,12 @@
                         <span>{{ $category['icon'] }}</span>
                         <div>
                             <h1 class="community-title">{{ $forumTitle }}</h1>
-                            <p class="community-lead">{{ $forumDescription }}</p>
+                            <div class="community-lead bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($forumDescription) !!}</div>
                         </div>
                     </div>
                 @else
                     <h1 class="community-title">{{ $forumTitle }}</h1>
-                    <p class="community-lead">{{ $forumDescription }}</p>
+                    <div class="community-lead bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($forumDescription) !!}</div>
                 @endif
             </div>
             <div class="forum-page-actions">
@@ -373,6 +373,12 @@
                 @if($posts->hasMorePages())<a href="{{ $posts->nextPageUrl() }}">Siguiente →</a>@else<span>Siguiente →</span>@endif
             </nav>
         @endif
+    @endif
+
+    @if(\App\Support\ChangelogAccess::canView(auth()->user()))
+        <div class="forum-changelog-link">
+            <a href="{{ route('community.changelog.index') }}">Changelog</a>
+        </div>
     @endif
 </div>
 @endsection

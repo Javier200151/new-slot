@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ForumCategories\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\Status;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Select;
@@ -41,7 +42,7 @@ class ForumCategoryForm
                             ->label('Color')
                             ->default('#38bdf8'),
 
-                        Textarea::make('description')
+                        BbcodeTextarea::make('description')
                             ->label('Descripción')
                             ->rows(4)
                             ->maxLength(2000)

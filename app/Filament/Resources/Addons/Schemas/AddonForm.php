@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Addons\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -18,7 +19,7 @@ class AddonForm
                     ->required()
                     ->maxLength(255),
 
-                Textarea::make('description')
+                BbcodeTextarea::make('description')
                     ->label('Descripción')
                     ->columnSpanFull(),
 

@@ -41,7 +41,7 @@
                             @endif
                         </h2>
                         @if($group->description)
-                            <p>{{ $group->description }}</p>
+                            <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($group->description) !!}</div>
                         @endif
                     </div>
                 </header>

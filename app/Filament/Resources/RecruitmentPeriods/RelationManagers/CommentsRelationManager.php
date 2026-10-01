@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\RecruitmentPeriods\RelationManagers;
 
+use App\Filament\Forms\BbcodeTextarea;
+use App\Support\BbcodeMarkup;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -17,7 +19,7 @@ class CommentsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            Textarea::make('content')
+            BbcodeTextarea::make('content')
                 ->label('Comentario')
                 ->required()
                 ->rows(4)
@@ -31,7 +33,11 @@ class CommentsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('author.nick')->label('Autor')->default('Sistema'),
                 TextColumn::make('created_at')->label('Fecha')->dateTime('d/m/Y H:i')->sortable(),
-                TextColumn::make('content')->label('Comentario')->wrap(),
+                TextColumn::make('content')
+                    ->label('Comentario')
+                    ->formatStateUsing(fn ($state): string => BbcodeMarkup::render((string) $state)->toHtml())
+                    ->html()
+                    ->wrap(),
             ])
             ->defaultSort('created_at', 'desc')
             ->headerActions([

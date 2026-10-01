@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Events\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\EventStatus;
 use App\Models\Activity;
 use App\Support\ActivityTypeAccess;
@@ -9,6 +10,7 @@ use App\Support\ActivityTypeConfiguration;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
@@ -161,6 +163,11 @@ class EventForm
                     )
                     ->dehydrated()
                     ->inline(false)
+                    ->visible(function (Get $get): bool {
+                        $typeId = Activity::query()->whereKey($get('activity_id'))->value('activity_type_id');
+
+                        return ActivityTypeConfiguration::find($typeId)?->usesMulticlans() ?? false;
+                    })
                     ->default(false),
 
 
@@ -170,6 +177,11 @@ class EventForm
                         'Habilítalo para permitir reservas en el evento.'
                     )
                     ->inline(false)
+                    ->visible(function (Get $get): bool {
+                        $typeId = Activity::query()->whereKey($get('activity_id'))->value('activity_type_id');
+
+                        return ActivityTypeConfiguration::find($typeId)?->usesReservations() ?? false;
+                    })
                     ->default(false),
 
                 Select::make('event_status_id')
@@ -284,6 +296,11 @@ class EventForm
                     ->label('Fecha de finalización')
                     ->seconds(false)
                     ->live()
+                    ->visible(function (Get $get): bool {
+                        $typeId = Activity::query()->whereKey($get('activity_id'))->value('activity_type_id');
+
+                        return ActivityTypeConfiguration::find($typeId)?->usesEventEndDate() ?? false;
+                    })
                     ->minDate(
                         fn (Get $get) => $get('date')
                     )
@@ -313,15 +330,36 @@ class EventForm
                     ->numeric()
                     ->minValue(0)
                     ->suffix('min')
+                    ->visible(function (Get $get): bool {
+                        $typeId = Activity::query()->whereKey($get('activity_id'))->value('activity_type_id');
+
+                        return ActivityTypeConfiguration::find($typeId)?->usesEventEndDate() ?? false;
+                    })
                     ->nullable(),
 
-                
+                BbcodeTextarea::make('briefing_extra')
+                    ->label('Información adicional del evento')
+                    ->helperText('Añade aquí información específica de esta fecha. No modifica el briefing base de la actividad. Puedes usar BBCode.')
+                    ->rows(8)
+                    ->maxLength(20000)
+                    ->visible(function (Get $get): bool {
+                        $typeId = Activity::query()->whereKey($get('activity_id'))->value('activity_type_id');
+
+                        return ActivityTypeConfiguration::find($typeId)?->usesEventBriefing() ?? false;
+                    })
+                    ->columnSpanFull(),
 
                 Section::make('ORBAT')
                     ->schema([
                         Html::make(fn ($record) => $record?->getOrbatSummaryHtml()),
                     ])
-                    ->hidden(fn ($record): bool => blank($record?->orbat['groups'] ?? []))
+                    ->hidden(function ($record): bool {
+                        if (blank($record?->orbat['groups'] ?? [])) {
+                            return true;
+                        }
+
+                        return ! ($record?->activity?->activityType?->usesOrbat() ?? true);
+                    })
                     ->columnSpanFull(),
             ]);
     }

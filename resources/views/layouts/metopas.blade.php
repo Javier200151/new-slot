@@ -9,6 +9,7 @@
 
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/metopas.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
     @stack('styles')
 </head>
 
@@ -32,6 +33,7 @@
     ])
 
     <script src="{{ asset('js/landing.js') }}" defer></script>
+    <script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
     @stack('scripts')
 </body>
 </html>

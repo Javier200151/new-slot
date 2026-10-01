@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Campaigns\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\User;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -37,12 +38,9 @@ class CampaignForm
                     ->preload()
                     ->nullable(),
 
-                RichEditor::make('description')
+                BbcodeTextarea::make('description')
                     ->label('Descripción')
                     ->required()
-                    ->disableToolbarButtons([
-                        'attachFiles',
-                    ])
                     ->columnSpanFull(),
             ]);
     }

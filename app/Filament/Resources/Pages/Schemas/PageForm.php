@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Pages\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -29,12 +30,9 @@ class PageForm
                     ->label('Publicada')
                     ->default(false),
 
-                RichEditor::make('content')
+                BbcodeTextarea::make('content')
                     ->label('Contenido')
                     ->required()
-                    ->disableToolbarButtons([
-                        'attachFiles',
-                    ])
                     ->columnSpanFull(),
             ]);
     }
