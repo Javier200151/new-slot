@@ -90,6 +90,58 @@
             </a>
         </nav>
 
+        @php
+            $infrastructureStatusName = strtoupper(trim((string) auth()->user()?->status?->name));
+            $canSeeInfrastructureStatus = in_array($infrastructureStatusName, ['ACTIVO', 'RECLUTA'], true);
+        @endphp
+
+        @if($canSeeInfrastructureStatus)
+        <details
+            class="footer-infrastructure"
+            data-infrastructure-status
+            data-endpoint="{{ route('infrastructure.status') }}"
+        >
+            <summary class="footer-users-link footer-infrastructure__trigger">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="6" rx="2" />
+                    <rect x="3" y="14" width="18" height="6" rx="2" />
+                    <path d="M7 7h.01M7 17h.01" />
+                </svg>
+                Estado
+                <span class="footer-infrastructure__chevron" aria-hidden="true">⌄</span>
+            </summary>
+
+            <div class="footer-infrastructure__panel">
+                <strong class="footer-infrastructure__title">Estado de infraestructura</strong>
+
+                <div class="footer-infrastructure__services">
+                    @foreach([
+                        'arma3_academy' => 'ArmA 3 Academia',
+                        'arma3_operations' => 'ArmA 3 Operativos',
+                        'reforger_academy' => 'ArmA Reforger Academia',
+                        'reforger_operations' => 'ArmA Reforger Operativos',
+                    ] as $serviceKey => $serviceLabel)
+                        <div class="footer-infrastructure__row" data-service="{{ $serviceKey }}">
+                            <span class="footer-status-dot is-loading" data-status-dot aria-hidden="true"></span>
+                            <span class="footer-infrastructure__service-name">{{ $serviceLabel }}</span>
+                            <small data-status-detail>Comprobando…</small>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="footer-infrastructure__ts3" data-ts3-block hidden>
+                    <div class="footer-infrastructure__separator"></div>
+                    <div class="footer-infrastructure__row" data-ts3-row>
+                        <span class="footer-status-dot is-loading" data-status-dot aria-hidden="true"></span>
+                        <span class="footer-infrastructure__service-name">TeamSpeak 3</span>
+                        <small data-ts3-detail>Comprobando…</small>
+                    </div>
+                    <ul class="footer-infrastructure__users" data-ts3-users></ul>
+                </div>
+            </div>
+        </details>
+        @endif
+
         <a
             href="https://foro.squadalpha.es/"
             class="legacy-forum-link legacy-forum-link--footer"
@@ -104,3 +156,13 @@
         </a>
     </div>
 </footer>
+
+
+@if($canSeeInfrastructureStatus)
+    @once
+        <script
+            src="{{ asset('js/infrastructure-status.js') }}?v={{ filemtime(public_path('js/infrastructure-status.js')) }}"
+            defer
+        ></script>
+    @endonce
+@endif

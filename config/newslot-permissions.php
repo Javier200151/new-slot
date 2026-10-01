@@ -286,6 +286,9 @@ return [
                 'public-navigation' => [
                     'label' => 'Navegación pública',
                 ],
+                'infrastructure-settings' => [
+                    'label' => 'Infraestructura',
+                ],
                 'homepage-news' => [
                     'label' => 'Noticias de portada',
                 ],
