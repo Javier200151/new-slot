@@ -47,34 +47,31 @@
         if (ts3Block) {
             if (!ts3.enabled) {
                 ts3Block.hidden = true;
+                return;
+            }
+
+            ts3Block.hidden = false;
+
+            const dotRow = ts3Block.querySelector('[data-ts3-row]');
+            if (dotRow) {
+                setDot(dotRow, Boolean(ts3.available && ts3.online));
+            }
+
+            const detail = ts3Block.querySelector('[data-ts3-detail]');
+            if (!detail) return;
+
+            if (!ts3.configured) {
+                detail.textContent = 'TSViewer sin configurar';
+            } else if (!ts3.available) {
+                detail.textContent = 'TSViewer no disponible';
+            } else if (!ts3.online) {
+                detail.textContent = 'Fuera de línea';
+            } else if (Number.isInteger(ts3.players) && Number.isInteger(ts3.max_players)) {
+                detail.textContent = `${ts3.players}/${ts3.max_players} conectados`;
+            } else if (Number.isInteger(ts3.players)) {
+                detail.textContent = `${ts3.players} conectado${ts3.players === 1 ? '' : 's'}`;
             } else {
-                ts3Block.hidden = false;
-                const dotRow = ts3Block.querySelector('[data-ts3-row]');
-                if (dotRow) setDot(dotRow, Boolean(ts3.available));
-
-                const detail = ts3Block.querySelector('[data-ts3-detail]');
-                if (detail) {
-                    detail.textContent = ts3.available
-                        ? `${(ts3.users || []).length} conectado${(ts3.users || []).length === 1 ? '' : 's'}`
-                        : 'ServerQuery no disponible';
-                }
-
-                const list = ts3Block.querySelector('[data-ts3-users]');
-                if (list) {
-                    list.replaceChildren();
-                    (ts3.users || []).forEach((nickname) => {
-                        const item = document.createElement('li');
-                        item.textContent = nickname;
-                        list.appendChild(item);
-                    });
-
-                    if (ts3.available && !(ts3.users || []).length) {
-                        const item = document.createElement('li');
-                        item.className = 'infrastructure-ts3-empty';
-                        item.textContent = 'Nadie conectado';
-                        list.appendChild(item);
-                    }
-                }
+                detail.textContent = 'En línea';
             }
         }
     };
@@ -85,7 +82,7 @@
             dot.classList.add('is-offline');
         });
 
-        panel.querySelectorAll('[data-status-detail]').forEach((detail) => {
+        panel.querySelectorAll('[data-status-detail], [data-ts3-detail]').forEach((detail) => {
             detail.textContent = 'No disponible';
         });
     };

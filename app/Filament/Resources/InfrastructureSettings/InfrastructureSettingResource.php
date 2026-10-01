@@ -20,9 +20,9 @@ class InfrastructureSettingResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = 'Sistema';
     protected static ?int $navigationSort = 5;
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedServerStack;
-    protected static ?string $navigationLabel = 'Infraestructura';
-    protected static ?string $modelLabel = 'Infraestructura';
-    protected static ?string $pluralModelLabel = 'Infraestructura';
+    protected static ?string $navigationLabel = 'Estado servidores';
+    protected static ?string $modelLabel = 'Estado de servidores';
+    protected static ?string $pluralModelLabel = 'Estado de servidores';
 
     public static function form(Schema $schema): Schema
     {

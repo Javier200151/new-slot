@@ -112,7 +112,7 @@
             </summary>
 
             <div class="footer-infrastructure__panel">
-                <strong class="footer-infrastructure__title">Estado de infraestructura</strong>
+                <strong class="footer-infrastructure__title">Estado de servidores</strong>
 
                 <div class="footer-infrastructure__services">
                     @foreach([
@@ -136,7 +136,6 @@
                         <span class="footer-infrastructure__service-name">TeamSpeak 3</span>
                         <small data-ts3-detail>Comprobando…</small>
                     </div>
-                    <ul class="footer-infrastructure__users" data-ts3-users></ul>
                 </div>
             </div>
         </details>

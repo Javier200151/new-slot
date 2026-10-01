@@ -55,44 +55,19 @@ class InfrastructureSettingForm
                 ])
                 ->columns(2),
 
-            Section::make('TeamSpeak 3')
-                ->description('Opcional. Usa ServerQuery desde el servidor de NewSlot. Las credenciales nunca se envían al navegador; la contraseña se guarda cifrada.')
+            Section::make('TeamSpeak 3 · TSViewer')
                 ->schema([
                     Toggle::make('ts3_enabled')
-                        ->label('Mostrar usuarios conectados en el footer')
+                        ->label('Mostrar TeamSpeak 3 en el estado de servidores')
                         ->columnSpanFull(),
 
-                    TextInput::make('ts3_host')
-                        ->label('IP o dominio de TeamSpeak')
-                        ->maxLength(255),
-                    TextInput::make('ts3_query_port')
-                        ->label('Puerto ServerQuery')
+                    TextInput::make('tsviewer_server_id')
+                        ->label('ID del servidor en TSViewer')
                         ->numeric()
-                        ->default(10011)
                         ->minValue(1)
-                        ->maxValue(65535)
-                        ->helperText('ServerQuery raw suele usar TCP 10011.'),
-
-                    TextInput::make('ts3_virtual_server_id')
-                        ->label('Virtual Server ID (SID)')
-                        ->numeric()
-                        ->default(1)
-                        ->minValue(1),
-                    TextInput::make('ts3_query_user')
-                        ->label('Usuario ServerQuery')
-                        ->maxLength(255),
-
-                    TextInput::make('ts3_query_password')
-                        ->label('Contraseña ServerQuery')
-                        ->password()
-                        ->revealable()
-                        ->autocomplete('new-password')
-                        ->helperText('Déjalo vacío al editar para conservar la contraseña actual.')
-                        ->afterStateHydrated(fn (TextInput $component): TextInput => $component->state(''))
-                        ->dehydrated(fn (?string $state): bool => filled($state))
+                        ->helperText('Registra el TS3 en TSViewer.com y copia el número de su URL, por ejemplo: ...?ID=1121394&page=ts_viewer.')
                         ->columnSpanFull(),
-                ])
-                ->columns(2),
+                ]),
         ]);
     }
 }
