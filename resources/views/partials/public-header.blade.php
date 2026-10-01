@@ -31,19 +31,19 @@
         <div id="public-navigation" class="nav-menu" data-nav-menu>
             <nav class="landing-nav" aria-label="Navegación principal">
                 @foreach($publicNavigationItems as $navigationItem)
-                    @if(($navigationItem['type'] ?? null) === 'link')
+                    @if(in_array(($navigationItem['type'] ?? null), ['link', 'external'], true))
                         @php
                             $destination = (string) ($navigationItem['destination'] ?? '');
-                            $isExternal = \App\Support\PublicNavigation::isExternal($destination);
+                            $isExternal = \App\Support\PublicNavigation::itemIsExternal($navigationItem);
                             $canDisplay = \App\Support\PublicNavigation::canDisplayItem($navigationItem)
-                                && \App\Support\PublicNavigation::canDisplayDestination($destination);
+                                && \App\Support\PublicNavigation::canDisplayNavigationItem($navigationItem);
                         @endphp
 
                         @if($canDisplay)
                             <a
-                                href="{{ \App\Support\PublicNavigation::url($destination) }}"
+                                href="{{ \App\Support\PublicNavigation::itemUrl($navigationItem) }}"
                                 @class([
-                                    'is-active' => \App\Support\PublicNavigation::isActive($destination),
+                                    'is-active' => \App\Support\PublicNavigation::navigationItemIsActive($navigationItem),
                                 ])
                                 @if($isExternal) target="_blank" rel="noopener noreferrer" @endif
                             >
@@ -69,11 +69,11 @@
                                     @foreach($children as $navigationChild)
                                         @php
                                             $childDestination = (string) ($navigationChild['destination'] ?? '');
-                                            $childExternal = \App\Support\PublicNavigation::isExternal($childDestination);
+                                            $childExternal = \App\Support\PublicNavigation::itemIsExternal($navigationChild);
                                         @endphp
 
                                         <a
-                                            href="{{ \App\Support\PublicNavigation::url($childDestination) }}"
+                                            href="{{ \App\Support\PublicNavigation::itemUrl($navigationChild) }}"
                                             @if($childExternal) target="_blank" rel="noopener noreferrer" @endif
                                         >
                                             {{ $navigationChild['label'] }}@if($childExternal) <span aria-hidden="true">↗</span>@endif
