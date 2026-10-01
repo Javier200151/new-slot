@@ -19,13 +19,28 @@
             statusType: 'info',
             instanceCounter: 0,
             dropdownSelections: {},
+            externalLinkName: '',
+            externalLinkUrl: '',
 
             audienceKeys() {
                 return Object.keys(this.audiences);
             },
 
             pageName(page) {
+                if (page?.type === 'external') {
+                    return page.label || 'Enlace externo';
+                }
+
                 return this.destinations[page.destination]?.label ?? page.destination;
+            },
+
+            isValidExternalUrl(value) {
+                try {
+                    const parsed = new URL((value ?? '').trim());
+                    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+                } catch (error) {
+                    return false;
+                }
             },
 
             newKey(prefix = 'item') {
@@ -50,6 +65,36 @@
                     label: this.destinations[destination]?.label ?? destination,
                     visible_to: this.defaultVisibility(),
                 };
+            },
+
+            createExternalLink(label, url) {
+                return {
+                    type: 'external',
+                    key: this.newKey('external'),
+                    label: (label ?? '').trim(),
+                    url: (url ?? '').trim(),
+                    visible_to: this.defaultVisibility(),
+                };
+            },
+
+            addExternalLink() {
+                const label = (this.externalLinkName ?? '').trim();
+                const url = (this.externalLinkUrl ?? '').trim();
+
+                if (!label) {
+                    this.setStatus('Escribe el nombre que aparecerá en el menú.', 'error');
+                    return;
+                }
+
+                if (!this.isValidExternalUrl(url)) {
+                    this.setStatus('La URL externa debe empezar por http:// o https:// y ser válida.', 'error');
+                    return;
+                }
+
+                this.menu.push(this.createExternalLink(label, url));
+                this.externalLinkName = '';
+                this.externalLinkUrl = '';
+                this.markDirty();
             },
 
             setStatus(message, type = 'info') {
@@ -178,7 +223,7 @@
             removeMenuPage(menuIndex) {
                 const item = this.menu[menuIndex];
 
-                if (!item || item.type !== 'link') {
+                if (!item || !['link', 'external'].includes(item.type)) {
                     return;
                 }
 
@@ -343,8 +388,8 @@
 
                 const preview = this.draggedItem();
 
-                if (!preview || preview.type !== 'link') {
-                    this.setStatus('Solo las páginas pueden colocarse dentro de un desplegable.', 'error');
+                if (!preview || !['link', 'external'].includes(preview.type)) {
+                    this.setStatus('Solo las páginas y enlaces externos pueden colocarse dentro de un desplegable.', 'error');
                     this.dragging = null;
                     return;
                 }
@@ -404,6 +449,16 @@
                         return `${name} debe ser visible al menos para un estado o para invitados.`;
                     }
 
+                    if (item.type === 'external') {
+                        if (!(item.label ?? '').trim()) {
+                            return 'Todos los enlaces externos deben tener un nombre.';
+                        }
+
+                        if (!this.isValidExternalUrl(item.url)) {
+                            return `El enlace externo «${item.label}» debe tener una URL válida.`;
+                        }
+                    }
+
                     if (item.type === 'dropdown') {
                         if (!(item.label ?? '').trim()) {
                             return 'Todos los desplegables deben tener un nombre.';
@@ -416,6 +471,16 @@
                         for (const child of item.children) {
                             if (!Array.isArray(child.visible_to) || child.visible_to.length === 0) {
                                 return `La página «${this.pageName(child)}» debe ser visible al menos para un estado o para invitados.`;
+                            }
+
+                            if (child.type === 'external') {
+                                if (!(child.label ?? '').trim()) {
+                                    return 'Todos los enlaces externos deben tener un nombre.';
+                                }
+
+                                if (!this.isValidExternalUrl(child.url)) {
+                                    return `El enlace externo «${child.label}» debe tener una URL válida.`;
+                                }
                             }
                         }
                     }
@@ -521,6 +586,44 @@
             </div>
         </section>
 
+        <section class="public-nav-builder__external-create">
+            <div>
+                <span>Enlace externo</span>
+                <strong>Añadir URL personalizada</strong>
+                <p>Úsalo para Wiki, documentación u otras páginas fuera de NewSlot. Después puedes arrastrarlo dentro de un desplegable.</p>
+            </div>
+
+            <label>
+                <span>Nombre</span>
+                <input
+                    type="text"
+                    maxlength="80"
+                    x-model="externalLinkName"
+                    placeholder="Ej. Wiki externa"
+                >
+            </label>
+
+            <label class="public-nav-builder__external-url">
+                <span>URL</span>
+                <input
+                    type="url"
+                    maxlength="2048"
+                    x-model="externalLinkUrl"
+                    placeholder="https://..."
+                    x-on:keydown.enter.prevent="addExternalLink()"
+                >
+            </label>
+
+            <x-filament::button
+                type="button"
+                color="gray"
+                icon="heroicon-o-arrow-top-right-on-square"
+                x-on:click="addExternalLink()"
+            >
+                Añadir enlace externo
+            </x-filament::button>
+        </section>
+
         <div
             x-show="status"
             x-cloak
@@ -577,7 +680,8 @@
                         class="public-nav-builder__menu-card"
                         x-bind:class="{
                             'is-dropdown': item.type === 'dropdown',
-                            'is-page': item.type === 'link',
+                            'is-page': ['link', 'external'].includes(item.type),
+                            'is-external': item.type === 'external',
                         }"
                         draggable="true"
                         x-on:dragstart.stop="dragStart({ zone: 'menu', index: menuIndex })"
@@ -585,12 +689,12 @@
                         x-on:dragover.prevent.stop
                         x-on:drop.prevent.stop="dropMenuAt(menuIndex)"
                     >
-                        <template x-if="item.type === 'link'">
+                        <template x-if="['link', 'external'].includes(item.type)">
                             <div class="public-nav-builder__page-card">
                                 <header class="public-nav-builder__card-head">
                                     <span class="public-nav-builder__drag" aria-hidden="true">⋮⋮</span>
                                     <div>
-                                        <small>Página</small>
+                                        <small x-text="item.type === 'external' ? 'Enlace externo' : 'Página'"></small>
                                         <strong x-text="pageName(item)"></strong>
                                     </div>
                                 </header>
@@ -602,6 +706,17 @@
                                         maxlength="80"
                                         x-model="item.label"
                                         x-on:input="markDirty()"
+                                    >
+                                </label>
+
+                                <label class="public-nav-builder__label-field" x-show="item.type === 'external'">
+                                    <span>URL externa</span>
+                                    <input
+                                        type="url"
+                                        maxlength="2048"
+                                        x-model="item.url"
+                                        x-on:input="markDirty()"
+                                        placeholder="https://..."
                                     >
                                 </label>
 
@@ -698,6 +813,15 @@
                                                             x-on:input="markDirty()"
                                                             aria-label="Texto mostrado"
                                                         >
+                                                        <input
+                                                            x-show="child.type === 'external'"
+                                                            type="url"
+                                                            maxlength="2048"
+                                                            x-model="child.url"
+                                                            x-on:input="markDirty()"
+                                                            aria-label="URL externa"
+                                                            placeholder="https://..."
+                                                        >
                                                     </div>
                                                 </div>
 
@@ -757,8 +881,8 @@
                     <span>Catálogo permanente</span>
                     <h2>Páginas</h2>
                     <p>
-                        Estas tarjetas nunca desaparecen. Arrástralas o pulsa “Añadir al menú”.
-                        Puedes repetir Foro, Ruleta o cualquier otra página en varios desplegables.
+                        Incluye las páginas fijas y las creadas desde Filament > Páginas.
+                        Arrástralas o pulsa “Añadir al menú”; puedes repetirlas en varios desplegables.
                     </p>
                 </div>
                 <strong x-text="catalog.length"></strong>
@@ -779,7 +903,11 @@
                         <div>
                             <span class="public-nav-builder__drag" aria-hidden="true">⋮⋮</span>
                             <div>
-                                <small>Página fija</small>
+                                <small
+                                    x-text="page.source === 'dynamic'
+                                        ? (page.published ? 'Página dinámica' : 'Página dinámica · No publicada')
+                                        : 'Página fija'"
+                                ></small>
                                 <strong x-text="pageName(page)"></strong>
                             </div>
                         </div>
@@ -815,6 +943,44 @@
             align-items: center;
             justify-content: space-between;
             padding: 1rem;
+        }
+
+        .public-nav-builder__external-create {
+            display: grid;
+            grid-template-columns: minmax(220px, 1.1fr) minmax(180px, .7fr) minmax(280px, 1.3fr) auto;
+            gap: .8rem;
+            align-items: end;
+            padding: 1rem;
+            border: 1px solid rgba(148, 163, 184, .22);
+            border-radius: .9rem;
+            background: rgba(24, 24, 27, .74);
+        }
+
+        .public-nav-builder__external-create > div > span,
+        .public-nav-builder__external-create label > span {
+            display: block;
+            margin-bottom: .3rem;
+            color: rgb(161, 161, 170);
+            font-size: .72rem;
+            font-weight: 700;
+        }
+
+        .public-nav-builder__external-create strong { display: block; }
+        .public-nav-builder__external-create p {
+            margin: .25rem 0 0;
+            color: rgb(161, 161, 170);
+            font-size: .78rem;
+            line-height: 1.4;
+        }
+
+        .public-nav-builder__external-create input {
+            width: 100%;
+            min-height: 2.55rem;
+            padding: .55rem .7rem;
+            border: 1px solid rgba(148, 163, 184, .28);
+            border-radius: .55rem;
+            background: rgba(9, 9, 11, .7);
+            color: rgb(244, 244, 245);
         }
 
         .public-nav-builder__intro strong { display: block; font-size: 1rem; }
@@ -1147,6 +1313,10 @@
         }
 
         @media (max-width: 780px) {
+            .public-nav-builder__external-create {
+                grid-template-columns: 1fr;
+                align-items: stretch;
+            }
             .public-nav-builder__intro,
             .public-nav-builder__section-head { align-items: stretch; flex-direction: column; }
             .public-nav-builder__main-actions { justify-content: flex-start; }

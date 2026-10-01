@@ -215,4 +215,53 @@ class PublicNavigationTest extends TestCase
             ],
         ]);
     }
+    public function test_custom_external_links_can_be_saved_at_top_level_and_inside_dropdowns(): void
+    {
+        $audiences = array_keys(PublicNavigation::audienceOptions());
+
+        $normalized = PublicNavigation::normalizeEditorState([
+            [
+                'type' => 'external',
+                'label' => 'Documentación',
+                'url' => 'https://docs.example.com/newslot',
+                'visible_to' => $audiences,
+            ],
+            [
+                'type' => 'dropdown',
+                'label' => 'Comunidad',
+                'visible_to' => $audiences,
+                'children' => [
+                    [
+                        'type' => 'external',
+                        'label' => 'Wiki externa',
+                        'url' => 'https://example.com/wiki',
+                        'visible_to' => $audiences,
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('external', $normalized[0]['type']);
+        $this->assertSame('https://docs.example.com/newslot', $normalized[0]['url']);
+        $this->assertSame('external', $normalized[1]['children'][0]['type']);
+        $this->assertSame('https://example.com/wiki', $normalized[1]['children'][0]['url']);
+        $this->assertTrue(PublicNavigation::itemIsExternal($normalized[0]));
+        $this->assertSame('https://docs.example.com/newslot', PublicNavigation::itemUrl($normalized[0]));
+    }
+
+    public function test_custom_external_links_reject_non_http_urls(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('http:// o https://');
+
+        PublicNavigation::normalizeEditorState([
+            [
+                'type' => 'external',
+                'label' => 'No válido',
+                'url' => 'javascript:alert(1)',
+                'visible_to' => ['ACTIVO'],
+            ],
+        ]);
+    }
+
 }

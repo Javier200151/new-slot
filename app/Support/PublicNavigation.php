@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Page;
 use App\Models\PublicNavigationSetting;
 use App\Models\Status;
 use Illuminate\Support\Facades\Schema;
@@ -28,7 +29,7 @@ class PublicNavigation
 
     public static function destinations(): array
     {
-        return [
+        $destinations = [
             'home' => ['label' => 'Inicio'],
             'normativa' => ['label' => 'Normativa'],
             'events' => ['label' => 'Eventos'],
@@ -43,6 +44,42 @@ class PublicNavigation
             'forum' => ['label' => 'Foro'],
             'roulette' => ['label' => 'Ruleta'],
         ];
+
+        // Filament > Páginas is also a source for the public navigation catalogue.
+        // The slug is used instead of the database ID so the saved navigation
+        // remains portable between local, staging and production.
+        try {
+            if (Schema::hasTable('pages')) {
+                Page::query()
+                    ->select(['title', 'slug', 'is_published'])
+                    ->orderBy('title')
+                    ->get()
+                    ->each(function (Page $page) use (&$destinations): void {
+                        $slug = trim((string) $page->slug);
+
+                        if ($slug === '') {
+                            return;
+                        }
+
+                        // Normativa and FAQs already have historical fixed
+                        // destinations, so avoid showing them twice.
+                        if (in_array($slug, ['normativa', 'faqs'], true)) {
+                            return;
+                        }
+
+                        $destinations['page:' . $slug] = [
+                            'label' => trim((string) $page->title) ?: $slug,
+                            'dynamic' => true,
+                            'slug' => $slug,
+                            'published' => (bool) $page->is_published,
+                        ];
+                    });
+            }
+        } catch (\Throwable) {
+            // Keep the header usable during migrations, tests and first boot.
+        }
+
+        return $destinations;
     }
 
     /**
@@ -178,6 +215,26 @@ class PublicNavigation
                 continue;
             }
 
+            if ($type === 'external') {
+                $label = self::cleanLabel($item['label'] ?? null);
+                $url = self::normalizeExternalUrl($item['url'] ?? null);
+
+                if ($label === null || $url === null) {
+                    continue;
+                }
+
+                $normalizedItem = [
+                    'type' => 'external',
+                    'label' => $label,
+                    'url' => $url,
+                ];
+
+                self::copyVisibility($item, $normalizedItem);
+                $normalized[] = $normalizedItem;
+
+                continue;
+            }
+
             if ($type !== 'dropdown') {
                 continue;
             }
@@ -189,17 +246,35 @@ class PublicNavigation
                     continue;
                 }
 
-                $destination = (string) ($child['destination'] ?? '');
+                $childType = (string) ($child['type'] ?? 'link');
 
-                if (! in_array($destination, $knownDestinations, true)) {
-                    continue;
+                if ($childType === 'external') {
+                    $label = self::cleanLabel($child['label'] ?? null);
+                    $url = self::normalizeExternalUrl($child['url'] ?? null);
+
+                    if ($label === null || $url === null) {
+                        continue;
+                    }
+
+                    $normalizedChild = [
+                        'type' => 'external',
+                        'label' => $label,
+                        'url' => $url,
+                    ];
+                } else {
+                    $destination = (string) ($child['destination'] ?? '');
+
+                    if (! in_array($destination, $knownDestinations, true)) {
+                        continue;
+                    }
+
+                    $normalizedChild = [
+                        'type' => 'link',
+                        'label' => self::cleanLabel($child['label'] ?? null)
+                            ?: self::label($destination),
+                        'destination' => $destination,
+                    ];
                 }
-
-                $normalizedChild = [
-                    'label' => self::cleanLabel($child['label'] ?? null)
-                        ?: self::label($destination),
-                    'destination' => $destination,
-                ];
 
                 self::copyVisibility($child, $normalizedChild);
                 $children[] = $normalizedChild;
@@ -252,6 +327,18 @@ class PublicNavigation
                 continue;
             }
 
+            if (($item['type'] ?? null) === 'external') {
+                $menu[] = [
+                    'type' => 'external',
+                    'key' => 'external-' . $instance,
+                    'label' => (string) ($item['label'] ?? 'Enlace externo'),
+                    'url' => (string) ($item['url'] ?? ''),
+                    'visible_to' => self::editorVisibility($item, $audienceKeys),
+                ];
+
+                continue;
+            }
+
             if (($item['type'] ?? null) !== 'dropdown') {
                 continue;
             }
@@ -260,13 +347,25 @@ class PublicNavigation
 
             foreach (($item['children'] ?? []) as $child) {
                 $instance++;
-                $children[] = [
-                    'type' => 'link',
-                    'key' => 'link-' . $instance,
-                    'destination' => (string) ($child['destination'] ?? ''),
-                    'label' => (string) ($child['label'] ?? self::label((string) ($child['destination'] ?? ''))),
-                    'visible_to' => self::editorVisibility($child, $audienceKeys),
-                ];
+                $childType = (string) ($child['type'] ?? 'link');
+
+                if ($childType === 'external') {
+                    $children[] = [
+                        'type' => 'external',
+                        'key' => 'external-' . $instance,
+                        'label' => (string) ($child['label'] ?? 'Enlace externo'),
+                        'url' => (string) ($child['url'] ?? ''),
+                        'visible_to' => self::editorVisibility($child, $audienceKeys),
+                    ];
+                } else {
+                    $children[] = [
+                        'type' => 'link',
+                        'key' => 'link-' . $instance,
+                        'destination' => (string) ($child['destination'] ?? ''),
+                        'label' => (string) ($child['label'] ?? self::label((string) ($child['destination'] ?? ''))),
+                        'visible_to' => self::editorVisibility($child, $audienceKeys),
+                    ];
+                }
             }
 
             $menu[] = [
@@ -283,9 +382,11 @@ class PublicNavigation
         foreach (self::destinations() as $destination => $definition) {
             $available[] = [
                 'type' => 'link',
-                'key' => 'catalog-' . $destination,
+                'key' => 'catalog-' . str_replace(':', '-', $destination),
                 'destination' => $destination,
                 'label' => (string) $definition['label'],
+                'source' => ! empty($definition['dynamic']) ? 'dynamic' : 'fixed',
+                'published' => (bool) ($definition['published'] ?? true),
             ];
         }
 
@@ -353,6 +454,31 @@ class PublicNavigation
                 continue;
             }
 
+            if ($type === 'external') {
+                $label = self::cleanLabel($item['label'] ?? null);
+
+                if ($label === null) {
+                    throw new InvalidArgumentException(
+                        'Todos los enlaces externos deben tener un nombre.',
+                    );
+                }
+
+                $url = self::validateExternalUrl($item['url'] ?? null, $label);
+
+                $normalizedMenu[] = [
+                    'type' => 'external',
+                    'label' => $label,
+                    'url' => $url,
+                    'visible_to' => self::validateVisibility(
+                        $item['visible_to'] ?? null,
+                        $knownAudiences,
+                        'El enlace externo «' . $label . '»',
+                    ),
+                ];
+
+                continue;
+            }
+
             if ($type !== 'dropdown') {
                 throw new InvalidArgumentException(
                     'Hay una tarjeta de menú no válida. Recarga el editor.',
@@ -397,12 +523,38 @@ class PublicNavigation
                     );
                 }
 
+                $childType = (string) ($child['type'] ?? 'link');
+
+                if ($childType === 'external') {
+                    $label = self::cleanLabel($child['label'] ?? null);
+
+                    if ($label === null) {
+                        throw new InvalidArgumentException(
+                            'Todos los enlaces externos deben tener un nombre.',
+                        );
+                    }
+
+                    $children[] = [
+                        'type' => 'external',
+                        'label' => $label,
+                        'url' => self::validateExternalUrl($child['url'] ?? null, $label),
+                        'visible_to' => self::validateVisibility(
+                            $child['visible_to'] ?? null,
+                            $knownAudiences,
+                            'El enlace externo «' . $label . '»',
+                        ),
+                    ];
+
+                    continue;
+                }
+
                 $destination = self::validateDestination(
                     $child['destination'] ?? null,
                     $knownDestinations,
                 );
 
                 $children[] = [
+                    'type' => 'link',
                     'label' => self::cleanLabel($child['label'] ?? null)
                         ?: self::label($destination),
                     'destination' => $destination,
@@ -438,6 +590,12 @@ class PublicNavigation
 
     public static function url(string $destination): string
     {
+        if (str_starts_with($destination, 'page:')) {
+            $slug = trim(substr($destination, strlen('page:')));
+
+            return $slug !== '' ? route('pages.show', $slug) : '#';
+        }
+
         return match ($destination) {
             'home' => route('home'),
             'normativa' => route('pages.show', 'normativa'),
@@ -461,8 +619,51 @@ class PublicNavigation
         return (bool) (self::destinations()[$destination]['external'] ?? false);
     }
 
+    public static function itemUrl(array $item): string
+    {
+        if (($item['type'] ?? null) === 'external') {
+            return self::normalizeExternalUrl($item['url'] ?? null) ?? '#';
+        }
+
+        return self::url((string) ($item['destination'] ?? ''));
+    }
+
+    public static function itemIsExternal(array $item): bool
+    {
+        if (($item['type'] ?? null) === 'external') {
+            return self::normalizeExternalUrl($item['url'] ?? null) !== null;
+        }
+
+        return self::isExternal((string) ($item['destination'] ?? ''));
+    }
+
+    public static function canDisplayNavigationItem(array $item): bool
+    {
+        if (($item['type'] ?? null) === 'external') {
+            return self::normalizeExternalUrl($item['url'] ?? null) !== null;
+        }
+
+        return self::canDisplayDestination((string) ($item['destination'] ?? ''));
+    }
+
+    public static function navigationItemIsActive(array $item): bool
+    {
+        if (($item['type'] ?? null) === 'external') {
+            return false;
+        }
+
+        return self::isActive((string) ($item['destination'] ?? ''));
+    }
+
     public static function isActive(string $destination): bool
     {
+        if (str_starts_with($destination, 'page:')) {
+            $slug = trim(substr($destination, strlen('page:')));
+
+            return request()->routeIs('pages.show')
+                && request()->route('page')?->slug === $slug;
+        }
+
         return match ($destination) {
             'home' => request()->routeIs('home'),
             'normativa' => request()->routeIs('pages.show')
@@ -485,7 +686,19 @@ class PublicNavigation
     /** Backwards-compatible destination check. Access control stays in routes/controllers. */
     public static function canDisplayDestination(string $destination): bool
     {
-        return array_key_exists($destination, self::destinations());
+        $definition = self::destinations()[$destination] ?? null;
+
+        if (! is_array($definition)) {
+            return false;
+        }
+
+        // Dynamic Filament pages may be prepared in the header before they
+        // are published, but they must not produce a public 404 menu link.
+        if (! empty($definition['dynamic'])) {
+            return (bool) ($definition['published'] ?? false);
+        }
+
+        return true;
     }
 
     public static function currentAudience(): string
@@ -523,7 +736,7 @@ class PublicNavigation
             $children,
             static fn ($child): bool => is_array($child)
                 && self::itemVisibleForAudience($child, $audience)
-                && self::canDisplayDestination((string) ($child['destination'] ?? '')),
+                && self::canDisplayNavigationItem($child),
         ));
     }
 
@@ -535,7 +748,7 @@ class PublicNavigation
     public static function dropdownIsActive(array $children): bool
     {
         foreach ($children as $child) {
-            if (self::isActive((string) ($child['destination'] ?? ''))) {
+            if (is_array($child) && self::navigationItemIsActive($child)) {
                 return true;
             }
         }
@@ -558,7 +771,7 @@ class PublicNavigation
                 continue;
             }
 
-            if (($item['type'] ?? null) === 'link') {
+            if (in_array(($item['type'] ?? null), ['link', 'external'], true)) {
                 $count++;
                 continue;
             }
@@ -612,6 +825,40 @@ class PublicNavigation
         }
 
         return $destination;
+    }
+
+    private static function validateExternalUrl(mixed $value, string $label): string
+    {
+        $url = self::normalizeExternalUrl($value);
+
+        if ($url === null) {
+            throw new InvalidArgumentException(
+                'El enlace externo «' . $label . '» debe tener una URL http:// o https:// válida.',
+            );
+        }
+
+        return $url;
+    }
+
+    private static function normalizeExternalUrl(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $url = trim($value);
+
+        if ($url === '' || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
+
+        return mb_substr($url, 0, 2048);
     }
 
     private static function validateVisibility(
