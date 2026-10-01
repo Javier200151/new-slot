@@ -11,6 +11,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Enums\Size;
+use Illuminate\Contracts\View\View;
 
 class EditRecruitmentApplication extends EditRecord
 {
@@ -35,9 +37,75 @@ class EditRecruitmentApplication extends EditRecord
         return [];
     }
 
+    public function getHeader(): ?View
+    {
+        return view('filament.resources.recruitment-applications.partials.edit-header');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('approve')
+                ->label('Aprobar')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->size(Size::Medium)
+                ->visible(fn (): bool => $this->record->recruitment_review_status !== ContactSubmission::REVIEW_APPROVED)
+                ->requiresConfirmation()
+                ->modalDescription('Si existe un usuario con el mismo email, se enlazará automáticamente.')
+                ->action(function (): void {
+                    $this->record = app(RecruitmentApplicationService::class)
+                        ->approve($this->record, auth()->id());
+                    $this->fillForm();
+
+                    Notification::make()
+                        ->success()
+                        ->title('Solicitud aprobada')
+                        ->body($this->record->recruitmentWorkflowLabel())
+                        ->send();
+                }),
+
+            Action::make('discard')
+                ->label('Descartar')
+                ->icon('heroicon-o-x-circle')
+                ->color('warning')
+                ->size(Size::Medium)
+                ->visible(fn (): bool => $this->record->recruitment_review_status !== ContactSubmission::REVIEW_DISCARDED)
+                ->requiresConfirmation()
+                ->modalDescription('Podrás cambiar esta decisión más adelante.')
+                ->action(function (): void {
+                    $this->record = app(RecruitmentApplicationService::class)
+                        ->discard($this->record, auth()->id());
+                    $this->fillForm();
+
+                    Notification::make()
+                        ->success()
+                        ->title('Solicitud descartada')
+                        ->send();
+                }),
+
+            Action::make('deleteApplication')
+                ->label('Eliminar solicitud')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->size(Size::Medium)
+                ->requiresConfirmation()
+                ->modalHeading('Eliminar solicitud de alistamiento')
+                ->modalDescription('La solicitud, sus comentarios y sus valoraciones TIER se eliminarán permanentemente. Úsalo para duplicados o pruebas.')
+                ->modalSubmitActionLabel('Eliminar definitivamente')
+                ->action(function (): void {
+                    $label = $this->record->nickname ?: $this->record->email;
+                    $this->record->delete();
+
+                    Notification::make()
+                        ->success()
+                        ->title('Solicitud eliminada')
+                        ->body($label)
+                        ->send();
+
+                    $this->redirect(RecruitmentApplicationResource::getUrl('index'));
+                }),
+
             Action::make('setTier')
                 ->label(function (): string {
                     $rating = $this->record->currentUserRecruitmentTierRating(auth()->id());
@@ -46,6 +114,7 @@ class EditRecruitmentApplication extends EditRecord
                 })
                 ->icon('heroicon-o-tag')
                 ->color('gray')
+                ->size(Size::Small)
                 ->fillForm(function (): array {
                     $rating = $this->record->currentUserRecruitmentTierRating(auth()->id());
 
@@ -90,6 +159,7 @@ class EditRecruitmentApplication extends EditRecord
                     : 'Asignar entrevistador')
                 ->icon('heroicon-o-user-plus')
                 ->color('info')
+                ->size(Size::Small)
                 ->fillForm(fn (): array => [
                     'interviewer_user_id' => $this->record->recruitment_interviewer_user_id,
                 ])
@@ -118,40 +188,49 @@ class EditRecruitmentApplication extends EditRecord
                         ->send();
                 }),
 
-            Action::make('approve')
-                ->label('Aprobar')
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->visible(fn (): bool => $this->record->recruitment_review_status !== ContactSubmission::REVIEW_APPROVED)
-                ->requiresConfirmation()
-                ->modalDescription('Si existe un usuario con el mismo email, se enlazará automáticamente.')
-                ->action(function (): void {
+            Action::make('linkMatchedUser')
+                ->label(fn (): string => $this->record->recruitment_matched_user_id
+                    ? 'Cambiar usuario asociado'
+                    : 'Asociar usuario')
+                ->icon('heroicon-o-link')
+                ->color('info')
+                ->size(Size::Small)
+                ->fillForm(fn (): array => [
+                    'matched_user_id' => $this->record->recruitment_matched_user_id,
+                ])
+                ->form([
+                    Select::make('matched_user_id')
+                        ->label('Usuario asociado')
+                        ->options(fn (): array => User::query()
+                            ->with('status')
+                            ->orderBy('nick')
+                            ->get()
+                            ->mapWithKeys(fn (User $user): array => [
+                                $user->id => trim($user->nick . ' · ' . $user->email . ($user->status?->name ? ' · ' . $user->status->name : '')),
+                            ])
+                            ->all())
+                        ->searchable()
+                        ->preload()
+                        ->placeholder('Sin usuario asociado')
+                        ->helperText('Permite enlazar manualmente la ficha aunque el usuario haya usado otro email. Déjalo vacío para quitar la asociación.'),
+                ])
+                ->modalHeading('Asociar usuario a la solicitud')
+                ->modalSubmitActionLabel('Guardar asociación')
+                ->action(function (array $data): void {
+                    $userId = filled($data['matched_user_id'] ?? null)
+                        ? (int) $data['matched_user_id']
+                        : null;
+
+                    $user = $userId ? User::query()->findOrFail($userId) : null;
+
                     $this->record = app(RecruitmentApplicationService::class)
-                        ->approve($this->record, auth()->id());
+                        ->assignMatchedUser($this->record, $user);
                     $this->fillForm();
 
                     Notification::make()
                         ->success()
-                        ->title('Solicitud aprobada')
-                        ->body($this->record->recruitmentWorkflowLabel())
-                        ->send();
-                }),
-
-            Action::make('discard')
-                ->label('Descartar')
-                ->icon('heroicon-o-x-circle')
-                ->color('danger')
-                ->visible(fn (): bool => $this->record->recruitment_review_status !== ContactSubmission::REVIEW_DISCARDED)
-                ->requiresConfirmation()
-                ->modalDescription('Podrás cambiar esta decisión más adelante.')
-                ->action(function (): void {
-                    $this->record = app(RecruitmentApplicationService::class)
-                        ->discard($this->record, auth()->id());
-                    $this->fillForm();
-
-                    Notification::make()
-                        ->success()
-                        ->title('Solicitud descartada')
+                        ->title($user ? 'Usuario asociado' : 'Asociación eliminada')
+                        ->body($user?->nick)
                         ->send();
                 }),
 
@@ -159,6 +238,7 @@ class EditRecruitmentApplication extends EditRecord
                 ->label('Volver a no valorada')
                 ->icon('heroicon-o-arrow-uturn-left')
                 ->color('gray')
+                ->size(Size::Small)
                 ->visible(fn (): bool => $this->record->recruitment_review_status !== ContactSubmission::REVIEW_UNREVIEWED)
                 ->requiresConfirmation()
                 ->action(function (): void {

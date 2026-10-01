@@ -12,8 +12,6 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\HtmlString;
 
 class RecruitmentApplicationsTable
 {
@@ -27,30 +25,15 @@ class RecruitmentApplicationsTable
                     ->badge()
                     ->color(fn (ContactSubmission $record): string => $record->recruitmentWorkflowColor())
                     ->sortable(query: fn ($query, string $direction) => $query->orderBy('recruitment_review_status', $direction)),
-                TextColumn::make('tier_ratings')
-                    ->label('TIERs')
-                    ->html()
-                    ->state(function (ContactSubmission $record): HtmlString {
-                        $badges = $record->recruitmentTierRatingsSummary()
-                            ->map(function (array $rating): string {
-                                $style = match ($rating['color']) {
-                                    'success' => 'background:rgba(22,163,74,.16);border:1px solid rgba(22,163,74,.35);color:#4ade80;',
-                                    'warning' => 'background:rgba(234,179,8,.18);border:1px solid rgba(234,179,8,.35);color:#facc15;',
-                                    'danger' => 'background:rgba(249,115,22,.18);border:1px solid rgba(249,115,22,.35);color:#fb923c;',
-                                    default => 'background:rgba(107,114,128,.18);border:1px solid rgba(107,114,128,.35);color:#cbd5e1;',
-                                };
-
-                                $title = e($rating['reason'] ?: 'Sin comentario');
-                                $label = e($rating['label']);
-
-                                return "<span title=\"{$title}\" style=\"display:inline-flex;align-items:center;border-radius:999px;padding:.2rem .5rem;font-size:.72rem;font-weight:700;{$style}\">{$label}</span>";
-                            })
-                            ->implode(' ');
-
-                        return new HtmlString($badges !== ''
-                            ? '<div style="display:flex;flex-wrap:wrap;gap:.35rem;">' . $badges . '</div>'
-                            : '<span style="color:#94a3b8;">Sin valoraciones</span>');
-                    }),
+                TextColumn::make('recruitment_tier')
+                    ->label('TIER')
+                    ->state(fn (ContactSubmission $record): string => $record->recruitmentTierLabel())
+                    ->badge()
+                    ->color(fn (ContactSubmission $record): string => $record->recruitmentTierColor())
+                    ->description(fn (ContactSubmission $record): ?string => filled($record->recruitment_tier_reason)
+                        ? (string) str($record->recruitment_tier_reason)->limit(55)
+                        : null)
+                    ->sortable(),
                 TextColumn::make('nickname')
                     ->label('Nick')
                     ->searchable()
@@ -82,37 +65,20 @@ class RecruitmentApplicationsTable
                         ContactSubmission::REVIEW_APPROVED => 'Aprobadas / reclutados',
                     ]),
                 SelectFilter::make('recruitment_tier')
-                    ->label('Tiene algún TIER')
-                    ->options(ContactSubmission::recruitmentTierOptions())
-                    ->query(function (Builder $query, array $data): Builder {
-                        $value = $data['value'] ?? null;
-
-                        if (! filled($value)) {
-                            return $query;
-                        }
-
-                        return $query->whereHas('recruitmentTierRatings', fn (Builder $tierQuery): Builder => $tierQuery->where('tier', (int) $value));
-                    }),
+                    ->label('TIER')
+                    ->options(ContactSubmission::recruitmentTierOptions()),
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
                 EditAction::make()->label('Revisar'),
                 Action::make('setTier')
-                    ->label('Mi TIER')
+                    ->label('TIER')
                     ->icon('heroicon-o-tag')
-                    ->color(function (ContactSubmission $record): string {
-                        $rating = $record->currentUserRecruitmentTierRating(auth()->id());
-
-                        return $rating?->tierColor() ?? 'gray';
-                    })
-                    ->fillForm(function (ContactSubmission $record): array {
-                        $rating = $record->currentUserRecruitmentTierRating(auth()->id());
-
-                        return [
-                            'tier' => $rating?->tier,
-                            'reason' => $rating?->reason,
-                        ];
-                    })
+                    ->color(fn (ContactSubmission $record): string => $record->recruitmentTierColor())
+                    ->fillForm(fn (ContactSubmission $record): array => [
+                        'tier' => $record->recruitment_tier,
+                        'reason' => $record->recruitment_tier_reason,
+                    ])
                     ->form([
                         Select::make('tier')
                             ->label('Clasificación')
@@ -138,7 +104,7 @@ class RecruitmentApplicationsTable
 
                         Notification::make()
                             ->success()
-                            ->title('Tu TIER se ha guardado')
+                            ->title($record->recruitmentTierLabel() . ' guardado')
                             ->send();
                     }),
                 Action::make('approve')
@@ -181,6 +147,24 @@ class RecruitmentApplicationsTable
                     ->action(function (ContactSubmission $record): void {
                         app(RecruitmentApplicationService::class)
                             ->resetDecision($record);
+                    }),
+                Action::make('deleteApplication')
+                    ->label('Eliminar')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Eliminar solicitud de alistamiento')
+                    ->modalDescription('La solicitud se eliminará permanentemente junto con sus comentarios y valoraciones TIER.')
+                    ->modalSubmitActionLabel('Eliminar definitivamente')
+                    ->action(function (ContactSubmission $record): void {
+                        $label = $record->nickname ?: $record->email;
+                        $record->delete();
+
+                        Notification::make()
+                            ->success()
+                            ->title('Solicitud eliminada')
+                            ->body($label)
+                            ->send();
                     }),
             ]);
     }

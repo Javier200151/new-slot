@@ -93,6 +93,21 @@ class BoardRecruitmentApplications extends Page
             ->send();
     }
 
+    public function deleteApplication(int $recordId): void
+    {
+        abort_unless(static::getResource()::canViewAny(), 403);
+
+        $record = RecruitmentApplicationResource::getEloquentQuery()->findOrFail($recordId);
+        $label = $record->nickname ?: $record->email;
+        $record->delete();
+
+        Notification::make()
+            ->success()
+            ->title('Solicitud eliminada')
+            ->body($label)
+            ->send();
+    }
+
     /**
      * @return \Illuminate\Support\Collection<int, ContactSubmission>
      */

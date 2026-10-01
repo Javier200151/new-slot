@@ -17,7 +17,9 @@ class RecruitmentApplicationService
         $this->assertRecruitmentSubmission($submission);
 
         return DB::transaction(function () use ($submission, $reviewerUserId): ContactSubmission {
-            $matchedUser = $this->findMatchingUser($submission->email);
+            $submission->loadMissing('recruitmentMatchedUser.status');
+            $matchedUser = $submission->recruitmentMatchedUser
+                ?? $this->findMatchingUser($submission->email);
 
             $submission->forceFill([
                 'recruitment_review_status' => ContactSubmission::REVIEW_APPROVED,
@@ -92,6 +94,32 @@ class RecruitmentApplicationService
         ])->save();
 
         return $submission->fresh(['recruitmentInterviewer', 'recruitmentTierRatings.user']);
+    }
+
+    public function assignMatchedUser(ContactSubmission $submission, ?User $user): ContactSubmission
+    {
+        $this->assertRecruitmentSubmission($submission);
+
+        $changes = [
+            'recruitment_matched_user_id' => $user?->id,
+        ];
+
+        if ($user === null) {
+            $changes['recruited_at'] = null;
+        } elseif ($this->isRecruit($user)) {
+            $changes['recruited_at'] = $submission->recruited_at ?? now();
+        } else {
+            $changes['recruited_at'] = null;
+        }
+
+        $submission->forceFill($changes)->save();
+
+        return $submission->fresh([
+            'recruitmentReviewedBy',
+            'recruitmentInterviewer',
+            'recruitmentMatchedUser.status',
+            'recruitmentTierRatings.user',
+        ]);
     }
 
     public function setTier(
@@ -178,7 +206,10 @@ class RecruitmentApplicationService
             ->where('recruitment_review_status', ContactSubmission::REVIEW_APPROVED)
             ->where(function ($query) use ($user, $email): void {
                 $query->where('recruitment_matched_user_id', $user->id)
-                    ->orWhereRaw('LOWER(email) = ?', [$email]);
+                    ->orWhere(function ($query) use ($email): void {
+                        $query->whereNull('recruitment_matched_user_id')
+                            ->whereRaw('LOWER(email) = ?', [$email]);
+                    });
             })
             ->each(function (ContactSubmission $submission) use ($user): void {
                 $changes = [
@@ -214,7 +245,10 @@ class RecruitmentApplicationService
                 $query->where('recruitment_matched_user_id', $user->id);
 
                 if ($email !== '') {
-                    $query->orWhereRaw('LOWER(email) = ?', [$email]);
+                    $query->orWhere(function ($query) use ($email): void {
+                        $query->whereNull('recruitment_matched_user_id')
+                            ->whereRaw('LOWER(email) = ?', [$email]);
+                    });
                 }
             })
             ->update([
