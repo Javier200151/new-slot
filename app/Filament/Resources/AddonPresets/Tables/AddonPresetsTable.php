@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\AddonPresets\Tables;
 
+use App\Support\BbcodeMarkup;
+use Illuminate\Support\Str;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -21,7 +23,10 @@ class AddonPresetsTable
 
                 TextColumn::make('description')
                     ->label('Descripción')
-                    ->limit(80)
+                    ->formatStateUsing(fn ($state): string => Str::limit(
+                        trim(strip_tags(BbcodeMarkup::render((string) $state)->toHtml())),
+                        80
+                    ))
                     ->searchable(),
 
                 TextColumn::make('addons.name')

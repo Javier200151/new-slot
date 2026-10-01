@@ -49,7 +49,7 @@
                     <td style="padding:12px 36px;">
                         <div style="margin-bottom:8px;color:#f59e0b;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Mensaje</div>
                         <div style="padding:16px;background:#090c11;border:1px solid #252b35;border-radius:10px;color:#d8dde5;font-size:14px;line-height:1.7;">
-                            {!! nl2br(e($submission->message)) !!}
+                            {!! \App\Support\BbcodeMarkup::render($submission->message) !!}
                         </div>
                     </td>
                 </tr>
@@ -59,7 +59,7 @@
                         <td style="padding:12px 36px;">
                             <div style="margin-bottom:8px;color:#f59e0b;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Cómo conociste Squad ALPHA</div>
                             <div style="padding:16px;background:#090c11;border:1px solid #252b35;border-radius:10px;color:#d8dde5;font-size:14px;line-height:1.7;">
-                                {!! nl2br(e($submission->how_heard_us)) !!}
+                                {!! \App\Support\BbcodeMarkup::render($submission->how_heard_us) !!}
                             </div>
                         </td>
                     </tr>
@@ -67,7 +67,7 @@
                         <td style="padding:12px 36px;">
                             <div style="margin-bottom:8px;color:#f59e0b;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Experiencia</div>
                             <div style="padding:16px;background:#090c11;border:1px solid #252b35;border-radius:10px;color:#d8dde5;font-size:14px;line-height:1.7;">
-                                {!! nl2br(e($submission->experience_summary)) !!}
+                                {!! \App\Support\BbcodeMarkup::render($submission->experience_summary) !!}
                             </div>
                         </td>
                     </tr>

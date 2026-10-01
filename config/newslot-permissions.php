@@ -283,8 +283,14 @@ return [
                 'homepage-settings' => [
                     'label' => 'Configuración de portada',
                 ],
+                'public-navigation' => [
+                    'label' => 'Navegación pública',
+                ],
                 'homepage-news' => [
                     'label' => 'Noticias de portada',
+                ],
+                'changelog' => [
+                    'label' => 'Changelog',
                 ],
                 'contact-submissions' => [
                     'label' => 'Contacto y alistamiento',

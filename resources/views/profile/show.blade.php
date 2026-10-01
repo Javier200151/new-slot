@@ -42,6 +42,7 @@
         rel="stylesheet"
         href="{{ asset('css/profile.css') }}"
     >
+    <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
 </head>
 
 <body class="landing-body">
@@ -359,16 +360,15 @@
                             </div>
 
                             <div class="profile-field">
-                                <label for="quote">
-                                    Frase personal
-                                </label>
-
-                                <textarea
-                                    id="quote"
-                                    name="quote"
-                                    rows="4"
-                                    maxlength="500"
-                                >{{ old('quote', $user->quote) }}</textarea>
+                                @include('partials.bbcode-editor', [
+                                    'id' => 'quote',
+                                    'name' => 'quote',
+                                    'label' => 'Frase personal',
+                                    'value' => old('quote', $user->quote),
+                                    'rows' => 4,
+                                    'maxlength' => 500,
+                                    'required' => false,
+                                ])
 
                                 @error('quote', 'profileUpdate')
                                     <span class="profile-error">
@@ -718,5 +718,6 @@
     src="{{ asset('js/profile.js') }}"
     defer
 ></script>
+<script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
 </body>
 </html>

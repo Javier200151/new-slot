@@ -3073,3 +3073,13 @@ input:focus-visible {
         min-width: calc(100% - 60px);
     }
 }
+
+/* Bloque D · navegación pública configurable */
+.legacy-forum-link--footer {
+    padding: 4px 0;
+    font-size: 0.7rem;
+}
+
+.instagram-feed__profile-link {
+    flex-shrink: 0;
+}

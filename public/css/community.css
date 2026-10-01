@@ -2249,3 +2249,169 @@
         justify-content: flex-start;
     }
 }
+
+/* ================================================================
+   Changelog interno
+   ================================================================ */
+
+.forum-changelog-link {
+    display: flex;
+    justify-content: center;
+    margin: 26px 0 2px;
+}
+
+.forum-changelog-link a {
+    color: #65738a;
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-decoration: none;
+    transition: color .15s ease;
+}
+
+.forum-changelog-link a:hover {
+    color: #aeb9c9;
+}
+
+.changelog-shell {
+    max-width: 980px;
+}
+
+.changelog-page-head {
+    margin: 8px 0 34px;
+}
+
+.changelog-page-head .community-title {
+    margin-top: 7px;
+}
+
+.changelog-list {
+    display: grid;
+    gap: 38px;
+}
+
+.changelog-entry {
+    padding-bottom: 36px;
+    border-bottom: 1px solid rgba(148, 163, 184, .12);
+}
+
+.changelog-entry:last-child {
+    border-bottom: 0;
+}
+
+.changelog-entry__head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.changelog-entry__head time {
+    color: #f8fafc;
+    font-size: 1.25rem;
+    font-weight: 900;
+    letter-spacing: -.025em;
+}
+
+.changelog-entry__head > span {
+    padding: 3px 8px;
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 999px;
+    color: #8b9aaf;
+    background: rgba(15, 23, 42, .4);
+    font-size: .63rem;
+    font-weight: 800;
+}
+
+.changelog-entry__content {
+    display: grid;
+    gap: 28px;
+}
+
+.changelog-area > h2 {
+    margin: 0 0 14px;
+    color: #e5e7eb;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.changelog-group + .changelog-group {
+    margin-top: 18px;
+}
+
+.changelog-group > h3 {
+    margin: 0 0 8px;
+    color: #aeb9c9;
+    font-size: .76rem;
+    font-weight: 900;
+}
+
+.changelog-group--new > h3 {
+    color: #86efac;
+}
+
+.changelog-group--improvement > h3 {
+    color: #93c5fd;
+}
+
+.changelog-group--fix > h3 {
+    color: #fdba74;
+}
+
+.changelog-group ul {
+    margin: 0;
+    padding-left: 24px;
+}
+
+.changelog-group li {
+    padding: 3px 0 5px;
+    color: #c8d1df;
+}
+
+.changelog-group li::marker {
+    color: #69778b;
+}
+
+.changelog-change {
+    display: inline;
+    color: inherit;
+    font-size: .86rem;
+    line-height: 1.65;
+}
+
+.changelog-change > :first-child {
+    margin-top: 0;
+}
+
+.changelog-change > :last-child {
+    margin-bottom: 0;
+}
+
+.changelog-change__link {
+    display: inline-flex;
+    margin-left: 6px;
+    color: #60a5fa;
+    font-size: .78rem;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.changelog-change__link:hover {
+    color: #93c5fd;
+}
+
+@media (max-width: 680px) {
+    .changelog-entry__head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .changelog-entry__head time {
+        font-size: 1.08rem;
+    }
+
+    .changelog-list {
+        gap: 30px;
+    }
+}

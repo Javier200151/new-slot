@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\Status;
 use App\Rules\NotReservedUsername;
 use Filament\Forms\Components\DatePicker;
@@ -84,7 +85,7 @@ class UserForm
                     ->disabled()
                     ->default(fn ($record) => $record?->getSignatureUrl()),
 
-                Textarea::make('quote')
+                BbcodeTextarea::make('quote')
                     ->label('Cita')
                     ->rows(3)
                     ->maxLength(500)

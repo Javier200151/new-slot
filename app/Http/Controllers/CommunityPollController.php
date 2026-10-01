@@ -88,6 +88,69 @@ class CommunityPollController extends Controller
         return back()->with('status', 'poll-created');
     }
 
+    public function updateForPost(
+        Request $request,
+        CommunityPost $post,
+        CommunityPoll $poll,
+        CommunityPollManager $pollManager,
+        CommunitySubscriptionService $subscriptions,
+    ): RedirectResponse {
+        $this->authorizePersonal($request);
+        abort_unless($post->channel === 'personal', 404);
+        abort_unless((int) $poll->community_post_id === (int) $post->id, 404);
+        $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless(
+            CommunityForumCategory::can($request->user(), $categoryKey, 'poll'),
+            403,
+            'Tu rol no puede gestionar votaciones en esta categoría.'
+        );
+        $this->authorizeManageThread($request, $post);
+
+        $validated = $request->validate([
+            'poll_title' => ['nullable', 'string', 'max:180'],
+            'poll_description' => ['nullable', 'string', 'max:5000'],
+            'poll_options' => ['nullable', 'string', 'max:6000'],
+            'poll_selection_mode' => ['nullable', Rule::in([CommunityPoll::MODE_SINGLE, CommunityPoll::MODE_MULTIPLE])],
+            'poll_min_choices' => ['nullable', 'integer', 'min:1', 'max:30'],
+            'poll_max_choices' => ['nullable', 'integer', 'min:1', 'max:30'],
+            'poll_allow_vote_change' => ['nullable', 'boolean'],
+            'poll_is_anonymous' => ['nullable', 'boolean'],
+            'poll_results_visibility' => ['nullable', Rule::in([
+                CommunityPoll::RESULTS_ALWAYS,
+                CommunityPoll::RESULTS_AFTER_VOTE,
+                CommunityPoll::RESULTS_AFTER_CLOSE,
+                CommunityPoll::RESULTS_HIDDEN,
+            ])],
+            'poll_show_voter_names' => ['nullable', 'boolean'],
+            'poll_show_participation' => ['nullable', 'boolean'],
+            'poll_allow_abstain' => ['nullable', 'boolean'],
+            'poll_randomize_options' => ['nullable', 'boolean'],
+            'poll_quorum_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'poll_starts_at' => ['nullable', 'date'],
+            'poll_ends_at' => ['nullable', 'date', 'after:poll_starts_at'],
+            'use_candidates' => ['nullable', 'boolean'],
+        ]);
+
+        $pollManager->updateForPost(
+            $poll,
+            $post,
+            [
+                ...$validated,
+                'poll_allow_vote_change' => $request->boolean('poll_allow_vote_change'),
+                'poll_is_anonymous' => $request->boolean('poll_is_anonymous'),
+                'poll_show_voter_names' => $request->boolean('poll_show_voter_names'),
+                'poll_show_participation' => $request->boolean('poll_show_participation'),
+                'poll_allow_abstain' => $request->boolean('poll_allow_abstain'),
+                'poll_randomize_options' => $request->boolean('poll_randomize_options'),
+            ],
+            $request->boolean('use_candidates'),
+        );
+
+        $subscriptions->notifyPost($post, $request->user(), 'poll_updated');
+
+        return back()->with('status', 'poll-updated');
+    }
+
     public function vote(
         Request $request,
         CommunityPoll $poll,

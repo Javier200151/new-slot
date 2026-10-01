@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SqaGroups\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\SqaGroup;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\ColorPicker;
@@ -43,7 +44,7 @@ class SqaGroupForm
                     ->helperText('Si se desactiva, el organigrama no mostrará ningún puesto de coordinador para este grupo. Úsalo en grupos donde las decisiones se toman de forma colegiada.')
                     ->default(true),
 
-                Textarea::make('description')
+                BbcodeTextarea::make('description')
                     ->label('Descripción')
                     ->rows(4)
                     ->columnSpanFull(),

@@ -2271,15 +2271,16 @@
                 @elseif(auth()->check())
                     <form method="POST" action="{{ route('events.comments.store', $event) }}" class="event-comment-form">
                         @csrf
-                        <label for="event-comment-new">Añadir un comentario</label>
-                        <textarea
-                            id="event-comment-new"
-                            name="comment"
-                            rows="4"
-                            maxlength="5000"
-                            required
-                            placeholder="Escribe tu comentario sobre el evento..."
-                        >{{ old('comment') }}</textarea>
+                        @include('partials.bbcode-editor', [
+                            'id' => 'event-comment-new',
+                            'name' => 'comment',
+                            'label' => 'Añadir un comentario',
+                            'value' => old('comment'),
+                            'rows' => 4,
+                            'maxlength' => 5000,
+                            'required' => true,
+                            'placeholder' => 'Escribe tu comentario sobre el evento...',
+                        ])
                         @error('comment')
                             <span class="event-comment-form__error">{{ $message }}</span>
                         @enderror

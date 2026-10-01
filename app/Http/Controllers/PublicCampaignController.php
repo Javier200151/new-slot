@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Campaign;
-use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use App\Support\BbcodeMarkup;
 use Illuminate\Support\HtmlString;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -35,9 +35,7 @@ class PublicCampaignController extends Controller
         foreach ($campaigns as $campaign) {
             $campaign->setAttribute(
                 'summary',
-                trim(strip_tags(
-                    RichContentRenderer::make($campaign->description)->toHtml()
-                )),
+                trim(strip_tags((string) BbcodeMarkup::render($campaign->description))),
             );
         }
 
@@ -147,9 +145,7 @@ class PublicCampaignController extends Controller
 
         $campaignCoverImage = $campaignFirstEvent?->activity?->image;
 
-        $description = new HtmlString(
-            RichContentRenderer::make($campaign->description)->toHtml(),
-        );
+        $description = BbcodeMarkup::render($campaign->description);
 
         $finalizedCampaignEvents = $campaign->events
             ->filter(

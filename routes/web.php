@@ -4,6 +4,7 @@ use App\Http\Controllers\MetopaController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PublicContactController;
 use App\Http\Controllers\CommunityController;
+use App\Http\Controllers\ChangelogController;
 use App\Http\Controllers\CommunityDiaryController;
 use App\Http\Controllers\CommunityForumController;
 use App\Http\Controllers\CommunityPollController;
@@ -566,6 +567,11 @@ Route::middleware('auth')->group(function (): void {
     )->name('community.forum.unread');
 
     Route::get(
+        '/area/foro/changelog',
+        [ChangelogController::class, 'index']
+    )->name('community.changelog.index');
+
+    Route::get(
         '/area/foro/{channel}',
         [CommunityForumController::class, 'index']
     )
@@ -690,6 +696,14 @@ Route::middleware('auth')->group(function (): void {
     )
         ->whereNumber('post')
         ->name('community.polls.store-for-post');
+
+    Route::patch(
+        '/area/foro/personal/{post}/votacion/{poll}',
+        [CommunityPollController::class, 'updateForPost']
+    )
+        ->whereNumber('post')
+        ->whereNumber('poll')
+        ->name('community.polls.update-for-post');
 
     Route::post(
         '/area/suscripciones/{type}/{id}',

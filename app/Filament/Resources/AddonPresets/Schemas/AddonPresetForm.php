@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AddonPresets\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -18,7 +19,7 @@ class AddonPresetForm
                     ->required()
                     ->maxLength(255),
 
-                Textarea::make('description')
+                BbcodeTextarea::make('description')
                     ->label('Descripción')
                     ->columnSpanFull(),
 

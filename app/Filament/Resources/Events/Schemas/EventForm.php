@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Events\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\EventStatus;
 use App\Models\Activity;
 use App\Support\ActivityTypeAccess;
@@ -336,7 +337,7 @@ class EventForm
                     })
                     ->nullable(),
 
-                Textarea::make('briefing_extra')
+                BbcodeTextarea::make('briefing_extra')
                     ->label('Información adicional del evento')
                     ->helperText('Añade aquí información específica de esta fecha. No modifica el briefing base de la actividad. Puedes usar BBCode.')
                     ->rows(8)

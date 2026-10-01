@@ -25,6 +25,7 @@
         rel="stylesheet"
         href="{{ asset('css/landing.css') }}"
     >
+    <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
 </head>
 
 <body
@@ -125,22 +126,10 @@
                     <div class="home-section-heading__copy">
                         <h2>{{ $settings->news_title }}</h2>
                         @if($settings->news_intro)
-                            <p>{{ $settings->news_intro }}</p>
+                            <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($settings->news_intro) !!}</div>
                         @endif
                     </div>
 
-                    @if($settings->instagram_url)
-                        <a
-                            class="social-link social-link--instagram"
-                            href="{{ $settings->instagram_url }}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            <span class="social-link__icon" aria-hidden="true">◎</span>
-                            Instagram Squad ALPHA
-                            <span aria-hidden="true">↗</span>
-                        </a>
-                    @endif
                 </header>
 
                 @if($news->isNotEmpty())
@@ -166,12 +155,12 @@
                                     <h3>{{ $item->title }}</h3>
 
                                     @if($item->excerpt)
-                                        <p>{{ $item->excerpt }}</p>
+                                        <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($item->excerpt) !!}</div>
                                     @endif
 
                                     @if($item->body)
                                         <div class="home-news-card__content">
-                                            {!! $item->body !!}
+                                            {!! \App\Support\BbcodeMarkup::render($item->body) !!}
                                         </div>
                                     @endif
 
@@ -199,12 +188,14 @@
                         </div>
 
                         <a
-                            class="home-text-link"
+                            class="social-link social-link--instagram instagram-feed__profile-link"
                             href="{{ $settings->instagram_url ?: 'https://www.instagram.com/squadalpha_es/' }}"
                             target="_blank"
                             rel="noopener noreferrer"
                         >
-                            Ver perfil <span aria-hidden="true">↗</span>
+                            <span class="social-link__icon" aria-hidden="true">◎</span>
+                            Instagram
+                            <span aria-hidden="true">↗</span>
                         </a>
                     </div>
 
@@ -336,7 +327,7 @@
                     <div class="home-section-heading__copy">
                         <h2>{{ $settings->streams_title }}</h2>
                         @if($settings->streams_intro)
-                            <p>{{ $settings->streams_intro }}</p>
+                            <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($settings->streams_intro) !!}</div>
                         @endif
                     </div>
 
@@ -466,10 +457,17 @@
                                 <input type="email" name="email" value="{{ old('email', auth()->user()?->email) }}" required autocomplete="email">
                             </label>
 
-                            <label class="form-field form-field--full">
-                                <span>Mensaje</span>
-                                <textarea name="message" rows="6" required>{{ old('message') }}</textarea>
-                            </label>
+                            <div class="form-field form-field--full">
+                                @include('partials.bbcode-editor', [
+                                    'id' => 'contact-message',
+                                    'name' => 'message',
+                                    'label' => 'Mensaje',
+                                    'value' => old('message'),
+                                    'rows' => 6,
+                                    'maxlength' => 6000,
+                                    'required' => true,
+                                ])
+                            </div>
                         </div>
 
                         @if($settings->recruitment_open)
@@ -555,16 +553,17 @@
 
                                 <div class="requirement-block">
                                     <h3>Cómo nos conociste</h3>
-                                    <label class="form-field">
-                                        <span>Cuéntanos brevemente cómo llegaste a Squad ALPHA</span>
-                                        <textarea
-                                            name="how_heard_us"
-                                            rows="4"
-                                            maxlength="1500"
-                                            data-recruitment-required
-                                            placeholder="YouTube, Twitch, un amigo, redes sociales, buscador..."
-                                        >{{ old('how_heard_us') }}</textarea>
-                                    </label>
+                                    <div class="form-field">
+                                        @include('partials.bbcode-editor', [
+                                            'id' => 'how-heard-us',
+                                            'name' => 'how_heard_us',
+                                            'label' => 'Cuéntanos brevemente cómo llegaste a Squad ALPHA',
+                                            'value' => old('how_heard_us'),
+                                            'rows' => 4,
+                                            'maxlength' => 1500,
+                                            'placeholder' => 'YouTube, Twitch, un amigo, redes sociales, buscador...',
+                                        ])
+                                    </div>
                                 </div>
 
                                 <div class="requirement-block">
@@ -625,16 +624,17 @@
                                         <span>Tengo experiencia previa en simulación militar con Arma 3.</span>
                                     </label>
 
-                                    <label class="form-field" style="margin-top: 14px;">
-                                        <span>Resumen de experiencia en simulación militar en Arma 3 y Arma Reforger</span>
-                                        <textarea
-                                            name="experience_summary"
-                                            rows="6"
-                                            maxlength="4000"
-                                            data-recruitment-required
-                                            placeholder="Cuéntanos comunidades anteriores, tiempo jugando, roles habituales, experiencia con ACE/TFAR/ACRE, etc. Si no tienes experiencia previa, indícalo."
-                                        >{{ old('experience_summary') }}</textarea>
-                                    </label>
+                                    <div class="form-field" style="margin-top: 14px;">
+                                        @include('partials.bbcode-editor', [
+                                            'id' => 'experience-summary',
+                                            'name' => 'experience_summary',
+                                            'label' => 'Resumen de experiencia en simulación militar en Arma 3 y Arma Reforger',
+                                            'value' => old('experience_summary'),
+                                            'rows' => 6,
+                                            'maxlength' => 4000,
+                                            'placeholder' => 'Cuéntanos comunidades anteriores, tiempo jugando, roles habituales, experiencia con ACE/TFAR/ACRE, etc. Si no tienes experiencia previa, indícalo.',
+                                        ])
+                                    </div>
                                 </div>
                             </div>
                         @endif
@@ -674,6 +674,7 @@
         src="{{ asset('js/landing.js') }}"
         defer
     ></script>
+    <script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
 
 </body>
 </html>

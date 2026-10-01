@@ -89,6 +89,16 @@
                 FAQs
             </a>
         </nav>
+
+        <a
+            href="https://foro.squadalpha.es/"
+            class="legacy-forum-link legacy-forum-link--footer"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Foro antiguo <span aria-hidden="true">↗</span>
+        </a>
+
         <a href="{{ $footerLinkUrl }}">
             {{ $footerLinkLabel }}
         </a>

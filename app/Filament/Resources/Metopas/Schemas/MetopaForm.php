@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Metopas\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -50,18 +51,12 @@ class MetopaForm
                     ->preload()
                     ->nullable(),
 
-                RichEditor::make('despag1')
+                BbcodeTextarea::make('despag1')
                     ->label('Descripción página 1')
-                    ->disableToolbarButtons([
-                        'attachFiles',
-                    ])
                     ->columnSpanFull(),
 
-                RichEditor::make('despag2')
+                BbcodeTextarea::make('despag2')
                     ->label('Descripción página 2')
-                    ->disableToolbarButtons([
-                        'attachFiles',
-                    ])
                     ->columnSpanFull(),
 
                 FileUpload::make('imgback')

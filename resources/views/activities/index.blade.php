@@ -805,13 +805,9 @@
                                             <div
                                                 class="activity-campaign-card__description"
                                             >
-                                                {!! nl2br(
-                                                    e(
-                                                        strip_tags(
-                                                            $campaign->description
-                                                        )
-                                                    )
-                                                ) !!}
+                                                <div class="bbcode-rich forum-rich">
+                                                    {!! \App\Support\BbcodeMarkup::render($campaign->description) !!}
+                                                </div>
                                             </div>
 
                                         @else

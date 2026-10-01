@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EventComments\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
@@ -34,7 +35,7 @@ class EventCommentForm
                     ->preload()
                     ->nullable(),
 
-                Textarea::make('comment')
+                BbcodeTextarea::make('comment')
                     ->label('Comentario')
                     ->required()
                     ->rows(5)

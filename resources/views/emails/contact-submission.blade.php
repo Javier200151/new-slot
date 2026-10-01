@@ -103,7 +103,7 @@
                                     <td style="padding:14px 42px 28px;">
                                         <div style="margin-bottom:12px;color:#f59e0b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Mensaje</div>
                                         <div style="padding:20px;background:#090c11;border:1px solid #252b35;border-radius:10px;color:#d8dde5;font-size:15px;line-height:1.75;white-space:normal;">
-                                            {!! nl2br(e($submission->message)) !!}
+                                            {!! \App\Support\BbcodeMarkup::render($submission->message) !!}
                                         </div>
                                     </td>
                                 </tr>
@@ -113,7 +113,7 @@
                                         <td style="padding:0 42px 24px;">
                                             <div style="margin-bottom:12px;color:#f59e0b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Cómo nos conociste</div>
                                             <div style="padding:20px;background:#090c11;border:1px solid #252b35;border-radius:10px;color:#d8dde5;font-size:14px;line-height:1.7;">
-                                                {!! nl2br(e($submission->how_heard_us)) !!}
+                                                {!! \App\Support\BbcodeMarkup::render($submission->how_heard_us) !!}
                                             </div>
                                         </td>
                                     </tr>
@@ -121,7 +121,7 @@
                                         <td style="padding:0 42px 28px;">
                                             <div style="margin-bottom:12px;color:#f59e0b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Experiencia en simulación militar / Arma 3</div>
                                             <div style="padding:20px;background:#090c11;border:1px solid #252b35;border-radius:10px;color:#d8dde5;font-size:14px;line-height:1.7;">
-                                                {!! nl2br(e($submission->experience_summary)) !!}
+                                                {!! \App\Support\BbcodeMarkup::render($submission->experience_summary) !!}
                                             </div>
                                         </td>
                                     </tr>

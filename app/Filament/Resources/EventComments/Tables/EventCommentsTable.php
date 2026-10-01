@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\EventComments\Tables;
 
+use App\Support\BbcodeMarkup;
+use Illuminate\Support\Str;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -31,12 +33,18 @@ class EventCommentsTable
 
                 TextColumn::make('parent.comment')
                     ->label('Respuesta a')
-                    ->limit(40)
+                    ->formatStateUsing(fn ($state): string => Str::limit(
+                        trim(strip_tags(BbcodeMarkup::render((string) $state)->toHtml())),
+                        40
+                    ))
                     ->toggleable(),
 
                 TextColumn::make('comment')
                     ->label('Comentario')
-                    ->limit(80)
+                    ->formatStateUsing(fn ($state): string => Str::limit(
+                        trim(strip_tags(BbcodeMarkup::render((string) $state)->toHtml())),
+                        80
+                    ))
                     ->searchable(),
 
                 IconColumn::make('is_pinned')

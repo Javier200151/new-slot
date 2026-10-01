@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CommunityPolls\Schemas;
 
+use App\Filament\Forms\BbcodeTextarea;
 use App\Models\CommunityPoll;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
@@ -26,7 +27,7 @@ class CommunityPollForm
                         ->maxLength(180)
                         ->columnSpanFull(),
 
-                    Textarea::make('description')
+                    BbcodeTextarea::make('description')
                         ->label('Descripción')
                         ->rows(5)
                         ->maxLength(10000)
