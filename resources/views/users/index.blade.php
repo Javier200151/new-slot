@@ -344,12 +344,12 @@
 
                 @php
                     $directoryGroups = $sortBy === 'promo'
-                        ? $users->getCollection()->groupBy(
+                        ? $users->groupBy(
                             fn ($user) => $user->promo_id !== null
                                 ? 'promo-' . $user->promo_id
                                 : 'without-promo'
                         )
-                        : collect(['alphabetical' => $users->getCollection()]);
+                        : collect(['alphabetical' => $users]);
                 @endphp
 
                 <div class="users-promo-list {{ $sortBy === 'alpha' ? 'is-alphabetical' : '' }}">
@@ -374,7 +374,6 @@
                                     <small>
                                         {{ $directoryUsers->count() }}
                                         {{ $directoryUsers->count() === 1 ? 'usuario' : 'usuarios' }}
-                                        en esta página
                                     </small>
                                 </header>
                             @endif
@@ -447,41 +446,6 @@
                         </section>
                     @endforeach
                 </div>
-
-
-                @if($users->hasPages())
-                    <nav
-                        class="users-pagination"
-                        aria-label="Paginación de usuarios"
-                    >
-                        @if($users->onFirstPage())
-                            <span class="is-disabled">
-                                ← Anterior
-                            </span>
-                        @else
-                            <a href="{{ $users->previousPageUrl() }}">
-                                ← Anterior
-                            </a>
-                        @endif
-
-                        <span>
-                            Página
-                            {{ $users->currentPage() }}
-                            de
-                            {{ $users->lastPage() }}
-                        </span>
-
-                        @if($users->hasMorePages())
-                            <a href="{{ $users->nextPageUrl() }}">
-                                Siguiente →
-                            </a>
-                        @else
-                            <span class="is-disabled">
-                                Siguiente →
-                            </span>
-                        @endif
-                    </nav>
-                @endif
 
             @endif
 

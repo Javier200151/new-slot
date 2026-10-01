@@ -100,9 +100,10 @@ class PublicUserController extends Controller
                 ->orderBy('nick');
         }
 
-        $users = $usersQuery
-            ->paginate(24)
-            ->withQueryString();
+        // El directorio se muestra completo en una única página.
+        // El scroll vertical sustituye a la paginación para poder recorrer
+        // todas las promociones o todo el orden alfabético de forma continua.
+        $users = $usersQuery->get();
 
         return view(
             'users.index',
