@@ -13,7 +13,7 @@ class InfrastructureStatusService
     private const CACHE_KEY = 'public.infrastructure.status.v2';
     private const CACHE_SECONDS = 60;
     private const SOCKET_TIMEOUT_SECONDS = 1.0;
-    private const TSVIEWER_WIDGET_URL = 'https://www.tsviewer.com/ts3viewer.php';
+    private const TSVIEWER_SERVER_URL = 'https://www.tsviewer.com/index.php';
 
     public function snapshot(bool $force = false): array
     {
@@ -32,32 +32,28 @@ class InfrastructureStatusService
     {
         $settings = InfrastructureSetting::current();
 
-        $services = [
-            $this->gameStatus(
-                'arma3_academy',
-                'ArmA 3 Academia',
-                $settings->arma3_academy_host,
-                $settings->arma3_academy_query_port,
-            ),
-            $this->gameStatus(
-                'arma3_operations',
-                'ArmA 3 Operativos',
-                $settings->arma3_operations_host,
-                $settings->arma3_operations_query_port,
-            ),
-            $this->gameStatus(
-                'reforger_academy',
-                'ArmA Reforger Academia',
-                $settings->reforger_academy_host,
-                $settings->reforger_academy_query_port,
-            ),
-            $this->gameStatus(
-                'reforger_operations',
-                'ArmA Reforger Operativos',
-                $settings->reforger_operations_host,
-                $settings->reforger_operations_query_port,
-            ),
-        ];
+        $services = [];
+
+        foreach (array_values($settings->arma_servers ?? []) as $index => $server) {
+            if (! is_array($server)) {
+                continue;
+            }
+
+            $label = trim((string) ($server['name'] ?? ''));
+            $host = trim((string) ($server['host'] ?? ''));
+            $gamePort = (int) ($server['game_port'] ?? 0);
+
+            if ($label === '') {
+                continue;
+            }
+
+            $services[] = $this->gameStatus(
+                'arma_server_' . $index,
+                $label,
+                $host,
+                $gamePort > 0 ? $gamePort + 1 : null,
+            );
+        }
 
         return [
             'services' => $services,
@@ -108,7 +104,7 @@ class InfrastructureStatusService
         }
     }
 
-    private function queryA2sInfo(string $host, int $port): ?array
+    protected function queryA2sInfo(string $host, int $port): ?array
     {
         $errno = 0;
         $error = '';
@@ -233,15 +229,16 @@ class InfrastructureStatusService
         }
 
         try {
-            $response = Http::accept('text/html,application/javascript;q=0.9,*/*;q=0.8')
+            $response = Http::accept('text/html,*/*;q=0.8')
                 ->withUserAgent('NewSlot/1.0 (+https://squadalpha.es)')
-                ->timeout(4)
-                ->get(self::TSVIEWER_WIDGET_URL, [
+                ->timeout(5)
+                ->get(self::TSVIEWER_SERVER_URL, [
+                    'page' => 'ts_viewer',
                     'ID' => $serverId,
-                    'js' => 1,
+                    'newlanguage' => 'en',
                 ]);
 
-            $parsed = $this->parseTsViewerWidget($response);
+            $parsed = $this->parseTsViewerPage($response);
 
             if ($parsed === null) {
                 return [
@@ -277,7 +274,7 @@ class InfrastructureStatusService
         }
     }
 
-    private function parseTsViewerWidget(Response $response): ?array
+    private function parseTsViewerPage(Response $response): ?array
     {
         if (! $response->successful()) {
             return null;
@@ -290,31 +287,41 @@ class InfrastructureStatusService
         }
 
         $normalized = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $normalized = str_replace(
-            ['\\n', '\\r', '\\t', '\\/', '\\"', "\\'"],
-            [' ', ' ', ' ', '/', '"', "'"],
-            $normalized,
-        );
 
-        // TSViewer suele incluir el estado en clases como
-        // serverstatus_online / serverstatus_offline. Las comprobamos antes
-        // de limpiar el HTML para no perder esa información.
-        $offline = preg_match('/serverstatus[_-]?offline/i', $normalized) === 1;
-        $online = preg_match('/serverstatus[_-]?online/i', $normalized) === 1;
+        // Evita que textos auxiliares incluidos en scripts o estilos interfieran
+        // con la lectura del estado visible de la ficha del servidor.
+        $normalized = preg_replace('/<script\b[^>]*>.*?<\/script>/is', ' ', $normalized) ?? $normalized;
+        $normalized = preg_replace('/<style\b[^>]*>.*?<\/style>/is', ' ', $normalized) ?? $normalized;
 
-        // Al eliminar etiquetas, insertamos espacios en su lugar. strip_tags()
-        // uniría por ejemplo "online</div><span>7 / 32" como "online7 / 32",
-        // impidiendo reconocer correctamente la palabra online.
         $plainText = preg_replace('/<[^>]*>/', ' ', $normalized) ?? $normalized;
         $plainText = preg_replace('/\s+/', ' ', $plainText) ?? $plainText;
+        $plainText = trim($plainText);
 
-        if (! $offline) {
-            $offline = preg_match('/(?:server[\s_-]*)?status[\s_-]*[:=]?\s*offline|\bserver\s+offline\b|\boffline\b/i', $plainText) === 1;
+        // La ficha pública de TSViewer muestra el estado como ONLINE/OFFLINE y,
+        // cuando está online, la ocupación con el formato "0 / 512 user".
+        if (
+            str_contains($plainText, 'ONLINE')
+            && preg_match('/\b(\d{1,4})\s*\/\s*(\d{1,4})\s*(?:user|users)\b/i', $plainText, $matches) === 1
+        ) {
+            return [
+                'online' => true,
+                'players' => (int) $matches[1],
+                'max_players' => (int) $matches[2],
+            ];
         }
 
-        if (! $online) {
-            $online = preg_match('/(?:server[\s_-]*)?status[\s_-]*[:=]?\s*online|\bserver\s+online\b|\bonline\b/i', $plainText) === 1;
+        if (str_contains($plainText, 'OFFLINE')) {
+            return [
+                'online' => false,
+                'players' => null,
+                'max_players' => null,
+            ];
         }
+
+        // Compatibilidad con variantes del HTML que marcan el estado mediante
+        // clases serverstatus_online/serverstatus_offline.
+        $offline = preg_match('/serverstatus[_-]?offline/i', $normalized) === 1;
+        $online = preg_match('/serverstatus[_-]?online/i', $normalized) === 1;
 
         if (! $offline && ! $online) {
             return null;
@@ -323,11 +330,9 @@ class InfrastructureStatusService
         $players = null;
         $maxPlayers = null;
 
-        if (preg_match('/\b(\d{1,4})\s*\/\s*(\d{1,4})\b/', $normalized, $matches) === 1) {
+        if (preg_match('/\b(\d{1,4})\s*\/\s*(\d{1,4})\b/', $plainText, $matches) === 1) {
             $players = (int) $matches[1];
             $maxPlayers = (int) $matches[2];
-        } elseif (preg_match('/\b(\d{1,4})\s+(?:connected|clients?|users?)\b/i', $normalized, $matches) === 1) {
-            $players = (int) $matches[1];
         }
 
         return [
