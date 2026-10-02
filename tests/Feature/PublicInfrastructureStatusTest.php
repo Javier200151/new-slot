@@ -153,7 +153,20 @@ class PublicInfrastructureStatusTest extends TestCase
 
         Http::fake([
             'www.tsviewer.com/*' => Http::response(
-                '<html><body><div>See when friends come online</div><span class="status">ONLINE</span><span>7 / 32 user</span></body></html>',
+                '<html><body>
+                    <div class="section withUsersOnline">Favorites & Buddies</div>
+                    <button disabled id="regHeadStatusLabel" class="statusPill green">online</button>
+                    <div id="statusInfo">
+                        <div id="slots">
+                            <span id="virtualserver_realclientsonline">7</span>
+                            /
+                            <span id="virtualserver_maxclients">32</span>
+                            user
+                        </div>
+                    </div>
+                    <div><label>- online</label><span>historic value</span></div>
+                    <div><label>- offline</label><span>historic value</span></div>
+                </body></html>',
                 200,
                 ['Content-Type' => 'text/html'],
             ),
@@ -189,7 +202,11 @@ class PublicInfrastructureStatusTest extends TestCase
 
         Http::fake([
             'www.tsviewer.com/*' => Http::response(
-                '<html><body><span class="status">OFFLINE</span></body></html>',
+                '<html><body>
+                    <button disabled id="regHeadStatusLabel" class="statusPill red">offline</button>
+                    <div><label>- online</label><span>historic value</span></div>
+                    <div><label>- offline</label><span>historic value</span></div>
+                </body></html>',
                 200,
                 ['Content-Type' => 'text/html'],
             ),
