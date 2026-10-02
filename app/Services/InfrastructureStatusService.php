@@ -286,31 +286,23 @@ class InfrastructureStatusService
             return null;
         }
 
-        $normalized = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // La ficha pública de TSViewer identifica de forma explícita el estado
+        // y los contadores del servidor mediante estos IDs. Los usamos en lugar
+        // de buscar palabras "online/offline" en toda la página, ya que TSViewer
+        // también muestra textos históricos con ambas palabras.
+        $status = $this->extractTsViewerElementText($body, 'regHeadStatusLabel');
 
-        // Evita que textos auxiliares incluidos en scripts o estilos interfieran
-        // con la lectura del estado visible de la ficha del servidor.
-        $normalized = preg_replace('/<script\b[^>]*>.*?<\/script>/is', ' ', $normalized) ?? $normalized;
-        $normalized = preg_replace('/<style\b[^>]*>.*?<\/style>/is', ' ', $normalized) ?? $normalized;
-
-        $plainText = preg_replace('/<[^>]*>/', ' ', $normalized) ?? $normalized;
-        $plainText = preg_replace('/\s+/', ' ', $plainText) ?? $plainText;
-        $plainText = trim($plainText);
-
-        // La ficha pública de TSViewer muestra el estado como ONLINE/OFFLINE y,
-        // cuando está online, la ocupación con el formato "0 / 512 user".
-        if (
-            str_contains($plainText, 'ONLINE')
-            && preg_match('/\b(\d{1,4})\s*\/\s*(\d{1,4})\s*(?:user|users)\b/i', $plainText, $matches) === 1
-        ) {
-            return [
-                'online' => true,
-                'players' => (int) $matches[1],
-                'max_players' => (int) $matches[2],
-            ];
+        if ($status === null) {
+            return null;
         }
 
-        if (str_contains($plainText, 'OFFLINE')) {
+        $status = strtolower(trim($status));
+
+        if (! in_array($status, ['online', 'offline'], true)) {
+            return null;
+        }
+
+        if ($status === 'offline') {
             return [
                 'online' => false,
                 'players' => null,
@@ -318,27 +310,46 @@ class InfrastructureStatusService
             ];
         }
 
-        // Compatibilidad con variantes del HTML que marcan el estado mediante
-        // clases serverstatus_online/serverstatus_offline.
-        $offline = preg_match('/serverstatus[_-]?offline/i', $normalized) === 1;
-        $online = preg_match('/serverstatus[_-]?online/i', $normalized) === 1;
-
-        if (! $offline && ! $online) {
-            return null;
-        }
-
-        $players = null;
-        $maxPlayers = null;
-
-        if (preg_match('/\b(\d{1,4})\s*\/\s*(\d{1,4})\b/', $plainText, $matches) === 1) {
-            $players = (int) $matches[1];
-            $maxPlayers = (int) $matches[2];
-        }
+        $players = $this->extractTsViewerInteger($body, 'virtualserver_realclientsonline');
+        $maxPlayers = $this->extractTsViewerInteger($body, 'virtualserver_maxclients');
 
         return [
-            'online' => ! $offline && $online,
+            'online' => true,
             'players' => $players,
             'max_players' => $maxPlayers,
         ];
     }
+
+    private function extractTsViewerElementText(string $html, string $id): ?string
+    {
+        $quotedId = preg_quote($id, '/');
+
+        if (
+            preg_match(
+                '/<[^>]*\bid=["\']' . $quotedId . '["\'][^>]*>(.*?)<\/[^>]+>/is',
+                $html,
+                $matches,
+            ) !== 1
+        ) {
+            return null;
+        }
+
+        $value = html_entity_decode(strip_tags($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+        $value = trim($value);
+
+        return $value !== '' ? $value : null;
+    }
+
+    private function extractTsViewerInteger(string $html, string $id): ?int
+    {
+        $value = $this->extractTsViewerElementText($html, $id);
+
+        if ($value === null || preg_match('/^\d{1,6}$/', $value) !== 1) {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
 }
