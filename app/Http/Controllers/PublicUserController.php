@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SqaGroup;
 use App\Models\Status;
 use App\Models\User;
+use App\Services\VeterancyService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -130,9 +131,11 @@ class PublicUserController extends Controller
             'metopas.sqaGroup',
         ]);
 
+        $veterancy = app(VeterancyService::class)->summary($user);
+
         return view(
             'users.show',
-            compact('user')
+            compact('user', 'veterancy')
         );
     }
 }

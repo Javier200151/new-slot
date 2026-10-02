@@ -5,12 +5,14 @@ namespace App\Observers;
 use App\Models\User;
 use App\Services\RecruitmentApplicationService;
 use App\Services\RecruitmentPeriodService;
+use App\Services\VeterancyStatusHistoryService;
 
 class UserRecruitmentObserver
 {
     public function __construct(
         private readonly RecruitmentPeriodService $recruitmentPeriods,
         private readonly RecruitmentApplicationService $recruitmentApplications,
+        private readonly VeterancyStatusHistoryService $veterancyHistory,
     ) {
     }
 
@@ -24,9 +26,13 @@ class UserRecruitmentObserver
     public function updated(User $user): void
     {
         if ($user->wasChanged('status_id')) {
+            $previousStatusId = (int) ($user->getPrevious()['status_id'] ?? 0);
+
+            $this->veterancyHistory->handleTransition($user, $previousStatusId);
+
             $this->recruitmentPeriods->handleStatusTransition(
                 $user,
-                (int) ($user->getPrevious()['status_id'] ?? 0),
+                $previousStatusId,
             );
 
             $this->recruitmentApplications->markRecruitmentStarted($user);

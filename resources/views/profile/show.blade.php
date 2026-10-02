@@ -264,11 +264,25 @@
                             </div>
 
                             <div>
-                                <dt>Fecha de ingreso</dt>
+                                <dt>Miembro desde</dt>
                                 <dd>
                                     {{ $user->member_at?->format('d/m/Y')
                                         ?? 'No indicada'
                                     }}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Tiempo efectivo como ACTIVO</dt>
+                                <dd>
+                                    {{ number_format((int) ($veterancy['effective_days'] ?? 0), 0, ',', '.') }} días
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Tiempo acumulado en RESERVA</dt>
+                                <dd>
+                                    {{ number_format((int) ($veterancy['reserve_days'] ?? 0), 0, ',', '.') }} días
                                 </dd>
                             </div>
 

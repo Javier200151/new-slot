@@ -290,6 +290,18 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         return $this->hasMany(RecruitmentReentryReview::class);
     }
 
+    public function statusHistory()
+    {
+        return $this->hasMany(UserStatusHistory::class)
+            ->orderBy('changed_at')
+            ->orderBy('id');
+    }
+
+    public function veterancyAwards()
+    {
+        return $this->hasMany(VeterancyAward::class);
+    }
+
     public function pendingRecruitmentReentryReview()
     {
         return $this->hasOne(RecruitmentReentryReview::class, 'pending_user_id');

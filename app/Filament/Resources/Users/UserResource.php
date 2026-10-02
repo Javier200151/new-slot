@@ -58,6 +58,7 @@ class UserResource extends Resource
     {
         return [
             RelationManagers\UserMetopasRelationManager::class,
+            RelationManagers\StatusHistoryRelationManager::class,
             RelationManagers\UserSqaGroupsRelationManager::class,
         ];
     }
