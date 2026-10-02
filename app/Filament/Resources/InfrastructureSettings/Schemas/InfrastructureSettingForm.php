@@ -65,7 +65,7 @@ class InfrastructureSettingForm
                         ->label('ID del servidor en TSViewer')
                         ->numeric()
                         ->minValue(1)
-                        ->helperText('Registra el TS3 en TSViewer.com y copia el número de su URL, por ejemplo: ...?ID=1121394&page=ts_viewer.')
+                        ->helperText('Introduce el número ID que aparece en la URL de la ficha del servidor en TSViewer.')
                         ->columnSpanFull(),
                 ]),
         ]);

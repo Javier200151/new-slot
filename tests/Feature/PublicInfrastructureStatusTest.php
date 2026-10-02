@@ -98,9 +98,9 @@ class PublicInfrastructureStatusTest extends TestCase
 
         Http::fake([
             'www.tsviewer.com/*' => Http::response(
-                "document.write('<div class=\"serverstatus_online\">online</div><span>7 / 32</span>');",
+                '<html><body><div>See when friends come online</div><span class="status">ONLINE</span><span>7 / 32 user</span></body></html>',
                 200,
-                ['Content-Type' => 'application/javascript'],
+                ['Content-Type' => 'text/html'],
             ),
         ]);
 
@@ -115,6 +115,14 @@ class PublicInfrastructureStatusTest extends TestCase
             ->assertJsonPath('teamspeak.players', 7)
             ->assertJsonPath('teamspeak.max_players', 32)
             ->assertJsonPath('teamspeak.provider', 'tsviewer');
+
+        Http::assertSent(function ($request): bool {
+            $url = $request->url();
+
+            return str_contains($url, 'www.tsviewer.com/index.php')
+                && str_contains($url, 'page=ts_viewer')
+                && str_contains($url, 'ID=1121394');
+        });
     }
 
     public function test_tsviewer_offline_state_is_exposed_without_serverquery(): void
@@ -126,9 +134,9 @@ class PublicInfrastructureStatusTest extends TestCase
 
         Http::fake([
             'www.tsviewer.com/*' => Http::response(
-                "document.write('<div class=\"serverstatus_offline\">offline</div>');",
+                '<html><body><span class="status">OFFLINE</span></body></html>',
                 200,
-                ['Content-Type' => 'application/javascript'],
+                ['Content-Type' => 'text/html'],
             ),
         ]);
 
