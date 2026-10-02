@@ -57,6 +57,13 @@ return [
                 'user-metopas' => [
                     'label' => 'Asignación de metopas',
                 ],
+                'veterancy-settings' => [
+                    'label' => 'Veteranías e historial de actividad',
+                    'actions' => [
+                        'view' => 'Ver veteranías',
+                        'update' => 'Configurar, importar y aprobar veteranías',
+                    ],
+                ],
                 'promos' => [
                     'label' => 'Promociones',
                 ],

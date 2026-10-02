@@ -4,9 +4,12 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Filament\Forms\BbcodeTextarea;
 use App\Models\Status;
+use App\Models\User;
+use App\Services\VeterancyService;
 use App\Rules\NotReservedUsername;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -123,6 +126,32 @@ class UserForm
                 DatePicker::make('member_at')
                     ->label('Miembro desde')
                     ->helperText('Fecha en la que el recluta pasó a ser miembro.'),
+
+                Placeholder::make('active_time_display')
+                    ->label('Tiempo efectivo como ACTIVO')
+                    ->content(function (?User $record): string {
+                        if (! $record) {
+                            return '—';
+                        }
+
+                        $days = (int) (app(VeterancyService::class)->summary($record)['effective_days'] ?? 0);
+
+                        return number_format($days, 0, ',', '.') . ' días';
+                    })
+                    ->helperText('Tiempo acumulado en estado ACTIVO desde Miembro desde. Los periodos en RESERVA u otros estados no cuentan.'),
+
+                Placeholder::make('reserve_time_display')
+                    ->label('Tiempo acumulado en RESERVA')
+                    ->content(function (?User $record): string {
+                        if (! $record) {
+                            return '—';
+                        }
+
+                        $days = (int) (app(VeterancyService::class)->summary($record)['reserve_days'] ?? 0);
+
+                        return number_format($days, 0, ',', '.') . ' días';
+                    })
+                    ->helperText('Suma de todos los periodos históricos en los que el miembro ha estado en RESERVA.'),
 
                 
                 //TextInput::make('created_by')

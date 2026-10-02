@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Rules\NotReservedUsername;
+use App\Services\VeterancyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -25,7 +26,9 @@ class ProfileController extends Controller
             'mainSqaGroup',
         ]);
 
-        return view('profile.show', compact('user'));
+        $veterancy = app(VeterancyService::class)->summary($user);
+
+        return view('profile.show', compact('user', 'veterancy'));
     }
 
     public function update(Request $request): RedirectResponse

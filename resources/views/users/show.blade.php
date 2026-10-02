@@ -178,7 +178,17 @@
                                     ?? 'No indicado'
                                 }}
                             </dd>
-                        </div>           
+                        </div>
+
+                        <div>
+                            <dt>Tiempo efectivo como ACTIVO</dt>
+                            <dd>{{ number_format((int) ($veterancy['effective_days'] ?? 0), 0, ',', '.') }} días</dd>
+                        </div>
+
+                        <div>
+                            <dt>Tiempo acumulado en RESERVA</dt>
+                            <dd>{{ number_format((int) ($veterancy['reserve_days'] ?? 0), 0, ',', '.') }} días</dd>
+                        </div>
                     </dl>
                 </section>
 
