@@ -115,18 +115,11 @@
                 <strong class="footer-infrastructure__title">Estado de servidores</strong>
 
                 <div class="footer-infrastructure__services">
-                    @foreach([
-                        'arma3_academy' => 'ArmA 3 Academia',
-                        'arma3_operations' => 'ArmA 3 Operativos',
-                        'reforger_academy' => 'ArmA Reforger Academia',
-                        'reforger_operations' => 'ArmA Reforger Operativos',
-                    ] as $serviceKey => $serviceLabel)
-                        <div class="footer-infrastructure__row" data-service="{{ $serviceKey }}">
-                            <span class="footer-status-dot is-loading" data-status-dot aria-hidden="true"></span>
-                            <span class="footer-infrastructure__service-name">{{ $serviceLabel }}</span>
-                            <small data-status-detail>Comprobando…</small>
-                        </div>
-                    @endforeach
+                    <div class="footer-infrastructure__row" data-services-loading>
+                        <span class="footer-status-dot is-loading" data-status-dot aria-hidden="true"></span>
+                        <span class="footer-infrastructure__service-name">Servidores ArmA</span>
+                        <small data-status-detail>Comprobando…</small>
+                    </div>
                 </div>
 
                 <div class="footer-infrastructure__ts3" data-ts3-block hidden>
@@ -136,6 +129,7 @@
                         <span class="footer-infrastructure__service-name">TeamSpeak 3</span>
                         <small data-ts3-detail>Comprobando…</small>
                     </div>
+                    <ul class="footer-infrastructure__users" data-ts3-users></ul>
                 </div>
             </div>
         </details>

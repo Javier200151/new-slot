@@ -21,14 +21,34 @@
     const applySnapshot = (panel, snapshot) => {
         const services = Array.isArray(snapshot.services) ? snapshot.services : [];
 
-        services.forEach((service) => {
-            const row = panel.querySelector(`[data-service="${service.key}"]`);
-            if (!row) return;
+        const servicesContainer = panel.querySelector('.footer-infrastructure__services');
 
-            setDot(row, Boolean(service.online));
+        if (servicesContainer) {
+            servicesContainer.replaceChildren();
 
-            const detail = row.querySelector('[data-status-detail]');
-            if (detail) {
+            services.forEach((service) => {
+                const row = document.createElement('div');
+                row.className = 'footer-infrastructure__row';
+                row.dataset.service = service.key;
+
+                const dot = document.createElement('span');
+                dot.className = 'footer-status-dot is-loading';
+                dot.dataset.statusDot = '';
+                dot.setAttribute('aria-hidden', 'true');
+
+                const name = document.createElement('span');
+                name.className = 'footer-infrastructure__service-name';
+                name.textContent = service.label || 'Servidor';
+
+                const detail = document.createElement('small');
+                detail.dataset.statusDetail = '';
+                detail.textContent = 'Comprobando…';
+
+                row.append(dot, name, detail);
+                servicesContainer.appendChild(row);
+
+                setDot(row, Boolean(service.online));
+
                 if (!service.configured) {
                     detail.textContent = 'Sin configurar';
                 } else if (!service.online) {
@@ -38,8 +58,20 @@
                 } else {
                     detail.textContent = 'En línea';
                 }
+            });
+
+            if (!services.length) {
+                const empty = document.createElement('div');
+                empty.className = 'footer-infrastructure__row';
+
+                const name = document.createElement('span');
+                name.className = 'footer-infrastructure__service-name';
+                name.textContent = 'No hay servidores ArmA configurados';
+
+                empty.appendChild(name);
+                servicesContainer.appendChild(empty);
             }
-        });
+        }
 
         const ts3 = snapshot.teamspeak || {};
         const ts3Block = panel.querySelector('[data-ts3-block]');

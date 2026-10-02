@@ -32,32 +32,28 @@ class InfrastructureStatusService
     {
         $settings = InfrastructureSetting::current();
 
-        $services = [
-            $this->gameStatus(
-                'arma3_academy',
-                'ArmA 3 Academia',
-                $settings->arma3_academy_host,
-                $settings->arma3_academy_query_port,
-            ),
-            $this->gameStatus(
-                'arma3_operations',
-                'ArmA 3 Operativos',
-                $settings->arma3_operations_host,
-                $settings->arma3_operations_query_port,
-            ),
-            $this->gameStatus(
-                'reforger_academy',
-                'ArmA Reforger Academia',
-                $settings->reforger_academy_host,
-                $settings->reforger_academy_query_port,
-            ),
-            $this->gameStatus(
-                'reforger_operations',
-                'ArmA Reforger Operativos',
-                $settings->reforger_operations_host,
-                $settings->reforger_operations_query_port,
-            ),
-        ];
+        $services = [];
+
+        foreach (array_values($settings->arma_servers ?? []) as $index => $server) {
+            if (! is_array($server)) {
+                continue;
+            }
+
+            $label = trim((string) ($server['name'] ?? ''));
+            $host = trim((string) ($server['host'] ?? ''));
+            $gamePort = (int) ($server['game_port'] ?? 0);
+
+            if ($label === '') {
+                continue;
+            }
+
+            $services[] = $this->gameStatus(
+                'arma_server_' . $index,
+                $label,
+                $host,
+                $gamePort > 0 ? $gamePort + 1 : null,
+            );
+        }
 
         return [
             'services' => $services,
@@ -108,7 +104,7 @@ class InfrastructureStatusService
         }
     }
 
-    private function queryA2sInfo(string $host, int $port): ?array
+    protected function queryA2sInfo(string $host, int $port): ?array
     {
         $errno = 0;
         $error = '';

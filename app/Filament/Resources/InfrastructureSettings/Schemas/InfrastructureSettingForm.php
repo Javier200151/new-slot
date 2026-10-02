@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\InfrastructureSettings\Schemas;
 
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -12,48 +13,39 @@ class InfrastructureSettingForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Servidores de juego')
-                ->description('Configura el host y el puerto de consulta A2S/Steam Query. El footer usa estos datos para mostrar el estado verde o rojo.')
+            Section::make('Servidores ArmA')
+                ->description('Añade, elimina y reordena los servidores que deben aparecer en el estado del pie de página.')
                 ->schema([
-                    TextInput::make('arma3_academy_host')
-                        ->label('ArmA 3 Academia · IP o dominio')
-                        ->maxLength(255),
-                    TextInput::make('arma3_academy_query_port')
-                        ->label('ArmA 3 Academia · puerto A2S')
-                        ->numeric()
-                        ->minValue(1)
-                        ->maxValue(65535)
-                        ->helperText('Normalmente es el puerto de juego + 1.'),
+                    Repeater::make('arma_servers')
+                        ->label('Servidores')
+                        ->schema([
+                            TextInput::make('name')
+                                ->label('Nombre')
+                                ->required()
+                                ->maxLength(120),
 
-                    TextInput::make('arma3_operations_host')
-                        ->label('ArmA 3 Operativos · IP o dominio')
-                        ->maxLength(255),
-                    TextInput::make('arma3_operations_query_port')
-                        ->label('ArmA 3 Operativos · puerto A2S')
-                        ->numeric()
-                        ->minValue(1)
-                        ->maxValue(65535),
+                            TextInput::make('host')
+                                ->label('IP o dominio')
+                                ->maxLength(255),
 
-                    TextInput::make('reforger_academy_host')
-                        ->label('ArmA Reforger Academia · IP o dominio')
-                        ->maxLength(255),
-                    TextInput::make('reforger_academy_query_port')
-                        ->label('ArmA Reforger Academia · puerto A2S')
-                        ->numeric()
-                        ->minValue(1)
-                        ->maxValue(65535)
-                        ->helperText('Reforger usa A2S; el puerto por defecto documentado es 17777.'),
-
-                    TextInput::make('reforger_operations_host')
-                        ->label('ArmA Reforger Operativos · IP o dominio')
-                        ->maxLength(255),
-                    TextInput::make('reforger_operations_query_port')
-                        ->label('ArmA Reforger Operativos · puerto A2S')
-                        ->numeric()
-                        ->minValue(1)
-                        ->maxValue(65535),
-                ])
-                ->columns(2),
+                            TextInput::make('game_port')
+                                ->label('Puerto de juego')
+                                ->numeric()
+                                ->minValue(1)
+                                ->maxValue(65534)
+                                ->helperText('El puerto de consulta se calculará automáticamente sumando 1 al puerto de juego.'),
+                        ])
+                        ->columns(3)
+                        ->defaultItems(0)
+                        ->reorderable()
+                        ->collapsible()
+                        ->itemLabel(
+                            fn (array $state): ?string => filled($state['name'] ?? null)
+                                ? (string) $state['name']
+                                : 'Servidor ArmA'
+                        )
+                        ->columnSpanFull(),
+                ]),
 
             Section::make('TeamSpeak 3 · TSViewer')
                 ->schema([

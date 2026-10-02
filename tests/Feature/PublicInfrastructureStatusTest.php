@@ -32,6 +32,8 @@ class PublicInfrastructureStatusTest extends TestCase
             $table->unsignedSmallInteger('reforger_operations_query_port')->nullable();
             $table->boolean('ts3_enabled')->default(false);
             $table->unsignedBigInteger('tsviewer_server_id')->nullable();
+            $table->json('extra_arma_servers')->nullable();
+            $table->json('arma_servers')->nullable();
             $table->timestamps();
         });
     }
@@ -67,10 +69,10 @@ class PublicInfrastructureStatusTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonCount(4, 'services')
-            ->assertJsonPath('services.0.key', 'arma3_academy')
-            ->assertJsonPath('services.1.key', 'arma3_operations')
-            ->assertJsonPath('services.2.key', 'reforger_academy')
-            ->assertJsonPath('services.3.key', 'reforger_operations')
+            ->assertJsonPath('services.0.label', 'ArmA 3 Academia')
+            ->assertJsonPath('services.1.label', 'ArmA 3 Operativos')
+            ->assertJsonPath('services.2.label', 'ArmA Reforger Academia')
+            ->assertJsonPath('services.3.label', 'ArmA Reforger Operativos')
             ->assertJsonPath('teamspeak.enabled', false)
             ->assertJsonPath('teamspeak.provider', 'tsviewer');
     }
@@ -87,6 +89,59 @@ class PublicInfrastructureStatusTest extends TestCase
         $this->actingAs($this->userWithStatus('RESERVA'));
 
         $this->getJson(route('infrastructure.status'))->assertForbidden();
+    }
+
+    public function test_all_arma_servers_keep_configured_order_and_use_game_port_plus_one(): void
+    {
+        InfrastructureSetting::query()->create([
+            'arma_servers' => [
+                [
+                    'name' => 'ArmA Reforger Operativos',
+                    'host' => 'reforger.example.test',
+                    'game_port' => 2001,
+                ],
+                [
+                    'name' => 'ArmA 3 Academia',
+                    'host' => 'academy.example.test',
+                    'game_port' => 2302,
+                ],
+                [
+                    'name' => 'ArmA 3 Zeus',
+                    'host' => 'zeus.example.test',
+                    'game_port' => 2402,
+                ],
+            ],
+        ]);
+
+        $service = new class extends \App\Services\InfrastructureStatusService
+        {
+            public array $queries = [];
+
+            protected function queryA2sInfo(string $host, int $port): ?array
+            {
+                $this->queries[] = [$host, $port];
+
+                return [
+                    'name' => $host,
+                    'players' => 1,
+                    'max_players' => 64,
+                ];
+            }
+        };
+
+        $snapshot = $service->snapshot(force: true);
+
+        $this->assertSame([
+            'ArmA Reforger Operativos',
+            'ArmA 3 Academia',
+            'ArmA 3 Zeus',
+        ], array_column($snapshot['services'], 'label'));
+
+        $this->assertSame([
+            ['reforger.example.test', 2002],
+            ['academy.example.test', 2303],
+            ['zeus.example.test', 2403],
+        ], $service->queries);
     }
 
     public function test_tsviewer_reports_online_state_and_connected_count(): void
