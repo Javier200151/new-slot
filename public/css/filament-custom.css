@@ -1120,3 +1120,47 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* NewSlot · Procedimientos: acciones visibles dentro de cada tarjeta */
+.ns-procedure-step-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .6rem;
+    padding: .8rem 1.1rem 1rem;
+    border-top: 1px solid rgba(148, 163, 184, .14);
+}
+
+.ns-procedure-step-card__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.15rem;
+    padding: .42rem .8rem;
+    border: 1px solid rgba(148, 163, 184, .3);
+    border-radius: .55rem;
+    background: rgba(148, 163, 184, .08);
+    color: inherit;
+    font-size: .82rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ns-procedure-step-card__action:hover {
+    background: rgba(148, 163, 184, .15);
+}
+
+.ns-procedure-step-card__action.is-success {
+    color: rgb(74 222 128);
+    border-color: rgba(34, 197, 94, .42);
+    background: rgba(34, 197, 94, .1);
+}
+
+.ns-procedure-step-card__action.is-success:hover {
+    background: rgba(34, 197, 94, .18);
+}
+
+.ns-procedure-step-card__action:disabled {
+    opacity: .55;
+    cursor: wait;
+}

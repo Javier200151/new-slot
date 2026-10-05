@@ -21,6 +21,20 @@
         \App\Models\MemberProcedureStep::STATUS_SKIPPED => 'is-skipped',
         default => 'is-info',
     };
+    $canUpdate = (bool) auth()->user()?->can('member-procedures.update');
+    $canCompleteManual = $canUpdate
+        && ! $record->isFinished()
+        && (
+            $record->status === \App\Models\MemberProcedureStep::STATUS_MANUAL
+            || (str_starts_with((string) $record->step_key, 'google_sheets_') && $record->status === \App\Models\MemberProcedureStep::STATUS_ERROR)
+        );
+    $canRetry = $canUpdate
+        && $record->kind !== \App\Models\MemberProcedureStep::KIND_MANUAL
+        && in_array($record->status, [
+            \App\Models\MemberProcedureStep::STATUS_ERROR,
+            \App\Models\MemberProcedureStep::STATUS_MANUAL,
+            \App\Models\MemberProcedureStep::STATUS_WAITING,
+        ], true);
 @endphp
 
 <article class="ns-procedure-step-card">
@@ -66,4 +80,32 @@
             <strong class="ns-procedure-step-card__detail">{{ filled($record->last_error) ? $record->last_error : '—' }}</strong>
         </div>
     </div>
+
+    @if ($canCompleteManual || $canRetry)
+        <footer class="ns-procedure-step-card__actions">
+            @if ($canCompleteManual)
+                <button
+                    type="button"
+                    class="ns-procedure-step-card__action is-success"
+                    wire:click="completeManualFromCard({{ $record->id }})"
+                    wire:confirm="¿Marcar este paso como completado?"
+                    wire:loading.attr="disabled"
+                >
+                    ✓ Marcar completado
+                </button>
+            @endif
+
+            @if ($canRetry)
+                <button
+                    type="button"
+                    class="ns-procedure-step-card__action"
+                    wire:click="retryFromCard({{ $record->id }})"
+                    wire:loading.attr="disabled"
+                >
+                    ↻ Reintentar
+                </button>
+            @endif
+        </footer>
+    @endif
+
 </article>

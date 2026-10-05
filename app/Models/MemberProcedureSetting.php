@@ -49,4 +49,12 @@ class MemberProcedureSetting extends Model
     {
         return $this->belongsTo(SqaGroup::class, 'tutors_group_id')->withTrashed();
     }
+
+    public function stepDefinitions()
+    {
+        return $this->hasMany(MemberProcedureStepDefinition::class, 'member_procedure_setting_id')
+            ->orderBy('procedure_type')
+            ->orderBy('position')
+            ->orderBy('id');
+    }
 }
