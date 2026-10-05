@@ -73,5 +73,23 @@ return [
             'api_key' => env('ARMASQUADS_API_KEY'),
             'timeout' => (int) env('ARMASQUADS_TIMEOUT', 10),
         ],
+
+        /*
+        |------------------------------------------------------------------
+        | Google Sheets · registro privado de miembros
+        |------------------------------------------------------------------
+        |
+        | Las credenciales son un JSON de Service Account almacenado fuera
+        | del repositorio. Filament conserva únicamente identificadores
+        | funcionales del documento; nunca la clave privada.
+        |
+        */
+        'google_sheets' => [
+            'enabled' => env('GOOGLE_SHEETS_ENABLED', false),
+            'credentials' => env('GOOGLE_SHEETS_CREDENTIALS'),
+            'spreadsheet_id' => env('GOOGLE_MEMBERS_SPREADSHEET_ID'),
+            'sheet_name' => env('GOOGLE_MEMBERS_SHEET_NAME', 'General'),
+            'timeout' => (int) env('GOOGLE_SHEETS_TIMEOUT', 15),
+        ],
     ],
 ];

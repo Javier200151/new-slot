@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\MemberProcedures\RelationManagers;
 
 use App\Models\MemberProcedureStep;
+use App\Services\MemberProcedures\GoogleSheetsService;
 use App\Services\MemberProcedures\MemberProcedureEngine;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -56,13 +57,43 @@ class StepsRelationManager extends RelationManager
             ->defaultSort('position')
             ->headerActions([])
             ->recordActions([
+                Action::make('googleManualRow')
+                    ->label('Fila manual')
+                    ->icon('heroicon-o-clipboard-document')
+                    ->color('gray')
+                    ->visible(fn (MemberProcedureStep $record): bool => (bool) auth()->user()?->can('member-procedures.update')
+                        && $record->step_key === 'google_sheets_transfer'
+                        && ! $record->isFinished())
+                    ->modalHeading('Fila de contingencia para Google Sheets')
+                    ->modalDescription('Selecciona todo el contenido del campo y pégalo empezando en la columna A de una fila vacía de la pestaña General. Los valores están separados por tabuladores.')
+                    ->form(function (MemberProcedureStep $record): array {
+                        $procedure = $record->procedure()->with('user')->firstOrFail();
+                        $row = app(GoogleSheetsService::class)->manualTsvForUser($procedure->user);
+
+                        return [
+                            Textarea::make('row')
+                                ->label('Fila A:Q')
+                                ->default($row)
+                                ->rows(5)
+                                ->dehydrated(false)
+                                ->extraInputAttributes([
+                                    'readonly' => true,
+                                    'onclick' => 'this.select()',
+                                ]),
+                        ];
+                    })
+                    ->modalSubmitActionLabel('Cerrar')
+                    ->action(fn (): null => null),
                 Action::make('completeManual')
                     ->label('Marcar completado')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (MemberProcedureStep $record): bool => (bool) auth()->user()?->can('member-procedures.update')
                         && ! $record->isFinished()
-                        && $record->status === MemberProcedureStep::STATUS_MANUAL)
+                        && (
+                            $record->status === MemberProcedureStep::STATUS_MANUAL
+                            || (str_starts_with((string) $record->step_key, 'google_sheets_') && $record->status === MemberProcedureStep::STATUS_ERROR)
+                        ))
                     ->requiresConfirmation()
                     ->form([
                         Textarea::make('note')
