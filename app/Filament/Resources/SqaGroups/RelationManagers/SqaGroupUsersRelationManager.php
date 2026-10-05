@@ -37,6 +37,8 @@ class SqaGroupUsersRelationManager extends RelationManager
                             $query->whereNotIn('id', $assignedUserIds);
                         })
                         ->orderBy('nick')
+                        ->get()
+                        ->filter(fn (User $user): bool => $user->canBeAdministrativelyModifiedBy(auth()->user()))
                         ->pluck('nick', 'id')
                         ->all())
                     ->searchable()
@@ -82,7 +84,8 @@ class SqaGroupUsersRelationManager extends RelationManager
                     ->onColor('warning')
                     ->offColor('gray')
                     ->visible(fn (): bool => (bool) $this->getOwnerRecord()->has_coordinator_role)
-                    ->disabled(fn (): bool => ! auth()->user()?->can('update', $this->getOwnerRecord())),
+                    ->disabled(fn ($record): bool => ! auth()->user()?->can('update', $this->getOwnerRecord())
+                        || ! $record->user?->canBeAdministrativelyModifiedBy(auth()->user())),
 
                 TextColumn::make('updatedBy.nick')
                     ->label('Actualizado por')
@@ -106,10 +109,12 @@ class SqaGroupUsersRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
-                    ->label('Editar'),
+                    ->label('Editar')
+                    ->visible(fn ($record): bool => (bool) $record->user?->canBeAdministrativelyModifiedBy(auth()->user())),
 
                 DeleteAction::make()
-                    ->label('Quitar'),
+                    ->label('Quitar')
+                    ->visible(fn ($record): bool => (bool) $record->user?->canBeAdministrativelyModifiedBy(auth()->user())),
             ]);
     }
 }

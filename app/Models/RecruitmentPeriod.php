@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Services\ProtectedAdminGuard;
 use Illuminate\Database\Eloquent\Model;
 
 class RecruitmentPeriod extends Model
@@ -29,6 +30,8 @@ class RecruitmentPeriod extends Model
                 return;
             }
 
+            app(ProtectedAdminGuard::class)->authorizeUserId((int) $period->user_id);
+
             // Compatibilidad temporal con users.tutor_id. El dato canónico
             // permanece en el periodo y este espejo podrá retirarse más adelante.
             \Illuminate\Support\Facades\DB::table('users')
@@ -37,6 +40,11 @@ class RecruitmentPeriod extends Model
                     'tutor_id' => $period->tutor_id,
                     'updated_at' => now(),
                 ]);
+
+            if ($period->wasChanged('tutor_id') && $period->tutor_id) {
+                app(\App\Services\MemberProcedures\MemberProcedureEngine::class)
+                    ->syncWaitingStepsForUser((int) $period->user_id);
+            }
         });
     }
 

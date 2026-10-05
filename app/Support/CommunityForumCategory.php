@@ -115,6 +115,15 @@ class CommunityForumCategory
 
     public static function can(User $user, string $key, string $action): bool
     {
+        $category = self::get($key);
+        if (! $category) {
+            return false;
+        }
+
+        if ($action === 'poll' && ! ($category['allow_polls'] ?? false)) {
+            return false;
+        }
+
         if ($user->hasRole('admin')) {
             return true;
         }
@@ -254,6 +263,7 @@ class CommunityForumCategory
             'channel' => $category->channel,
             'system_type' => $category->system_type,
             'is_system' => $category->is_system,
+            'allow_polls' => (bool) $category->allow_polls,
             'sort_order' => $category->sort_order,
         ];
     }
@@ -283,7 +293,8 @@ class CommunityForumCategory
                 'permission_resource' => 'community-forum-debate',
                 'channel' => 'personal',
                 'system_type' => ForumCategoryModel::TYPE_DEBATE,
-                'is_system' => true,
+                'is_system' => false,
+                'allow_polls' => true,
                 'sort_order' => 10,
                 'status_names' => ['ACTIVO', 'RESERVA'],
             ],
@@ -300,7 +311,8 @@ class CommunityForumCategory
                 'permission_resource' => 'community-forum-convocatoria',
                 'channel' => 'personal',
                 'system_type' => ForumCategoryModel::TYPE_CALL,
-                'is_system' => true,
+                'is_system' => false,
+                'allow_polls' => true,
                 'sort_order' => 20,
                 'status_names' => ['ACTIVO', 'RESERVA'],
             ],
@@ -317,7 +329,8 @@ class CommunityForumCategory
                 'permission_resource' => 'community-forum-propuesta',
                 'channel' => 'personal',
                 'system_type' => ForumCategoryModel::TYPE_PROPOSAL,
-                'is_system' => true,
+                'is_system' => false,
+                'allow_polls' => true,
                 'sort_order' => 30,
                 'status_names' => ['ACTIVO', 'RESERVA'],
             ],
@@ -334,7 +347,8 @@ class CommunityForumCategory
                 'permission_resource' => 'community-forum-consulta',
                 'channel' => 'personal',
                 'system_type' => ForumCategoryModel::TYPE_CONSULTATION,
-                'is_system' => true,
+                'is_system' => false,
+                'allow_polls' => true,
                 'sort_order' => 40,
                 'status_names' => ['ACTIVO', 'RESERVA'],
             ],
@@ -352,6 +366,7 @@ class CommunityForumCategory
                 'channel' => 'diary',
                 'system_type' => ForumCategoryModel::TYPE_DIARY,
                 'is_system' => true,
+                'allow_polls' => false,
                 'sort_order' => 50,
                 'status_names' => ['ACTIVO', 'RESERVA', 'RECLUTA'],
             ],
@@ -368,7 +383,8 @@ class CommunityForumCategory
                 'permission_resource' => 'community-forum-cantina',
                 'channel' => 'cantina',
                 'system_type' => ForumCategoryModel::TYPE_CANTINA,
-                'is_system' => true,
+                'is_system' => false,
+                'allow_polls' => true,
                 'sort_order' => 60,
                 'status_names' => ['ACTIVO', 'RESERVA', 'RECLUTA'],
             ],

@@ -41,6 +41,23 @@ class EventComment extends Model
                 $eventComment->updated_by = Auth::id();
             }
         });
+
+        // Al eliminar un comentario padre, eliminamos lógicamente también
+        // todas sus respuestas. Así no quedan respuestas huérfanas ni hilos
+        // parciales invisibles. El borrado forzado conserva la misma regla.
+        static::deleting(function (EventComment $eventComment): void {
+            $replies = $eventComment->replies()
+                ->withTrashed()
+                ->get();
+
+            foreach ($replies as $reply) {
+                if ($eventComment->isForceDeleting()) {
+                    $reply->forceDelete();
+                } elseif (! $reply->trashed()) {
+                    $reply->delete();
+                }
+            }
+        });
     }
 
     public function event()

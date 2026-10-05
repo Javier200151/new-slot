@@ -88,14 +88,17 @@ class UserSqaGroupsRelationManager extends RelationManager
             ->defaultSort('created_at')
             ->headerActions([
                 CreateAction::make()
-                    ->label('Añadir grupo'),
+                    ->label('Añadir grupo')
+                    ->visible(fn (): bool => $this->getOwnerRecord()->canBeAdministrativelyModifiedBy(auth()->user())),
             ])
             ->recordActions([
                 EditAction::make()
-                    ->label('Editar'),
+                    ->label('Editar')
+                    ->visible(fn (): bool => $this->getOwnerRecord()->canBeAdministrativelyModifiedBy(auth()->user())),
 
                 DeleteAction::make()
-                    ->label('Quitar'),
+                    ->label('Quitar')
+                    ->visible(fn (): bool => $this->getOwnerRecord()->canBeAdministrativelyModifiedBy(auth()->user())),
             ]);
     }
 }

@@ -1043,6 +1043,95 @@ class PublicEventsPageTest extends TestCase
         ]);
     }
 
+    public function test_author_can_delete_comment_and_nested_replies_are_soft_deleted(): void
+    {
+        DB::table('users')->insert([
+            ['id' => 30, 'nick' => 'Autor'],
+            ['id' => 31, 'nick' => 'Respuesta'],
+        ]);
+
+        DB::table('event_comments')->insert([
+            [
+                'id' => 30,
+                'event_id' => 1,
+                'user_id' => 30,
+                'parent_id' => null,
+                'comment' => 'Comentario padre.',
+                'is_pinned' => false,
+                'created_at' => '2026-08-08 18:00:00',
+                'updated_at' => '2026-08-08 18:00:00',
+            ],
+            [
+                'id' => 31,
+                'event_id' => 1,
+                'user_id' => 31,
+                'parent_id' => 30,
+                'comment' => 'Respuesta hija.',
+                'is_pinned' => false,
+                'created_at' => '2026-08-08 18:01:00',
+                'updated_at' => '2026-08-08 18:01:00',
+            ],
+            [
+                'id' => 32,
+                'event_id' => 1,
+                'user_id' => 30,
+                'parent_id' => 31,
+                'comment' => 'Respuesta nieta.',
+                'is_pinned' => false,
+                'created_at' => '2026-08-08 18:02:00',
+                'updated_at' => '2026-08-08 18:02:00',
+            ],
+        ]);
+
+        $author = User::query()->findOrFail(30);
+
+        $this->actingAs($author)
+            ->get('/eventos/1')
+            ->assertOk()
+            ->assertSee(route('events.comments.destroy', [1, 30]), escape: false)
+            ->assertSee('aria-label="Eliminar comentario"', escape: false);
+
+        $this->delete('/eventos/1/comentarios/30')
+            ->assertRedirect('/eventos/1#comentarios')
+            ->assertSessionHas(
+                'comment_status',
+                'El comentario y sus respuestas se han eliminado correctamente.'
+            );
+
+        foreach ([30, 31, 32] as $commentId) {
+            $this->assertNotNull(
+                DB::table('event_comments')->where('id', $commentId)->value('deleted_at')
+            );
+        }
+    }
+
+    public function test_user_cannot_delete_another_users_event_comment_without_permission(): void
+    {
+        DB::table('users')->insert([
+            ['id' => 33, 'nick' => 'Autor protegido'],
+            ['id' => 34, 'nick' => 'Otro usuario'],
+        ]);
+
+        DB::table('event_comments')->insert([
+            'id' => 33,
+            'event_id' => 1,
+            'user_id' => 33,
+            'parent_id' => null,
+            'comment' => 'No se puede borrar por otro usuario.',
+            'is_pinned' => false,
+            'created_at' => '2026-08-08 18:00:00',
+            'updated_at' => '2026-08-08 18:00:00',
+        ]);
+
+        $this->actingAs(User::query()->findOrFail(34))
+            ->delete('/eventos/1/comentarios/33')
+            ->assertForbidden();
+
+        $this->assertNull(
+            DB::table('event_comments')->where('id', 33)->value('deleted_at')
+        );
+    }
+
     public function test_user_cannot_reply_to_a_comment_from_another_event(): void
     {
         DB::table('users')->insert(['id' => 23, 'nick' => 'Comentarista']);
@@ -1092,6 +1181,8 @@ class PublicEventsPageTest extends TestCase
         $this->post('/eventos/1/comentarios', ['comment' => 'No permitido'])
             ->assertRedirect('/login');
         $this->patch('/eventos/1/comentarios/20', ['comment' => 'No permitido'])
+            ->assertRedirect('/login');
+        $this->delete('/eventos/1/comentarios/20')
             ->assertRedirect('/login');
     }
 

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Status;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class AdminSeeder extends Seeder
 {
@@ -22,6 +23,10 @@ class AdminSeeder extends Seeder
                 'status_id' => Status::where('name', 'ACTIVO')->value('id'),
             ]
         );
+
+        if (Schema::hasColumn('users', 'is_protected_admin') && ! $admin->is_protected_admin) {
+            $admin->forceFill(['is_protected_admin' => true])->saveQuietly();
+        }
 
         $admin->assignRole('admin');
     }

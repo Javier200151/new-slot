@@ -1,6 +1,7 @@
 @extends('layouts.metopas')
 
-@section('title', 'Diario de ' . ($diary->author?->nick ?: $diary->author_nick))
+@php($diaryCategory = \App\Support\CommunityForumCategory::diary())
+@section('title', ($diaryCategory['singular'] ?? 'Diario') . ' de ' . ($diary->author?->nick ?: $diary->author_nick))
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/community.css') }}?v={{ filemtime(public_path('css/community.css')) }}">
@@ -19,14 +20,14 @@
     $authorName = $author?->nick ?: $diary->author_nick;
 @endphp
 <div class="community-shell forum-thread-page diary-thread-page">
-    <a class="community-kicker" href="{{ route('community.diary.index') }}">← Diarios</a>
+    <a class="community-kicker" style="color: {{ $diaryCategory['color'] ?? '#22c55e' }}" href="{{ route('community.diary.index') }}">← {{ $diaryCategory['label'] ?? 'Diarios' }}</a>
 
     <div class="thread-title-row">
         <div class="thread-owner-head">
             <div>
                 <div class="thread-author-label">AUTOR DEL DIARIO</div>
                 <h1 class="community-title" style="color: {{ $author?->getFrontendColor() ?? '#fff' }}">
-                    Diario de {{ $authorName }}
+                    {{ $diaryCategory['singular'] ?? 'Diario' }} de {{ $authorName }}
                 </h1>
                 <p class="community-lead" style="margin-bottom:0">
                     Iniciado {{ $diary->created_at->format('d/m/Y') }}

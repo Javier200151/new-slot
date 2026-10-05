@@ -12,6 +12,7 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class ForumCategoryResource extends Resource
@@ -34,6 +35,16 @@ class ForumCategoryResource extends Resource
     public static function table(Table $table): Table
     {
         return ForumCategoriesTable::configure($table);
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return parent::canEdit($record) && $record instanceof ForumCategory;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return parent::canDelete($record) && $record instanceof ForumCategory && ! $record->isDiary();
     }
 
     public static function getPages(): array

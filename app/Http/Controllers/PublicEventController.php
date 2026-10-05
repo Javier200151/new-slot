@@ -18,6 +18,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -2237,6 +2238,33 @@ class PublicEventController extends Controller
         return redirect()
             ->to(route('events.show', $event).'#comentarios')
             ->with('comment_status', 'Tu comentario se ha actualizado correctamente.');
+    }
+
+    public function destroyComment(
+        Event $event,
+        EventComment $eventComment,
+        Request $request,
+    ): RedirectResponse {
+        abort_unless(
+            $event->eventStatus()->whereIn('name', ['ACTIVO', 'FINALIZADO'])->exists(),
+            404,
+        );
+
+        abort_unless((int) $eventComment->event_id === (int) $event->id, 404);
+
+        Gate::forUser($request->user())->authorize('delete', $eventComment);
+
+        $hadReplies = $eventComment->replies()->exists();
+        $eventComment->delete();
+
+        return redirect()
+            ->to(route('events.show', $event).'#comentarios')
+            ->with(
+                'comment_status',
+                $hadReplies
+                    ? 'El comentario y sus respuestas se han eliminado correctamente.'
+                    : 'El comentario se ha eliminado correctamente.'
+            );
     }
 
     /**

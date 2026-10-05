@@ -29,13 +29,14 @@ class CommunityPollController extends Controller
 
     public function storeForPost(
         Request $request,
+        string $category,
         CommunityPost $post,
         CommunityPollManager $pollManager,
         CommunitySubscriptionService $subscriptions,
     ): RedirectResponse {
         $this->authorizePersonal($request);
-        abort_unless($post->channel === 'personal', 404);
         $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless($category === $categoryKey || in_array($category, ['personal', 'cantina'], true), 404);
         abort_unless(
             CommunityForumCategory::can($request->user(), $categoryKey, 'poll'),
             403,
@@ -90,15 +91,16 @@ class CommunityPollController extends Controller
 
     public function updateForPost(
         Request $request,
+        string $category,
         CommunityPost $post,
         CommunityPoll $poll,
         CommunityPollManager $pollManager,
         CommunitySubscriptionService $subscriptions,
     ): RedirectResponse {
         $this->authorizePersonal($request);
-        abort_unless($post->channel === 'personal', 404);
         abort_unless((int) $poll->community_post_id === (int) $post->id, 404);
         $categoryKey = CommunityForumCategory::keyForPost($post);
+        abort_unless($category === $categoryKey || in_array($category, ['personal', 'cantina'], true), 404);
         abort_unless(
             CommunityForumCategory::can($request->user(), $categoryKey, 'poll'),
             403,

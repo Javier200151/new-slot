@@ -1,0 +1,730 @@
+.ns-pd-shell {
+    display: grid;
+    gap: 1rem;
+}
+
+.ns-pd-topbar,
+.ns-pd-editor-panel,
+.ns-pd-catalog,
+.ns-pd-config-panel,
+.ns-pd-empty {
+    border: 1px solid rgba(148, 163, 184, .25);
+    background: rgba(255, 255, 255, .92);
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+}
+
+.dark .ns-pd-topbar,
+.dark .ns-pd-editor-panel,
+.dark .ns-pd-catalog,
+.dark .ns-pd-config-panel,
+.dark .ns-pd-empty {
+    background: rgba(17, 24, 39, .82);
+    border-color: rgba(148, 163, 184, .18);
+}
+
+.ns-pd-topbar {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+}
+
+.ns-pd-profile-picker {
+    display: grid;
+    gap: .35rem;
+    min-width: min(100%, 20rem);
+}
+
+.ns-pd-profile-picker label,
+.ns-pd-editor-block h3,
+.ns-pd-section-heading h3,
+.ns-pd-custom-header h3 {
+    font-weight: 700;
+}
+
+.ns-pd-profile-picker label {
+    font-size: .78rem;
+    color: rgb(100, 116, 139);
+}
+
+.dark .ns-pd-profile-picker label {
+    color: rgb(148, 163, 184);
+}
+
+.ns-pd-profile-picker select,
+.ns-pd-inline-form input,
+.ns-pd-link-row input,
+.ns-pd-search-input,
+.ns-pd-reminders-card textarea {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, .45);
+    border-radius: .65rem;
+    background: white;
+    color: rgb(15, 23, 42);
+    padding: .58rem .7rem;
+    outline: none;
+}
+
+.dark .ns-pd-profile-picker select,
+.dark .ns-pd-inline-form input,
+.dark .ns-pd-link-row input,
+.dark .ns-pd-search-input,
+.dark .ns-pd-reminders-card textarea {
+    background: rgba(15, 23, 42, .75);
+    color: rgb(241, 245, 249);
+    border-color: rgba(148, 163, 184, .28);
+}
+
+.ns-pd-profile-picker select:focus,
+.ns-pd-inline-form input:focus,
+.ns-pd-link-row input:focus,
+.ns-pd-search-input:focus,
+.ns-pd-reminders-card textarea:focus {
+    border-color: rgb(245, 158, 11);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, .14);
+}
+
+.ns-pd-editor-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.ns-pd-editor-block {
+    min-width: 0;
+    padding: .25rem;
+}
+
+.ns-pd-editor-block p,
+.ns-pd-section-heading p,
+.ns-pd-catalog-item p {
+    margin-top: .25rem;
+    color: rgb(100, 116, 139);
+    font-size: .82rem;
+    line-height: 1.45;
+}
+
+.dark .ns-pd-editor-block p,
+.dark .ns-pd-section-heading p,
+.dark .ns-pd-catalog-item p {
+    color: rgb(148, 163, 184);
+}
+
+.ns-pd-inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .75rem;
+}
+
+.ns-pd-inline-form input {
+    flex: 1 1 12rem;
+}
+
+.ns-pd-catalog,
+.ns-pd-config-panel {
+    padding: 1rem;
+}
+
+.ns-pd-catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: .7rem;
+    margin-top: .85rem;
+}
+
+.ns-pd-catalog-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .8rem;
+    border: 1px solid rgba(148, 163, 184, .22);
+    border-radius: .8rem;
+    background: rgba(248, 250, 252, .72);
+}
+
+.dark .ns-pd-catalog-item {
+    background: rgba(30, 41, 59, .45);
+}
+
+.ns-pd-links-editor {
+    display: grid;
+    gap: .55rem;
+    margin-top: .85rem;
+}
+
+.ns-pd-link-row {
+    display: grid;
+    grid-template-columns: minmax(10rem, .7fr) minmax(14rem, 1.3fr) auto;
+    gap: .5rem;
+}
+
+.ns-pd-config-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: .75rem;
+}
+
+.ns-pd-grid {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 9.5rem;
+    grid-auto-flow: dense;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.ns-pd-widget {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    grid-column: span var(--ns-pd-w, 2);
+    grid-row: span var(--ns-pd-h, 2);
+    border-radius: 1rem;
+    transition: opacity .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+.ns-pd-widget.is-dragging {
+    opacity: .45;
+    transform: scale(.985);
+}
+
+.ns-pd-widget-controls {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    min-height: 2.55rem;
+    padding: .45rem .55rem;
+    margin-bottom: .4rem;
+    border: 1px dashed rgba(245, 158, 11, .45);
+    border-radius: .75rem;
+    background: rgba(245, 158, 11, .06);
+}
+
+.ns-pd-grab {
+    cursor: grab;
+    border: 0;
+    background: transparent;
+    color: rgb(100, 116, 139);
+    font-weight: 800;
+    letter-spacing: -2px;
+    padding: .2rem .3rem;
+}
+
+.ns-pd-grab:active {
+    cursor: grabbing;
+}
+
+.ns-pd-widget-name {
+    font-size: .8rem;
+    font-weight: 700;
+    flex: 1;
+    min-width: 0;
+}
+
+.ns-pd-widget-control-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .3rem;
+}
+
+.ns-pd-size-control {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    color: rgb(100, 116, 139);
+    font-size: .68rem;
+    font-weight: 700;
+}
+
+.ns-pd-size-control select {
+    min-width: 4.4rem;
+    border: 1px solid rgba(148, 163, 184, .3);
+    border-radius: .55rem;
+    background: rgba(255, 255, 255, .75);
+    color: rgb(51, 65, 85);
+    padding: .3rem .4rem;
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.dark .ns-pd-size-control {
+    color: rgb(148, 163, 184);
+}
+
+.dark .ns-pd-size-control select {
+    background: rgba(15, 23, 42, .5);
+    color: rgb(226, 232, 240);
+    border-color: rgba(148, 163, 184, .25);
+}
+
+.ns-pd-icon-button {
+    border: 1px solid rgba(148, 163, 184, .3);
+    border-radius: .55rem;
+    background: rgba(255, 255, 255, .75);
+    color: rgb(51, 65, 85);
+    padding: .32rem .52rem;
+    font-size: .72rem;
+    font-weight: 650;
+}
+
+.dark .ns-pd-icon-button {
+    background: rgba(15, 23, 42, .5);
+    color: rgb(226, 232, 240);
+}
+
+.ns-pd-icon-button:hover,
+.ns-pd-size-control select:hover {
+    border-color: rgb(245, 158, 11);
+}
+
+.ns-pd-icon-button.is-danger {
+    color: rgb(220, 38, 38);
+}
+
+.ns-pd-widget-body {
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+    border-radius: 1rem;
+}
+
+.ns-pd-widget-body > * {
+    min-height: 100%;
+}
+
+.ns-pd-custom-card {
+    height: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, .2);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, .96);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+}
+
+.dark .ns-pd-custom-card {
+    background: rgb(17, 24, 39);
+    border-color: rgba(148, 163, 184, .16);
+}
+
+.ns-pd-custom-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .85rem;
+}
+
+.ns-pd-custom-header h3 {
+    font-size: 1rem;
+}
+
+.ns-pd-kicker {
+    display: block;
+    margin-bottom: .1rem;
+    color: rgb(217, 119, 6);
+    font-size: .68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+.ns-pd-calendar-link {
+    display: block;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
+}
+
+.ns-pd-calendar-card {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ns-pd-calendar-link:hover .ns-pd-calendar-card {
+    border-color: rgba(245, 158, 11, .55);
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, .08);
+}
+
+.ns-pd-calendar-heading {
+    display: grid;
+    justify-items: end;
+    gap: .1rem;
+    color: rgb(51, 65, 85);
+    font-size: .75rem;
+}
+
+.ns-pd-calendar-heading span {
+    color: rgb(217, 119, 6);
+    font-size: .65rem;
+    font-weight: 700;
+}
+
+.dark .ns-pd-calendar-heading {
+    color: rgb(226, 232, 240);
+}
+
+.ns-pd-calendar-weekdays,
+.ns-pd-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.ns-pd-calendar-weekdays {
+    margin-bottom: .3rem;
+    color: rgb(100, 116, 139);
+    text-align: center;
+    font-size: .68rem;
+    font-weight: 700;
+}
+
+.ns-pd-calendar-grid {
+    min-height: 0;
+    flex: 1 1 auto;
+    grid-auto-rows: minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: .65rem;
+}
+
+.ns-pd-calendar-day {
+    min-width: 0;
+    min-height: 0;
+    padding: .28rem;
+    border-right: 1px solid rgba(148, 163, 184, .13);
+    border-bottom: 1px solid rgba(148, 163, 184, .18);
+    font-size: .66rem;
+    overflow: hidden;
+    background: rgba(248, 250, 252, .42);
+}
+
+.dark .ns-pd-calendar-day {
+    background: rgba(15, 23, 42, .32);
+}
+
+.ns-pd-calendar-day.is-outside {
+    opacity: .38;
+    background: rgba(226, 232, 240, .35);
+}
+
+.dark .ns-pd-calendar-day.is-outside {
+    background: rgba(2, 6, 23, .35);
+}
+
+.ns-pd-calendar-day.is-today {
+    box-shadow: inset 0 0 0 2px rgba(245, 158, 11, .5);
+}
+
+.ns-pd-calendar-number {
+    display: block;
+    margin-bottom: .18rem;
+    font-weight: 800;
+}
+
+.ns-pd-calendar-event {
+    display: grid;
+    min-width: 0;
+    gap: .02rem;
+    margin-top: .14rem;
+    padding: .15rem .2rem;
+    border-left: 2px solid var(--event-color);
+    border-radius: .25rem;
+    background: color-mix(in srgb, var(--event-color) 11%, transparent);
+}
+
+.ns-pd-calendar-event small,
+.ns-pd-calendar-event span,
+.ns-pd-calendar-reservation strong,
+.ns-pd-calendar-reservation span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ns-pd-calendar-event small {
+    color: rgb(100, 116, 139);
+    font-size: .48rem;
+    font-weight: 800;
+}
+
+.ns-pd-calendar-event span {
+    font-size: .58rem;
+    font-weight: 700;
+}
+
+.ns-pd-calendar-more {
+    display: block;
+    margin-top: .12rem;
+    color: rgb(100, 116, 139);
+    font-size: .55rem;
+}
+
+.ns-pd-calendar-reservation {
+    display: grid;
+    min-width: 0;
+    margin-top: .14rem;
+    padding: .16rem .2rem;
+    border: 1px solid rgba(34, 197, 94, .28);
+    border-radius: .25rem;
+    color: rgb(22, 101, 52);
+    background: rgba(34, 197, 94, .08);
+    font-size: .54rem;
+}
+
+.dark .ns-pd-calendar-reservation {
+    color: rgb(187, 247, 208);
+}
+
+.ns-pd-calendar-reservation strong,
+.ns-pd-calendar-reservation span {
+    display: block;
+}
+
+.ns-pd-reminders-card textarea {
+    min-height: 13rem;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.ns-pd-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-top: .65rem;
+}
+
+.ns-pd-card-footer small,
+.ns-pd-card-empty,
+.ns-pd-empty-small {
+    color: rgb(100, 116, 139);
+    font-size: .78rem;
+}
+
+.dark .ns-pd-card-footer small,
+.dark .ns-pd-card-empty,
+.dark .ns-pd-empty-small {
+    color: rgb(148, 163, 184);
+}
+
+.ns-pd-quick-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+}
+
+.ns-pd-quick-links a {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .65rem .75rem;
+    border: 1px solid rgba(148, 163, 184, .2);
+    border-radius: .65rem;
+    color: inherit;
+    font-size: .8rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.ns-pd-quick-links a:hover {
+    border-color: rgb(245, 158, 11);
+    background: rgba(245, 158, 11, .06);
+}
+
+.ns-pd-search-results {
+    display: grid;
+    gap: .35rem;
+    margin-top: .65rem;
+}
+
+.ns-pd-search-results > a {
+    display: grid;
+    grid-template-columns: 4.2rem minmax(0, 1fr);
+    align-items: center;
+    gap: .6rem;
+    padding: .48rem .55rem;
+    border: 1px solid rgba(148, 163, 184, .17);
+    border-radius: .55rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.ns-pd-search-results > a:hover {
+    border-color: rgb(245, 158, 11);
+    background: rgba(245, 158, 11, .05);
+}
+
+.ns-pd-search-type {
+    color: rgb(217, 119, 6);
+    font-size: .68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.ns-pd-search-main {
+    min-width: 0;
+    display: grid;
+}
+
+.ns-pd-search-main strong,
+.ns-pd-search-main small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ns-pd-search-main strong {
+    font-size: .8rem;
+}
+
+.ns-pd-search-main small {
+    color: rgb(100, 116, 139);
+    font-size: .7rem;
+}
+
+.ns-pd-card-empty {
+    padding: .9rem 0;
+    line-height: 1.5;
+}
+
+.ns-pd-empty {
+    padding: 2rem;
+    text-align: center;
+}
+
+.ns-pd-empty p {
+    margin-top: .25rem;
+    color: rgb(100, 116, 139);
+}
+
+@media (max-width: 1180px) {
+    .ns-pd-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .ns-pd-widget[data-widget-width="4"] {
+        grid-column: span 3;
+    }
+}
+
+@media (max-width: 900px) {
+    .ns-pd-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-rows: 9rem;
+    }
+
+    .ns-pd-widget[data-widget-width="3"],
+    .ns-pd-widget[data-widget-width="4"] {
+        grid-column: span 2;
+    }
+
+    .ns-pd-calendar-event small,
+    .ns-pd-calendar-reservation span {
+        display: none;
+    }
+}
+
+@media (max-width: 650px) {
+    .ns-pd-topbar,
+    .ns-pd-editor-panel {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ns-pd-grid {
+        grid-template-columns: 1fr;
+        grid-auto-rows: auto;
+        grid-auto-flow: row;
+    }
+
+    .ns-pd-widget {
+        grid-column: 1 / -1 !important;
+        grid-row: auto !important;
+        height: auto;
+        min-height: 18rem;
+    }
+
+    .ns-pd-widget[data-widget-height="1"] { min-height: 10rem; }
+    .ns-pd-widget[data-widget-height="2"] { min-height: 18rem; }
+    .ns-pd-widget[data-widget-height="3"] { min-height: 27rem; }
+    .ns-pd-widget[data-widget-height="4"] { min-height: 36rem; }
+
+    .ns-pd-widget-body {
+        overflow: visible;
+    }
+
+    .ns-pd-link-row {
+        grid-template-columns: 1fr;
+    }
+
+    .ns-pd-widget-controls {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .ns-pd-widget-control-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .ns-pd-size-control span {
+        display: none;
+    }
+
+    .ns-pd-calendar-day {
+        padding: .18rem;
+    }
+
+    .ns-pd-calendar-event small,
+    .ns-pd-calendar-event span,
+    .ns-pd-calendar-reservation span {
+        display: none;
+    }
+
+    .ns-pd-calendar-event {
+        min-height: .42rem;
+        padding: 0;
+        border-left-width: 3px;
+        background: transparent;
+    }
+
+    .ns-pd-calendar-reservation {
+        padding: .08rem;
+        font-size: .45rem;
+    }
+
+    .ns-pd-quick-links {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ns-pd-procedure-notice {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: .75rem 0;
+    border-bottom: 1px solid rgba(148, 163, 184, .22);
+}
+.ns-pd-procedure-notice:last-child { border-bottom: 0; }
+.ns-pd-procedure-notice p { margin: .25rem 0; font-size: .875rem; }
+.ns-pd-procedure-notice small { opacity: .7; }

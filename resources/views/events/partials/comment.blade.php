@@ -81,6 +81,31 @@
                     </form>
                 </details>
             @endif
+
+            @can('delete', $comment)
+                <form
+                    method="POST"
+                    action="{{ route('events.comments.destroy', [$comment->event_id, $comment]) }}"
+                    class="event-comment__delete"
+                    data-confirm-message="{{ $replies->isNotEmpty()
+                        ? '¿Eliminar este comentario? También se eliminarán todas sus respuestas.'
+                        : '¿Eliminar este comentario?' }}"
+                    onsubmit="return confirm(this.dataset.confirmMessage);"
+                >
+                    @csrf
+                    @method('DELETE')
+                    <button
+                        type="submit"
+                        class="event-comment__delete-button"
+                        title="Eliminar comentario"
+                        aria-label="Eliminar comentario"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h10l-1 11H8L7 9Zm3 2v7h2v-7h-2Zm4 0v7h2v-7h-2Z" />
+                        </svg>
+                    </button>
+                </form>
+            @endcan
         </div>
         @endunless
     @endauth

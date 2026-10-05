@@ -337,6 +337,8 @@ class RecruitmentPeriodService
          * porque el tutor canónico pertenece al RecruitmentPeriod.
          */
         if ($user->tutor_id !== null) {
+            app(ProtectedAdminGuard::class)->authorize($user);
+
             DB::table('users')
                 ->where('id', $user->id)
                 ->update([
@@ -416,6 +418,8 @@ class RecruitmentPeriodService
 
             // El tutor queda congelado en el periodo cerrado, no en users.
             if ($lockedUser->tutor_id !== null) {
+                app(ProtectedAdminGuard::class)->authorize($lockedUser);
+
                 DB::table('users')
                     ->where('id', $lockedUser->id)
                     ->update([

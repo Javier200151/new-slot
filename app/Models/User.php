@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Services\PromoImageGenerator;
 use App\Services\SignatureBannerGenerator;
+use App\Services\ProtectedAdminGuard;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
@@ -55,6 +56,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             'email_verified_at' => 'datetime',
             'birth_at' => 'date',
             'member_at' => 'date',
+            'is_protected_admin' => 'boolean',
             'forum_unread_baseline_at' => 'datetime',
             'diary_unread_baseline_at' => 'datetime',
         ];
@@ -74,6 +76,24 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function getFilamentName(): string
     {
         return $this->nick ?? $this->email;
+    }
+
+    public function isProtectedAdmin(): bool
+    {
+        if ((bool) $this->getAttribute('is_protected_admin')) {
+            return true;
+        }
+
+        $configuredEmail = trim((string) config('newslot.protected_admin_email', ''));
+
+        return $configuredEmail !== ''
+            && filled($this->email)
+            && strcasecmp((string) $this->email, $configuredEmail) === 0;
+    }
+
+    public function canBeAdministrativelyModifiedBy(?User $actor): bool
+    {
+        return app(ProtectedAdminGuard::class)->canModify($this, $actor);
     }
 
     public function sendPasswordResetNotification(
@@ -101,6 +121,25 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
 
     protected static function booted(): void
     {
+        static::updating(function (User $user): void {
+            // Si una instalación histórica todavía identifica al administrador
+            // principal solo por ADMIN_EMAIL, persistimos la marca antes de que
+            // el propio propietario pueda cambiar ese correo.
+            if ($user->isProtectedAdmin() && ! (bool) $user->getAttribute('is_protected_admin')) {
+                $user->setAttribute('is_protected_admin', true);
+            }
+
+            app(ProtectedAdminGuard::class)->authorize($user);
+        });
+
+        static::deleting(function (User $user): void {
+            app(ProtectedAdminGuard::class)->authorize($user);
+        });
+
+        static::restoring(function (User $user): void {
+            app(ProtectedAdminGuard::class)->authorize($user);
+        });
+
         static::creating(function ($user) {
             if (Auth::check()) {
                 $user->created_by = Auth::id();
@@ -300,6 +339,19 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function veterancyAwards()
     {
         return $this->hasMany(VeterancyAward::class);
+    }
+
+    public function personalDashboards()
+    {
+        return $this->hasMany(PersonalDashboard::class)
+            ->orderBy('id');
+    }
+
+    public function memberProcedures()
+    {
+        return $this->hasMany(MemberProcedure::class)
+            ->orderByDesc('started_at')
+            ->orderByDesc('id');
     }
 
     public function pendingRecruitmentReentryReview()

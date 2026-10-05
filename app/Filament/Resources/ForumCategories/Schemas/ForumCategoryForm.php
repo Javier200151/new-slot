@@ -3,14 +3,16 @@
 namespace App\Filament\Resources\ForumCategories\Schemas;
 
 use App\Filament\Forms\BbcodeTextarea;
+use App\Models\CommunityProcess;
+use App\Models\ForumCategory;
 use App\Models\Status;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rule;
 
 class ForumCategoryForm
 {
@@ -19,21 +21,39 @@ class ForumCategoryForm
         return $schema
             ->components([
                 Section::make('Categoría')
-                    ->description('El identificador interno se genera automáticamente al crearla y no cambia aunque después edites el título.')
+                    ->description('Las categorías normales son totalmente configurables. Diario es una categoría interna: permite personalizar su nombre, color, orden y los estados que pueden acceder.')
                     ->schema([
                         TextInput::make('title')
-                            ->label('Título')
+                            ->label('Nombre visible')
                             ->required()
                             ->maxLength(120),
 
+                        TextInput::make('slug')
+                            ->label('Identificador / URL')
+                            ->disabled(fn (?ForumCategory $record): bool => (bool) $record?->isDiary())
+                            ->placeholder('debates-generales')
+                            ->helperText('Ejemplo: debates-generales → /area/foro/debates-generales. Déjalo vacío al crear para generarlo desde el título.')
+                            ->maxLength(100)
+                            ->unique(ignoreRecord: true)
+                            ->rules(fn (?ForumCategory $record): array => $record?->isDiary()
+                                ? []
+                                : [
+                                    'nullable',
+                                    'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                                    Rule::notIn(ForumCategory::RESERVED_SLUGS),
+                                ]),
+
                         TextInput::make('singular')
                             ->label('Nombre en singular')
+                            ->helperText(fn (?ForumCategory $record): string => $record?->isDiary()
+                                ? 'Personalización segura del texto singular. La lógica interna de Diario no cambia.'
+                                : 'Se usa en textos como “Nuevo debate” o “Nueva presentación”.')
                             ->placeholder('Hilo')
-                            ->helperText('Se usa en textos como “Nuevo debate” o “Nueva presentación”.')
                             ->maxLength(80),
 
                         TextInput::make('icon')
                             ->label('Icono')
+                            ->disabled(fn (?ForumCategory $record): bool => (bool) $record?->isDiary())
                             ->helperText('Puedes usar un emoji, por ejemplo 👋, 💬 o 🥃.')
                             ->default('💬')
                             ->maxLength(32),
@@ -44,14 +64,39 @@ class ForumCategoryForm
 
                         BbcodeTextarea::make('description')
                             ->label('Descripción')
+                            ->disabled(fn (?ForumCategory $record): bool => (bool) $record?->isDiary())
                             ->rows(4)
                             ->maxLength(2000)
                             ->columnSpanFull(),
 
                         TextInput::make('hint')
                             ->label('Texto de ayuda al publicar')
+                            ->disabled(fn (?ForumCategory $record): bool => (bool) $record?->isDiary())
                             ->maxLength(255)
                             ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+
+                Section::make('Comportamiento')
+                    ->description('Configura qué puede hacerse dentro de esta categoría. Los permisos concretos siguen administrándose desde Roles.')
+                    ->schema([
+                        Toggle::make('allow_polls')
+                            ->label('Permitir votaciones en esta categoría')
+                            ->disabled(fn (?ForumCategory $record): bool => (bool) $record?->isDiary())
+                            ->helperText('Cuando está activo, los usuarios con permiso de votaciones podrán crear o gestionar una votación vinculada a un hilo.')
+                            ->default(false),
+
+                        Select::make('process_type')
+                            ->label('Flujo especial')
+                            ->disabled(fn (?ForumCategory $record): bool => (bool) $record?->isDiary())
+                            ->options([
+                                CommunityProcess::TYPE_CALL => 'Convocatoria / postulaciones',
+                                CommunityProcess::TYPE_PROPOSALS => 'Propuesta',
+                                CommunityProcess::TYPE_CONSULTATION => 'Consulta',
+                            ])
+                            ->placeholder('Foro normal')
+                            ->helperText('Déjalo vacío para una categoría normal. Úsalo solo si quieres que los hilos incluyan el flujo especial indicado.')
+                            ->nullable(),
                     ])
                     ->columns(2),
 
@@ -83,26 +128,11 @@ class ForumCategoryForm
 
                         Toggle::make('is_enabled')
                             ->label('Categoría activa')
+                            ->disabled(fn (?ForumCategory $record): bool => (bool) $record?->isDiary())
                             ->helperText('Si se desactiva, desaparece del foro público sin borrar sus hilos.')
                             ->default(true),
                     ])
                     ->columns(2),
-
-                Section::make('Categoría interna')
-                    ->description('Las categorías originales pueden editarse y cambiar su visibilidad, pero no eliminarse ni cambiar su función interna.')
-                    ->schema([
-                        TextInput::make('slug')
-                            ->label('Identificador')
-                            ->disabled()
-                            ->dehydrated(false),
-
-                        TextInput::make('system_type')
-                            ->label('Función interna')
-                            ->disabled()
-                            ->dehydrated(false),
-                    ])
-                    ->columns(2)
-                    ->visible(fn ($record): bool => (bool) $record?->is_system),
             ]);
     }
 }
