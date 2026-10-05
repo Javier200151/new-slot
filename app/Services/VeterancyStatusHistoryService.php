@@ -26,6 +26,8 @@ class VeterancyStatusHistoryService
             && $currentName === 'ACTIVO'
             && $user->member_at === null
         ) {
+            app(ProtectedAdminGuard::class)->authorize($user);
+
             $memberAt = today()->toDateString();
 
             DB::table('users')

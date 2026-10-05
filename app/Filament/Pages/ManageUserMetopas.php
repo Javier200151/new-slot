@@ -224,6 +224,8 @@ class ManageUserMetopas extends Page implements
                     ->options(
                         User::query()
                             ->orderBy('nick')
+                            ->get()
+                            ->filter(fn (User $user): bool => $user->canBeAdministrativelyModifiedBy(Auth::user()))
                             ->pluck('nick', 'id')
                     )
                     ->searchable()
@@ -319,10 +321,9 @@ class ManageUserMetopas extends Page implements
             ->label('Editar fecha')
             ->icon('heroicon-o-calendar-days')
             ->visible(
-                fn (): bool =>
-                    Auth::user()?->can(
-                        'user-metopas.update'
-                    ) ?? false
+                fn (UserMetopa $record): bool =>
+                    (Auth::user()?->can('user-metopas.update') ?? false)
+                    && (bool) $record->user?->canBeAdministrativelyModifiedBy(Auth::user())
             )
             ->fillForm(
                 fn (UserMetopa $record): array => [
@@ -389,10 +390,9 @@ class ManageUserMetopas extends Page implements
             )
             ->modalSubmitActionLabel('Quitar')
             ->visible(
-                fn (): bool =>
-                    Auth::user()?->can(
-                        'user-metopas.delete'
-                    ) ?? false
+                fn (UserMetopa $record): bool =>
+                    (Auth::user()?->can('user-metopas.delete') ?? false)
+                    && (bool) $record->user?->canBeAdministrativelyModifiedBy(Auth::user())
             )
             ->action(function (
                 UserMetopa $record,

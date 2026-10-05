@@ -47,7 +47,7 @@
                 @endif
 
                 @if($poll->process?->post)
-                    <a class="poll-origin-link" href="{{ route('community.forum.show', ['personal', $poll->process->post]) }}">
+                    <a class="poll-origin-link" href="{{ route('community.forum.show', [\App\Support\CommunityForumCategory::keyForPost($poll->process->post), $poll->process->post]) }}">
                         Origen: {{ $poll->process->title }} · ver convocatoria y debate →
                     </a>
                 @endif

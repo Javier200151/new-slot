@@ -2,12 +2,11 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Event;
 use App\Models\EventCalendarReservation;
 use App\Models\User;
+use App\Services\EventCalendarDataService;
 use BackedEnum;
 use Carbon\CarbonImmutable;
-use Carbon\CarbonInterface;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -186,46 +185,11 @@ class EventCalendar extends Page
     public function getViewData(): array
     {
         $monthStart = CarbonImmutable::create($this->year, $this->month)->startOfMonth();
-        $monthEnd = $monthStart->endOfMonth();
-        $calendarStart = $monthStart->startOfWeek(CarbonInterface::MONDAY);
-        $calendarEnd = $monthEnd->endOfWeek(CarbonInterface::SUNDAY);
-
-        $eventsByDate = Event::query()
-            ->whereHas('eventStatus', fn ($query) => $query
-                ->whereIn('name', ['ACTIVO', 'FINALIZADO', 'CANCELADO', 'BORRADOR']))
-            ->whereBetween('date', [$calendarStart->startOfDay(), $calendarEnd->endOfDay()])
-            ->with(['eventStatus', 'activity.activityType'])
-            ->orderBy('date')
-            ->get()
-            ->groupBy(fn (Event $event): string => $event->date->toDateString());
-
-        $reservationsByDate = EventCalendarReservation::query()
-            ->whereBetween('reserved_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()])
-            ->with('user.status')
-            ->get()
-            ->keyBy(fn (EventCalendarReservation $reservation): string => $reservation->reserved_date->toDateString());
-
-        $calendarDays = collect();
-        for ($day = $calendarStart; $day->lte($calendarEnd); $day = $day->addDay()) {
-            $date = $day->toDateString();
-            $calendarDays->push([
-                'date' => $day,
-                'is_current_month' => $day->month === $this->month,
-                'is_today' => $day->isToday(),
-                'events' => $eventsByDate->get($date, collect()),
-                'reservation' => $reservationsByDate->get($date),
-            ]);
-        }
-
-        $monthNames = [
-            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
-            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
-            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
-        ];
+        $calendar = app(EventCalendarDataService::class)->month($monthStart);
 
         return [
-            'calendarDays' => $calendarDays,
-            'monthName' => $monthNames[$this->month],
+            'calendarDays' => $calendar['days'],
+            'monthName' => $calendar['month_name'],
             'previousMonthUrl' => static::getUrl([
                 'month' => $monthStart->subMonth()->month,
                 'year' => $monthStart->subMonth()->year,

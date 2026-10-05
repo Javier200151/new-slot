@@ -20,15 +20,21 @@ class RecruitmentApplicationsDashboardWidget extends TableWidget
         return (bool) auth()->user()?->can('recruitment-applications.manage');
     }
 
+    public static function pendingApprovedQuery(): Builder
+    {
+        return ContactSubmission::query()
+            ->where('is_recruitment', true)
+            ->where('recruitment_review_status', ContactSubmission::REVIEW_APPROVED)
+            ->whereNotNull('recruitment_matched_user_id')
+            ->whereNull('recruited_at');
+    }
+
     public function table(Table $table): Table
     {
         return $table
             ->heading('Alistados aprobados')
-            ->description('Las solicitudes aprobadas con una cuenta del mismo email aparecen aquí. Al entrar en estado RECLUTA pasan a figurar como Reclutado.')
-            ->query(fn (): Builder => ContactSubmission::query()
-                ->where('is_recruitment', true)
-                ->where('recruitment_review_status', ContactSubmission::REVIEW_APPROVED)
-                ->whereNotNull('recruitment_matched_user_id')
+            ->description('Solicitudes aprobadas con usuario asociado que todavía no han entrado en estado RECLUTA.')
+            ->query(fn (): Builder => static::pendingApprovedQuery()
                 ->with(['recruitmentMatchedUser.status', 'recruitmentInterviewer'])
                 ->latest('recruitment_reviewed_at'))
             ->columns([

@@ -367,6 +367,11 @@ Route::middleware([
         [PublicEventController::class, 'updateComment']
     )->name('events.comments.update');
 
+    Route::delete(
+        '/eventos/{event}/comentarios/{eventComment}',
+        [PublicEventController::class, 'destroyComment']
+    )->name('events.comments.destroy');
+
         /*
     |--------------------------------------------------------------------------
     | Multimedia del evento
@@ -572,102 +577,119 @@ Route::middleware('auth')->group(function (): void {
         [ChangelogController::class, 'index']
     )->name('community.changelog.index');
 
-    Route::get(
-        '/area/foro/{channel}',
-        [CommunityForumController::class, 'index']
-    )
-        ->whereIn('channel', ['cantina', 'personal'])
-        ->name('community.forum.index');
-
-    Route::post(
-        '/area/foro/{channel}',
-        [CommunityForumController::class, 'store']
-    )
-        ->whereIn('channel', ['cantina', 'personal'])
-        ->name('community.forum.store');
-
+    // Compatibilidad con enlaces antiguos. Las categorías normales usan ahora
+    // directamente /area/foro/{slug}; solo Diario mantiene su ruta interna.
     Route::get(
         '/area/foro/categoria/{category}',
+        [CommunityForumController::class, 'legacyCategory']
+    )
+        ->where('category', '[A-Za-z0-9-]+')
+        ->name('community.forum.category.legacy');
+
+    // Formularios que ya estuvieran abiertos con la URL antigua siguen
+    // pudiendo publicar sin perder su contenido al desplegar este bloque.
+    Route::post(
+        '/area/foro/categoria/{category}',
+        [CommunityForumController::class, 'storeCategory']
+    )
+        ->where('category', '[A-Za-z0-9-]+')
+        ->name('community.forum.category.store.legacy');
+
+    Route::get(
+        '/area/foro/{category}',
         [CommunityForumController::class, 'category']
     )
         ->where('category', '[A-Za-z0-9-]+')
         ->name('community.forum.category');
 
     Route::post(
-        '/area/foro/categoria/{category}',
+        '/area/foro/{category}',
         [CommunityForumController::class, 'storeCategory']
     )
         ->where('category', '[A-Za-z0-9-]+')
         ->name('community.forum.category.store');
 
     Route::get(
-        '/area/foro/{channel}/{post}',
+        '/area/foro/{category}/{post}',
         [CommunityForumController::class, 'show']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
         ->name('community.forum.show');
 
     Route::patch(
-        '/area/foro/{channel}/{post}',
+        '/area/foro/{category}/{post}',
         [CommunityForumController::class, 'update']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
         ->name('community.forum.update');
 
     Route::delete(
-        '/area/foro/{channel}/{post}',
+        '/area/foro/{category}/{post}',
         [CommunityForumController::class, 'destroy']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
         ->name('community.forum.destroy');
 
     Route::patch(
-        '/area/foro/{channel}/{post}/estado',
+        '/area/foro/{category}/{post}/estado',
         [CommunityForumController::class, 'toggleLock']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
         ->name('community.forum.lock');
 
     Route::patch(
-        '/area/foro/{channel}/{post}/fijado',
+        '/area/foro/{category}/{post}/fijado',
         [CommunityForumController::class, 'togglePin']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
         ->name('community.forum.pin');
 
     Route::post(
-        '/area/foro/{channel}/{post}/reaccion',
+        '/area/foro/{category}/{post}/reaccion',
         [CommunityForumController::class, 'reactToPost']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
         ->name('community.forum.reactions.post');
 
     Route::post(
-        '/area/foro/{channel}/{post}/respuestas',
+        '/area/foro/{category}/{post}/respuestas',
         [CommunityForumController::class, 'comment']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
         ->name('community.forum.comments.store');
 
     Route::patch(
-        '/area/foro/{channel}/{post}/respuestas/{comment}',
+        '/area/foro/{category}/{post}/respuestas/{comment}',
         [CommunityForumController::class, 'updateComment']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
+        ->whereNumber('comment')
         ->name('community.forum.comments.update');
 
     Route::delete(
-        '/area/foro/{channel}/{post}/respuestas/{comment}',
+        '/area/foro/{category}/{post}/respuestas/{comment}',
         [CommunityForumController::class, 'destroyComment']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
+        ->whereNumber('comment')
         ->name('community.forum.comments.destroy');
 
     Route::post(
-        '/area/foro/{channel}/{post}/respuestas/{comment}/reaccion',
+        '/area/foro/{category}/{post}/respuestas/{comment}/reaccion',
         [CommunityForumController::class, 'reactToComment']
     )
-        ->whereIn('channel', ['cantina', 'personal'])
+        ->where('category', '[A-Za-z0-9-]+')
+        ->whereNumber('post')
+        ->whereNumber('comment')
         ->name('community.forum.reactions.comment');
 
     Route::patch(
@@ -692,16 +714,18 @@ Route::middleware('auth')->group(function (): void {
         ->name('community.processes.withdraw');
 
     Route::post(
-        '/area/foro/personal/{post}/votacion',
+        '/area/foro/{category}/{post}/votacion',
         [CommunityPollController::class, 'storeForPost']
     )
+        ->where('category', '[A-Za-z0-9-]+')
         ->whereNumber('post')
         ->name('community.polls.store-for-post');
 
     Route::patch(
-        '/area/foro/personal/{post}/votacion/{poll}',
+        '/area/foro/{category}/{post}/votacion/{poll}',
         [CommunityPollController::class, 'updateForPost']
     )
+        ->where('category', '[A-Za-z0-9-]+')
         ->whereNumber('post')
         ->whereNumber('poll')
         ->name('community.polls.update-for-post');

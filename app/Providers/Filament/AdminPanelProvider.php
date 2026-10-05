@@ -8,9 +8,10 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
-use Filament\Pages\Dashboard;
+use App\Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
@@ -65,6 +66,12 @@ class AdminPanelProvider extends PanelProvider
                 },
             )
             ->assets([
+                Css::make(
+                    'personal-dashboard',
+                    asset('css/personal-dashboard.css')
+                        . '?v='
+                        . filemtime(public_path('css/personal-dashboard.css'))
+                ),
                 Js::make(
                     'filament-orbat-layout',
                     asset('js/filament-orbat-layout.js')

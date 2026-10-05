@@ -24,6 +24,21 @@ return [
                 'statuses' => [
                     'label' => 'Estados de usuario',
                 ],
+                'member-procedures' => [
+                    'label' => 'Procedimientos de miembros',
+                    'actions' => [
+                        'view' => 'Ver procedimientos',
+                        'create' => 'Iniciar procedimientos',
+                        'update' => 'Ejecutar y completar pasos',
+                    ],
+                ],
+                'member-procedure-settings' => [
+                    'label' => 'Configuración de procedimientos',
+                    'actions' => [
+                        'view' => 'Ver configuración',
+                        'update' => 'Modificar configuración',
+                    ],
+                ],
             ],
         ],
 
@@ -226,56 +241,6 @@ return [
                     'label' => 'Frases de la ruleta',
                 ],
 
-                'community-forum-cantina' => [
-                    'label' => 'Foro · WHISKEY (Enguarrinando)',
-                    'actions' => [
-                        'create' => 'Publicar nuevos hilos',
-                        'reply' => 'Responder a hilos',
-                        'poll' => 'Crear y gestionar votaciones',
-                        'moderate' => 'Cerrar, reabrir y fijar hilos',
-                        'delete' => 'Eliminar hilos y respuestas',
-                    ],
-                ],
-                'community-forum-debate' => [
-                    'label' => 'Foro · Debates',
-                    'actions' => [
-                        'create' => 'Publicar nuevos hilos',
-                        'reply' => 'Responder a hilos',
-                        'poll' => 'Crear y gestionar votaciones',
-                        'moderate' => 'Cerrar, reabrir y fijar hilos',
-                        'delete' => 'Eliminar hilos y respuestas',
-                    ],
-                ],
-                'community-forum-convocatoria' => [
-                    'label' => 'Foro · Convocatorias',
-                    'actions' => [
-                        'create' => 'Publicar nuevos hilos',
-                        'reply' => 'Responder a hilos',
-                        'poll' => 'Crear y gestionar votaciones',
-                        'moderate' => 'Cerrar, reabrir y fijar hilos',
-                        'delete' => 'Eliminar hilos y respuestas',
-                    ],
-                ],
-                'community-forum-propuesta' => [
-                    'label' => 'Foro · Propuestas',
-                    'actions' => [
-                        'create' => 'Publicar nuevos hilos',
-                        'reply' => 'Responder a hilos',
-                        'poll' => 'Crear y gestionar votaciones',
-                        'moderate' => 'Cerrar, reabrir y fijar hilos',
-                        'delete' => 'Eliminar hilos y respuestas',
-                    ],
-                ],
-                'community-forum-consulta' => [
-                    'label' => 'Foro · Consultas',
-                    'actions' => [
-                        'create' => 'Publicar nuevos hilos',
-                        'reply' => 'Responder a hilos',
-                        'poll' => 'Crear y gestionar votaciones',
-                        'moderate' => 'Cerrar, reabrir y fijar hilos',
-                        'delete' => 'Eliminar hilos y respuestas',
-                    ],
-                ],
             ],
         ],
 

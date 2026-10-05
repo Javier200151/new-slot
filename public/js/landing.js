@@ -7,14 +7,42 @@ document.addEventListener('DOMContentLoaded', () => {
         '[data-nav-menu]'
     );
 
+    const navDropdowns = navMenu
+        ? Array.from(navMenu.querySelectorAll('details.nav-dropdown'))
+        : [];
+
+    const footerDropdowns = Array.from(
+        document.querySelectorAll('details.footer-infrastructure')
+    );
+
+    const exclusiveDropdowns = [
+        ...navDropdowns,
+        ...footerDropdowns,
+    ];
+
 
     /*
     |--------------------------------------------------------------------------
-    | Navegación
+    | Navegación y desplegables exclusivos
     |--------------------------------------------------------------------------
+    |
+    | Los desplegables del header y del footer comparten la misma regla:
+    | nunca puede haber más de uno abierto al mismo tiempo.
+    |
     */
 
+    function closeDropdowns(except = null) {
+        exclusiveDropdowns.forEach((dropdown) => {
+            if (dropdown !== except) {
+                dropdown.open = false;
+            }
+        });
+    }
+
+
     function closeNavigation() {
+        closeDropdowns();
+
         if (!navToggle || !navMenu) {
             return;
         }
@@ -35,8 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    if (navToggle && navMenu) {
+    exclusiveDropdowns.forEach((dropdown) => {
+        dropdown.addEventListener('toggle', () => {
+            if (dropdown.open) {
+                closeDropdowns(dropdown);
+            }
+        });
+    });
 
+
+    if (navToggle && navMenu) {
         navToggle.addEventListener(
             'click',
             () => {
@@ -75,37 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
 
-        document.addEventListener(
-            'click',
-            (event) => {
-                if (
-                    !event.target.closest(
-                        '.nav-wrapper'
-                    )
-                ) {
-                    closeNavigation();
-                }
-            }
-        );
-
-
-        document.addEventListener(
-            'keydown',
-            (event) => {
-                if (
-                    event.key === 'Escape'
-                    && navMenu.classList.contains(
-                        'is-open'
-                    )
-                ) {
-                    closeNavigation();
-
-                    navToggle.focus();
-                }
-            }
-        );
-
-
         window
             .matchMedia(
                 '(min-width: 1001px)'
@@ -115,6 +120,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeNavigation
             );
     }
+
+
+    document.addEventListener(
+        'click',
+        (event) => {
+            if (!event.target.closest('details.nav-dropdown, details.footer-infrastructure')) {
+                closeDropdowns();
+            }
+
+            if (
+                navToggle
+                && navMenu
+                && !event.target.closest(
+                    '.nav-wrapper'
+                )
+            ) {
+                navToggle.setAttribute('aria-expanded', 'false');
+                navToggle.setAttribute('aria-label', 'Mostrar menú');
+                navMenu.classList.remove('is-open');
+            }
+        }
+    );
+
+
+    document.addEventListener(
+        'keydown',
+        (event) => {
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            const openDropdown = exclusiveDropdowns.find(
+                (dropdown) => dropdown.open
+            );
+
+            const mobileMenuIsOpen = Boolean(
+                navMenu?.classList.contains('is-open')
+            );
+
+            if (!openDropdown && !mobileMenuIsOpen) {
+                return;
+            }
+
+            if (openDropdown) {
+                openDropdown.open = false;
+                openDropdown.querySelector('summary')?.focus();
+            }
+
+            if (mobileMenuIsOpen && navToggle && navMenu) {
+                navToggle.setAttribute('aria-expanded', 'false');
+                navToggle.setAttribute('aria-label', 'Mostrar menú');
+                navMenu.classList.remove('is-open');
+
+                if (!openDropdown) {
+                    navToggle.focus();
+                }
+            }
+        }
+    );
 
 
     /*

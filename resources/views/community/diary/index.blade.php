@@ -1,6 +1,7 @@
 @extends('layouts.metopas')
 
-@section('title', 'Diarios')
+@php($diaryCategory = \App\Support\CommunityForumCategory::diary())
+@section('title', $diaryCategory['label'] ?? 'Diarios')
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/community.css') }}?v={{ filemtime(public_path('css/community.css')) }}">
@@ -13,7 +14,7 @@
     <span class="community-kicker">{{ \App\Support\CommunityArea::label(auth()->user()) }}</span>
     <div class="forum-page-head">
         <div>
-            <h1 class="community-title">Diarios</h1>
+            <h1 class="community-title" style="color: {{ $diaryCategory['color'] ?? '#22c55e' }}">{{ $diaryCategory['label'] ?? 'Diarios' }}</h1>
             <p class="community-lead">
                 Bitácoras de reclutamiento con formato de foro. Están pensadas para reclutas, aunque un miembro también puede iniciar la suya si quiere conservar este formato de seguimiento.
             </p>
@@ -46,7 +47,7 @@
             <article class="forum-row forum-row--real diary-forum-row">
                 <a class="forum-row__main" href="{{ route('community.diary.show', $diary) }}">
                     <div class="forum-row__badges">
-                        <span>📓 Diario</span>
+                        <span>{{ $diaryCategory['icon'] ?? '📓' }} {{ $diaryCategory['singular'] ?? 'Diario' }}</span>
                         @if($author?->status?->name)<span>{{ $author->status->name }}</span>@endif
                     </div>
                     <h3 style="color: {{ $author?->getFrontendColor() ?? '#fff' }}">Diario de {{ $authorName }}</h3>
@@ -69,12 +70,12 @@
                 ])
             </article>
         @empty
-            <div class="community-empty">Todavía no se ha iniciado ningún diario.</div>
+            <div class="community-empty">Todavía no se ha iniciado ningún {{ mb_strtolower($diaryCategory['singular'] ?? 'Diario') }}.</div>
         @endforelse
     </div>
 
     @if($diaries->hasPages())
-        <nav class="community-pagination" aria-label="Paginación de diarios">
+        <nav class="community-pagination" aria-label="Paginación de {{ mb_strtolower($diaryCategory['label'] ?? 'Diarios') }}">
             @if($diaries->onFirstPage())<span>← Anterior</span>@else<a href="{{ $diaries->previousPageUrl() }}">← Anterior</a>@endif
             <strong>Página {{ $diaries->currentPage() }} de {{ $diaries->lastPage() }}</strong>
             @if($diaries->hasMorePages())<a href="{{ $diaries->nextPageUrl() }}">Siguiente →</a>@else<span>Siguiente →</span>@endif

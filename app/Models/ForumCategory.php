@@ -15,6 +15,9 @@ class ForumCategory extends Model
 
     public const TYPE_STANDARD = 'standard';
     public const TYPE_DIARY = 'diary';
+
+    // Valores antiguos conservados únicamente para compatibilidad con datos
+    // históricos. Las categorías normales ya no dependen de estos tipos.
     public const TYPE_CANTINA = 'cantina';
     public const TYPE_DEBATE = 'debate';
     public const TYPE_CALL = 'call';
@@ -27,6 +30,14 @@ class ForumCategory extends Model
         'poll' => 'Crear y gestionar votaciones',
         'moderate' => 'Cerrar, reabrir y fijar hilos',
         'delete' => 'Eliminar hilos y respuestas',
+    ];
+
+    public const RESERVED_SLUGS = [
+        'categoria',
+        'changelog',
+        'diario',
+        'nuevos-mensajes',
+        'personal',
     ];
 
     protected $table = 'community_forum_categories';
@@ -44,14 +55,18 @@ class ForumCategory extends Model
         'process_type',
         'is_system',
         'is_enabled',
+        'allow_polls',
         'sort_order',
     ];
+
+    protected ?string $previousPermissionResource = null;
 
     protected function casts(): array
     {
         return [
             'is_system' => 'boolean',
             'is_enabled' => 'boolean',
+            'allow_polls' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -67,21 +82,82 @@ class ForumCategory extends Model
                 $category->singular = (string) $category->title;
             }
 
-            $category->channel = $category->channel ?: 'personal';
-            $category->system_type = $category->system_type ?: self::TYPE_STANDARD;
+            if ($category->system_type === self::TYPE_DIARY) {
+                $category->slug = 'diario';
+                $category->channel = 'diary';
+                $category->is_system = true;
+                $category->allow_polls = false;
+
+                return;
+            }
+
+            $category->channel = 'personal';
+            $category->system_type = self::TYPE_STANDARD;
+            $category->is_system = false;
+        });
+
+        static::updating(function (ForumCategory $category): void {
+            if ($category->isDiary()) {
+                // Diario es una categoría interna. Permitimos personalizar
+                // nombre visible, singular, color y orden; los estados se
+                // guardan en su relación independiente. Su identidad y lógica
+                // interna permanecen protegidas aunque el request intente
+                // alterar simultáneamente slug/system_type.
+                foreach ([
+                    'slug',
+                    'description',
+                    'hint',
+                    'icon',
+                    'channel',
+                    'system_type',
+                    'process_type',
+                    'is_system',
+                    'is_enabled',
+                    'allow_polls',
+                ] as $protectedField) {
+                    if ($category->isDirty($protectedField)) {
+                        $category->setAttribute($protectedField, $category->getOriginal($protectedField));
+                    }
+                }
+
+                $category->slug = 'diario';
+                $category->channel = 'diary';
+                $category->system_type = self::TYPE_DIARY;
+                $category->is_system = true;
+                $category->allow_polls = false;
+                $category->process_type = null;
+
+                return;
+            }
+
+            if ($category->isDirty('slug')) {
+                $oldSlug = (string) $category->getOriginal('slug');
+                $category->previousPermissionResource = self::permissionResourceForSlug($oldSlug);
+            }
+
+            $category->channel = 'personal';
+            $category->system_type = self::TYPE_STANDARD;
+            $category->is_system = false;
         });
 
         static::created(function (ForumCategory $category): void {
             $category->ensurePermissions();
         });
 
+        static::updated(function (ForumCategory $category): void {
+            if ($category->previousPermissionResource) {
+                $category->migratePermissionsFrom($category->previousPermissionResource);
+                $category->previousPermissionResource = null;
+            }
+        });
+
         static::deleting(function (ForumCategory $category): void {
-            if ($category->is_system) {
-                throw new \RuntimeException('Las categorías internas del sistema no se pueden eliminar.');
+            if ($category->isDiary()) {
+                throw new \RuntimeException('Diario es una categoría interna y no se puede eliminar.');
             }
 
-            if ($category->posts()->exists()) {
-                throw new \RuntimeException('No se puede eliminar una categoría que ya contiene hilos.');
+            if ($category->posts()->withTrashed()->exists()) {
+                throw new \RuntimeException('Esta categoría todavía contiene hilos. Utiliza la acción de eliminación completa de Filament.');
             }
         });
 
@@ -105,20 +181,36 @@ class ForumCategory extends Model
         return $this->hasMany(CommunityPost::class, 'forum_category_id');
     }
 
+    public function isDiary(): bool
+    {
+        if ($this->system_type === self::TYPE_DIARY || $this->slug === 'diario') {
+            return true;
+        }
+
+        // Durante un update, fill() puede haber cambiado en memoria tanto el
+        // slug como el tipo antes de que se ejecute el evento updating. La
+        // identidad interna de Diario debe decidirse también con el valor que
+        // realmente estaba persistido en base de datos.
+        if ($this->exists) {
+            return $this->getOriginal('system_type') === self::TYPE_DIARY
+                || $this->getOriginal('slug') === 'diario';
+        }
+
+        return false;
+    }
+
     public function permissionResource(): ?string
     {
-        if ($this->system_type === self::TYPE_DIARY) {
+        if ($this->isDiary()) {
             return null;
         }
 
-        return match ($this->system_type) {
-            self::TYPE_CANTINA => 'community-forum-cantina',
-            self::TYPE_DEBATE => 'community-forum-debate',
-            self::TYPE_CALL => 'community-forum-convocatoria',
-            self::TYPE_PROPOSAL => 'community-forum-propuesta',
-            self::TYPE_CONSULTATION => 'community-forum-consulta',
-            default => 'community-forum-' . $this->slug,
-        };
+        return self::permissionResourceForSlug((string) $this->slug);
+    }
+
+    public static function permissionResourceForSlug(string $slug): string
+    {
+        return 'community-forum-' . Str::slug($slug);
     }
 
     public function ensurePermissions(bool $grantDefaultsWhenCreated = false): void
@@ -224,6 +316,10 @@ class ForumCategory extends Model
     public static function uniqueSlug(string $title): string
     {
         $base = Str::slug($title) ?: 'categoria';
+        if (in_array($base, self::RESERVED_SLUGS, true)) {
+            $base .= '-foro';
+        }
+
         $slug = $base;
         $suffix = 2;
 
@@ -233,5 +329,40 @@ class ForumCategory extends Model
         }
 
         return $slug;
+    }
+
+    private function migratePermissionsFrom(string $oldResource): void
+    {
+        $newResource = $this->permissionResource();
+        if (! $newResource || $newResource === $oldResource) {
+            return;
+        }
+
+        foreach (array_keys(self::PERMISSION_ACTIONS) as $action) {
+            $oldName = "{$oldResource}.{$action}";
+            $newName = "{$newResource}.{$action}";
+
+            $oldPermission = Permission::query()
+                ->where('guard_name', 'web')
+                ->where('name', $oldName)
+                ->first();
+
+            $newPermission = Permission::firstOrCreate([
+                'name' => $newName,
+                'guard_name' => 'web',
+            ]);
+
+            if ($oldPermission) {
+                foreach ($oldPermission->roles as $role) {
+                    $role->givePermissionTo($newPermission);
+                }
+                foreach ($oldPermission->users as $user) {
+                    $user->givePermissionTo($newPermission);
+                }
+                $oldPermission->delete();
+            }
+        }
+
+        $this->ensurePermissions();
     }
 }

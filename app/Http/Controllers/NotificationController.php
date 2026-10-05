@@ -306,7 +306,7 @@ class NotificationController extends Controller
             }
 
             return redirect()->to(
-                route('community.forum.show', [$post->channel, $post]) . '#respuestas'
+                route('community.forum.show', [\App\Support\CommunityForumCategory::keyForPost($post), $post]) . '#respuestas'
             );
         }
 

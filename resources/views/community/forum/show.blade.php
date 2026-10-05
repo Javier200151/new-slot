@@ -14,7 +14,7 @@
 
 @section('content')
 <div class="community-shell forum-thread-page">
-    <a class="community-kicker" href="{{ $channel === 'personal' ? route('community.forum.category', $categoryKey) : route('community.forum.index', $channel) }}">← {{ $channel === 'personal' ? ($category['label'] ?? 'Foro') : $channelTitle }}</a>
+    <a class="community-kicker" href="{{ route('community.forum.category', $categoryKey) }}">← {{ $category['label'] ?? 'Foro' }}</a>
 
     <div class="thread-title-row">
         <div>
@@ -40,17 +40,17 @@
         @if($canModerate || $canDeleteAny)
             <div class="thread-moderation-bar">
                 @if($canModerate)
-                    <form method="POST" action="{{ route('community.forum.lock', [$channel, $post]) }}">
+                    <form method="POST" action="{{ route('community.forum.lock', [$categoryKey, $post]) }}">
                         @csrf @method('PATCH')
                         <button class="community-btn community-btn--ghost" type="submit">{{ $post->is_locked ? '🔓 Reabrir' : '🔒 Cerrar' }}</button>
                     </form>
-                    <form method="POST" action="{{ route('community.forum.pin', [$channel, $post]) }}">
+                    <form method="POST" action="{{ route('community.forum.pin', [$categoryKey, $post]) }}">
                         @csrf @method('PATCH')
                         <button class="community-btn community-btn--ghost" type="submit">{{ $post->is_pinned ? 'Desfijar' : '📌 Fijar' }}</button>
                     </form>
                 @endif
                 @if($canDeleteAny)
-                    <form method="POST" action="{{ route('community.forum.destroy', [$channel, $post]) }}" onsubmit="return confirm('¿Eliminar este hilo, sus respuestas y el proceso/votación vinculados?')">
+                    <form method="POST" action="{{ route('community.forum.destroy', [$categoryKey, $post]) }}" onsubmit="return confirm('¿Eliminar este hilo, sus respuestas y el proceso/votación vinculados?')">
                         @csrf @method('DELETE')
                         <button class="community-btn community-btn--danger" type="submit">Eliminar hilo</button>
                     </form>
@@ -116,7 +116,7 @@
 
             @include('community.partials.reactions', [
                 'reactable' => $post,
-                'reactionRoute' => route('community.forum.reactions.post', [$channel, $post]),
+                'reactionRoute' => route('community.forum.reactions.post', [$categoryKey, $post]),
             ])
 
             <div class="forum-message__actions">
@@ -142,7 +142,7 @@
                             </svg>
                             <span>Editar</span>
                         </summary>
-                        <form method="POST" action="{{ route('community.forum.update', [$channel, $post]) }}" class="community-form">
+                        <form method="POST" action="{{ route('community.forum.update', [$categoryKey, $post]) }}" class="community-form">
                             @csrf @method('PATCH')
                             <div class="forum-field">
                                 <label>Título</label>
@@ -161,7 +161,7 @@
                 @endif
 
                 @if($post->user_id === auth()->id() && !$canDeleteAny)
-                    <form method="POST" action="{{ route('community.forum.destroy', [$channel, $post]) }}" onsubmit="return confirm('¿Eliminar tu hilo?')">
+                    <form method="POST" action="{{ route('community.forum.destroy', [$categoryKey, $post]) }}" onsubmit="return confirm('¿Eliminar tu hilo?')">
                         @csrf @method('DELETE')
                         <button class="forum-message-action forum-message-action--danger" type="submit" title="Eliminar mensaje">
                             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -196,7 +196,7 @@
                     <span>⚙</span>
                     <span><strong>Editar votación</strong><small>Actualiza su configuración sin perder los votos existentes.</small></span>
                 </summary>
-                <form method="POST" action="{{ route('community.polls.update-for-post', [$post, $pollData['poll']]) }}" class="community-form" style="margin-top:18px">
+                <form method="POST" action="{{ route('community.polls.update-for-post', [$categoryKey, $post, $pollData['poll']]) }}" class="community-form" style="margin-top:18px">
                     @csrf
                     @method('PATCH')
                     @include('community.partials.poll-form', [
@@ -215,7 +215,7 @@
                 <span>🗳</span>
                 <span><strong>Añadir votación a este hilo</strong><small>Puedes crearla ahora o después del debate/postulaciones.</small></span>
             </summary>
-            <form method="POST" action="{{ route('community.polls.store-for-post', $post) }}" class="community-form" style="margin-top:18px">
+            <form method="POST" action="{{ route('community.polls.store-for-post', [$categoryKey, $post]) }}" class="community-form" style="margin-top:18px">
                 @csrf
                 @include('community.partials.poll-form', [
                     'showEnableToggle' => false,
@@ -254,7 +254,7 @@
 
                         @include('community.partials.reactions', [
                             'reactable' => $comment,
-                            'reactionRoute' => route('community.forum.reactions.comment', [$channel, $post, $comment]),
+                            'reactionRoute' => route('community.forum.reactions.comment', [$categoryKey, $post, $comment]),
                         ])
 
                         <div class="forum-message__actions">
@@ -282,7 +282,7 @@
                                         </svg>
                                         <span>Editar</span>
                                     </summary>
-                                    <form method="POST" action="{{ route('community.forum.comments.update', [$channel, $post, $comment]) }}" class="community-form">
+                                    <form method="POST" action="{{ route('community.forum.comments.update', [$categoryKey, $post, $comment]) }}" class="community-form">
                                         @csrf @method('PATCH')
                                         @include('community.partials.editor', [
                                             'id' => 'edit-comment-' . $comment->id,
@@ -297,7 +297,7 @@
                             @endif
 
                             @if($comment->user_id === auth()->id() || $canDeleteAny)
-                                <form method="POST" action="{{ route('community.forum.comments.destroy', [$channel, $post, $comment]) }}" onsubmit="return confirm('¿Eliminar esta respuesta?')">
+                                <form method="POST" action="{{ route('community.forum.comments.destroy', [$categoryKey, $post, $comment]) }}" onsubmit="return confirm('¿Eliminar esta respuesta?')">
                                     @csrf @method('DELETE')
                                     <button class="forum-message-action forum-message-action--danger" type="submit" title="Eliminar mensaje">
                                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -328,7 +328,7 @@
                 Puedes leer este hilo, pero tu rol no tiene permiso para responder en esta categoría.
             </div>
         @else
-            <form id="responder" method="POST" action="{{ route('community.forum.comments.store', [$channel, $post]) }}" class="community-form forum-reply-form">
+            <form id="responder" method="POST" action="{{ route('community.forum.comments.store', [$categoryKey, $post]) }}" class="community-form forum-reply-form">
                 @csrf
                 @include('community.partials.editor', [
                     'id' => 'reply-body',

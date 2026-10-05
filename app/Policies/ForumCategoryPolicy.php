@@ -14,8 +14,7 @@ class ForumCategoryPolicy extends CrudPolicy
     {
         return parent::delete($user, $record)
             && $record instanceof ForumCategory
-            && ! $record->is_system
-            && ! $record->posts()->exists();
+            && ! $record->isDiary();
     }
 
     public function deleteAny(User $user): bool

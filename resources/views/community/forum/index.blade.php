@@ -140,9 +140,7 @@
         @php
             $forumSearchAction = ($isUnreadView ?? false)
                 ? route('community.forum.unread')
-                : ($isPersonalCategory
-                    ? route('community.forum.category', $categoryKey)
-                    : route('community.forum.index', $channel));
+                : route('community.forum.category', $categoryKey);
         @endphp
 
         <section class="forum-tools" aria-label="Herramientas del foro">
@@ -173,7 +171,7 @@
 
                 <form
                     method="POST"
-                    action="{{ $isPersonalCategory ? route('community.forum.category.store', $categoryKey) : route('community.forum.store', $channel) }}"
+                    action="{{ route('community.forum.category.store', $categoryKey) }}"
                     class="community-form forum-thread-form"
                 >
                     @csrf
@@ -191,7 +189,7 @@
                         'rows' => 11,
                     ])
 
-                    @if($isPersonalCategory && $categoryKey === 'convocatoria')
+                    @if($isPersonalCategory && ($category['process_type'] ?? null) === \App\Models\CommunityProcess::TYPE_CALL)
                         <div class="forum-process-config">
                             <div class="forum-config-head">
                                 <div>
@@ -246,7 +244,7 @@
                         </div>
                     @endif
 
-                    @if($isPersonalCategory)
+                    @if($isPersonalCategory && ($category['allow_polls'] ?? false))
                         @include('community.partials.poll-form', ['showEnableToggle' => true])
                     @endif
 
@@ -276,9 +274,9 @@
                             <a class="forum-row__main" href="{{ route('community.diary.show', $unreadDiary) }}">
                                 <div class="forum-row__badges">
                                     <span class="is-unread">● Nuevo</span>
-                                    <span class="is-category">Diarios</span>
+                                    <span class="is-category">{{ \App\Support\CommunityForumCategory::diary()['label'] ?? 'Diarios' }}</span>
                                 </div>
-                                <h3>Diario de {{ $diaryAuthorName }}</h3>
+                                <h3>{{ \App\Support\CommunityForumCategory::diary()['singular'] ?? 'Diario' }} de {{ $diaryAuthorName }}</h3>
                                 <div class="forum-row__meta">
                                     <span class="thread-author-label">AUTOR</span>
                                     <span
@@ -304,7 +302,7 @@
                 @php
                     $processStatus = $post->process?->effectiveStatus();
                     $processLabel = $post->process ? (\App\Models\CommunityProcess::typeOptions()[$post->process->type] ?? 'Proceso') : null;
-                    $postChannel = $post->channel;
+                    $postCategoryKey = $post->forumCategory?->slug ?? \App\Support\CommunityForumCategory::keyForPost($post);
                     $baseline = $forumUnreadBaseline ?? null;
                     $isUnreadThread = ($isUnreadView ?? false)
                         || (
@@ -314,7 +312,7 @@
                 @endphp
 
                 <article @class(['forum-row', 'forum-row--real', 'is-unread' => $isUnreadThread])>
-                    <a class="forum-row__main" href="{{ route('community.forum.show', [$postChannel, $post]) }}">
+                    <a class="forum-row__main" href="{{ route('community.forum.show', [$postCategoryKey, $post]) }}">
                         <div class="forum-row__badges">
                             @if($isUnreadThread)<span class="is-unread">● Nuevo</span>@endif
                             @if(($isUnreadView ?? false) && $post->forumCategory)<span class="is-category">{{ $post->forumCategory->title }}</span>@endif
@@ -346,11 +344,11 @@
                     @if($canModerate || $canDeleteAny)
                         <div class="forum-row__moderation">
                             @if($canModerate)
-                                <form method="POST" action="{{ route('community.forum.lock', [$channel, $post]) }}">@csrf @method('PATCH')<button type="submit" title="{{ $post->is_locked ? 'Reabrir' : 'Cerrar' }}">{{ $post->is_locked ? '🔓' : '🔒' }}</button></form>
-                                <form method="POST" action="{{ route('community.forum.pin', [$channel, $post]) }}">@csrf @method('PATCH')<button type="submit" title="{{ $post->is_pinned ? 'Desfijar' : 'Fijar' }}">📌</button></form>
+                                <form method="POST" action="{{ route('community.forum.lock', [$postCategoryKey, $post]) }}">@csrf @method('PATCH')<button type="submit" title="{{ $post->is_locked ? 'Reabrir' : 'Cerrar' }}">{{ $post->is_locked ? '🔓' : '🔒' }}</button></form>
+                                <form method="POST" action="{{ route('community.forum.pin', [$postCategoryKey, $post]) }}">@csrf @method('PATCH')<button type="submit" title="{{ $post->is_pinned ? 'Desfijar' : 'Fijar' }}">📌</button></form>
                             @endif
                             @if($canDeleteAny)
-                                <form method="POST" action="{{ route('community.forum.destroy', [$channel, $post]) }}" onsubmit="return confirm('¿Eliminar este hilo y su contenido asociado?')">@csrf @method('DELETE')<button type="submit" class="is-danger" title="Eliminar">🗑</button></form>
+                                <form method="POST" action="{{ route('community.forum.destroy', [$postCategoryKey, $post]) }}" onsubmit="return confirm('¿Eliminar este hilo y su contenido asociado?')">@csrf @method('DELETE')<button type="submit" class="is-danger" title="Eliminar">🗑</button></form>
                             @endif
                         </div>
                     @endif

@@ -30,6 +30,8 @@ class UserMetopaAssignmentService
         bool $updateExisting = false,
         bool $preserveAssignedAtOnRestore = false,
     ): string {
+        app(ProtectedAdminGuard::class)->authorizeUserId($userId);
+
         $this->validateIds(
             $userId,
             $metopaId,
@@ -376,6 +378,8 @@ class UserMetopaAssignmentService
         int $metopaId,
         CarbonInterface|string $assignedAt,
     ): void {
+        app(ProtectedAdminGuard::class)->authorizeUserId($userId);
+
         $this->validateIds(
             $userId,
             $metopaId,
@@ -498,6 +502,8 @@ class UserMetopaAssignmentService
         int $userId,
         int $metopaId,
     ): void {
+        app(ProtectedAdminGuard::class)->authorizeUserId($userId);
+
         $this->validateIds(
             $userId,
             $metopaId,

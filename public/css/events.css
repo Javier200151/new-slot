@@ -1462,6 +1462,39 @@ border-radius: 10px;
     margin-top: 10px;
 }
 
+.event-comment__delete {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.event-comment__delete-button {
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    border-radius: 6px;
+    color: #fca5a5;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0.72;
+    transition: opacity 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.event-comment__delete-button:hover,
+.event-comment__delete-button:focus-visible {
+    border-color: rgba(248, 113, 113, 0.48);
+    background: rgba(248, 113, 113, 0.1);
+    opacity: 1;
+}
+
+.event-comment__delete-button svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
 .event-comment__signature {
     display: block;
     width: min(620px, 100%);
