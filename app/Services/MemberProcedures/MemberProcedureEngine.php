@@ -21,6 +21,7 @@ class MemberProcedureEngine
 {
     public function __construct(
         private readonly MemberProcedureRegistry $registry,
+        private readonly MemberProcedureEligibility $eligibility,
         private readonly ProcedureNotificationService $notifications,
         private readonly ArmaSquadsService $armaSquads,
         private readonly GoogleSheetsService $googleSheets,
@@ -35,6 +36,7 @@ class MemberProcedureEngine
             throw new LogicException('El procedimiento necesita un administrador identificado.');
         }
 
+        $this->eligibility->assertEligible($user, $type);
         $definition = $this->registry->definition($type);
 
         $procedure = DB::transaction(function () use ($user, $type, $input, $actorId, $definition): MemberProcedure {
