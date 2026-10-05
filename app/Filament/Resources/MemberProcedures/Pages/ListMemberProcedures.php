@@ -10,8 +10,10 @@ use App\Services\MemberProcedures\MemberProcedureEligibility;
 use App\Services\MemberProcedures\MemberProcedureEngine;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Throwable;
@@ -50,7 +52,32 @@ class ListMemberProcedures extends ListRecords
                         ->label('Promoción')
                         ->options(fn (): array => Promo::query()->orderBy('id')->pluck('id', 'id')->map(fn ($id): string => 'Promoción ' . $id)->all())
                         ->searchable()
-                        ->required(),
+                        ->required()
+                        ->createOptionModalHeading('Crear nueva promoción')
+                        ->createOptionForm([
+                            TextInput::make('id')
+                                ->label('Número de promoción')
+                                ->numeric()
+                                ->default(fn (): int => ((int) Promo::query()->max('id')) + 1)
+                                ->rules(['required', 'integer', 'min:1', 'max:65535', 'unique:promo,id'])
+                                ->required(),
+                            FileUpload::make('image')
+                                ->label('Imagen')
+                                ->image()
+                                ->disk('public')
+                                ->directory('promos')
+                                ->visibility('public')
+                                ->preserveFilenames()
+                                ->required(),
+                        ])
+                        ->createOptionUsing(function (array $data): int {
+                            $promo = Promo::query()->create([
+                                'id' => (int) $data['id'],
+                                'image' => (string) $data['image'],
+                            ]);
+
+                            return (int) $promo->getKey();
+                        }),
                 ])
                 ->action(fn (array $data, MemberProcedureEngine $engine) => $this->startProcedure($engine, MemberProcedure::TYPE_RECRUITMENT_COMPLETE, $data, [
                     'promo_id' => (int) $data['promo_id'],
