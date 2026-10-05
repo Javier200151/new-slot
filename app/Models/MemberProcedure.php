@@ -40,7 +40,7 @@ class MemberProcedure extends Model
     {
         return [
             self::TYPE_RECRUITMENT_START => 'Inicio de reclutamiento',
-            self::TYPE_RECRUITMENT_COMPLETE => 'Completar reclutamiento',
+            self::TYPE_RECRUITMENT_COMPLETE => 'Alta de calavera (ACTIVO)',
             self::TYPE_REACTIVATION => 'Reactivación desde reserva',
             self::TYPE_RESERVE => 'Paso a reserva',
             self::TYPE_DEPARTURE => 'Baja',
