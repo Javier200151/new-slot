@@ -968,3 +968,155 @@
     transform: scale(1.12);
     background: var(--ns-bbcode-color);
 }
+
+/* NewSlot · Procedimientos: pasos en tarjetas legibles */
+.ns-procedure-step-card {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, .22);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, .24);
+    overflow: hidden;
+}
+
+.ns-procedure-step-card__header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: .8rem;
+    align-items: center;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, .16);
+}
+
+.ns-procedure-step-card__number {
+    font-size: .78rem;
+    font-weight: 700;
+    color: rgb(148 163 184);
+    white-space: nowrap;
+}
+
+.ns-procedure-step-card__title {
+    min-width: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: inherit;
+}
+
+.ns-procedure-step-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .4rem;
+}
+
+.ns-procedure-step-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.55rem;
+    padding: .15rem .55rem;
+    border: 1px solid rgba(148, 163, 184, .25);
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ns-procedure-step-badge.is-automatic,
+.ns-procedure-step-badge.is-info {
+    color: rgb(96 165 250);
+    background: rgba(59, 130, 246, .1);
+    border-color: rgba(59, 130, 246, .35);
+}
+
+.ns-procedure-step-badge.is-manual,
+.ns-procedure-step-badge.is-waiting,
+.ns-procedure-step-badge.is-warning {
+    color: rgb(250 204 21);
+    background: rgba(234, 179, 8, .1);
+    border-color: rgba(234, 179, 8, .35);
+}
+
+.ns-procedure-step-badge.is-completed {
+    color: rgb(74 222 128);
+    background: rgba(34, 197, 94, .1);
+    border-color: rgba(34, 197, 94, .35);
+}
+
+.ns-procedure-step-badge.is-error {
+    color: rgb(248 113 113);
+    background: rgba(239, 68, 68, .1);
+    border-color: rgba(239, 68, 68, .35);
+}
+
+.ns-procedure-step-badge.is-skipped {
+    color: rgb(148 163 184);
+    background: rgba(100, 116, 139, .1);
+}
+
+.ns-procedure-step-card__instructions {
+    padding: 1rem 1.1rem;
+    background: rgba(148, 163, 184, .055);
+}
+
+.ns-procedure-step-card__field-label {
+    display: block;
+    margin-bottom: .25rem;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+    color: rgb(148 163 184);
+}
+
+.ns-procedure-step-card__instructions-text {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+}
+
+.ns-procedure-step-card__meta-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .85rem;
+    padding: 1rem 1.1rem;
+}
+
+.ns-procedure-step-card__meta-item {
+    min-width: 0;
+}
+
+.ns-procedure-step-card__meta-item strong {
+    display: block;
+    overflow-wrap: anywhere;
+    font-size: .86rem;
+    line-height: 1.4;
+}
+
+.ns-procedure-step-card__meta-item--wide {
+    grid-column: 1 / -1;
+    padding-top: .25rem;
+}
+
+.ns-procedure-step-card__detail {
+    white-space: pre-line;
+}
+
+@media (max-width: 1000px) {
+    .ns-procedure-step-card__meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .ns-procedure-step-card__header {
+        grid-template-columns: 1fr;
+    }
+
+    .ns-procedure-step-card__badges {
+        justify-content: flex-start;
+    }
+
+    .ns-procedure-step-card__meta-grid {
+        grid-template-columns: 1fr;
+    }
+}

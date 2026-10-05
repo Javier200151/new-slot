@@ -6,7 +6,6 @@ use App\Models\ContactSubmission;
 use App\Models\MemberProcedureSetting;
 use App\Models\RecruitmentPeriod;
 use App\Models\User;
-use App\Models\VeterancyAward;
 use App\Services\VeterancyService;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
@@ -186,7 +185,7 @@ class GoogleSheetsService
             if (isset($values[$dateOffset]) && is_numeric($values[$dateOffset])) {
                 $values[$dateOffset] = \Illuminate\Support\Carbon::create(1899, 12, 30)
                     ->addDays((int) $values[$dateOffset])
-                    ->format('d/m/Y');
+                    ->format('Y-m-d');
             }
         }
 
@@ -241,24 +240,38 @@ class GoogleSheetsService
         $submission ??= $this->recruitmentSubmission($user);
         $ingreso = $this->firstRecruitDate($user, $submission, $period);
         $summary = $this->veterancies->summary($user);
-        $awards = VeterancyAward::query()
-            ->where('user_id', $user->id)
-            ->get()
-            ->keyBy('level');
+        $reserveDays = (int) ($summary['reserve_days'] ?? 0);
 
         return [
             'A' => (string) $user->nick,
             'B' => (int) $user->id,
             'I' => (string) ($period?->tutor_nick_snapshot ?: $period?->tutor?->nick ?: ''),
             'J' => $this->dateSerial($ingreso),
-            'K' => (int) ($summary['reserve_days'] ?? 0),
+            'K' => $reserveDays,
             'L' => strtoupper(trim((string) ($user->status?->name ?? ''))),
             'M' => $this->dateSerial($user->member_at),
             'N' => $user->promo_id ? (int) $user->promo_id : null,
-            'O' => $this->dateSerial($awards->get(VeterancyService::BRONZE)?->earned_at),
-            'P' => $this->dateSerial($awards->get(VeterancyService::SILVER)?->earned_at),
-            'Q' => $this->dateSerial($awards->get(VeterancyService::GOLD)?->earned_at),
+            // La hoja histórica calcula estas fechas como FECHA CALAVERA +
+            // 1/3/5 años + los días acumulados en RESERVA. Al reactivarse
+            // el miembro, la sincronización vuelve a calcular las tres fechas.
+            'O' => $this->dateSerial($this->projectedVeterancyDate($user, VeterancyService::BRONZE, $reserveDays)),
+            'P' => $this->dateSerial($this->projectedVeterancyDate($user, VeterancyService::SILVER, $reserveDays)),
+            'Q' => $this->dateSerial($this->projectedVeterancyDate($user, VeterancyService::GOLD, $reserveDays)),
         ];
+    }
+
+    private function projectedVeterancyDate(User $user, string $level, int $reserveDays): ?\Carbon\CarbonInterface
+    {
+        if (! $user->member_at || ! isset(VeterancyService::LEVELS[$level])) {
+            return null;
+        }
+
+        $years = (int) VeterancyService::LEVELS[$level]['years'];
+
+        return \Illuminate\Support\Carbon::parse($user->member_at)
+            ->startOfDay()
+            ->addYears($years)
+            ->addDays(max(0, $reserveDays));
     }
 
     private function firstRecruitDate(User $user, ?ContactSubmission $submission, ?RecruitmentPeriod $period): ?\Carbon\CarbonInterface
@@ -416,7 +429,7 @@ class GoogleSheetsService
         User $user,
         ContactSubmission $submission,
     ): void {
-        $values = $this->getValues($spreadsheetId, $sheetTitle . "!A{$rowNumber}:N{$rowNumber}", 'FORMATTED_VALUE');
+        $values = $this->getValues($spreadsheetId, $sheetTitle . "!A{$rowNumber}:Q{$rowNumber}", 'FORMATTED_VALUE');
         $row = $values[0] ?? [];
         [$expectedName, $expectedSurnames] = $this->splitFullName((string) $submission->full_name);
 
@@ -438,6 +451,18 @@ class GoogleSheetsService
 
         if ($submission->birth_date && blank($row[6] ?? null)) {
             throw new RuntimeException('Google Sheets no refleja la fecha de nacimiento transferida. No se borrarán los datos personales.');
+        }
+
+        if ($user->promo_id && (string) ($row[13] ?? '') !== (string) $user->promo_id) {
+            throw new RuntimeException('Google Sheets no refleja la promoción esperada. No se borrarán los datos personales.');
+        }
+
+        if ($user->member_at) {
+            foreach ([14 => 'BRONCE', 15 => 'PLATA', 16 => 'ORO'] as $offset => $label) {
+                if (blank($row[$offset] ?? null)) {
+                    throw new RuntimeException("Google Sheets no refleja la fecha de veteranía {$label}. No se borrarán los datos personales.");
+                }
+            }
         }
     }
 
