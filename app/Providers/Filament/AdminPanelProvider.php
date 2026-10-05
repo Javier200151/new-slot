@@ -11,7 +11,6 @@ use Filament\Navigation\NavigationItem;
 use App\Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
@@ -45,33 +44,33 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 function (): HtmlString {
-                    $path = public_path('css/filament-custom.css');
+                    $styles = [];
 
-                    if (! is_file($path)) {
-                        return new HtmlString('');
+                    foreach ([
+                        'newslot-filament-custom' => public_path('css/filament-custom.css'),
+                        'newslot-personal-dashboard' => public_path('css/personal-dashboard.css'),
+                    ] as $id => $path) {
+                        if (! is_file($path)) {
+                            continue;
+                        }
+
+                        $css = file_get_contents($path);
+
+                        if ($css === false) {
+                            continue;
+                        }
+
+                        // Estos estilos son críticos para el layout del panel. Se inyectan
+                        // inline para no depender de la caché de Caddy/navegador ni del
+                        // registro de assets de Filament después de un despliegue.
+                        $css = str_replace('</style>', '<\/style>', $css);
+                        $styles[] = "<style id=\"{$id}\">{$css}</style>";
                     }
 
-                    $css = file_get_contents($path);
-
-                    if ($css === false) {
-                        return new HtmlString('');
-                    }
-
-                    // El CSS personalizado del panel es muy pequeño y crítico para el layout.
-                    // Lo inyectamos inline para que producción no dependa de la caché de
-                    // archivos estáticos de Caddy/navegador después de cada despliegue.
-                    $css = str_replace('</style>', '<\/style>', $css);
-
-                    return new HtmlString("<style id=\"newslot-filament-custom\">{$css}</style>");
+                    return new HtmlString(implode("\n", $styles));
                 },
             )
             ->assets([
-                Css::make(
-                    'personal-dashboard',
-                    asset('css/personal-dashboard.css')
-                        . '?v='
-                        . filemtime(public_path('css/personal-dashboard.css'))
-                ),
                 Js::make(
                     'filament-orbat-layout',
                     asset('js/filament-orbat-layout.js')
@@ -91,6 +90,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Streams'),
                 NavigationGroup::make('Comunidad'),
                 NavigationGroup::make('Usuarios'),
+                NavigationGroup::make('Procedimientos'),
                 NavigationGroup::make('Reclutamiento'),
                 NavigationGroup::make('Sistema'),
             ])
