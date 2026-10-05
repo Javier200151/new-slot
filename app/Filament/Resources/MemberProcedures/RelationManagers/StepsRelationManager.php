@@ -18,6 +18,40 @@ class StepsRelationManager extends RelationManager
     protected static string $relationship = 'steps';
     protected static ?string $title = 'Pasos del procedimiento';
 
+    public function completeManualFromCard(int $stepId): void
+    {
+        abort_unless((bool) auth()->user()?->can('member-procedures.update'), 403);
+
+        /** @var MemberProcedureStep $step */
+        $step = $this->getOwnerRecord()->steps()->whereKey($stepId)->firstOrFail();
+
+        try {
+            app(MemberProcedureEngine::class)->completeManualStep($step);
+            Notification::make()->success()->title('Paso completado')->send();
+            $this->resetTable();
+        } catch (Throwable $exception) {
+            report($exception);
+            Notification::make()->danger()->title('No se pudo completar el paso')->body($exception->getMessage())->send();
+        }
+    }
+
+    public function retryFromCard(int $stepId): void
+    {
+        abort_unless((bool) auth()->user()?->can('member-procedures.update'), 403);
+
+        /** @var MemberProcedureStep $step */
+        $step = $this->getOwnerRecord()->steps()->whereKey($stepId)->firstOrFail();
+
+        try {
+            app(MemberProcedureEngine::class)->retryStep($step);
+            Notification::make()->success()->title('Paso revisado')->send();
+            $this->resetTable();
+        } catch (Throwable $exception) {
+            report($exception);
+            Notification::make()->danger()->title('No se pudo reintentar')->body($exception->getMessage())->send();
+        }
+    }
+
     public function table(Table $table): Table
     {
         return $table

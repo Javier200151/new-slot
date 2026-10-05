@@ -1,6 +1,8 @@
 @extends('layouts.metopas')
 
-@php($diaryCategory = \App\Support\CommunityForumCategory::diary())
+@php
+    $diaryCategory = \App\Support\CommunityForumCategory::diary();
+@endphp
 @section('title', $diaryCategory['label'] ?? 'Diarios')
 
 @push('styles')

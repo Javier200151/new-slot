@@ -3,70 +3,129 @@
 namespace App\Services\MemberProcedures;
 
 use App\Models\MemberProcedure;
+use App\Models\MemberProcedureSetting;
 use App\Models\MemberProcedureStep;
+use App\Models\MemberProcedureStepDefinition;
+use Illuminate\Container\Container;
+use Illuminate\Support\Facades\Schema;
 
 class MemberProcedureRegistry
 {
     /** @return array<string, array<string, mixed>> */
     public function definitions(): array
     {
+        $defaults = $this->defaultDefinitions();
+
+        $container = Container::getInstance();
+        if (! $container->bound('db.schema') || ! Schema::hasTable('member_procedure_step_definitions')) {
+            return $defaults;
+        }
+
+        $setting = MemberProcedureSetting::query()->first();
+        if (! $setting) {
+            return $defaults;
+        }
+
+        $stored = MemberProcedureStepDefinition::query()
+            ->where('member_procedure_setting_id', $setting->id)
+            ->orderBy('procedure_type')
+            ->orderBy('position')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('procedure_type');
+
+        if ($stored->isEmpty()) {
+            return $defaults;
+        }
+
+        $definitions = [];
+        foreach ($defaults as $type => $default) {
+            $records = $stored->get($type);
+            if (! $records || $records->isEmpty()) {
+                $definitions[$type] = $default;
+                continue;
+            }
+
+            $steps = $records
+                ->filter(fn (MemberProcedureStepDefinition $record): bool => $record->kind !== MemberProcedureStep::KIND_MANUAL || $record->is_enabled)
+                ->map(fn (MemberProcedureStepDefinition $record): array => [
+                    'key' => $record->step_key,
+                    'label' => $record->label,
+                    'kind' => $record->kind,
+                    'required' => (bool) $record->required,
+                    'depends_on' => array_values($record->depends_on ?? []),
+                    'instructions' => $record->instructions,
+                ])
+                ->values()
+                ->all();
+
+            $definitions[$type] = [
+                'label' => $default['label'],
+                'steps' => $steps,
+            ];
+        }
+
+        return $definitions;
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    public function defaultDefinitions(): array
+    {
         return [
             MemberProcedure::TYPE_RECRUITMENT_START => [
                 'label' => 'Inicio de reclutamiento',
                 'steps' => [
-                    $this->auto('linked_application', 'Comprobar cuenta y solicitud de alistamiento vinculadas'),
-                    $this->auto('status_recruit', 'Cambiar estado a RECLUTA', ['linked_application']),
-                    $this->auto('tutor_area', 'Crear/validar el proceso en el Área de tutores', ['status_recruit']),
-                    $this->manual('discord_recruit', 'Actualizar los roles de Discord a RECLUTA', ['status_recruit']),
-                    $this->auto('treasury_signal', 'Notificar a Tesorería la señal de 6 €', ['status_recruit']),
-                    $this->manual('telegram_recruit_announcement', 'Notificar la entrada en el tablón de anuncios de Telegram', ['status_recruit']),
-                    $this->auto('tutor_coordinator_notice', 'Notificar al coordinador de tutores la disponibilidad del nuevo recluta', ['tutor_area']),
-                    $this->manual('whatsapp_recruit_group', 'Añadir al grupo de WhatsApp de reclutas', ['status_recruit']),
-                    $this->waiting('tutor_assignment', 'Esperar a que un tutor se asigne al recluta', ['tutor_area']),
+                    $this->auto('linked_application', 'Comprobar cuenta y solicitud de alistamiento vinculadas', [], 'Verifica que la solicitud aprobada está asociada a una cuenta de NewSlot. La asociación puede haberse realizado automáticamente por email o manualmente desde alistamiento.'),
+                    $this->auto('status_recruit', 'Cambiar estado a RECLUTA', ['linked_application'], 'Cambia el estado del usuario a RECLUTA. Este cambio debe disparar la lógica existente del área de tutores y quedar registrado en el historial de estados.'),
+                    $this->auto('tutor_area', 'Crear/validar el proceso en el Área de tutores', ['status_recruit'], 'Comprueba que existe el periodo de reclutamiento del usuario en el Área de tutores y que puede ser recogido por un tutor.'),
+                    $this->manual('discord_recruit', 'Actualizar los roles de Discord a RECLUTA', ['status_recruit'], 'En Discord, asigna al usuario el rol correspondiente a RECLUTA y retira cualquier rol incompatible que proceda.'),
+                    $this->auto('treasury_signal', 'Notificar a Tesorería la señal de 6 €', ['status_recruit'], 'Genera un aviso para el grupo configurado como Tesorería indicando que debe comprobarse el pago de la señal de 6 € del nuevo recluta.'),
+                    $this->manual('telegram_recruit_announcement', 'Notificar la entrada en el tablón de anuncios de Telegram', ['status_recruit'], 'Publica en el tablón de anuncios de Telegram la entrada del nuevo recluta siguiendo el formato habitual de la comunidad.'),
+                    $this->auto('tutor_coordinator_notice', 'Notificar al coordinador de tutores la disponibilidad del nuevo recluta', ['tutor_area'], 'Avisa al grupo/configuración de tutores de que hay un nuevo recluta disponible para ser asignado.'),
+                    $this->manual('whatsapp_recruit_group', 'Añadir al grupo de WhatsApp de reclutas', ['status_recruit'], 'Añade al recluta al grupo de WhatsApp destinado a reclutas. Marca este paso como completado cuando confirmes que ya está dentro.'),
+                    $this->waiting('tutor_assignment', 'Esperar a que un tutor se asigne al recluta', ['tutor_area'], 'Este paso se completa automáticamente cuando el Área de tutores detecta que un tutor ha recogido al recluta.'),
                 ],
             ],
             MemberProcedure::TYPE_RECRUITMENT_COMPLETE => [
                 'label' => 'Completar reclutamiento',
                 'steps' => [
-                    $this->auto('complete_validation', 'Comprobar que el recluta y su solicitud están listos'),
-                    $this->auto('assign_promotion', 'Asignar la promoción', ['complete_validation']),
-                    $this->auto('status_active', 'Cambiar estado a ACTIVO y fijar Miembro desde', ['assign_promotion']),
-                    $this->auto('armasquads_upsert', 'Añadir o actualizar el miembro en ArmaSquads', ['status_active']),
-                    array_merge($this->auto('google_sheets_transfer', 'Registrar y verificar los datos personales en Google Sheets', ['status_active']), [
-                        'instructions' => 'Automático con Service Account. ID Web = ID del usuario. INGRESO = primera entrada en RECLUTA. FECHA CALAVERA = Miembro desde / primera transición RECLUTA → ACTIVO. Si falla, los datos personales NO se eliminan y puedes usar la fila manual de contingencia.',
-                    ]),
-                    $this->auto('purge_recruitment_personal', 'Eliminar del formulario los datos personales ya transferidos', ['google_sheets_transfer']),
-                    $this->manual('leave_recruit_groups', 'Sacar al usuario de los grupos de reclutas', ['status_active']),
-                    $this->auto('alpha_metopa', 'Asignar la metopa de miembro ALPHA', ['status_active']),
-                    $this->manual('ts3_alpha', 'Cambiar en TS3 el rol RECLUTA por ALPHA', ['status_active']),
-                    $this->manual('discord_alpha', 'Cambiar en Discord el rol RECLUTA por ALPHA', ['status_active']),
-                    $this->manual('telegram_groups_email', 'Enviar por email los enlaces de los grupos oficiales de Telegram', ['status_active']),
-                    $this->auto('treasury_member_notice', 'Notificar a Tesorería el alta como miembro', ['status_active']),
-                    $this->auto('google_sheets_status_sync', 'Sincronizar ACTIVO, promoción e ingreso en Google Sheets', ['google_sheets_transfer', 'status_active']),
+                    $this->auto('complete_validation', 'Comprobar que el recluta y su solicitud están listos', [], 'Verifica que el usuario sigue en estado RECLUTA y que conserva una solicitud de alistamiento aprobada y vinculada.'),
+                    $this->auto('assign_promotion', 'Asignar la promoción', ['complete_validation'], 'Asigna al usuario la promoción seleccionada al iniciar el procedimiento de Alta de calavera.'),
+                    $this->auto('status_active', 'Cambiar estado a ACTIVO y fijar Miembro desde', ['assign_promotion'], 'Cambia el estado a ACTIVO. Si es la primera transición RECLUTA → ACTIVO, fija Miembro desde / FECHA CALAVERA, que será el día 0 para veteranías.'),
+                    $this->auto('armasquads_upsert', 'Añadir o actualizar el miembro en ArmaSquads', ['status_active'], 'Sincroniza con ArmaSquads usando SteamID64 como PlayerID/uuid y el nick de NewSlot como username. Si ya existe, actualiza los datos necesarios sin duplicarlo.'),
+                    $this->auto('google_sheets_transfer', 'Registrar y verificar los datos personales en Google Sheets', ['status_active'], 'Copia la información del formulario a la pestaña General buscando por ID Web = ID del usuario. INGRESO es la primera entrada en RECLUTA y FECHA CALAVERA es Miembro desde. También sincroniza PROMOCIÓN y las fechas previstas de BRONCE, PLATA y ORO. NewSlot verifica la fila antes de continuar.'),
+                    $this->auto('purge_recruitment_personal', 'Eliminar del formulario los datos personales ya transferidos', ['google_sheets_transfer'], 'Solo después de que Google Sheets confirme la escritura, elimina del formulario los datos personales definidos para purga. El email de la cuenta de usuario no se elimina.'),
+                    $this->manual('leave_recruit_groups', 'Sacar al usuario de los grupos de reclutas', ['status_active'], 'Retira al nuevo miembro de los grupos exclusivos de reclutas que no se gestionen automáticamente.'),
+                    $this->auto('alpha_metopa', 'Asignar la metopa de miembro ALPHA', ['status_active'], 'Entrega automáticamente la metopa configurada como ALPHA, evitando duplicados si el usuario ya la tuviera.'),
+                    $this->manual('ts3_alpha', 'Cambiar en TS3 el rol RECLUTA por ALPHA', ['status_active'], 'En TeamSpeak 3, retira el grupo/rol de RECLUTA y asigna el correspondiente a ALPHA.'),
+                    $this->manual('discord_alpha', 'Cambiar en Discord el rol RECLUTA por ALPHA', ['status_active'], 'En Discord, retira el rol de RECLUTA y asigna el rol de ALPHA al nuevo miembro.'),
+                    $this->manual('telegram_groups_email', 'Enviar por email los enlaces de los grupos oficiales de Telegram', ['status_active'], 'Envía al nuevo miembro el correo con los enlaces vigentes para incorporarse a los grupos oficiales de Telegram.'),
+                    $this->auto('treasury_member_notice', 'Notificar a Tesorería el alta como miembro', ['status_active'], 'Genera un aviso para el grupo configurado como Tesorería indicando que el recluta ha pasado a miembro ACTIVO.'),
+                    $this->auto('google_sheets_status_sync', 'Sincronizar ACTIVO, promoción e ingreso en Google Sheets', ['google_sheets_transfer', 'status_active'], 'Actualiza la fila existente de Google Sheets con estado ACTIVO, promoción, fechas de ingreso/calavera y planificación de veteranías.'),
                 ],
             ],
             MemberProcedure::TYPE_REACTIVATION => [
                 'label' => 'Reactivación desde reserva',
                 'steps' => [
-                    $this->auto('reactivation_validation', 'Comprobar que el miembro está en RESERVA'),
-                    $this->auto('treasury_reactivation_notice', 'Notificar a Tesorería la reactivación', ['reactivation_validation']),
-                    $this->manual('discord_reactivation', 'Cambiar en Discord RESERVA por ACTIVO', ['reactivation_validation']),
-                    $this->manual('telegram_groups_email', 'Reenviar por email los enlaces de Telegram', ['reactivation_validation']),
-                    $this->manual('ts3_reactivation', 'Cambiar en TS3 RESERVA por ALPHA', ['reactivation_validation']),
-                    $this->auto('status_active', 'Cambiar estado a ACTIVO', ['reactivation_validation']),
-                    $this->auto('google_sheets_status_sync', 'Actualizar el estado en Google Sheets', ['status_active']),
+                    $this->auto('reactivation_validation', 'Comprobar que el miembro está en RESERVA', [], 'Valida que el procedimiento se ejecuta sobre un usuario cuyo estado actual es RESERVA.'),
+                    $this->auto('treasury_reactivation_notice', 'Notificar a Tesorería la reactivación', ['reactivation_validation'], 'Avisa a Tesorería de que el miembro vuelve de RESERVA a la actividad.'),
+                    $this->manual('discord_reactivation', 'Cambiar en Discord RESERVA por ACTIVO', ['reactivation_validation'], 'Retira en Discord el rol de RESERVA y asigna el rol activo/ALPHA correspondiente.'),
+                    $this->manual('telegram_groups_email', 'Reenviar por email los enlaces de Telegram', ['reactivation_validation'], 'Reenvía al miembro los enlaces actualizados de los grupos oficiales de Telegram para que pueda reincorporarse.'),
+                    $this->manual('ts3_reactivation', 'Cambiar en TS3 RESERVA por ALPHA', ['reactivation_validation'], 'En TeamSpeak 3, sustituye el grupo de RESERVA por el de ALPHA.'),
+                    $this->auto('status_active', 'Cambiar estado a ACTIVO', ['reactivation_validation'], 'Cambia el estado interno del usuario de RESERVA a ACTIVO y registra el cambio en su historial.'),
+                    $this->auto('google_sheets_status_sync', 'Actualizar el estado en Google Sheets', ['status_active'], 'Actualiza en Google Sheets el estado del miembro y recalcula los datos derivados de tiempo en reserva/veteranías.'),
                 ],
             ],
             MemberProcedure::TYPE_RESERVE => [
                 'label' => 'Paso a reserva',
                 'steps' => [
-                    $this->auto('reserve_validation', 'Comprobar que el miembro está ACTIVO'),
-                    $this->auto('treasury_reserve_notice', 'Notificar a Tesorería el paso a reserva', ['reserve_validation']),
-                    $this->manual('discord_reserve', 'Cambiar en Discord ALPHA por RESERVA', ['reserve_validation']),
-                    $this->manual('telegram_leave_official', 'Sacar de los grupos oficiales de Telegram', ['reserve_validation']),
-                    $this->manual('ts3_reserve', 'Cambiar en TS3 ALPHA por RESERVA', ['reserve_validation']),
-                    $this->auto('status_reserve', 'Cambiar estado a RESERVA', ['reserve_validation']),
-                    $this->auto('google_sheets_status_sync', 'Actualizar el estado y días de reserva en Google Sheets', ['status_reserve']),
+                    $this->auto('reserve_validation', 'Comprobar que el miembro está ACTIVO', [], 'Valida que solo un miembro actualmente ACTIVO pueda iniciar el procedimiento de paso a RESERVA.'),
+                    $this->auto('treasury_reserve_notice', 'Notificar a Tesorería el paso a reserva', ['reserve_validation'], 'Avisa al grupo configurado como Tesorería del paso del miembro a RESERVA.'),
+                    $this->manual('discord_reserve', 'Cambiar en Discord ALPHA por RESERVA', ['reserve_validation'], 'En Discord, retira el rol activo/ALPHA y asigna el rol correspondiente a RESERVA.'),
+                    $this->manual('telegram_leave_official', 'Sacar de los grupos oficiales de Telegram', ['reserve_validation'], 'Retira al miembro de los grupos oficiales de Telegram que correspondan durante su periodo en reserva.'),
+                    $this->manual('ts3_reserve', 'Cambiar en TS3 ALPHA por RESERVA', ['reserve_validation'], 'En TeamSpeak 3, retira el grupo ALPHA y asigna el grupo de RESERVA.'),
+                    $this->auto('status_reserve', 'Cambiar estado a RESERVA', ['reserve_validation'], 'Cambia el estado interno de ACTIVO a RESERVA y registra la fecha para el cálculo del tiempo efectivo de veteranía.'),
+                    $this->auto('google_sheets_status_sync', 'Actualizar el estado y días de reserva en Google Sheets', ['status_reserve'], 'Actualiza la fila del miembro en Google Sheets con su nuevo estado y las fechas de veteranía recalculadas según el tiempo acumulado en reserva.'),
                 ],
             ],
             MemberProcedure::TYPE_DEPARTURE => [
@@ -78,6 +137,37 @@ class MemberProcedureRegistry
                 'steps' => $this->departureSteps(true),
             ],
         ];
+    }
+
+    public function seedStoredDefinitions(?int $settingId = null): void
+    {
+        $container = Container::getInstance();
+        if (! $container->bound('db.schema') || ! Schema::hasTable('member_procedure_step_definitions')) {
+            return;
+        }
+
+        $settingId ??= (int) MemberProcedureSetting::current()->id;
+        if (MemberProcedureStepDefinition::query()->where('member_procedure_setting_id', $settingId)->exists()) {
+            return;
+        }
+
+        foreach ($this->defaultDefinitions() as $type => $definition) {
+            foreach ($definition['steps'] as $index => $step) {
+                MemberProcedureStepDefinition::query()->create([
+                    'member_procedure_setting_id' => $settingId,
+                    'procedure_type' => $type,
+                    'step_key' => $step['key'],
+                    'label' => $step['label'],
+                    'instructions' => $step['instructions'] ?? null,
+                    'kind' => $step['kind'],
+                    'position' => $index + 1,
+                    'required' => (bool) ($step['required'] ?? true),
+                    'is_enabled' => true,
+                    'is_system' => true,
+                    'depends_on' => array_values($step['depends_on'] ?? []),
+                ]);
+            }
+        }
     }
 
     /** @return array<string, mixed> */
@@ -95,49 +185,46 @@ class MemberProcedureRegistry
     private function departureSteps(bool $dismissal): array
     {
         $steps = [
-            $this->auto('departure_validation', $dismissal ? 'Comprobar requisitos del cese' : 'Comprobar requisitos de la baja'),
-            $this->auto('treasury_departure_notice', $dismissal ? 'Notificar a Tesorería el cese' : 'Notificar a Tesorería la baja', ['departure_validation']),
-            $this->auto('armasquads_delete', 'Retirar de ArmaSquads', ['departure_validation']),
-            $this->manual('discord_departure', 'Retirar roles/acceso de Discord', ['departure_validation']),
-            $this->manual('telegram_leave_all', 'Sacar de los grupos de Telegram', ['departure_validation']),
-            $this->manual('whatsapp_leave_all', 'Sacar de los grupos de WhatsApp', ['departure_validation']),
-            $this->manual('ts3_departure', 'Retirar grupos/roles de TeamSpeak 3', ['departure_validation']),
+            $this->auto('departure_validation', $dismissal ? 'Comprobar requisitos del cese' : 'Comprobar requisitos de la baja', [], $dismissal ? 'Comprueba que el usuario puede tramitarse como CESE y que no está ya en BAJA/CESADO.' : 'Comprueba que el usuario puede tramitarse como BAJA y que no está ya en BAJA/CESADO.'),
+            $this->auto('treasury_departure_notice', $dismissal ? 'Notificar a Tesorería el cese' : 'Notificar a Tesorería la baja', ['departure_validation'], $dismissal ? 'Avisa a Tesorería del cese para que realice las gestiones económicas/administrativas correspondientes.' : 'Avisa a Tesorería de la baja para que realice las gestiones económicas/administrativas correspondientes.'),
+            $this->auto('armasquads_delete', 'Retirar de ArmaSquads', ['departure_validation'], 'Elimina al usuario del Squad de ArmaSquads utilizando su SteamID64. Si ya no existe, el paso se considera idempotente.'),
+            $this->manual('discord_departure', 'Retirar roles/acceso de Discord', ['departure_validation'], 'Retira del usuario los roles y accesos de Discord asociados a la pertenencia a Squad Alpha.'),
+            $this->manual('telegram_leave_all', 'Sacar de los grupos de Telegram', ['departure_validation'], 'Retira al usuario de los grupos oficiales de Telegram que correspondan.'),
+            $this->manual('whatsapp_leave_all', 'Sacar de los grupos de WhatsApp', ['departure_validation'], 'Retira al usuario de los grupos oficiales de WhatsApp que correspondan.'),
+            $this->manual('ts3_departure', 'Retirar grupos/roles de TeamSpeak 3', ['departure_validation'], 'Retira del usuario los grupos y roles de TeamSpeak 3 asociados a Squad Alpha.'),
         ];
 
         if ($dismissal) {
-            $steps[] = $this->manual('ban_if_required', 'Aplicar los bloqueos/baneos indicados para el cese', ['departure_validation']);
+            $steps[] = $this->manual('ban_if_required', 'Aplicar los bloqueos/baneos indicados para el cese', ['departure_validation'], 'Si el cese requiere bloqueo, aplica los baneos indicados en los servicios correspondientes. Si no se solicitó ban, este paso se omite automáticamente.');
         }
 
-        $steps[] = $this->auto($dismissal ? 'status_dismissed' : 'status_departed', $dismissal ? 'Cambiar estado a CESADO' : 'Cambiar estado a BAJA', ['departure_validation']);
-        $steps[] = $this->auto(
-            'google_sheets_status_sync',
-            'Actualizar el estado en Google Sheets',
-            [$dismissal ? 'status_dismissed' : 'status_departed'],
-        );
+        $statusKey = $dismissal ? 'status_dismissed' : 'status_departed';
+        $steps[] = $this->auto($statusKey, $dismissal ? 'Cambiar estado a CESADO' : 'Cambiar estado a BAJA', ['departure_validation'], $dismissal ? 'Cambia el estado del usuario a CESADO y registra el cambio en su historial.' : 'Cambia el estado del usuario a BAJA y registra el cambio en su historial.');
+        $steps[] = $this->auto('google_sheets_status_sync', 'Actualizar el estado en Google Sheets', [$statusKey], 'Actualiza la fila del miembro en Google Sheets con el nuevo estado sin modificar columnas ajenas a NewSlot.');
 
         if ($dismissal) {
-            $steps[] = $this->manual('dismissal_email', 'Enviar el correo de cese', ['status_dismissed']);
+            $steps[] = $this->manual('dismissal_email', 'Enviar el correo de cese', ['status_dismissed'], 'Envía al usuario el correo de cese utilizando la plantilla vigente y marca el paso cuando el envío esté confirmado.');
         }
 
         return $steps;
     }
 
-    private function auto(string $key, string $label, array $dependsOn = []): array
+    private function auto(string $key, string $label, array $dependsOn = [], ?string $instructions = null): array
     {
-        return $this->step($key, $label, MemberProcedureStep::KIND_AUTOMATIC, $dependsOn);
+        return $this->step($key, $label, MemberProcedureStep::KIND_AUTOMATIC, $dependsOn, $instructions);
     }
 
-    private function manual(string $key, string $label, array $dependsOn = []): array
+    private function manual(string $key, string $label, array $dependsOn = [], ?string $instructions = null): array
     {
-        return $this->step($key, $label, MemberProcedureStep::KIND_MANUAL, $dependsOn);
+        return $this->step($key, $label, MemberProcedureStep::KIND_MANUAL, $dependsOn, $instructions);
     }
 
-    private function waiting(string $key, string $label, array $dependsOn = []): array
+    private function waiting(string $key, string $label, array $dependsOn = [], ?string $instructions = null): array
     {
-        return $this->step($key, $label, MemberProcedureStep::KIND_WAITING, $dependsOn);
+        return $this->step($key, $label, MemberProcedureStep::KIND_WAITING, $dependsOn, $instructions);
     }
 
-    private function step(string $key, string $label, string $kind, array $dependsOn): array
+    private function step(string $key, string $label, string $kind, array $dependsOn, ?string $instructions): array
     {
         return [
             'key' => $key,
@@ -145,6 +232,7 @@ class MemberProcedureRegistry
             'kind' => $kind,
             'required' => true,
             'depends_on' => $dependsOn,
+            'instructions' => $instructions,
         ];
     }
 }
