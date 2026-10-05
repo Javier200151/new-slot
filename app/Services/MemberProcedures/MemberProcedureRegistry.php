@@ -32,8 +32,8 @@ class MemberProcedureRegistry
                     $this->auto('assign_promotion', 'Asignar la promoción', ['complete_validation']),
                     $this->auto('status_active', 'Cambiar estado a ACTIVO y fijar Miembro desde', ['assign_promotion']),
                     $this->auto('armasquads_upsert', 'Añadir o actualizar el miembro en ArmaSquads', ['status_active']),
-                    array_merge($this->manual('google_sheets_transfer', 'Registrar los datos personales en Google Sheets', ['status_active']), [
-                        'instructions' => 'Usa ID Web = ID del usuario. INGRESO = primera entrada en RECLUTA. FECHA CALAVERA = Miembro desde / primera transición RECLUTA → ACTIVO. No marques el paso como completado hasta verificar la fila en Google Sheets.',
+                    array_merge($this->auto('google_sheets_transfer', 'Registrar y verificar los datos personales en Google Sheets', ['status_active']), [
+                        'instructions' => 'Automático con Service Account. ID Web = ID del usuario. INGRESO = primera entrada en RECLUTA. FECHA CALAVERA = Miembro desde / primera transición RECLUTA → ACTIVO. Si falla, los datos personales NO se eliminan y puedes usar la fila manual de contingencia.',
                     ]),
                     $this->auto('purge_recruitment_personal', 'Eliminar del formulario los datos personales ya transferidos', ['google_sheets_transfer']),
                     $this->manual('leave_recruit_groups', 'Sacar al usuario de los grupos de reclutas', ['status_active']),
@@ -42,7 +42,7 @@ class MemberProcedureRegistry
                     $this->manual('discord_alpha', 'Cambiar en Discord el rol RECLUTA por ALPHA', ['status_active']),
                     $this->manual('telegram_groups_email', 'Enviar por email los enlaces de los grupos oficiales de Telegram', ['status_active']),
                     $this->auto('treasury_member_notice', 'Notificar a Tesorería el alta como miembro', ['status_active']),
-                    $this->manual('google_sheets_status_sync', 'Comprobar que Google Sheets refleja ACTIVO, promoción e ingreso', ['google_sheets_transfer', 'status_active']),
+                    $this->auto('google_sheets_status_sync', 'Sincronizar ACTIVO, promoción e ingreso en Google Sheets', ['google_sheets_transfer', 'status_active']),
                 ],
             ],
             MemberProcedure::TYPE_REACTIVATION => [
@@ -54,7 +54,7 @@ class MemberProcedureRegistry
                     $this->manual('telegram_groups_email', 'Reenviar por email los enlaces de Telegram', ['reactivation_validation']),
                     $this->manual('ts3_reactivation', 'Cambiar en TS3 RESERVA por ALPHA', ['reactivation_validation']),
                     $this->auto('status_active', 'Cambiar estado a ACTIVO', ['reactivation_validation']),
-                    $this->manual('google_sheets_status_sync', 'Actualizar el estado en Google Sheets', ['reactivation_validation']),
+                    $this->auto('google_sheets_status_sync', 'Actualizar el estado en Google Sheets', ['status_active']),
                 ],
             ],
             MemberProcedure::TYPE_RESERVE => [
@@ -66,7 +66,7 @@ class MemberProcedureRegistry
                     $this->manual('telegram_leave_official', 'Sacar de los grupos oficiales de Telegram', ['reserve_validation']),
                     $this->manual('ts3_reserve', 'Cambiar en TS3 ALPHA por RESERVA', ['reserve_validation']),
                     $this->auto('status_reserve', 'Cambiar estado a RESERVA', ['reserve_validation']),
-                    $this->manual('google_sheets_status_sync', 'Actualizar el estado y días de reserva en Google Sheets', ['reserve_validation']),
+                    $this->auto('google_sheets_status_sync', 'Actualizar el estado y días de reserva en Google Sheets', ['status_reserve']),
                 ],
             ],
             MemberProcedure::TYPE_DEPARTURE => [
@@ -109,7 +109,11 @@ class MemberProcedureRegistry
         }
 
         $steps[] = $this->auto($dismissal ? 'status_dismissed' : 'status_departed', $dismissal ? 'Cambiar estado a CESADO' : 'Cambiar estado a BAJA', ['departure_validation']);
-        $steps[] = $this->manual('google_sheets_status_sync', 'Actualizar el estado en Google Sheets', ['departure_validation']);
+        $steps[] = $this->auto(
+            'google_sheets_status_sync',
+            'Actualizar el estado en Google Sheets',
+            [$dismissal ? 'status_dismissed' : 'status_departed'],
+        );
 
         if ($dismissal) {
             $steps[] = $this->manual('dismissal_email', 'Enviar el correo de cese', ['status_dismissed']);

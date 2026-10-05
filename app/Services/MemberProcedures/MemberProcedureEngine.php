@@ -23,6 +23,7 @@ class MemberProcedureEngine
         private readonly MemberProcedureRegistry $registry,
         private readonly ProcedureNotificationService $notifications,
         private readonly ArmaSquadsService $armaSquads,
+        private readonly GoogleSheetsService $googleSheets,
         private readonly UserMetopaAssignmentService $metopas,
     ) {
     }
@@ -258,6 +259,8 @@ class MemberProcedureEngine
             'assign_promotion' => $this->assignPromotion($procedure, $user),
             'status_active' => $this->setStatus($user, 'ACTIVO'),
             'armasquads_upsert' => $this->armaSquadsUpsert($user, $setting),
+            'google_sheets_transfer' => $this->googleSheetsTransfer($user, $setting),
+            'google_sheets_status_sync' => $this->googleSheetsStatusSync($user, $setting),
             'purge_recruitment_personal' => $this->purgeRecruitmentPersonalData($user),
             'alpha_metopa' => $this->assignAlphaMetopa($user, $setting),
             'treasury_member_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Alta de nuevo miembro', $user->nick . ' ha completado su reclutamiento y ha pasado a ACTIVO.'),
@@ -486,6 +489,41 @@ class MemberProcedureEngine
         }
 
         return ['status' => MemberProcedureStep::STATUS_COMPLETED, 'result' => $this->armaSquads->delete($user, $setting)];
+    }
+
+    private function googleSheetsTransfer(User $user, MemberProcedureSetting $setting): array
+    {
+        if (! $this->googleSheets->isConfigured($setting)) {
+            return [
+                'status' => MemberProcedureStep::STATUS_MANUAL,
+                'message' => 'Google Sheets todavía no está configurado. Usa la fila manual de contingencia y marca el paso como completado solo después de verificarla.',
+            ];
+        }
+
+        $submission = $this->recruitmentSubmission($user);
+        if (! $submission) {
+            throw new LogicException('No se encontró la solicitud de alistamiento vinculada para transferir sus datos.');
+        }
+
+        return [
+            'status' => MemberProcedureStep::STATUS_COMPLETED,
+            'result' => $this->googleSheets->transferRecruitment($user, $submission, $setting),
+        ];
+    }
+
+    private function googleSheetsStatusSync(User $user, MemberProcedureSetting $setting): array
+    {
+        if (! $this->googleSheets->isConfigured($setting)) {
+            return [
+                'status' => MemberProcedureStep::STATUS_MANUAL,
+                'message' => 'Google Sheets todavía no está configurado. Actualiza la fila manualmente y marca este paso como completado.',
+            ];
+        }
+
+        return [
+            'status' => MemberProcedureStep::STATUS_COMPLETED,
+            'result' => $this->googleSheets->syncOperational($user, $setting),
+        ];
     }
 
     private function assignAlphaMetopa(User $user, MemberProcedureSetting $setting): array

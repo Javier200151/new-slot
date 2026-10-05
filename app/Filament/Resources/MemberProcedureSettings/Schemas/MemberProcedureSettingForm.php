@@ -35,16 +35,16 @@ class MemberProcedureSettingForm
                 ])->columns(3),
 
             Section::make('Google Sheets · registro de miembros')
-                ->description('Estos identificadores no son credenciales. En esta primera versión el paso sigue siendo manual y queda trazado en el procedimiento.')
+                ->description('La integración usa una Service Account del servidor. Al completar reclutamiento, NewSlot crea/actualiza la fila por ID Web, la verifica y solo después permite purgar los datos personales del formulario.')
                 ->schema([
                     TextInput::make('google_spreadsheet_id')
                         ->label('Spreadsheet ID')
                         ->maxLength(160)
-                        ->helperText('ID de la hoja de cálculo de Google que contiene el registro de miembros.'),
+                        ->helperText('ID de la hoja de cálculo que contiene el registro. El valor por defecto corresponde al documento MIEMBROS configurado actualmente.'),
                     TextInput::make('google_general_sheet_gid')
                         ->label('GID de la pestaña General')
                         ->maxLength(32)
-                        ->helperText('La pestaña General del documento que contiene ID Web, INGRESO y FECHA CALAVERA.'),
+                        ->helperText('ID interno de la pestaña General. GOOGLE_MEMBERS_SHEET_NAME puede fijar el nombre explícitamente desde .env.'),
                 ])->columns(2),
 
             Section::make('ArmaSquads')
