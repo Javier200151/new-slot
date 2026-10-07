@@ -23,7 +23,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ asset('css/landing.css') }}"
+        href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}"
     >
     <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
 </head>
@@ -94,14 +94,21 @@
                             <span aria-hidden="true">→</span>
                         </a>
                     @else
-                        <div class="member-status">
-                            <span class="member-status__indicator"></span>
+                        <div class="member-session-stack">
+                            <div class="member-status">
+                                <span class="member-status__indicator"></span>
 
-                            Sesión iniciada como
+                                Sesión iniciada como
 
-                            <strong>
-                                {{ auth()->user()->nick }}
-                            </strong>
+                                <strong>
+                                    {{ auth()->user()->nick }}
+                                </strong>
+                            </div>
+
+                            @include('partials.profile-completion', [
+                                'profileCompletion' => $profileCompletion,
+                                'variant' => 'home',
+                            ])
                         </div>
                     @endguest
                 </div>

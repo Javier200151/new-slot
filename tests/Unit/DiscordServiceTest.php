@@ -80,6 +80,59 @@ class DiscordServiceTest extends TestCase
             && $request['nick'] === '[=ALPHA=] Speirs');
     }
 
+    public function test_sqa_group_role_can_be_assigned_and_removed_without_lifecycle_role_configuration(): void
+    {
+        config()->set('newslot.procedures.discord.enabled', true);
+        config()->set('newslot.procedures.discord.bot_token', 'test-token');
+        config()->set('newslot.procedures.discord.base_url', 'https://discord.test/api/v10');
+
+        $setting = new MemberProcedureSetting([
+            'discord_guild_id' => '123456789012345678',
+        ]);
+        $user = new User([
+            'nick' => 'Rylod',
+            'discord_id' => '523456789012345678',
+        ]);
+        $memberGets = 0;
+
+        Http::fake(function (Request $request) use (&$memberGets) {
+            $url = $request->url();
+
+            if ($request->method() === 'GET' && str_ends_with($url, '/members/523456789012345678')) {
+                $memberGets++;
+
+                return match ($memberGets) {
+                    1 => Http::response(['roles' => [], 'nick' => 'Rylod'], 200),
+                    2 => Http::response(['roles' => ['623456789012345678'], 'nick' => 'Rylod'], 200),
+                    3 => Http::response(['roles' => ['623456789012345678'], 'nick' => 'Rylod'], 200),
+                    default => Http::response(['roles' => [], 'nick' => 'Rylod'], 200),
+                };
+            }
+
+            if ($request->method() === 'PUT' && str_ends_with($url, '/roles/623456789012345678')) {
+                return Http::response([], 204);
+            }
+
+            if ($request->method() === 'DELETE' && str_ends_with($url, '/roles/623456789012345678')) {
+                return Http::response([], 204);
+            }
+
+            return Http::response(['message' => 'Unexpected request'], 500);
+        });
+
+        $service = app(DiscordService::class);
+        $added = $service->assignRole($user, $setting, '623456789012345678', 'Grupo SQA');
+        $removed = $service->removeRole($user, $setting, '623456789012345678', 'Grupo SQA');
+
+        $this->assertSame('623456789012345678', $added['added_role_id']);
+        $this->assertSame(['623456789012345678'], $removed['removed_role_ids']);
+
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'PUT'
+            && str_ends_with($request->url(), '/roles/623456789012345678'));
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'DELETE'
+            && str_ends_with($request->url(), '/roles/623456789012345678'));
+    }
+
     public function test_departure_is_completed_when_member_is_already_absent(): void
     {
         $setting = $this->configure();

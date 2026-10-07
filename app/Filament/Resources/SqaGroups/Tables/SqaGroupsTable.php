@@ -63,6 +63,14 @@ class SqaGroupsTable
                     ->numeric()
                     ->sortable(),
 
+                IconColumn::make('discord_role_id')
+                    ->label('Discord')
+                    ->boolean()
+                    ->state(fn ($record): bool => filled($record->discord_role_id))
+                    ->tooltip(fn ($record): string => filled($record->discord_role_id)
+                        ? 'Rol de Discord configurado'
+                        : 'Sin rol de Discord'),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

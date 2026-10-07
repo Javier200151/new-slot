@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Concerns\Auditable;
-use App\Services\ProtectedAdminGuard;
+use App\Services\SqaGroupDiscordSyncService;
 
 class SqaGroupUser extends Model
 {
@@ -30,26 +30,6 @@ class SqaGroupUser extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (SqaGroupUser $sqaGroupUser): void {
-            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
-            static::guardCoordinatorReplacement($sqaGroupUser);
-        });
-
-        static::updating(function (SqaGroupUser $sqaGroupUser): void {
-            app(ProtectedAdminGuard::class)->authorizeUserId(
-                (int) ($sqaGroupUser->getOriginal('user_id') ?: $sqaGroupUser->user_id)
-            );
-            static::guardCoordinatorReplacement($sqaGroupUser);
-        });
-
-        static::deleting(function (SqaGroupUser $sqaGroupUser): void {
-            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
-        });
-
-        static::restoring(function (SqaGroupUser $sqaGroupUser): void {
-            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
-        });
-
         static::creating(function ($sqaGroupUser): void {
             if (Auth::check()) {
                 $sqaGroupUser->updated_by = Auth::id();
@@ -60,6 +40,24 @@ class SqaGroupUser extends Model
             if (Auth::check()) {
                 $sqaGroupUser->updated_by = Auth::id();
             }
+        });
+
+        static::created(function (self $sqaGroupUser): void {
+            app(SqaGroupDiscordSyncService::class)->membershipAdded($sqaGroupUser);
+        });
+
+        static::updated(function (self $sqaGroupUser): void {
+            if ($sqaGroupUser->wasChanged(['user_id', 'sqa_group_id'])) {
+                app(SqaGroupDiscordSyncService::class)->membershipChanged($sqaGroupUser);
+            }
+        });
+
+        static::deleted(function (self $sqaGroupUser): void {
+            app(SqaGroupDiscordSyncService::class)->membershipRemoved($sqaGroupUser);
+        });
+
+        static::restored(function (self $sqaGroupUser): void {
+            app(SqaGroupDiscordSyncService::class)->membershipAdded($sqaGroupUser);
         });
 
         static::saved(function ($sqaGroupUser): void {
@@ -106,26 +104,6 @@ class SqaGroupUser extends Model
                 ])->save();
             }
         });
-    }
-
-    private static function guardCoordinatorReplacement(SqaGroupUser $candidate): void
-    {
-        if (! $candidate->coordinator || ! $candidate->sqa_group_id) {
-            return;
-        }
-
-        $existingCoordinator = static::query()
-            ->where('sqa_group_id', $candidate->sqa_group_id)
-            ->where('coordinator', true)
-            ->when(
-                $candidate->exists,
-                fn ($query) => $query->whereKeyNot($candidate->getKey())
-            )
-            ->first();
-
-        if ($existingCoordinator) {
-            app(ProtectedAdminGuard::class)->authorizeUserId((int) $existingCoordinator->user_id);
-        }
     }
 
     public function sqaGroup()
