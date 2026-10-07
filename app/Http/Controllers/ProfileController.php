@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HomepageSetting;
 use App\Rules\NotReservedUsername;
 use App\Services\ProfileCompletionService;
 use Illuminate\Http\RedirectResponse;
@@ -27,21 +28,14 @@ class ProfileController extends Controller
         ]);
 
         $profileCompletion = $profileCompletionService->forUser($user);
+        $linkedAccountSettings = HomepageSetting::current();
 
-        return view('profile.show', compact('user', 'profileCompletion'));
+        return view('profile.show', compact('user', 'profileCompletion', 'linkedAccountSettings'));
     }
 
     public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
-
-        $steamId = trim((string) $request->input('steam_id', ''));
-        $discordId = trim((string) $request->input('discord_id', ''));
-
-        $request->merge([
-            'steam_id' => $steamId !== '' ? $steamId : null,
-            'discord_id' => $discordId !== '' ? $discordId : null,
-        ]);
 
         $validated = $request->validateWithBag(
             'profileUpdate',
@@ -76,20 +70,6 @@ class ProfileController extends Controller
                     'max:500',
                 ],
 
-                'discord_id' => [
-                    'nullable',
-                    'string',
-                    'regex:/^\d{17,20}$/',
-                    Rule::unique('users', 'discord_id')->ignore($user),
-                ],
-
-                'steam_id' => [
-                    'nullable',
-                    'string',
-                    'regex:/^\d{17}$/',
-                    Rule::unique('users', 'steam_id')->ignore($user),
-                ],
-
                 'birth_at' => [
                     'nullable',
                     'date',
@@ -117,12 +97,6 @@ class ProfileController extends Controller
                 'email.required' => 'El correo electrónico es obligatorio.',
                 'email.email' => 'Introduce un correo electrónico válido.',
                 'email.unique' => 'Este correo electrónico ya está en uso.',
-
-                'discord_id.regex' => 'El Discord ID debe ser el ID numérico de usuario (17 a 20 dígitos), no el nombre de usuario.',
-                'discord_id.unique' => 'Este Discord ID ya está asociado a otro usuario de NewSlot.',
-
-                'steam_id.regex' => 'El Steam ID64 debe contener exactamente 17 dígitos.',
-                'steam_id.unique' => 'Este Steam ID ya está asignado a otro usuario.',
 
                 'quote.max' => 'La frase no puede superar los 500 caracteres.',
                 'birth_at.before_or_equal' => 'La fecha de nacimiento no puede ser futura.',
@@ -154,8 +128,6 @@ class ProfileController extends Controller
                 'nick' => $validated['nick'],
                 'email' => $newEmail,
                 'quote' => $validated['quote'] ?? null,
-                'discord_id' => $validated['discord_id'] ?? null,
-                'steam_id' => $validated['steam_id'] ?? null,
                 'birth_at' => $validated['birth_at'] ?? null,
             ]);
 

@@ -3,8 +3,8 @@
         $missingCount = $profileCompletion['missing_count'];
         $stepsLabel = $missingCount === 1 ? 'paso' : 'pasos';
         $targetUrl = ($variant ?? 'profile') === 'home'
-            ? route('profile.show') . '#profile-operational-data'
-            : '#profile-operational-data';
+            ? route('profile.show') . '#profile-linked-accounts'
+            : '#profile-linked-accounts';
     @endphp
 
     <section class="profile-completion profile-completion--{{ $variant ?? 'profile' }}" aria-label="Progreso de perfil">
@@ -23,8 +23,8 @@
         </div>
 
         <p>
-            Añade tus identificadores para que NewSlot pueda automatizar Discord,
-            ArmaSquads y los procedimientos de miembro.
+            Vincula Discord y Steam para que NewSlot obtenga automáticamente los identificadores usados por
+            Discord, ArmaSquads y los procedimientos de miembro.
         </p>
 
         <div
@@ -38,9 +38,12 @@
         </div>
 
         <div class="profile-completion__footer">
-            <div class="profile-completion__missing" aria-label="Datos pendientes">
-                @foreach($profileCompletion['missing'] as $step)
-                    <span>{{ $step['label'] }}</span>
+            <div class="profile-completion__steps" aria-label="Estado de cuentas vinculadas">
+                @foreach($profileCompletion['steps'] as $step)
+                    <span class="{{ $step['complete'] ? 'is-complete' : 'is-pending' }}">
+                        <b aria-hidden="true">{{ $step['complete'] ? '✓' : '○' }}</b>
+                        {{ $step['description'] }}
+                    </span>
                 @endforeach
             </div>
 

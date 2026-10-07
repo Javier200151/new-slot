@@ -119,18 +119,21 @@ class UserForm
                         'regex' => 'El Discord ID debe ser el ID numérico de usuario (17 a 20 dígitos), no el nombre de usuario.',
                         'unique' => 'Este Discord ID ya está asociado a otro usuario de NewSlot.',
                     ])
-                    ->helperText('ID numérico del usuario de Discord (17 a 20 dígitos). Se usa para automatizar roles y apodos en Procedimientos.'),
+                    ->helperText('Fallback administrativo. El flujo normal del usuario es Enlazar con Discord desde Mi perfil.'),
                 TextInput::make('steam_id')
-                    ->label('Steam ID')
+                    ->label('Steam ID64')
                     ->trim()
-                    ->maxLength(255)
+                    ->maxLength(17)
+                    ->rules(['nullable', 'regex:/^\d{17}$/'])
                     ->unique(ignoreRecord: true)
                     ->dehydrateStateUsing(
                         fn (?string $state): ?string => filled($state) ? $state : null
                     )
                     ->validationMessages([
+                        'regex' => 'El Steam ID64 debe contener exactamente 17 dígitos.',
                         'unique' => 'Este Steam ID ya está asignado a otro usuario.',
-                    ]),
+                    ])
+                    ->helperText('Fallback administrativo. El flujo normal del usuario es Enlazar con Steam desde Mi perfil.'),
                 DatePicker::make('member_at')
                     ->label('Miembro desde')
                     ->helperText('Fecha en la que el recluta pasó a ser miembro.'),

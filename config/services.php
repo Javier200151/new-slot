@@ -37,6 +37,20 @@ return [
 
 
 
+
+    'discord_oauth' => [
+        'client_id' => env('DISCORD_OAUTH_CLIENT_ID'),
+        'client_secret' => env('DISCORD_OAUTH_CLIENT_SECRET'),
+        'redirect_uri' => env('DISCORD_OAUTH_REDIRECT_URI'),
+        'api_base_url' => env('DISCORD_API_BASE_URL', 'https://discord.com/api/v10'),
+        'timeout' => (int) env('DISCORD_TIMEOUT', 10),
+    ],
+
+    'steam_openid' => [
+        'endpoint' => 'https://steamcommunity.com/openid/',
+        'timeout' => (int) env('STEAM_OPENID_TIMEOUT', 10),
+    ],
+
     'twitch' => [
         'client_id' => env('TWITCH_CLIENT_ID'),
         'client_secret' => env('TWITCH_CLIENT_SECRET'),

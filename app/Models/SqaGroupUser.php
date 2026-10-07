@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+use App\Services\ProtectedAdminGuard;
+use App\Services\SqaGroupDiscordSyncService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Concerns\Auditable;
-use App\Services\SqaGroupDiscordSyncService;
 
 class SqaGroupUser extends Model
 {
@@ -30,13 +31,24 @@ class SqaGroupUser extends Model
 
     protected static function booted(): void
     {
-        static::creating(function ($sqaGroupUser): void {
+        static::creating(function (self $sqaGroupUser): void {
+            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
+
             if (Auth::check()) {
                 $sqaGroupUser->updated_by = Auth::id();
             }
         });
 
-        static::updating(function ($sqaGroupUser): void {
+        static::updating(function (self $sqaGroupUser): void {
+            $currentUserId = (int) $sqaGroupUser->user_id;
+            $originalUserId = (int) $sqaGroupUser->getOriginal('user_id');
+
+            app(ProtectedAdminGuard::class)->authorizeUserId($currentUserId);
+
+            if ($originalUserId > 0 && $originalUserId !== $currentUserId) {
+                app(ProtectedAdminGuard::class)->authorizeUserId($originalUserId);
+            }
+
             if (Auth::check()) {
                 $sqaGroupUser->updated_by = Auth::id();
             }
@@ -52,8 +64,16 @@ class SqaGroupUser extends Model
             }
         });
 
+        static::deleting(function (self $sqaGroupUser): void {
+            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
+        });
+
         static::deleted(function (self $sqaGroupUser): void {
             app(SqaGroupDiscordSyncService::class)->membershipRemoved($sqaGroupUser);
+        });
+
+        static::restoring(function (self $sqaGroupUser): void {
+            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
         });
 
         static::restored(function (self $sqaGroupUser): void {

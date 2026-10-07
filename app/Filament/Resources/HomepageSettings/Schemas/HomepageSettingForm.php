@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\HomepageSettings\Schemas;
 
 use App\Filament\Forms\BbcodeTextarea;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
@@ -76,6 +77,34 @@ class HomepageSettingForm
                                         ->label('Renovar automáticamente la invitación de Discord')
                                         ->helperText('NewSlot comprueba a diario la invitación y crea una nueva cuando queda menos de 24 h para caducar. Requiere un Canal ID configurado en Procedimientos → Config. procedimientos → Discord.')
                                         ->columnSpanFull(),
+                                ])
+                                ->columns(2),
+
+                            Section::make('Servicios conectados')
+                                ->description('Logos que se muestran en Mi perfil dentro de Cuentas vinculadas. El bloque está preparado para poder incorporar más servicios en el futuro.')
+                                ->schema([
+                                    FileUpload::make('discord_account_logo')
+                                        ->label('Logo de Discord')
+                                        ->helperText('Sube el logo oficial en PNG, WebP o SVG. Se mostrará junto a Discord en Mi perfil.')
+                                        ->image()
+                                        ->acceptedFileTypes(['image/png', 'image/webp', 'image/svg+xml'])
+                                        ->disk('public')
+                                        ->directory('site/linked-accounts')
+                                        ->visibility('public')
+                                        ->maxSize(1024)
+                                        ->previewable(false)
+                                        ->deletable(),
+                                    FileUpload::make('steam_account_logo')
+                                        ->label('Logo de Steam')
+                                        ->helperText('Sube el logo oficial en PNG, WebP o SVG. Se mostrará junto a Steam en Mi perfil.')
+                                        ->image()
+                                        ->acceptedFileTypes(['image/png', 'image/webp', 'image/svg+xml'])
+                                        ->disk('public')
+                                        ->directory('site/linked-accounts')
+                                        ->visibility('public')
+                                        ->maxSize(1024)
+                                        ->previewable(false)
+                                        ->deletable(),
                                 ])
                                 ->columns(2),
 

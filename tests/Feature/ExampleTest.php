@@ -7,6 +7,7 @@ use App\Services\HomepageInstagramService;
 use App\Services\HomepageVodService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -21,6 +22,9 @@ class ExampleTest extends TestCase
             $table->boolean('recruitment_open')->default(false);
             $table->string('contact_email')->nullable();
             $table->string('instagram_url')->nullable();
+            $table->string('x_url')->nullable();
+            $table->string('youtube_url')->nullable();
+            $table->text('discord_invite_url')->nullable();
             $table->text('google_photos_url')->nullable();
             $table->string('news_title')->default('Actualidad de Squad ALPHA');
             $table->text('news_intro')->nullable();
@@ -28,6 +32,18 @@ class ExampleTest extends TestCase
             $table->text('streams_intro')->nullable();
             $table->timestamps();
         });
+
+        DB::table('homepage_settings')->insert([
+            'recruitment_open' => false,
+            'instagram_url' => 'https://www.instagram.com/squadalpha_es/',
+            'x_url' => 'https://x.com/SquadALPHA_ES',
+            'youtube_url' => 'https://www.youtube.com/c/SquadALPHA',
+            'discord_invite_url' => 'https://discord.gg/squadalpha-test',
+            'news_title' => 'Actualidad de Squad ALPHA',
+            'streams_title' => 'Últimos VODs de la comunidad',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         Schema::create('homepage_news', function (Blueprint $table): void {
             $table->id();
