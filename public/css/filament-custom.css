@@ -1164,3 +1164,90 @@
     opacity: .55;
     cursor: wait;
 }
+
+/* =========================================================
+   CONFIG. PROCEDIMIENTOS - HERRAMIENTAS DE INTEGRACIÓN
+========================================================= */
+
+/*
+|--------------------------------------------------------------------------
+| Las acciones ya no compiten con el título de la página. Viven en una
+| tarjeta propia a ancho completo y se organizan por integración, evitando
+| filas partidas o grandes huecos vacíos en el encabezado.
+|--------------------------------------------------------------------------
+*/
+
+.ns-procedure-tools-section {
+    grid-column: 1 / -1;
+}
+
+.ns-procedure-tools-section .fi-section-content-ctn {
+    padding-top: .25rem;
+}
+
+.ns-procedure-tools-section .fi-section-content {
+    align-items: stretch;
+}
+
+.ns-procedure-tool-actions {
+    height: 100%;
+    min-width: 0;
+    padding: .75rem;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: .75rem;
+    background: rgba(148, 163, 184, .045);
+}
+
+.ns-procedure-tool-actions .fi-sc-actions-label-ctn {
+    margin-bottom: .6rem;
+}
+
+.ns-procedure-tool-actions .fi-sc-actions-label {
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+    color: rgb(203 213 225);
+}
+
+.ns-procedure-tool-actions > .fi-ac {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: .45rem;
+    width: 100%;
+}
+
+.ns-procedure-tool-actions > .fi-ac > * {
+    width: 100%;
+    min-width: 0;
+}
+
+.ns-procedure-tool-actions > .fi-ac .fi-btn {
+    justify-content: flex-start;
+    width: 100%;
+}
+
+@media (max-width: 1023px) {
+    .ns-procedure-tool-actions {
+        padding: .65rem;
+    }
+}
+
+/* Hotfix 32: long unbroken values must never escape Filament contact/table cards. */
+.fi-ta-cell,
+.fi-ta-cell > *,
+.fi-fo-field-wrp,
+.fi-fo-field-wrp > * {
+    min-width: 0;
+}
+
+.fi-ta-cell {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.fi-fo-field-wrp textarea,
+.fi-fo-field-wrp .fi-input-wrp,
+.fi-fo-field-wrp .fi-input {
+    max-width: 100%;
+}

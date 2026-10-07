@@ -4,19 +4,23 @@ namespace App\Services;
 
 use App\Models\CommunityPost;
 use App\Models\Metopa;
+use App\Models\MemberProcedureSetting;
 use App\Models\User;
 use App\Models\VeterancyAward;
 use App\Models\VeterancySetting;
+use App\Services\MemberProcedures\TelegramNotificationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use LogicException;
+use Throwable;
 
 class VeterancyAwardService
 {
     public function __construct(
         private readonly VeterancyService $veterancies,
         private readonly UserMetopaAssignmentService $metopaAssignments,
+        private readonly TelegramNotificationService $telegramNotifications,
     ) {
     }
 
@@ -37,7 +41,7 @@ class VeterancyAwardService
             return ['awarded' => 0, 'post_id' => null];
         }
 
-        return DB::transaction(function () use ($userIds, $actorId): array {
+        $result = DB::transaction(function () use ($userIds, $actorId): array {
             $setting = VeterancySetting::current()->load([
                 'forumCategory',
                 'bronzeMetopa',
@@ -131,8 +135,34 @@ class VeterancyAwardService
 
             $this->veterancies->clearRuntimeCache();
 
-            return ['awarded' => $plans->count(), 'post_id' => $post->id];
+            return [
+                'awarded' => $plans->count(),
+                'post_id' => $post->id,
+                'telegram_awards' => $plans->map(fn (array $plan): array => [
+                    'nick' => (string) $plan['user']->nick,
+                    'level' => (string) $plan['level'],
+                ])->values()->all(),
+            ];
         });
+
+        if (($result['awarded'] ?? 0) > 0 && ! empty($result['post_id']) && $this->telegramNotifications->isConfigured()) {
+            try {
+                $post = CommunityPost::query()->with('forumCategory')->findOrFail((int) $result['post_id']);
+                $setting = MemberProcedureSetting::current();
+                $result['telegram'] = $this->telegramNotifications->sendVeterancyUpdate(
+                    $post,
+                    (array) ($result['telegram_awards'] ?? []),
+                    $setting,
+                );
+            } catch (Throwable $exception) {
+                report($exception);
+                $result['telegram_error'] = $exception->getMessage();
+            }
+        }
+
+        unset($result['telegram_awards']);
+
+        return $result;
     }
 
     private function buildPostTitle(Collection $plans): string

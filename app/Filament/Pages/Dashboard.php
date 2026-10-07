@@ -7,12 +7,14 @@ use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\CommunityPost;
 use App\Models\Event;
+use App\Models\MemberProcedureSetting;
 use App\Models\PersonalDashboard as PersonalDashboardModel;
 use App\Models\PersonalDashboardWidget;
 use App\Models\User;
 use App\Services\EventCalendarDataService;
 use App\Services\PersonalDashboardService;
 use App\Services\MemberProcedures\ProcedureNotificationService;
+use App\Services\MemberProcedures\WeeklyActivityTelegramService;
 use App\Support\CommunityForumCategory;
 use App\Support\PersonalDashboardWidgetRegistry;
 use Filament\Notifications\Notification;
@@ -21,6 +23,7 @@ use Filament\Support\Enums\Width;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 class Dashboard extends BaseDashboard
 {
@@ -46,6 +49,11 @@ class Dashboard extends BaseDashboard
     public string $reminderText = '';
 
     public string $quickSearch = '';
+
+    public bool $weeklyActivityPanelOpen = false;
+
+    /** @var array<string, mixed> */
+    public array $weeklyActivityPreview = [];
 
     public function mount(): void
     {
@@ -471,6 +479,93 @@ class Dashboard extends BaseDashboard
     public function eventCalendarUrl(): string
     {
         return EventCalendar::getUrl();
+    }
+
+    public function canUseWeeklyActivityTelegram(): bool
+    {
+        return (bool) auth()->user()?->can('member-procedure-settings.update');
+    }
+
+    /** @return array<string, mixed> */
+    public function weeklyActivityWindow(): array
+    {
+        return app(WeeklyActivityTelegramService::class)->window();
+    }
+
+    public function prepareWeeklyActivityTelegram(): void
+    {
+        abort_unless($this->canUseWeeklyActivityTelegram(), 403);
+
+        try {
+            $setting = MemberProcedureSetting::current();
+            $preview = app(WeeklyActivityTelegramService::class)->preview($setting);
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->notifyError($exception->getMessage());
+            return;
+        }
+
+        if (! ($preview['window_open'] ?? false)) {
+            $this->notifyError('La actividad semanal solo puede enviarse desde el domingo a las 00:00 hasta el lunes a las 18:00.');
+            return;
+        }
+
+        $this->weeklyActivityPreview = $preview;
+        $this->weeklyActivityPanelOpen = true;
+    }
+
+    public function closeWeeklyActivityTelegram(): void
+    {
+        $this->weeklyActivityPanelOpen = false;
+        $this->weeklyActivityPreview = [];
+    }
+
+    public function sendWeeklyActivityTelegram(): void
+    {
+        abort_unless($this->canUseWeeklyActivityTelegram(), 403);
+
+        try {
+            $setting = MemberProcedureSetting::current();
+            $preferredEnding = array_key_exists('ending', $this->weeklyActivityPreview)
+                ? (string) $this->weeklyActivityPreview['ending']
+                : null;
+
+            // Revalidamos justo antes de enviar: si alguien ha cambiado los
+            // eventos desde que se abrió la previsualización, el bloqueo se
+            // aplica sobre el estado real actual.
+            $freshPreview = app(WeeklyActivityTelegramService::class)->preview($setting, null, $preferredEnding);
+            $this->weeklyActivityPreview = $freshPreview;
+
+            if (! ($freshPreview['can_send'] ?? false)) {
+                Notification::make()
+                    ->danger()
+                    ->title('No se puede enviar la actividad semanal')
+                    ->body(implode("\n", (array) ($freshPreview['blocking_errors'] ?? [])))
+                    ->persistent()
+                    ->send();
+                return;
+            }
+
+            $result = app(WeeklyActivityTelegramService::class)->send($setting, null, $preferredEnding);
+        } catch (Throwable $exception) {
+            report($exception);
+            Notification::make()
+                ->danger()
+                ->title('No se pudo enviar la actividad semanal')
+                ->body($exception->getMessage())
+                ->persistent()
+                ->send();
+            return;
+        }
+
+        $this->weeklyActivityPanelOpen = false;
+        $this->weeklyActivityPreview = [];
+
+        Notification::make()
+            ->success()
+            ->title('Actividad semanal enviada a Telegram')
+            ->body('Mensaje publicado en = ALPHA FORCE NETWORK =' . (filled($result['message_id'] ?? null) ? ' · mensaje #' . $result['message_id'] : '') . '.')
+            ->send();
     }
 
     public function procedureNotifications(): Collection

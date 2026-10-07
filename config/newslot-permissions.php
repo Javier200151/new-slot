@@ -268,7 +268,7 @@ return [
                     'label' => 'Changelog',
                 ],
                 'contact-submissions' => [
-                    'label' => 'Contacto y alistamiento',
+                    'label' => 'Contacto web',
                     'actions' => [
                         'view' => 'Ver',
                         'update' => 'Marcar / gestionar',
