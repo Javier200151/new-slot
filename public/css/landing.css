@@ -3324,13 +3324,13 @@ input:focus-visible {
     margin-top: 12px;
 }
 
-.profile-completion__missing {
+.profile-completion__steps {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
 }
 
-.profile-completion__missing span {
+.profile-completion__steps span {
     padding: 5px 8px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
@@ -3338,6 +3338,22 @@ input:focus-visible {
     background: rgba(255, 255, 255, 0.035);
     font-size: 0.66rem;
     font-weight: 750;
+}
+
+.profile-completion__steps span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.profile-completion__steps .is-complete {
+    color: #bbf7d0;
+    border-color: rgba(74, 222, 128, 0.16);
+    background: rgba(74, 222, 128, 0.05);
+}
+
+.profile-completion__steps .is-pending b {
+    color: var(--primary);
 }
 
 .profile-completion__action {
@@ -3354,17 +3370,13 @@ input:focus-visible {
     color: #fff;
 }
 
-.profile-operational-data,
-#profile-discord-id,
-#profile-steam-id {
+#profile-linked-accounts {
     scroll-margin-top: 125px;
 }
 
-#profile-discord-id:target,
-#profile-steam-id:target {
-    border-radius: 10px;
+#profile-linked-accounts:target {
     outline: 1px solid rgba(245, 158, 11, 0.32);
-    outline-offset: 8px;
+    outline-offset: 5px;
 }
 
 @media (max-width: 640px) {

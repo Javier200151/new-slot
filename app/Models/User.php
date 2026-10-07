@@ -41,7 +41,11 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'quote',
         'image',
         'discord_id',
+        'discord_username',
+        'discord_linked_at',
         'steam_id',
+        'steam_linked_at',
+        'steam_profile_url',
         'birth_at',
         'tutor_id',
         'member_at',
@@ -56,10 +60,23 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             'email_verified_at' => 'datetime',
             'birth_at' => 'date',
             'member_at' => 'date',
+            'discord_linked_at' => 'datetime',
+            'steam_linked_at' => 'datetime',
             'is_protected_admin' => 'boolean',
             'forum_unread_baseline_at' => 'datetime',
             'diary_unread_baseline_at' => 'datetime',
         ];
+    }
+
+    protected function discordId(): Attribute
+    {
+        return Attribute::make(
+            set: function (mixed $value): ?string {
+                $value = trim((string) $value);
+
+                return $value !== '' ? $value : null;
+            },
+        );
     }
 
     protected function steamId(): Attribute
@@ -130,6 +147,19 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             }
 
             app(ProtectedAdminGuard::class)->authorize($user);
+        });
+
+
+        static::updating(function (User $user): void {
+            if ($user->isDirty('discord_id') && ! $user->isDirty('discord_linked_at')) {
+                $user->discord_username = null;
+                $user->discord_linked_at = null;
+            }
+
+            if ($user->isDirty('steam_id') && ! $user->isDirty('steam_linked_at')) {
+                $user->steam_linked_at = null;
+                $user->steam_profile_url = null;
+            }
         });
 
         static::deleting(function (User $user): void {

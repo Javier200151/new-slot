@@ -13,6 +13,7 @@ use App\Http\Controllers\CommunitySubscriptionController;
 use App\Http\Controllers\CommunityRouletteController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\LinkedAccountController;
 use App\Http\Controllers\PublicCampaignController;
 use App\Http\Controllers\CampaignAarController;
 use App\Http\Controllers\PublicEventController;
@@ -130,6 +131,37 @@ Route::middleware('auth')->group(function (): void {
         '/perfil',
         [ProfileController::class, 'update'],
     )->name('profile.update');
+
+
+    Route::get(
+        '/perfil/cuentas/discord',
+        [LinkedAccountController::class, 'redirectDiscord'],
+    )->middleware('throttle:10,1')->name('profile.accounts.discord.redirect');
+
+    Route::get(
+        '/perfil/cuentas/discord/callback',
+        [LinkedAccountController::class, 'discordCallback'],
+    )->middleware('throttle:10,1')->name('profile.accounts.discord.callback');
+
+    Route::delete(
+        '/perfil/cuentas/discord',
+        [LinkedAccountController::class, 'unlinkDiscord'],
+    )->name('profile.accounts.discord.unlink');
+
+    Route::get(
+        '/perfil/cuentas/steam',
+        [LinkedAccountController::class, 'redirectSteam'],
+    )->middleware('throttle:10,1')->name('profile.accounts.steam.redirect');
+
+    Route::get(
+        '/perfil/cuentas/steam/callback',
+        [LinkedAccountController::class, 'steamCallback'],
+    )->middleware('throttle:10,1')->name('profile.accounts.steam.callback');
+
+    Route::delete(
+        '/perfil/cuentas/steam',
+        [LinkedAccountController::class, 'unlinkSteam'],
+    )->name('profile.accounts.steam.unlink');
 
     Route::put(
         '/perfil/password',

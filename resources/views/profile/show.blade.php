@@ -17,6 +17,10 @@
         'verification-link-sent' => 'Te hemos enviado un nuevo enlace de verificación.',
         'email-verified' => 'Tu correo electrónico se ha verificado correctamente.',
         'email-already-verified' => 'Tu correo electrónico ya estaba verificado.',
+        'discord-linked' => 'Tu cuenta de Discord se ha vinculado y verificado correctamente.',
+        'discord-unlinked' => 'La asociación con Discord se ha eliminado. No se han modificado roles ni accesos externos.',
+        'steam-linked' => 'Tu cuenta de Steam se ha vinculado y verificado correctamente.',
+        'steam-unlinked' => 'La asociación con Steam se ha eliminado.',
         default => null,
     };
 @endphp
@@ -381,65 +385,6 @@
                                     </span>
                                 @enderror
                             </div>
-
-                            <div class="profile-form__columns profile-operational-data" id="profile-operational-data">
-                                <div class="profile-field" id="profile-discord-id">
-                                    <label for="discord_id">
-                                        Discord ID
-                                    </label>
-
-                                    <input
-                                        id="discord_id"
-                                        name="discord_id"
-                                        type="text"
-                                        inputmode="numeric"
-                                        autocomplete="off"
-                                        value="{{ old(
-                                            'discord_id',
-                                            $user->discord_id
-                                        ) }}"
-                                    >
-
-                                    <small>
-                                        ID numérico de Discord (17 a 20 dígitos), no tu nombre de usuario.
-                                    </small>
-
-                                    @error('discord_id', 'profileUpdate')
-                                        <span class="profile-error">
-                                            {{ $message }}
-                                        </span>
-                                    @enderror
-                                </div>
-
-                                <div class="profile-field" id="profile-steam-id">
-                                    <label for="steam_id">
-                                        Steam ID64
-                                    </label>
-
-                                    <input
-                                        id="steam_id"
-                                        name="steam_id"
-                                        type="text"
-                                        inputmode="numeric"
-                                        autocomplete="off"
-                                        value="{{ old(
-                                            'steam_id',
-                                            $user->steam_id
-                                        ) }}"
-                                    >
-
-                                    <small>
-                                        Steam ID64 de 17 dígitos. Se usa para ArmaSquads y los procedimientos.
-                                    </small>
-
-                                    @error('steam_id', 'profileUpdate')
-                                        <span class="profile-error">
-                                            {{ $message }}
-                                        </span>
-                                    @enderror
-                                </div>
-                            </div>
-
                             <div class="profile-form__columns">
                                 <div class="profile-field">
                                     <label for="birth_at">
@@ -596,6 +541,8 @@
                             </div>
                         </form>
                     </section>
+
+                    @include('profile.linked-accounts')
 
                 </div>
             </div>
