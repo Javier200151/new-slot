@@ -11,7 +11,7 @@ class SteamAccountLinkService
 
     public function authorizationUrl(string $returnTo): string
     {
-        $endpoint = rtrim((string) config('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/'), '/') . '/';
+        $endpoint = rtrim((string) config('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/login'), '/');
         $realm = $this->realmFromReturnTo($returnTo);
 
         return $endpoint . '?' . http_build_query([
@@ -62,7 +62,9 @@ class SteamAccountLinkService
         }
 
         $opEndpoint = rtrim((string) ($openid['openid.op_endpoint'] ?? ''), '/');
-        if ($opEndpoint !== 'https://steamcommunity.com/openid/login') {
+        $expectedEndpoint = rtrim((string) config('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/login'), '/');
+
+        if ($opEndpoint !== $expectedEndpoint) {
             throw new RuntimeException('Steam devolvió un proveedor OpenID inesperado.');
         }
 
@@ -80,7 +82,7 @@ class SteamAccountLinkService
         $verificationPayload = $openid;
         $verificationPayload['openid.mode'] = 'check_authentication';
 
-        $endpoint = rtrim((string) config('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/'), '/') . '/';
+        $endpoint = rtrim((string) config('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/login'), '/');
         $timeout = max(3, (int) config('services.steam_openid.timeout', 10));
 
         $verification = Http::asForm()

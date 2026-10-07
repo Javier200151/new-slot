@@ -131,7 +131,7 @@ class LinkedAccountController extends Controller
         SteamAccountLinkService $steam,
     ): RedirectResponse {
         $state = Str::random(64);
-        $returnTo = route('profile.accounts.steam.callback', ['state' => $state]);
+        $returnTo = $this->absoluteAppRoute('profile.accounts.steam.callback', ['state' => $state]);
 
         $request->session()->put('linked_accounts.steam', [
             'state' => $state,
@@ -246,7 +246,25 @@ class LinkedAccountController extends Controller
 
         return $configured !== ''
             ? $configured
-            : route('profile.accounts.discord.callback');
+            : $this->absoluteAppRoute('profile.accounts.discord.callback');
+    }
+
+    /**
+     * Build provider callback URLs from APP_URL instead of the proxy/request scheme.
+     * This keeps OAuth/OpenID return URLs stable behind the production reverse proxy.
+     *
+     * @param  array<string, scalar>  $parameters
+     */
+    private function absoluteAppRoute(string $name, array $parameters = []): string
+    {
+        $baseUrl = rtrim(trim((string) config('app.url')), '/');
+        $relative = route($name, $parameters, false);
+
+        if ($baseUrl === '') {
+            return route($name, $parameters);
+        }
+
+        return $baseUrl . '/' . ltrim($relative, '/');
     }
 
 
