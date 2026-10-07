@@ -84,4 +84,28 @@ class MemberProcedureRegistryTest extends TestCase
             $this->assertSame(MemberProcedureStep::KIND_AUTOMATIC, $steps[$stepKey]['kind'], $type . ' debe automatizar Discord.');
         }
     }
+    public function test_telegram_announces_recruit_updates_keeps_member_emails_and_manual_removals(): void
+    {
+        $registry = new MemberProcedureRegistry();
+
+        $recruitment = collect($registry->definition(MemberProcedure::TYPE_RECRUITMENT_START)['steps'])->keyBy('key');
+        $completion = collect($registry->definition(MemberProcedure::TYPE_RECRUITMENT_COMPLETE)['steps'])->keyBy('key');
+        $reactivation = collect($registry->definition(MemberProcedure::TYPE_REACTIVATION)['steps'])->keyBy('key');
+        $reserve = collect($registry->definition(MemberProcedure::TYPE_RESERVE)['steps'])->keyBy('key');
+        $notPromoted = collect($registry->definition(MemberProcedure::TYPE_NOT_PROMOTED)['steps'])->keyBy('key');
+        $departure = collect($registry->definition(MemberProcedure::TYPE_DEPARTURE)['steps'])->keyBy('key');
+
+        $this->assertSame(MemberProcedureStep::KIND_AUTOMATIC, $recruitment['telegram_recruit_update']['kind']);
+        $this->assertSame(['status_recruit'], $recruitment['telegram_recruit_update']['depends_on']);
+        $this->assertSame(MemberProcedureStep::KIND_AUTOMATIC, $notPromoted['telegram_recruit_update']['kind']);
+        $this->assertSame(['status_not_promoted'], $notPromoted['telegram_recruit_update']['depends_on']);
+        $this->assertSame(MemberProcedureStep::KIND_AUTOMATIC, $completion['telegram_groups_email']['kind']);
+        $this->assertSame(['status_active'], $completion['telegram_groups_email']['depends_on']);
+        $this->assertSame(MemberProcedureStep::KIND_AUTOMATIC, $reactivation['telegram_groups_email']['kind']);
+        $this->assertSame(['status_active'], $reactivation['telegram_groups_email']['depends_on']);
+        $this->assertSame(MemberProcedureStep::KIND_MANUAL, $reserve['telegram_leave_official']['kind']);
+        $this->assertStringContainsString('ALPHA Oficial', $reserve['telegram_leave_official']['label']);
+        $this->assertSame(MemberProcedureStep::KIND_MANUAL, $departure['telegram_leave_all']['kind']);
+    }
+
 }

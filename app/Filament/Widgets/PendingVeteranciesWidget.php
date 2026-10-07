@@ -79,6 +79,15 @@ class PendingVeteranciesWidget extends TableWidget
                                 ? $result['awarded'] . ' veteranía(s) procesada(s) y publicación creada.'
                                 : 'Las selecciones ya estaban procesadas o dejaron de estar pendientes.')
                             ->send();
+
+                        if (filled($result['telegram_error'] ?? null)) {
+                            Notification::make()
+                                ->warning()
+                                ->title('Veteranías guardadas, pero Telegram falló')
+                                ->body((string) $result['telegram_error'])
+                                ->persistent()
+                                ->send();
+                        }
                     }),
             ])
             ->paginated(false);

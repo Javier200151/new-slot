@@ -108,5 +108,22 @@ return [
             'bot_token' => env('DISCORD_BOT_TOKEN'),
             'timeout' => (int) env('DISCORD_TIMEOUT', 10),
         ],
+
+
+        /*
+        |------------------------------------------------------------------
+        | Telegram · comunicaciones de procedimientos
+        |------------------------------------------------------------------
+        |
+        | El token del bot permanece únicamente en el entorno. Los chats,
+        | mensajes y destinos funcionales se administran desde Filament.
+        |
+        */
+        'telegram' => [
+            'enabled' => env('TELEGRAM_ENABLED', false),
+            'base_url' => env('TELEGRAM_API_BASE_URL', 'https://api.telegram.org'),
+            'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+            'timeout' => (int) env('TELEGRAM_TIMEOUT', 10),
+        ],
     ],
 ];

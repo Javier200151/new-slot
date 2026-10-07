@@ -26,6 +26,8 @@ class MemberProcedureEngine
         private readonly ArmaSquadsService $armaSquads,
         private readonly GoogleSheetsService $googleSheets,
         private readonly DiscordService $discord,
+        private readonly MemberProcedureEmailService $emails,
+        private readonly TelegramNotificationService $telegramNotifications,
         private readonly UserMetopaAssignmentService $metopas,
     ) {
     }
@@ -257,6 +259,7 @@ class MemberProcedureEngine
             'discord_recruit' => $this->discordRoleSync($procedure, $user, $setting, 'recruit'),
             'treasury_signal' => $this->notifyTreasury($procedure, $step, $setting, 'Nueva señal de reclutamiento', $user->nick . ' ha iniciado su reclutamiento. Revisar el pago de la señal de 6 €.'),
             'tutor_coordinator_notice' => $this->notifyTutorCoordinator($procedure, $step, $setting),
+            'telegram_recruit_update' => $this->sendRecruitTelegramUpdate($procedure, $user, $setting),
             'tutor_assignment' => $this->waitForTutor($user),
 
             'complete_validation' => $this->completeValidation($user),
@@ -270,6 +273,7 @@ class MemberProcedureEngine
             'purge_recruitment_personal' => $this->purgeRecruitmentPersonalData($user),
             'alpha_metopa' => $this->assignAlphaMetopa($user, $setting),
             'discord_alpha' => $this->discordRoleSync($procedure, $user, $setting, 'alpha'),
+            'telegram_groups_email' => $this->sendTelegramGroupsEmail($procedure, $user, $setting),
             'treasury_member_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Alta de nuevo miembro', $user->nick . ' ha completado su reclutamiento y ha pasado a ACTIVO.'),
 
             'not_promoted_validation' => $this->notPromotedValidation($user),
@@ -516,7 +520,32 @@ class MemberProcedureEngine
             $procedure->user->nick . ' ha iniciado el reclutamiento y está disponible para asignación de tutor.',
         );
 
-        return ['status' => MemberProcedureStep::STATUS_COMPLETED, 'result' => ['notification_id' => $notification->id, 'coordinator_user_id' => (int) $coordinator->user_id]];
+        return ['status' => MemberProcedureStep::STATUS_COMPLETED, 'result' => [
+            'notification_id' => $notification->id,
+            'coordinator_user_id' => (int) $coordinator->user_id,
+        ]];
+    }
+
+    private function sendRecruitTelegramUpdate(MemberProcedure $procedure, User $user, MemberProcedureSetting $setting): array
+    {
+        $change = $procedure->type === MemberProcedure::TYPE_NOT_PROMOTED
+            ? 'not_promoted'
+            : 'entry';
+
+        return [
+            'status' => MemberProcedureStep::STATUS_COMPLETED,
+            'result' => $this->telegramNotifications->sendRecruitUpdate($user, $setting, $change),
+        ];
+    }
+
+    private function sendTelegramGroupsEmail(MemberProcedure $procedure, User $user, MemberProcedureSetting $setting): array
+    {
+        $reactivation = $procedure->type === MemberProcedure::TYPE_REACTIVATION;
+
+        return [
+            'status' => MemberProcedureStep::STATUS_COMPLETED,
+            'result' => $this->emails->sendTelegramLinks($user, $setting, $reactivation),
+        ];
     }
 
     private function discordRoleSync(MemberProcedure $procedure, User $user, MemberProcedureSetting $setting, string $mode): array

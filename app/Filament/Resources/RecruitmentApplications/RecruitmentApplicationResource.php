@@ -29,11 +29,11 @@ class RecruitmentApplicationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
-    protected static ?string $navigationLabel = 'Contacto / Alistamiento';
+    protected static ?string $navigationLabel = 'Alistamiento';
 
-    protected static ?string $modelLabel = 'Solicitud';
+    protected static ?string $modelLabel = 'Solicitud de alistamiento';
 
-    protected static ?string $pluralModelLabel = 'Solicitudes';
+    protected static ?string $pluralModelLabel = 'Solicitudes de alistamiento';
 
     public static function form(Schema $schema): Schema
     {

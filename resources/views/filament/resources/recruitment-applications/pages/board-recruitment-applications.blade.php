@@ -56,6 +56,10 @@
                 gap: 0.75rem;
             }
             .recruitment-card {
+                min-width: 0;
+                overflow: hidden;
+                overflow-wrap: anywhere;
+                word-break: break-word;
                 border-radius: 0.9rem;
                 border: 1px solid rgba(148, 163, 184, 0.14);
                 background: rgba(30, 41, 59, 0.88);
@@ -139,11 +143,17 @@
             .recruitment-delete-button:active { transform: scale(0.96); }
             .recruitment-delete-button svg { width: 1rem; height: 1rem; pointer-events: none; }
             .recruitment-card-title {
+                min-width: 0;
+                overflow-wrap: anywhere;
+                word-break: break-word;
                 font-size: 0.98rem;
                 font-weight: 700;
                 line-height: 1.3;
             }
             .recruitment-card-subtitle {
+                min-width: 0;
+                overflow-wrap: anywhere;
+                word-break: break-word;
                 color: rgba(203, 213, 225, 0.78);
                 font-size: 0.84rem;
             }
@@ -158,6 +168,9 @@
                 display: block;
             }
             .recruitment-card-grid span:last-child {
+                min-width: 0;
+                overflow-wrap: anywhere;
+                word-break: break-word;
                 font-weight: 600;
                 display: block;
             }
@@ -178,6 +191,9 @@
                 line-height: 1.1;
             }
             .recruitment-card-footer {
+                min-width: 0;
+                overflow-wrap: anywhere;
+                word-break: break-word;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;

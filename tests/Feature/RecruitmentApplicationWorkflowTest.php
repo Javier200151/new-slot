@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Mail\ContactMessageAdminMail;
+use App\Mail\ContactMessageConfirmationMail;
 use App\Mail\ContactSubmissionAdminMail;
 use App\Mail\ContactSubmissionConfirmationMail;
 use App\Models\ContactSubmission;
@@ -21,6 +23,44 @@ class RecruitmentApplicationWorkflowTest extends TestCase
 
         $this->createSchema();
         config()->set('mail.contact_to', 'recruitment@squadalpha.test');
+    }
+
+    public function test_public_contact_form_is_kept_separate_from_recruitment_and_sends_contact_emails(): void
+    {
+        Mail::fake();
+
+        DB::table('homepage_settings')->insert([
+            'recruitment_open' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->post(route('public.contact.store'), [
+            'nickname' => 'Visitante',
+            'email' => 'visitante@example.test',
+            'message' => 'Consulta general sin relación con alistamiento.',
+            'accepted_privacy' => '1',
+            'accepted_contact' => '1',
+            'website' => '',
+        ])->assertSessionHas('contact_status', 'Consulta enviada correctamente.');
+
+        $submission = ContactSubmission::query()
+            ->where('email', 'visitante@example.test')
+            ->firstOrFail();
+
+        $this->assertFalse((bool) $submission->is_recruitment);
+        $this->assertNull($submission->full_name);
+        $this->assertFalse((bool) $submission->has_previous_experience);
+        $this->assertNull($submission->recruitment_matched_user_id);
+
+        Mail::assertSent(ContactMessageAdminMail::class, fn (ContactMessageAdminMail $mail): bool =>
+            $mail->hasTo('recruitment@squadalpha.test'));
+
+        Mail::assertSent(ContactMessageConfirmationMail::class, fn (ContactMessageConfirmationMail $mail): bool =>
+            $mail->hasTo('visitante@example.test'));
+
+        Mail::assertNotSent(ContactSubmissionAdminMail::class);
+        Mail::assertNotSent(ContactSubmissionConfirmationMail::class);
     }
 
     public function test_public_recruitment_form_saves_optional_discord_and_sends_both_emails(): void

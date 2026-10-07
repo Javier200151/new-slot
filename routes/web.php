@@ -30,6 +30,7 @@ use App\Http\Controllers\PublicUserController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PublicStreamerController;
 use App\Http\Controllers\StreamerBroadcastController;
+use App\Http\Controllers\MemberProcedureEmailPreviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -221,6 +222,13 @@ Route::middleware('auth')->group(function (): void {
     )->name('notifications.open');
 
 });
+
+
+Route::middleware('auth')->get(
+    '/area/procedimientos/correos/previsualizacion/{type}',
+    MemberProcedureEmailPreviewController::class,
+)->whereIn('type', ['welcome', 'reactivation'])
+    ->name('member-procedure-email-preview.show');
 
 /*
 |--------------------------------------------------------------------------

@@ -23,7 +23,42 @@ class MemberProcedureSetting extends Model
         'discord_invite_channel_id',
         'discord_bot_nickname',
         'discord_alpha_nickname_prefix',
+        'telegram_recruit_chat_id',
+        'telegram_tutors_chat_id',
+        'telegram_recruit_message',
+        'telegram_tutors_message',
+        'telegram_network_chat_id',
+        'telegram_cantina_invite_url',
+        'telegram_official_invite_url',
+        'telegram_network_invite_url',
+        'member_welcome_email_subject',
+        'member_welcome_email_body',
+        'reactivation_email_subject',
+        'reactivation_email_body',
+        'telegram_recruit_update_template',
+        'telegram_recruit_entry_endings',
+        'telegram_recruit_exit_endings',
+        'telegram_veterancy_template',
+        'telegram_veterancy_endings',
+        'telegram_weekly_template',
+        'telegram_weekly_endings',
+        'telegram_weekly_required_weekdays',
+        'telegram_weekly_required_activity_type_ids',
+        'telegram_weekly_active_event_status_id',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'telegram_recruit_entry_endings' => 'array',
+            'telegram_recruit_exit_endings' => 'array',
+            'telegram_veterancy_endings' => 'array',
+            'telegram_weekly_endings' => 'array',
+            'telegram_weekly_required_weekdays' => 'array',
+            'telegram_weekly_required_activity_type_ids' => 'array',
+            'telegram_weekly_active_event_status_id' => 'integer',
+        ];
+    }
 
     public static function current(): self
     {
