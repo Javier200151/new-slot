@@ -47,7 +47,10 @@ return [
     ],
 
     'steam_openid' => [
-        'endpoint' => 'https://steamcommunity.com/openid/',
+        // Steam documents /openid/ as the OP endpoint, but browser authentication
+        // is performed through /openid/login. Using the discovery endpoint directly
+        // can make browsers download the XRDS document instead of showing login.
+        'endpoint' => 'https://steamcommunity.com/openid/login',
         'timeout' => (int) env('STEAM_OPENID_TIMEOUT', 10),
     ],
 

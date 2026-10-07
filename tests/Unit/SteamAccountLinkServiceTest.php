@@ -11,10 +11,12 @@ class SteamAccountLinkServiceTest extends TestCase
 {
     public function test_authorization_url_uses_official_openid_2_parameters(): void
     {
-        config()->set('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/');
+        config()->set('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/login');
 
         $returnTo = 'https://newslot.test/perfil/cuentas/steam/callback?state=secure-state';
         $url = app(SteamAccountLinkService::class)->authorizationUrl($returnTo);
+
+        $this->assertSame('https://steamcommunity.com/openid/login', strtok($url, '?'));
 
         parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
 
@@ -28,13 +30,13 @@ class SteamAccountLinkServiceTest extends TestCase
 
     public function test_resolve_identity_verifies_response_with_steam_and_returns_steam_id64(): void
     {
-        config()->set('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/');
+        config()->set('services.steam_openid.endpoint', 'https://steamcommunity.com/openid/login');
         config()->set('services.steam_openid.timeout', 10);
 
         $returnTo = 'https://newslot.test/perfil/cuentas/steam/callback?state=secure-state';
 
         Http::fake([
-            'https://steamcommunity.com/openid/' => Http::response(
+            'https://steamcommunity.com/openid/login' => Http::response(
                 "ns:http://specs.openid.net/auth/2.0\nis_valid:true\n",
                 200,
             ),
@@ -61,7 +63,7 @@ class SteamAccountLinkServiceTest extends TestCase
         );
 
         Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
-            && $request->url() === 'https://steamcommunity.com/openid/'
+            && $request->url() === 'https://steamcommunity.com/openid/login'
             && $request['openid.mode'] === 'check_authentication'
             && $request['openid.claimed_id'] === 'https://steamcommunity.com/openid/id/76561198000000000');
     }
