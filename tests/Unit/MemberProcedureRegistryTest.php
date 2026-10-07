@@ -64,4 +64,24 @@ class MemberProcedureRegistryTest extends TestCase
         $this->assertStringContainsString('NO PROMOCIONADO', $steps['status_not_promoted']['label']);
         $this->assertStringNotContainsString('BAJA', $steps['status_not_promoted']['label']);
     }
+
+    public function test_discord_steps_are_automatic_in_all_lifecycle_procedures(): void
+    {
+        $registry = new MemberProcedureRegistry();
+
+        $expected = [
+            MemberProcedure::TYPE_RECRUITMENT_START => 'discord_recruit',
+            MemberProcedure::TYPE_RECRUITMENT_COMPLETE => 'discord_alpha',
+            MemberProcedure::TYPE_NOT_PROMOTED => 'discord_not_promoted',
+            MemberProcedure::TYPE_REACTIVATION => 'discord_reactivation',
+            MemberProcedure::TYPE_RESERVE => 'discord_reserve',
+            MemberProcedure::TYPE_DEPARTURE => 'discord_departure',
+            MemberProcedure::TYPE_DISMISSAL => 'discord_departure',
+        ];
+
+        foreach ($expected as $type => $stepKey) {
+            $steps = collect($registry->definition($type)['steps'])->keyBy('key');
+            $this->assertSame(MemberProcedureStep::KIND_AUTOMATIC, $steps[$stepKey]['kind'], $type . ' debe automatizar Discord.');
+        }
+    }
 }

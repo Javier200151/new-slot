@@ -14,8 +14,9 @@ class HomepageSettingsTable
         return $table
             ->columns([
                 IconColumn::make('recruitment_open')->label('Alistamiento')->boolean(),
-                TextColumn::make('instagram_url')->label('Instagram')->limit(45),
-                TextColumn::make('google_photos_url')->label('Google Fotos')->limit(45),
+                TextColumn::make('instagram_url')->label('Instagram')->limit(32),
+                TextColumn::make('discord_invite_url')->label('Discord')->limit(38),
+                IconColumn::make('discord_invite_auto_refresh')->label('Discord auto')->boolean(),
                 TextColumn::make('updated_at')->label('Actualizado')->since(),
             ])
             ->recordActions([EditAction::make()]);

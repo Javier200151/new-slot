@@ -27,3 +27,9 @@ Schedule::command('homepage:refresh-google-photos')
     ->dailyAt('04:15')
     ->timezone('Europe/Madrid')
     ->withoutOverlapping();
+
+
+Schedule::command('discord:refresh-invite')
+    ->dailyAt('04:25')
+    ->timezone('Europe/Madrid')
+    ->withoutOverlapping();

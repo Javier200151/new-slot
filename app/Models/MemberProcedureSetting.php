@@ -16,6 +16,13 @@ class MemberProcedureSetting extends Model
         'google_spreadsheet_id',
         'google_general_sheet_gid',
         'armasquads_squad_id',
+        'discord_guild_id',
+        'discord_recruit_role_id',
+        'discord_alpha_role_id',
+        'discord_reserve_role_id',
+        'discord_invite_channel_id',
+        'discord_bot_nickname',
+        'discord_alpha_nickname_prefix',
     ];
 
     public static function current(): self

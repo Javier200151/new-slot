@@ -14,6 +14,8 @@ class PublicNavigationDynamicPagesTest extends TestCase
     {
         parent::setUp();
 
+        $this->assertIsolatedTestDatabase();
+
         Schema::dropIfExists('pages');
 
         Schema::create('pages', function (Blueprint $table): void {
@@ -34,6 +36,20 @@ class PublicNavigationDynamicPagesTest extends TestCase
         Schema::dropIfExists('pages');
 
         parent::tearDown();
+    }
+
+    private function assertIsolatedTestDatabase(): void
+    {
+        $connection = (string) config('database.default');
+        $driver = (string) config("database.connections.{$connection}.driver");
+        $database = (string) config("database.connections.{$connection}.database");
+
+        if ($driver !== 'sqlite' || $database !== ':memory:') {
+            throw new \RuntimeException(
+                'SEGURIDAD DE TESTS: este test elimina tablas. Debe ejecutarse exclusivamente con SQLite :memory:. '
+                . "Conexión actual: {$connection} / {$driver} / {$database}."
+            );
+        }
     }
 
     public function test_filament_pages_are_available_in_the_navigation_catalogue(): void

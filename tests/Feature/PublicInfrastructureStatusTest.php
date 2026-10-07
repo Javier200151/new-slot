@@ -17,6 +17,8 @@ class PublicInfrastructureStatusTest extends TestCase
     {
         parent::setUp();
 
+        $this->assertIsolatedTestDatabase();
+
         Cache::forget('public.infrastructure.status.v2');
         Schema::dropIfExists('infrastructure_settings');
 
@@ -53,6 +55,20 @@ class PublicInfrastructureStatusTest extends TestCase
         $user->setRelation('status', new Status(['name' => $statusName]));
 
         return $user;
+    }
+
+    private function assertIsolatedTestDatabase(): void
+    {
+        $connection = (string) config('database.default');
+        $driver = (string) config("database.connections.{$connection}.driver");
+        $database = (string) config("database.connections.{$connection}.database");
+
+        if ($driver !== 'sqlite' || $database !== ':memory:') {
+            throw new \RuntimeException(
+                'SEGURIDAD DE TESTS: este test elimina tablas. Debe ejecutarse exclusivamente con SQLite :memory:. '
+                . "Conexión actual: {$connection} / {$driver} / {$database}."
+            );
+        }
     }
 
     public function test_guest_cannot_read_infrastructure_status(): void
