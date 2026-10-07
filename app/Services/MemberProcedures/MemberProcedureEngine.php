@@ -259,13 +259,19 @@ class MemberProcedureEngine
 
             'complete_validation' => $this->completeValidation($user),
             'assign_promotion' => $this->assignPromotion($procedure, $user),
-            'status_active' => $this->setStatus($user, 'ACTIVO'),
+            'status_active' => $procedure->type === MemberProcedure::TYPE_RECRUITMENT_COMPLETE
+                ? $this->activatePromotedRecruit($procedure, $user)
+                : $this->setStatus($user, 'ACTIVO'),
             'armasquads_upsert' => $this->armaSquadsUpsert($user, $setting),
             'google_sheets_transfer' => $this->googleSheetsTransfer($user, $setting),
             'google_sheets_status_sync' => $this->googleSheetsStatusSync($user, $setting),
             'purge_recruitment_personal' => $this->purgeRecruitmentPersonalData($user),
             'alpha_metopa' => $this->assignAlphaMetopa($user, $setting),
             'treasury_member_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Alta de nuevo miembro', $user->nick . ' ha completado su reclutamiento y ha pasado a ACTIVO.'),
+
+            'not_promoted_validation' => $this->notPromotedValidation($user),
+            'treasury_not_promoted_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Recluta no promocionado', $user->nick . ' finaliza su reclutamiento sin promocionar a miembro.'),
+            'status_not_promoted' => $this->setStatus($user, 'NO PROMOCIONADO'),
 
             'reactivation_validation' => $this->requireStatus($user, 'RESERVA'),
             'treasury_reactivation_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Reactivación de miembro', $user->nick . ' inicia su reactivación desde RESERVA.'),
@@ -385,6 +391,50 @@ class MemberProcedureEngine
         }
 
         return ['status' => MemberProcedureStep::STATUS_COMPLETED, 'result' => ['promo_id' => $promoId]];
+    }
+
+    private function activatePromotedRecruit(MemberProcedure $procedure, User $user): array
+    {
+        $statusResult = $this->setStatus($user, 'ACTIVO');
+
+        // La promoción se asigna antes del cambio de estado, pero la volvemos a
+        // verificar después de RECLUTA -> ACTIVO. Esto hace el flujo resistente
+        // a observers/reglas de firma que puedan ejecutarse durante la transición.
+        $freshUser = $user->fresh();
+        $promotionResult = $this->assignPromotion($procedure, $freshUser);
+
+        $freshUser->refresh();
+        $expectedPromoId = (int) (($procedure->input ?? [])['promo_id'] ?? 0);
+        if ((int) $freshUser->promo_id !== $expectedPromoId) {
+            throw new LogicException('La promoción seleccionada no quedó guardada en el usuario después de pasar a ACTIVO.');
+        }
+
+        return [
+            'status' => MemberProcedureStep::STATUS_COMPLETED,
+            'result' => array_merge(
+                (array) ($statusResult['result'] ?? []),
+                (array) ($promotionResult['result'] ?? []),
+            ),
+        ];
+    }
+
+    private function notPromotedValidation(User $user): array
+    {
+        $this->requireStatus($user, 'RECLUTA');
+
+        $period = RecruitmentPeriod::query()
+            ->where('open_user_id', $user->id)
+            ->whereNull('ended_at')
+            ->first();
+
+        if (! $period) {
+            throw new LogicException('El recluta no tiene un periodo de reclutamiento abierto en el Área de tutores.');
+        }
+
+        return [
+            'status' => MemberProcedureStep::STATUS_COMPLETED,
+            'result' => ['recruitment_period_id' => (int) $period->id],
+        ];
     }
 
     private function setStatus(User $user, string $name): array

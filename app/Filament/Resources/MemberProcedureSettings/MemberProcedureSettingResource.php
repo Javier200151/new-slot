@@ -6,6 +6,7 @@ use App\Filament\Resources\MemberProcedureSettings\Pages\EditMemberProcedureSett
 use App\Filament\Resources\MemberProcedureSettings\Pages\ListMemberProcedureSettings;
 use App\Filament\Resources\MemberProcedureSettings\RelationManagers\DepartureStepsRelationManager;
 use App\Filament\Resources\MemberProcedureSettings\RelationManagers\DismissalStepsRelationManager;
+use App\Filament\Resources\MemberProcedureSettings\RelationManagers\NotPromotedStepsRelationManager;
 use App\Filament\Resources\MemberProcedureSettings\RelationManagers\ReactivationStepsRelationManager;
 use App\Filament\Resources\MemberProcedureSettings\RelationManagers\RecruitmentCompleteStepsRelationManager;
 use App\Filament\Resources\MemberProcedureSettings\RelationManagers\RecruitmentStartStepsRelationManager;
@@ -45,6 +46,7 @@ class MemberProcedureSettingResource extends Resource
         return [
             RecruitmentStartStepsRelationManager::class,
             RecruitmentCompleteStepsRelationManager::class,
+            NotPromotedStepsRelationManager::class,
             ReserveStepsRelationManager::class,
             ReactivationStepsRelationManager::class,
             DepartureStepsRelationManager::class,

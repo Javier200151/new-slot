@@ -14,6 +14,7 @@ class StatusSeeder extends Seeder
             'CESADO' => '#f87171',
             'RECLUTA' => '#facc15',
             'BAJA' => '#fb923c',
+            'NO PROMOCIONADO' => '#ef4444',
             'USUARIO' => '#94a3b8',
             'RESERVA' => '#60a5fa',
         ];

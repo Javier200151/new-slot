@@ -175,7 +175,13 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
 
     public function applySignatureRules(): void
     {
-        $statusName = $this->status?->name;
+        // No uses la relación `status` ya cargada aquí: durante un cambio de
+        // status_id Eloquent puede conservar en memoria el estado anterior. Eso
+        // hacía que RECLUTA -> ACTIVO siguiera viéndose como RECLUTA dentro del
+        // callback `updated()` y limpiase promo_id después de haber asignado la
+        // promoción desde el procedimiento de Alta de calavera.
+        $statusName = Status::withTrashed()->whereKey($this->status_id)->value('name');
+        $this->unsetRelation('status');
 
         if ($statusName === 'USUARIO') {
             $this->forceFill([
@@ -382,6 +388,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             'RESERVA' => '#60a5fa',
             'CESADO' => '#f87171',
             'BAJA' => '#fb923c',
+            'NO PROMOCIONADO' => '#ef4444',
             'RECLUTA' => '#facc15',
             'USUARIO' => '#94a3b8',
             default => '#ffffff',
