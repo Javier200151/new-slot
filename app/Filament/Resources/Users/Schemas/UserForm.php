@@ -4,12 +4,9 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Filament\Forms\BbcodeTextarea;
 use App\Models\Status;
-use App\Models\User;
-use App\Services\VeterancyService;
 use App\Rules\NotReservedUsername;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -111,7 +108,18 @@ class UserForm
                             ->maxHeight(150)
                     ),
 
-                TextInput::make('discord_id'),
+                TextInput::make('discord_id')
+                    ->label('Discord ID')
+                    ->trim()
+                    ->maxLength(20)
+                    ->rules(['nullable', 'regex:/^\d{17,20}$/'])
+                    ->unique(ignoreRecord: true)
+                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? trim($state) : null)
+                    ->validationMessages([
+                        'regex' => 'El Discord ID debe ser el ID numérico de usuario (17 a 20 dígitos), no el nombre de usuario.',
+                        'unique' => 'Este Discord ID ya está asociado a otro usuario de NewSlot.',
+                    ])
+                    ->helperText('ID numérico del usuario de Discord (17 a 20 dígitos). Se usa para automatizar roles y apodos en Procedimientos.'),
                 TextInput::make('steam_id')
                     ->label('Steam ID')
                     ->trim()
@@ -126,32 +134,6 @@ class UserForm
                 DatePicker::make('member_at')
                     ->label('Miembro desde')
                     ->helperText('Fecha en la que el recluta pasó a ser miembro.'),
-
-                Placeholder::make('active_time_display')
-                    ->label('Tiempo efectivo como ACTIVO')
-                    ->content(function (?User $record): string {
-                        if (! $record) {
-                            return '—';
-                        }
-
-                        $days = (int) (app(VeterancyService::class)->summary($record)['effective_days'] ?? 0);
-
-                        return number_format($days, 0, ',', '.') . ' días';
-                    })
-                    ->helperText('Tiempo acumulado en estado ACTIVO desde Miembro desde. Los periodos en RESERVA u otros estados no cuentan.'),
-
-                Placeholder::make('reserve_time_display')
-                    ->label('Tiempo acumulado en RESERVA')
-                    ->content(function (?User $record): string {
-                        if (! $record) {
-                            return '—';
-                        }
-
-                        $days = (int) (app(VeterancyService::class)->summary($record)['reserve_days'] ?? 0);
-
-                        return number_format($days, 0, ',', '.') . ' días';
-                    })
-                    ->helperText('Suma de todos los periodos históricos en los que el miembro ha estado en RESERVA.'),
 
                 
                 //TextInput::make('created_by')

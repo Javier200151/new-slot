@@ -91,5 +91,22 @@ return [
             'sheet_name' => env('GOOGLE_MEMBERS_SHEET_NAME', 'General'),
             'timeout' => (int) env('GOOGLE_SHEETS_TIMEOUT', 15),
         ],
+
+
+        /*
+        |------------------------------------------------------------------
+        | Discord · roles de ciclo de miembro
+        |------------------------------------------------------------------
+        |
+        | El token del bot solo vive en el entorno. Guild ID y Role IDs
+        | son configuración funcional editable desde Filament.
+        |
+        */
+        'discord' => [
+            'enabled' => env('DISCORD_ENABLED', false),
+            'base_url' => env('DISCORD_API_BASE_URL', 'https://discord.com/api/v10'),
+            'bot_token' => env('DISCORD_BOT_TOKEN'),
+            'timeout' => (int) env('DISCORD_TIMEOUT', 10),
+        ],
     ],
 ];

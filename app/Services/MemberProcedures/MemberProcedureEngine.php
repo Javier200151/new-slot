@@ -25,6 +25,7 @@ class MemberProcedureEngine
         private readonly ProcedureNotificationService $notifications,
         private readonly ArmaSquadsService $armaSquads,
         private readonly GoogleSheetsService $googleSheets,
+        private readonly DiscordService $discord,
         private readonly UserMetopaAssignmentService $metopas,
     ) {
     }
@@ -253,6 +254,7 @@ class MemberProcedureEngine
             'linked_application' => $this->linkedApplication($user),
             'status_recruit' => $this->setStatus($user, 'RECLUTA'),
             'tutor_area' => $this->tutorArea($user),
+            'discord_recruit' => $this->discordRoleSync($procedure, $user, $setting, 'recruit'),
             'treasury_signal' => $this->notifyTreasury($procedure, $step, $setting, 'Nueva señal de reclutamiento', $user->nick . ' ha iniciado su reclutamiento. Revisar el pago de la señal de 6 €.'),
             'tutor_coordinator_notice' => $this->notifyTutorCoordinator($procedure, $step, $setting),
             'tutor_assignment' => $this->waitForTutor($user),
@@ -267,17 +269,21 @@ class MemberProcedureEngine
             'google_sheets_status_sync' => $this->googleSheetsStatusSync($user, $setting),
             'purge_recruitment_personal' => $this->purgeRecruitmentPersonalData($user),
             'alpha_metopa' => $this->assignAlphaMetopa($user, $setting),
+            'discord_alpha' => $this->discordRoleSync($procedure, $user, $setting, 'alpha'),
             'treasury_member_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Alta de nuevo miembro', $user->nick . ' ha completado su reclutamiento y ha pasado a ACTIVO.'),
 
             'not_promoted_validation' => $this->notPromotedValidation($user),
             'treasury_not_promoted_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Recluta no promocionado', $user->nick . ' finaliza su reclutamiento sin promocionar a miembro.'),
+            'discord_not_promoted' => $this->discordRoleSync($procedure, $user, $setting, 'remove'),
             'status_not_promoted' => $this->setStatus($user, 'NO PROMOCIONADO'),
 
             'reactivation_validation' => $this->requireStatus($user, 'RESERVA'),
             'treasury_reactivation_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Reactivación de miembro', $user->nick . ' inicia su reactivación desde RESERVA.'),
+            'discord_reactivation' => $this->discordRoleSync($procedure, $user, $setting, 'alpha'),
 
             'reserve_validation' => $this->requireStatus($user, 'ACTIVO'),
             'treasury_reserve_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Paso a reserva', $user->nick . ' pasa a RESERVA.'),
+            'discord_reserve' => $this->discordRoleSync($procedure, $user, $setting, 'reserve'),
             'status_reserve' => $this->setStatus($user, 'RESERVA'),
 
             'departure_validation' => $this->departureValidation($user),
@@ -289,6 +295,7 @@ class MemberProcedureEngine
                 $user->nick . ($procedure->type === MemberProcedure::TYPE_DISMISSAL ? ' está siendo tramitado como CESADO.' : ' está siendo tramitado como BAJA.'),
             ),
             'armasquads_delete' => $this->armaSquadsDelete($user, $setting),
+            'discord_departure' => $this->discordDeparture($procedure, $user, $setting),
             'status_departed' => $this->setStatus($user, 'BAJA'),
             'status_dismissed' => $this->setStatus($user, 'CESADO'),
 
@@ -510,6 +517,61 @@ class MemberProcedureEngine
         );
 
         return ['status' => MemberProcedureStep::STATUS_COMPLETED, 'result' => ['notification_id' => $notification->id, 'coordinator_user_id' => (int) $coordinator->user_id]];
+    }
+
+    private function discordRoleSync(MemberProcedure $procedure, User $user, MemberProcedureSetting $setting, string $mode): array
+    {
+        if (! $this->discord->isConfigured($setting)) {
+            return [
+                'status' => MemberProcedureStep::STATUS_MANUAL,
+                'message' => 'Discord todavía no está configurado. Realiza el cambio de rol manualmente y marca este paso como completado.',
+            ];
+        }
+
+        if (! preg_match('/^\d{17,20}$/', trim((string) $user->discord_id))) {
+            return [
+                'status' => MemberProcedureStep::STATUS_MANUAL,
+                'message' => 'El usuario no tiene un Discord ID numérico válido en su ficha. Añádelo o realiza este paso manualmente.',
+            ];
+        }
+
+        $reason = 'NewSlot · ' . $procedure->typeLabel() . ' · ' . $user->nick;
+        $result = match ($mode) {
+            'recruit' => $this->discord->setRecruit($user, $setting, $reason),
+            'alpha' => $this->discord->setAlpha($user, $setting, $reason),
+            'reserve' => $this->discord->setReserve($user, $setting, $reason),
+            'remove' => $this->discord->removeManagedRoles($user, $setting, $reason),
+            default => throw new LogicException('Modo de sincronización de Discord no reconocido.'),
+        };
+
+        return ['status' => MemberProcedureStep::STATUS_COMPLETED, 'result' => $result];
+    }
+
+    private function discordDeparture(MemberProcedure $procedure, User $user, MemberProcedureSetting $setting): array
+    {
+        if (! $this->discord->isConfigured($setting)) {
+            return [
+                'status' => MemberProcedureStep::STATUS_MANUAL,
+                'message' => 'Discord todavía no está configurado. Retira los roles o aplica el baneo manualmente y marca este paso como completado.',
+            ];
+        }
+
+        if (! preg_match('/^\d{17,20}$/', trim((string) $user->discord_id))) {
+            return [
+                'status' => MemberProcedureStep::STATUS_MANUAL,
+                'message' => 'El usuario no tiene un Discord ID numérico válido en su ficha. Gestiona su salida de Discord manualmente.',
+            ];
+        }
+
+        $reason = 'NewSlot · ' . $procedure->typeLabel() . ' · ' . $user->nick;
+        $banRequired = $procedure->type === MemberProcedure::TYPE_DISMISSAL
+            && (bool) (($procedure->input ?? [])['ban_required'] ?? false);
+
+        $result = $banRequired
+            ? $this->discord->ban($user, $setting, $reason)
+            : $this->discord->removeManagedRoles($user, $setting, $reason);
+
+        return ['status' => MemberProcedureStep::STATUS_COMPLETED, 'result' => $result];
     }
 
     private function armaSquadsUpsert(User $user, MemberProcedureSetting $setting): array

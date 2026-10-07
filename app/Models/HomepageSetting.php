@@ -10,6 +10,12 @@ class HomepageSetting extends Model
         'recruitment_open',
         'contact_email',
         'instagram_url',
+        'x_url',
+        'youtube_url',
+        'discord_invite_url',
+        'discord_invite_auto_refresh',
+        'discord_invite_refreshed_at',
+        'discord_invite_expires_at',
         'google_photos_url',
         'news_title',
         'news_intro',
@@ -19,7 +25,12 @@ class HomepageSetting extends Model
 
     protected function casts(): array
     {
-        return ['recruitment_open' => 'boolean'];
+        return [
+            'recruitment_open' => 'boolean',
+            'discord_invite_auto_refresh' => 'boolean',
+            'discord_invite_refreshed_at' => 'datetime',
+            'discord_invite_expires_at' => 'datetime',
+        ];
     }
 
     public static function current(): self

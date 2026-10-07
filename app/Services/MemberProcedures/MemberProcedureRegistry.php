@@ -78,7 +78,7 @@ class MemberProcedureRegistry
                     $this->auto('linked_application', 'Comprobar cuenta y solicitud de alistamiento vinculadas', [], 'Verifica que la solicitud aprobada está asociada a una cuenta de NewSlot. La asociación puede haberse realizado automáticamente por email o manualmente desde alistamiento.'),
                     $this->auto('status_recruit', 'Cambiar estado a RECLUTA', ['linked_application'], 'Cambia el estado del usuario a RECLUTA. Este cambio debe disparar la lógica existente del área de tutores y quedar registrado en el historial de estados.'),
                     $this->auto('tutor_area', 'Crear/validar el proceso en el Área de tutores', ['status_recruit'], 'Comprueba que existe el periodo de reclutamiento del usuario en el Área de tutores y que puede ser recogido por un tutor.'),
-                    $this->manual('discord_recruit', 'Actualizar los roles de Discord a RECLUTA', ['status_recruit'], 'En Discord, asigna al usuario el rol correspondiente a RECLUTA y retira cualquier rol incompatible que proceda.'),
+                    $this->auto('discord_recruit', 'Actualizar Discord a RECLUTA', ['status_recruit'], 'Asigna RECLUTA, retira ALPHA/RESERVA y normaliza el apodo al nick de NewSlot sin la etiqueta ALPHA. Requiere Discord ID numérico en la ficha del usuario.'),
                     $this->auto('treasury_signal', 'Notificar a Tesorería la señal de 6 €', ['status_recruit'], 'Genera un aviso para el grupo configurado como Tesorería indicando que debe comprobarse el pago de la señal de 6 € del nuevo recluta.'),
                     $this->manual('telegram_recruit_announcement', 'Notificar la entrada en el tablón de anuncios de Telegram', ['status_recruit'], 'Publica en el tablón de anuncios de Telegram la entrada del nuevo recluta siguiendo el formato habitual de la comunidad.'),
                     $this->auto('tutor_coordinator_notice', 'Notificar al coordinador de tutores la disponibilidad del nuevo recluta', ['tutor_area'], 'Avisa al grupo/configuración de tutores de que hay un nuevo recluta disponible para ser asignado.'),
@@ -98,7 +98,7 @@ class MemberProcedureRegistry
                     $this->manual('leave_recruit_groups', 'Sacar al usuario de los grupos de reclutas', ['status_active'], 'Retira al nuevo miembro de los grupos exclusivos de reclutas que no se gestionen automáticamente.'),
                     $this->auto('alpha_metopa', 'Asignar la metopa de miembro ALPHA', ['status_active'], 'Entrega automáticamente la metopa configurada como ALPHA, evitando duplicados si el usuario ya la tuviera.'),
                     $this->manual('ts3_alpha', 'Cambiar en TS3 el rol RECLUTA por ALPHA', ['status_active'], 'En TeamSpeak 3, retira el grupo/rol de RECLUTA y asigna el correspondiente a ALPHA.'),
-                    $this->manual('discord_alpha', 'Cambiar en Discord el rol RECLUTA por ALPHA', ['status_active'], 'En Discord, retira el rol de RECLUTA y asigna el rol de ALPHA al nuevo miembro.'),
+                    $this->auto('discord_alpha', 'Cambiar Discord a ALPHA y actualizar apodo', ['status_active'], 'Retira RECLUTA/RESERVA, asigna ALPHA y cambia el apodo del servidor al formato configurado, por defecto [=ALPHA=] Nick.'),
                     $this->manual('telegram_groups_email', 'Enviar por email los enlaces de los grupos oficiales de Telegram', ['status_active'], 'Envía al nuevo miembro el correo con los enlaces vigentes para incorporarse a los grupos oficiales de Telegram.'),
                     $this->auto('treasury_member_notice', 'Notificar a Tesorería el alta como miembro', ['status_active'], 'Genera un aviso para el grupo configurado como Tesorería indicando que el recluta ha pasado a miembro ACTIVO.'),
                     $this->auto('google_sheets_status_sync', 'Sincronizar ACTIVO, promoción e ingreso en Google Sheets', ['google_sheets_transfer', 'status_active'], 'Actualiza la fila existente de Google Sheets con estado ACTIVO, promoción, fechas de ingreso/calavera y planificación de veteranías.'),
@@ -109,7 +109,7 @@ class MemberProcedureRegistry
                 'steps' => [
                     $this->auto('not_promoted_validation', 'Comprobar que el usuario sigue siendo RECLUTA', [], 'Valida que el usuario está en estado RECLUTA y que existe un periodo de reclutamiento abierto antes de tramitarlo como NO PROMOCIONADO.'),
                     $this->auto('treasury_not_promoted_notice', 'Notificar a Tesorería que el recluta no promociona', ['not_promoted_validation'], 'Genera un aviso para el grupo configurado como Tesorería indicando que el recluta finaliza su proceso sin promocionar a miembro.'),
-                    $this->manual('discord_not_promoted', 'Retirar el rol/acceso de RECLUTA en Discord', ['not_promoted_validation'], 'En Discord, retira el rol de RECLUTA y cualquier acceso asociado al proceso de reclutamiento.'),
+                    $this->auto('discord_not_promoted', 'Retirar acceso de RECLUTA en Discord', ['not_promoted_validation'], 'Retira los roles RECLUTA, ALPHA y RESERVA gestionados por NewSlot y elimina la etiqueta ALPHA del apodo si el usuario sigue en el servidor.'),
                     $this->manual('telegram_not_promoted', 'Retirar al recluta de los grupos de Telegram que correspondan', ['not_promoted_validation'], 'Retira al recluta de cualquier grupo o canal de Telegram al que hubiera sido incorporado durante el proceso.'),
                     $this->manual('whatsapp_not_promoted', 'Sacar del grupo de WhatsApp de reclutas', ['not_promoted_validation'], 'Retira al usuario del grupo de WhatsApp de reclutas y marca el paso cuando esté confirmado.'),
                     $this->manual('ts3_not_promoted', 'Retirar el rol/grupo de RECLUTA en TeamSpeak 3', ['not_promoted_validation'], 'Retira en TeamSpeak 3 el grupo o rol de RECLUTA y cualquier acceso temporal asociado.'),
@@ -122,7 +122,7 @@ class MemberProcedureRegistry
                 'steps' => [
                     $this->auto('reactivation_validation', 'Comprobar que el miembro está en RESERVA', [], 'Valida que el procedimiento se ejecuta sobre un usuario cuyo estado actual es RESERVA.'),
                     $this->auto('treasury_reactivation_notice', 'Notificar a Tesorería la reactivación', ['reactivation_validation'], 'Avisa a Tesorería de que el miembro vuelve de RESERVA a la actividad.'),
-                    $this->manual('discord_reactivation', 'Cambiar en Discord RESERVA por ACTIVO', ['reactivation_validation'], 'Retira en Discord el rol de RESERVA y asigna el rol activo/ALPHA correspondiente.'),
+                    $this->auto('discord_reactivation', 'Cambiar Discord RESERVA → ALPHA y actualizar apodo', ['reactivation_validation'], 'Retira RESERVA/RECLUTA, asigna ALPHA y aplica al apodo la etiqueta ALPHA configurada.'),
                     $this->manual('telegram_groups_email', 'Reenviar por email los enlaces de Telegram', ['reactivation_validation'], 'Reenvía al miembro los enlaces actualizados de los grupos oficiales de Telegram para que pueda reincorporarse.'),
                     $this->manual('ts3_reactivation', 'Cambiar en TS3 RESERVA por ALPHA', ['reactivation_validation'], 'En TeamSpeak 3, sustituye el grupo de RESERVA por el de ALPHA.'),
                     $this->auto('status_active', 'Cambiar estado a ACTIVO', ['reactivation_validation'], 'Cambia el estado interno del usuario de RESERVA a ACTIVO y registra el cambio en su historial.'),
@@ -134,7 +134,7 @@ class MemberProcedureRegistry
                 'steps' => [
                     $this->auto('reserve_validation', 'Comprobar que el miembro está ACTIVO', [], 'Valida que solo un miembro actualmente ACTIVO pueda iniciar el procedimiento de paso a RESERVA.'),
                     $this->auto('treasury_reserve_notice', 'Notificar a Tesorería el paso a reserva', ['reserve_validation'], 'Avisa al grupo configurado como Tesorería del paso del miembro a RESERVA.'),
-                    $this->manual('discord_reserve', 'Cambiar en Discord ALPHA por RESERVA', ['reserve_validation'], 'En Discord, retira el rol activo/ALPHA y asigna el rol correspondiente a RESERVA.'),
+                    $this->auto('discord_reserve', 'Cambiar Discord ALPHA → RESERVA y actualizar apodo', ['reserve_validation'], 'Retira ALPHA/RECLUTA, asigna RESERVA y normaliza el apodo al nick de NewSlot sin la etiqueta ALPHA.'),
                     $this->manual('telegram_leave_official', 'Sacar de los grupos oficiales de Telegram', ['reserve_validation'], 'Retira al miembro de los grupos oficiales de Telegram que correspondan durante su periodo en reserva.'),
                     $this->manual('ts3_reserve', 'Cambiar en TS3 ALPHA por RESERVA', ['reserve_validation'], 'En TeamSpeak 3, retira el grupo ALPHA y asigna el grupo de RESERVA.'),
                     $this->auto('status_reserve', 'Cambiar estado a RESERVA', ['reserve_validation'], 'Cambia el estado interno de ACTIVO a RESERVA y registra la fecha para el cálculo del tiempo efectivo de veteranía.'),
@@ -201,14 +201,14 @@ class MemberProcedureRegistry
             $this->auto('departure_validation', $dismissal ? 'Comprobar requisitos del cese' : 'Comprobar requisitos de la baja', [], $dismissal ? 'Comprueba que el usuario puede tramitarse como CESE y que no está ya en BAJA/CESADO.' : 'Comprueba que el usuario puede tramitarse como BAJA y que no está ya en BAJA/CESADO.'),
             $this->auto('treasury_departure_notice', $dismissal ? 'Notificar a Tesorería el cese' : 'Notificar a Tesorería la baja', ['departure_validation'], $dismissal ? 'Avisa a Tesorería del cese para que realice las gestiones económicas/administrativas correspondientes.' : 'Avisa a Tesorería de la baja para que realice las gestiones económicas/administrativas correspondientes.'),
             $this->auto('armasquads_delete', 'Retirar de ArmaSquads', ['departure_validation'], 'Elimina al usuario del Squad de ArmaSquads utilizando su SteamID64. Si ya no existe, el paso se considera idempotente.'),
-            $this->manual('discord_departure', 'Retirar roles/acceso de Discord', ['departure_validation'], 'Retira del usuario los roles y accesos de Discord asociados a la pertenencia a Squad Alpha.'),
+            $this->auto('discord_departure', 'Retirar roles/acceso de Discord', ['departure_validation'], $dismissal ? 'En un cese, retira los roles gestionados por NewSlot o banea automáticamente al usuario si se marcó la opción de baneo al iniciar el procedimiento.' : 'Retira los roles RECLUTA, ALPHA y RESERVA gestionados por NewSlot y normaliza el apodo al nick de NewSlot si el usuario permanece en el servidor.'),
             $this->manual('telegram_leave_all', 'Sacar de los grupos de Telegram', ['departure_validation'], 'Retira al usuario de los grupos oficiales de Telegram que correspondan.'),
             $this->manual('whatsapp_leave_all', 'Sacar de los grupos de WhatsApp', ['departure_validation'], 'Retira al usuario de los grupos oficiales de WhatsApp que correspondan.'),
             $this->manual('ts3_departure', 'Retirar grupos/roles de TeamSpeak 3', ['departure_validation'], 'Retira del usuario los grupos y roles de TeamSpeak 3 asociados a Squad Alpha.'),
         ];
 
         if ($dismissal) {
-            $steps[] = $this->manual('ban_if_required', 'Aplicar los bloqueos/baneos indicados para el cese', ['departure_validation'], 'Si el cese requiere bloqueo, aplica los baneos indicados en los servicios correspondientes. Si no se solicitó ban, este paso se omite automáticamente.');
+            $steps[] = $this->manual('ban_if_required', 'Aplicar los bloqueos/baneos pendientes en otros servicios', ['departure_validation'], 'Discord se gestiona automáticamente. Si el cese requiere bloqueo, aplica aquí los baneos que sigan pendientes en otros servicios. Si no se solicitó ban, este paso se omite automáticamente.');
         }
 
         $statusKey = $dismissal ? 'status_dismissed' : 'status_departed';

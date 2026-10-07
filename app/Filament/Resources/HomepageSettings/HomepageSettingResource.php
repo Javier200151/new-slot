@@ -21,9 +21,9 @@ class HomepageSettingResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = 'Sistema';
     protected static ?int $navigationSort = 0;
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHomeModern;
-    protected static ?string $navigationLabel = 'Portada';
-    protected static ?string $modelLabel = 'Configuración de portada';
-    protected static ?string $pluralModelLabel = 'Configuración de portada';
+    protected static ?string $navigationLabel = 'Portada y redes';
+    protected static ?string $modelLabel = 'Configuración del sitio';
+    protected static ?string $pluralModelLabel = 'Configuración del sitio';
 
     public static function form(Schema $schema): Schema { return HomepageSettingForm::configure($schema); }
     public static function table(Table $table): Table { return HomepageSettingsTable::configure($table); }
