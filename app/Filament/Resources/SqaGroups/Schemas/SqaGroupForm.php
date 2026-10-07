@@ -3,13 +3,17 @@
 namespace App\Filament\Resources\SqaGroups\Schemas;
 
 use App\Filament\Forms\BbcodeTextarea;
+use App\Models\MemberProcedureSetting;
 use App\Models\SqaGroup;
+use App\Services\MemberProcedures\DiscordService;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Throwable;
 
 class SqaGroupForm
 {
@@ -43,6 +47,14 @@ class SqaGroupForm
                     ->label('El grupo tiene figura de coordinador')
                     ->helperText('Si se desactiva, el organigrama no mostrará ningún puesto de coordinador para este grupo. Úsalo en grupos donde las decisiones se toman de forma colegiada.')
                     ->default(true),
+
+                Select::make('discord_role_id')
+                    ->label('Rol de Discord')
+                    ->options(fn (?SqaGroup $record): array => self::discordRoleOptions($record?->discord_role_id))
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->helperText('Opcional. Los roles se cargan del servidor seleccionado en Config. procedimientos. Al añadir o quitar usuarios de este Grupo SQA, NewSlot sincroniza automáticamente este rol en Discord.'),
 
                 BbcodeTextarea::make('description')
                     ->label('Descripción')
@@ -83,5 +95,25 @@ class SqaGroupForm
                     ->default(false)
                     ->columnSpanFull(),
             ]);
+    }
+
+    /** @return array<string, string> */
+    private static function discordRoleOptions(?string $currentId): array
+    {
+        try {
+            $guildId = MemberProcedureSetting::current()->discord_guild_id;
+            $options = filled($guildId)
+                ? app(DiscordService::class)->roleOptions((string) $guildId)
+                : [];
+        } catch (Throwable) {
+            $options = [];
+        }
+
+        $currentId = trim((string) $currentId);
+        if ($currentId !== '' && ! array_key_exists($currentId, $options)) {
+            $options = [$currentId => 'Rol guardado · ' . $currentId] + $options;
+        }
+
+        return $options;
     }
 }

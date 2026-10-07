@@ -352,6 +352,42 @@ class DiscordService
     }
 
     /** @return array<string, mixed> */
+    public function assignRole(User $user, MemberProcedureSetting $setting, string $roleId, string $reason): array
+    {
+        $roleId = $this->validateSnowflake($roleId, 'Role ID');
+
+        return $this->syncRoles(
+            $user,
+            $setting,
+            $roleId,
+            [],
+            $reason,
+            requireLifecycleRoleConfig: false,
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function removeRole(
+        User $user,
+        MemberProcedureSetting $setting,
+        string $roleId,
+        string $reason,
+        bool $allowMissingMember = true,
+    ): array {
+        $roleId = $this->validateSnowflake($roleId, 'Role ID');
+
+        return $this->syncRoles(
+            $user,
+            $setting,
+            null,
+            [$roleId],
+            $reason,
+            allowMissingMember: $allowMissingMember,
+            requireLifecycleRoleConfig: false,
+        );
+    }
+
+    /** @return array<string, mixed> */
     public function removeManagedRoles(User $user, MemberProcedureSetting $setting, string $reason): array
     {
         return $this->syncRoles(
@@ -477,8 +513,13 @@ class DiscordService
         string $reason,
         bool $allowMissingMember = false,
         ?string $targetNickname = null,
+        bool $requireLifecycleRoleConfig = true,
     ): array {
-        $this->assertConfigured($setting);
+        if ($requireLifecycleRoleConfig) {
+            $this->assertConfigured($setting);
+        } else {
+            $this->assertBaseConfigured($setting);
+        }
         $discordId = $this->discordId($user);
         $guildId = rawurlencode((string) $setting->discord_guild_id);
         $encodedUserId = rawurlencode($discordId);

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Rules\NotReservedUsername;
-use App\Services\VeterancyService;
+use App\Services\ProfileCompletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -16,7 +16,7 @@ use Throwable;
 
 class ProfileController extends Controller
 {
-    public function show(Request $request): View
+    public function show(Request $request, ProfileCompletionService $profileCompletionService): View
     {
         $user = $request->user()->load([
             'promo',
@@ -26,9 +26,9 @@ class ProfileController extends Controller
             'mainSqaGroup',
         ]);
 
-        $veterancy = app(VeterancyService::class)->summary($user);
+        $profileCompletion = $profileCompletionService->forUser($user);
 
-        return view('profile.show', compact('user', 'veterancy'));
+        return view('profile.show', compact('user', 'profileCompletion'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -36,9 +36,11 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $steamId = trim((string) $request->input('steam_id', ''));
+        $discordId = trim((string) $request->input('discord_id', ''));
 
         $request->merge([
             'steam_id' => $steamId !== '' ? $steamId : null,
+            'discord_id' => $discordId !== '' ? $discordId : null,
         ]);
 
         $validated = $request->validateWithBag(
@@ -77,13 +79,14 @@ class ProfileController extends Controller
                 'discord_id' => [
                     'nullable',
                     'string',
-                    'max:255',
+                    'regex:/^\d{17,20}$/',
+                    Rule::unique('users', 'discord_id')->ignore($user),
                 ],
 
                 'steam_id' => [
                     'nullable',
                     'string',
-                    'max:255',
+                    'regex:/^\d{17}$/',
                     Rule::unique('users', 'steam_id')->ignore($user),
                 ],
 
@@ -115,6 +118,10 @@ class ProfileController extends Controller
                 'email.email' => 'Introduce un correo electrónico válido.',
                 'email.unique' => 'Este correo electrónico ya está en uso.',
 
+                'discord_id.regex' => 'El Discord ID debe ser el ID numérico de usuario (17 a 20 dígitos), no el nombre de usuario.',
+                'discord_id.unique' => 'Este Discord ID ya está asociado a otro usuario de NewSlot.',
+
+                'steam_id.regex' => 'El Steam ID64 debe contener exactamente 17 dígitos.',
                 'steam_id.unique' => 'Este Steam ID ya está asignado a otro usuario.',
 
                 'quote.max' => 'La frase no puede superar los 500 caracteres.',

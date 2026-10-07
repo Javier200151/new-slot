@@ -79,6 +79,11 @@
                 </div>
             </header>
 
+            @include('partials.profile-completion', [
+                'profileCompletion' => $profileCompletion,
+                'variant' => 'profile',
+            ])
+
             @if($statusMessage)
                 <div class="profile-alert profile-alert--success">
                     {{ $statusMessage }}
@@ -264,25 +269,11 @@
                             </div>
 
                             <div>
-                                <dt>Miembro desde</dt>
+                                <dt>Fecha de ingreso</dt>
                                 <dd>
                                     {{ $user->member_at?->format('d/m/Y')
                                         ?? 'No indicada'
                                     }}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt>Tiempo efectivo como ACTIVO</dt>
-                                <dd>
-                                    {{ number_format((int) ($veterancy['effective_days'] ?? 0), 0, ',', '.') }} días
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt>Tiempo acumulado en RESERVA</dt>
-                                <dd>
-                                    {{ number_format((int) ($veterancy['reserve_days'] ?? 0), 0, ',', '.') }} días
                                 </dd>
                             </div>
 
@@ -391,21 +382,27 @@
                                 @enderror
                             </div>
 
-                            <div class="profile-form__columns">
-                                <div class="profile-field">
+                            <div class="profile-form__columns profile-operational-data" id="profile-operational-data">
+                                <div class="profile-field" id="profile-discord-id">
                                     <label for="discord_id">
-                                        Discord
+                                        Discord ID
                                     </label>
 
                                     <input
                                         id="discord_id"
                                         name="discord_id"
                                         type="text"
+                                        inputmode="numeric"
+                                        autocomplete="off"
                                         value="{{ old(
                                             'discord_id',
                                             $user->discord_id
                                         ) }}"
                                     >
+
+                                    <small>
+                                        ID numérico de Discord (17 a 20 dígitos), no tu nombre de usuario.
+                                    </small>
 
                                     @error('discord_id', 'profileUpdate')
                                         <span class="profile-error">
@@ -414,7 +411,7 @@
                                     @enderror
                                 </div>
 
-                                <div class="profile-field">
+                                <div class="profile-field" id="profile-steam-id">
                                     <label for="steam_id">
                                         Steam ID64
                                     </label>
@@ -423,11 +420,17 @@
                                         id="steam_id"
                                         name="steam_id"
                                         type="text"
+                                        inputmode="numeric"
+                                        autocomplete="off"
                                         value="{{ old(
                                             'steam_id',
                                             $user->steam_id
                                         ) }}"
                                     >
+
+                                    <small>
+                                        Steam ID64 de 17 dígitos. Se usa para ArmaSquads y los procedimientos.
+                                    </small>
 
                                     @error('steam_id', 'profileUpdate')
                                         <span class="profile-error">

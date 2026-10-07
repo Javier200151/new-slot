@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\Auditable;
+use App\Services\SqaGroupDiscordSyncService;
 
 class SqaGroup extends Model
 {
@@ -20,6 +21,7 @@ class SqaGroup extends Model
         'display_order',
         'show_in_organization',
         'has_coordinator_role',
+        'discord_role_id',
     ];
 
     protected function casts(): array
@@ -33,6 +35,23 @@ class SqaGroup extends Model
 
     protected static function booted(): void
     {
+        static::updated(function (self $group): void {
+            if ($group->wasChanged('discord_role_id')) {
+                app(SqaGroupDiscordSyncService::class)->groupRoleChanged(
+                    $group,
+                    $group->getOriginal('discord_role_id'),
+                );
+            }
+        });
+
+        static::deleted(function (self $group): void {
+            app(SqaGroupDiscordSyncService::class)->groupDeleted($group);
+        });
+
+        static::restored(function (self $group): void {
+            app(SqaGroupDiscordSyncService::class)->groupRestored($group);
+        });
+
         static::saved(function (self $group): void {
             if ($group->has_coordinator_role || ! $group->wasChanged('has_coordinator_role')) {
                 return;

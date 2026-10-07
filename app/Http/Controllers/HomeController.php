@@ -7,6 +7,7 @@ use App\Models\HomepageSetting;
 use App\Services\HomepageGooglePhotosService;
 use App\Services\HomepageInstagramService;
 use App\Services\HomepageVodService;
+use App\Services\ProfileCompletionService;
 use Illuminate\View\View;
 
 class HomeController extends Controller
@@ -15,6 +16,7 @@ class HomeController extends Controller
         HomepageVodService $vodService,
         HomepageInstagramService $instagramService,
         HomepageGooglePhotosService $googlePhotosService,
+        ProfileCompletionService $profileCompletionService,
     ): View
     {
         $settings = HomepageSetting::current();
@@ -35,6 +37,9 @@ class HomeController extends Controller
         $instagramPosts = $instagramService->latest(3);
         $googlePhotosAlbumUrl = trim((string) ($settings->google_photos_url ?: config('services.google_photos.album_url')));
         $googlePhotos = $googlePhotosService->latest(6, $googlePhotosAlbumUrl);
+        $profileCompletion = auth()->check()
+            ? $profileCompletionService->forUser(auth()->user())
+            : null;
 
         return view('home', compact(
             'settings',
@@ -43,6 +48,7 @@ class HomeController extends Controller
             'instagramPosts',
             'googlePhotos',
             'googlePhotosAlbumUrl',
+            'profileCompletion',
         ));
     }
 }
