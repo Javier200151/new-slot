@@ -104,6 +104,19 @@ class MemberProcedureRegistry
                     $this->auto('google_sheets_status_sync', 'Sincronizar ACTIVO, promoción e ingreso en Google Sheets', ['google_sheets_transfer', 'status_active'], 'Actualiza la fila existente de Google Sheets con estado ACTIVO, promoción, fechas de ingreso/calavera y planificación de veteranías.'),
                 ],
             ],
+            MemberProcedure::TYPE_NOT_PROMOTED => [
+                'label' => 'No promocionado',
+                'steps' => [
+                    $this->auto('not_promoted_validation', 'Comprobar que el usuario sigue siendo RECLUTA', [], 'Valida que el usuario está en estado RECLUTA y que existe un periodo de reclutamiento abierto antes de tramitarlo como NO PROMOCIONADO.'),
+                    $this->auto('treasury_not_promoted_notice', 'Notificar a Tesorería que el recluta no promociona', ['not_promoted_validation'], 'Genera un aviso para el grupo configurado como Tesorería indicando que el recluta finaliza su proceso sin promocionar a miembro.'),
+                    $this->manual('discord_not_promoted', 'Retirar el rol/acceso de RECLUTA en Discord', ['not_promoted_validation'], 'En Discord, retira el rol de RECLUTA y cualquier acceso asociado al proceso de reclutamiento.'),
+                    $this->manual('telegram_not_promoted', 'Retirar al recluta de los grupos de Telegram que correspondan', ['not_promoted_validation'], 'Retira al recluta de cualquier grupo o canal de Telegram al que hubiera sido incorporado durante el proceso.'),
+                    $this->manual('whatsapp_not_promoted', 'Sacar del grupo de WhatsApp de reclutas', ['not_promoted_validation'], 'Retira al usuario del grupo de WhatsApp de reclutas y marca el paso cuando esté confirmado.'),
+                    $this->manual('ts3_not_promoted', 'Retirar el rol/grupo de RECLUTA en TeamSpeak 3', ['not_promoted_validation'], 'Retira en TeamSpeak 3 el grupo o rol de RECLUTA y cualquier acceso temporal asociado.'),
+                    $this->manual('not_promoted_email', 'Enviar la comunicación de no promoción', ['not_promoted_validation'], 'Envía al recluta la comunicación correspondiente al cierre de su reclutamiento sin promoción y marca el paso cuando el envío esté confirmado.'),
+                    $this->auto('status_not_promoted', 'Cambiar estado a NO PROMOCIONADO', ['not_promoted_validation'], 'Cambia el estado del usuario de RECLUTA a NO PROMOCIONADO. Al salir de RECLUTA, el Área de tutores cierra automáticamente el periodo con resultado NO PROMOCIONADO.'),
+                ],
+            ],
             MemberProcedure::TYPE_REACTIVATION => [
                 'label' => 'Reactivación desde reserva',
                 'steps' => [
@@ -147,25 +160,25 @@ class MemberProcedureRegistry
         }
 
         $settingId ??= (int) MemberProcedureSetting::current()->id;
-        if (MemberProcedureStepDefinition::query()->where('member_procedure_setting_id', $settingId)->exists()) {
-            return;
-        }
-
         foreach ($this->defaultDefinitions() as $type => $definition) {
             foreach ($definition['steps'] as $index => $step) {
-                MemberProcedureStepDefinition::query()->create([
-                    'member_procedure_setting_id' => $settingId,
-                    'procedure_type' => $type,
-                    'step_key' => $step['key'],
-                    'label' => $step['label'],
-                    'instructions' => $step['instructions'] ?? null,
-                    'kind' => $step['kind'],
-                    'position' => $index + 1,
-                    'required' => (bool) ($step['required'] ?? true),
-                    'is_enabled' => true,
-                    'is_system' => true,
-                    'depends_on' => array_values($step['depends_on'] ?? []),
-                ]);
+                MemberProcedureStepDefinition::query()->firstOrCreate(
+                    [
+                        'member_procedure_setting_id' => $settingId,
+                        'procedure_type' => $type,
+                        'step_key' => $step['key'],
+                    ],
+                    [
+                        'label' => $step['label'],
+                        'instructions' => $step['instructions'] ?? null,
+                        'kind' => $step['kind'],
+                        'position' => $index + 1,
+                        'required' => (bool) ($step['required'] ?? true),
+                        'is_enabled' => true,
+                        'is_system' => true,
+                        'depends_on' => array_values($step['depends_on'] ?? []),
+                    ],
+                );
             }
         }
     }

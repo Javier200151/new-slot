@@ -44,11 +44,13 @@ class MemberProcedureEligibility
             MemberProcedure::TYPE_RECRUITMENT_COMPLETE => $this->withStatuses($query, ['RECLUTA'])
                 ->whereIn('id', $this->approvedRecruitmentUserIds()),
 
+            MemberProcedure::TYPE_NOT_PROMOTED => $this->withStatuses($query, ['RECLUTA']),
+
             MemberProcedure::TYPE_RESERVE => $this->withStatuses($query, ['ACTIVO']),
             MemberProcedure::TYPE_REACTIVATION => $this->withStatuses($query, ['RESERVA']),
 
             MemberProcedure::TYPE_DEPARTURE,
-            MemberProcedure::TYPE_DISMISSAL => $this->withStatuses($query, ['RECLUTA', 'ACTIVO', 'RESERVA']),
+            MemberProcedure::TYPE_DISMISSAL => $this->withStatuses($query, ['ACTIVO', 'RESERVA']),
 
             default => $query->whereRaw('1 = 0'),
         };

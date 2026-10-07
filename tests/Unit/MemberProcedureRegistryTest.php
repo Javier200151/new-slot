@@ -16,6 +16,7 @@ class MemberProcedureRegistryTest extends TestCase
         $this->assertSame([
             MemberProcedure::TYPE_RECRUITMENT_START,
             MemberProcedure::TYPE_RECRUITMENT_COMPLETE,
+            MemberProcedure::TYPE_NOT_PROMOTED,
             MemberProcedure::TYPE_REACTIVATION,
             MemberProcedure::TYPE_RESERVE,
             MemberProcedure::TYPE_DEPARTURE,
@@ -48,5 +49,19 @@ class MemberProcedureRegistryTest extends TestCase
         $this->assertSame(['status_reserve'], $reserve['google_sheets_status_sync']['depends_on']);
         $this->assertSame(['status_departed'], $departure['google_sheets_status_sync']['depends_on']);
         $this->assertSame(['status_dismissed'], $dismissal['google_sheets_status_sync']['depends_on']);
+    }
+
+    public function test_not_promoted_is_a_recruit_exit_to_not_promoted_without_member_integrations(): void
+    {
+        $steps = collect((new MemberProcedureRegistry())->definition(MemberProcedure::TYPE_NOT_PROMOTED)['steps'])
+            ->keyBy('key');
+
+        $this->assertArrayHasKey('not_promoted_validation', $steps);
+        $this->assertArrayHasKey('status_not_promoted', $steps);
+        $this->assertArrayNotHasKey('armasquads_delete', $steps);
+        $this->assertArrayNotHasKey('google_sheets_status_sync', $steps);
+        $this->assertSame(['not_promoted_validation'], $steps['status_not_promoted']['depends_on']);
+        $this->assertStringContainsString('NO PROMOCIONADO', $steps['status_not_promoted']['label']);
+        $this->assertStringNotContainsString('BAJA', $steps['status_not_promoted']['label']);
     }
 }

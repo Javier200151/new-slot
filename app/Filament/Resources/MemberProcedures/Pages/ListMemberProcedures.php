@@ -83,6 +83,23 @@ class ListMemberProcedures extends ListRecords
                     'promo_id' => (int) $data['promo_id'],
                 ])),
 
+            Action::make('notPromoted')
+                ->label('No promocionado')
+                ->icon('heroicon-o-user-minus')
+                ->color('danger')
+                ->modalHeading('Cerrar reclutamiento · NO PROMOCIONADO')
+                ->modalDescription('Solo aparecen usuarios que actualmente están en RECLUTA y no tienen otro procedimiento abierto. El usuario pasará al estado NO PROMOCIONADO y el periodo de reclutamiento quedará cerrado con resultado NO PROMOCIONADO.')
+                ->form([
+                    $this->userSelect(MemberProcedure::TYPE_NOT_PROMOTED, 'Recluta que no promociona'),
+                    Textarea::make('reason')
+                        ->label('Motivo / nota administrativa')
+                        ->required()
+                        ->maxLength(2000),
+                ])
+                ->action(fn (array $data, MemberProcedureEngine $engine) => $this->startProcedure($engine, MemberProcedure::TYPE_NOT_PROMOTED, $data, [
+                    'reason' => trim((string) $data['reason']),
+                ])),
+
             Action::make('reserve')
                 ->label('Reserva')
                 ->icon('heroicon-o-pause-circle')
@@ -110,7 +127,7 @@ class ListMemberProcedures extends ListRecords
                 ->icon('heroicon-o-arrow-right-start-on-rectangle')
                 ->color('gray')
                 ->modalHeading('Tramitar baja')
-                ->modalDescription('Solo aparecen RECLUTAS, ACTIVOS o RESERVAS sin otro procedimiento abierto.')
+                ->modalDescription('Solo aparecen miembros en estado ACTIVO o RESERVA y sin otro procedimiento abierto.')
                 ->form([
                     $this->userSelect(MemberProcedure::TYPE_DEPARTURE, 'Usuario'),
                     Textarea::make('reason')
@@ -127,7 +144,7 @@ class ListMemberProcedures extends ListRecords
                 ->icon('heroicon-o-no-symbol')
                 ->color('danger')
                 ->modalHeading('Tramitar cese')
-                ->modalDescription('Solo aparecen RECLUTAS, ACTIVOS o RESERVAS sin otro procedimiento abierto.')
+                ->modalDescription('Solo aparecen miembros en estado ACTIVO o RESERVA y sin otro procedimiento abierto.')
                 ->form([
                     $this->userSelect(MemberProcedure::TYPE_DISMISSAL, 'Usuario'),
                     Textarea::make('reason')

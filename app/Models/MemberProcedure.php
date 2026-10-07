@@ -11,6 +11,7 @@ class MemberProcedure extends Model
 
     public const TYPE_RECRUITMENT_START = 'recruitment_start';
     public const TYPE_RECRUITMENT_COMPLETE = 'recruitment_complete';
+    public const TYPE_NOT_PROMOTED = 'not_promoted';
     public const TYPE_REACTIVATION = 'reactivation';
     public const TYPE_RESERVE = 'reserve';
     public const TYPE_DEPARTURE = 'departure';
@@ -41,6 +42,7 @@ class MemberProcedure extends Model
         return [
             self::TYPE_RECRUITMENT_START => 'Inicio de reclutamiento',
             self::TYPE_RECRUITMENT_COMPLETE => 'Alta de calavera (ACTIVO)',
+            self::TYPE_NOT_PROMOTED => 'No promocionado',
             self::TYPE_REACTIVATION => 'Reactivación desde reserva',
             self::TYPE_RESERVE => 'Paso a reserva',
             self::TYPE_DEPARTURE => 'Baja',
