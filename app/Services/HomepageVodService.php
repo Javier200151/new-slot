@@ -242,7 +242,7 @@ class HomepageVodService
                     $response = Http::timeout(5)
                         ->retry(1, 150)
                         ->withHeaders([
-                            'User-Agent' => 'Mozilla/5.0 (compatible; SquadAlpha-NewSlot/1.0)',
+                            'User-Agent' => 'Mozilla/5.0 (compatible; SquadAlpha/1.0)',
                             'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.8',
                         ])
                         ->get($url);

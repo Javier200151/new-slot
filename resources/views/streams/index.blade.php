@@ -443,7 +443,7 @@
                     </strong>
 
                     <p>
-                        Cuando NewSlot detecte un directo en los canales configurados,
+                        Cuando el sistema detecte un directo en los canales configurados,
                         aparecerá aquí automáticamente.
                     </p>
                 </div>
@@ -514,13 +514,13 @@
                         @if($myAutomaticStreams->isNotEmpty())
                             <div class="streams-alert streams-alert--info">
                                 <strong>Detección automática activa.</strong>
-                                NewSlot está viendo tu directo en
+                                Squad ALPHA está mostrando tu directo en
                                 {{ $myAutomaticStreams->pluck('platform')->map(fn ($platform) => strtoupper($platform))->implode(' + ') }}.
                                 No necesitas publicar la emisión manualmente.
                             </div>
                         @elseif($myStreamer->twitch_channel || $myStreamer->youtube_channel)
                             <div class="streams-alert streams-alert--info">
-                                NewSlot comprueba automáticamente tus canales de Twitch y YouTube.
+                                El sistema comprueba automáticamente tus canales de Twitch y YouTube.
                                 Si una plataforma no puede detectarse temporalmente, puedes usar el formulario manual de respaldo.
                             </div>
                         @endif

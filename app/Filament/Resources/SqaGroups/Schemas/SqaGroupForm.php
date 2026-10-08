@@ -54,7 +54,7 @@ class SqaGroupForm
                     ->searchable()
                     ->preload()
                     ->nullable()
-                    ->helperText('Opcional. Los roles se cargan del servidor seleccionado en Config. procedimientos. Al añadir o quitar usuarios de este Grupo SQA, NewSlot sincroniza automáticamente este rol en Discord.'),
+                    ->helperText('Opcional. Los roles se cargan del servidor seleccionado en Config. procedimientos. Al añadir o quitar usuarios de este Grupo SQA, el sistema sincroniza automáticamente este rol en Discord.'),
 
                 BbcodeTextarea::make('description')
                     ->label('Descripción')

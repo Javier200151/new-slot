@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex,nofollow">
-    <title>{{ $type === 'reactivation' ? 'Correo de reactivación' : 'Correo de alta' }} · NewSlot</title>
+    <title>{{ $type === 'reactivation' ? 'Correo de reactivación' : 'Correo de alta' }} · Squad ALPHA</title>
     <style>
         * { box-sizing: border-box; }
         body { margin:0; background:#090b0f; color:#f8fafc; font-family:Inter,Arial,Helvetica,sans-serif; }

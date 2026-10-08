@@ -152,7 +152,7 @@ class EventMedia extends Model
                 'Twitch',
 
             self::PROVIDER_LOCAL =>
-                'NewSlot',
+                'Squad ALPHA',
 
             default =>
                 ucfirst(

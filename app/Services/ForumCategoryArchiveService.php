@@ -717,7 +717,7 @@ class ForumCategoryArchiveService
     private function validatePayload(array $payload): void
     {
         if (($payload['format'] ?? null) !== self::FORMAT || (int) ($payload['version'] ?? 0) !== self::VERSION) {
-            throw ValidationException::withMessages(['backup' => 'El archivo no es una copia de categoría compatible con esta versión de NewSlot.']);
+            throw ValidationException::withMessages(['backup' => 'El archivo no es una copia de categoría compatible con esta versión de Squad ALPHA.']);
         }
 
         if (! is_array($payload['category'] ?? null) || blank(Arr::get($payload, 'category.slug')) || blank(Arr::get($payload, 'category.title'))) {

@@ -112,11 +112,11 @@ class TreasurySheetParserTest extends TestCase
         $this->assertTrue($control['valid']);
         $this->assertSame('OCT', $control['month']);
         $this->assertSame('N', $control['month_column']);
-        $this->assertSame(3, count($control['updates']));
-        $this->assertSame(['X', 'R', '-'], array_column($control['updates'], 'value'));
-        $this->assertSame(['N5:N5', 'N6:N6', 'N7:N7'], array_column($control['updates'], 'range'));
+        $this->assertSame(4, count($control['updates']));
+        $this->assertSame(['X', 'R', '-', 'X'], array_column($control['updates'], 'value'));
+        $this->assertSame(['N5:N5', 'N6:N6', 'N7:N7', 'N9:N9'], array_column($control['updates'], 'range'));
         $this->assertSame(1, $control['existing']);
-        $this->assertSame(1, $control['ignored']);
+        $this->assertSame(0, $control['ignored']);
     }
 
 }

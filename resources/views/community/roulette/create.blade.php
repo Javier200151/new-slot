@@ -73,7 +73,7 @@
                 <span class="roulette-step-number">3</span>
                 <div>
                     <h2>Tres operaciones anteriores</h2>
-                    <p>NewSlot propone automáticamente las tres anteriores por fecha. Puedes sustituir cualquiera por una excepción histórica.</p>
+                    <p>El sistema propone automáticamente las tres anteriores por fecha. Puedes sustituir cualquiera por una excepción histórica.</p>
                 </div>
                 <div class="roulette-history-selects">
                     @for($position = 0; $position < 3; $position++)

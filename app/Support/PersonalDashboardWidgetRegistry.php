@@ -98,7 +98,7 @@ class PersonalDashboardWidgetRegistry
             ],
             self::QUICK_LINKS => [
                 'label' => 'Accesos rápidos',
-                'description' => 'Tus enlaces frecuentes dentro o fuera de NewSlot.',
+                'description' => 'Tus enlaces frecuentes dentro o fuera de Squad ALPHA.',
                 'component' => null,
                 'default_size' => '2x1',
                 'min_size' => [1, 1],

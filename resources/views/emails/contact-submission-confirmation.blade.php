@@ -97,7 +97,7 @@
 
                 <tr>
                     <td style="padding:22px 36px 30px;border-top:1px solid #252b35;color:#7f8998;font-size:12px;line-height:1.7;text-align:center;">
-                        No necesitas volver a enviar el formulario. El equipo de Squad ALPHA lo revisará desde NewSlot.
+                        No necesitas volver a enviar el formulario. El equipo de Squad ALPHA lo revisará desde el panel de administración.
                     </td>
                 </tr>
             </table>

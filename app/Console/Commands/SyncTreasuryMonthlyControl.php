@@ -39,7 +39,7 @@ class SyncTreasuryMonthlyControl extends Command
 
             $mode = $result['dry_run'] ? 'Simulación' : 'Sincronización';
             $this->info(sprintf(
-                '%s %s %d: %d celdas %s, %d ya tenían valor y %d filas no correspondían a Miembro/Reserva/Cesado.',
+                '%s %s %d: %d celdas %s, %d ya tenían valor y %d filas no correspondían a Miembro/Recluta/Reserva/Cesado.',
                 $mode,
                 $result['month'],
                 $result['year'],

@@ -29,7 +29,7 @@ class TreasurySettingForm
                 'lg' => 2,
             ])->schema([
                 Section::make('Conexión con Google Sheets')
-                    ->description('La Tesorería usa la misma Service Account ya configurada en NewSlot. El documento puede pertenecer a otra cuenta de Google siempre que esté compartido con esa Service Account.')
+                    ->description('La Tesorería usa la misma Service Account ya configurada para Squad ALPHA. El documento puede pertenecer a otra cuenta de Google siempre que esté compartido con esa Service Account.')
                     ->schema([
                         TextInput::make('treasury_spreadsheet_id')
                             ->label('Spreadsheet ID · Tesorería')
@@ -93,7 +93,7 @@ class TreasurySettingForm
                         Placeholder::make('_privacy_note')
                             ->hiddenLabel()
                             ->content(new HtmlString(
-                                '<strong>Vinculación:</strong> la asociación entre NewSlot y la hoja de Tesorería se realiza únicamente mediante el nickname del usuario.'
+                                '<strong>Vinculación:</strong> la asociación con la hoja de Tesorería se realiza únicamente mediante el nickname del usuario.'
                             )),
                     ]),
 
@@ -112,12 +112,12 @@ class TreasurySettingForm
                     ]),
 
                 Section::make('Control mensual automático')
-                    ->description('Cada día 15 NewSlot completa únicamente las celdas vacías del mes actual. Los valores escritos manualmente tienen siempre prioridad y nunca se sobrescriben.')
+                    ->description('Cada día 15 se completan únicamente las celdas vacías del mes actual. Los valores escritos manualmente tienen siempre prioridad y nunca se sobrescriben.')
                     ->schema([
                         Placeholder::make('_monthly_rules')
                             ->hiddenLabel()
                             ->content(new HtmlString(
-                                '<div><strong>Reglas:</strong> Miembro → X · Reserva → R · Cesado → -</div>'
+                                '<div><strong>Reglas:</strong> Miembro → X · Recluta → X · Reserva → R · Cesado → -</div>'
                                 . '<div style="margin-top:.35rem;">Ejecución programada: día 15 de cada mes a las 00:15 (Europe/Madrid).</div>'
                             )),
 
@@ -136,7 +136,7 @@ class TreasurySettingForm
                                             ->success()
                                             ->title('Simulación · ' . $result['month'] . ' ' . $result['year'])
                                             ->body(sprintf(
-                                                '%d celdas se completarían; %d ya tienen un valor y %d filas no corresponden a Miembro, Reserva o Cesado.',
+                                                '%d celdas se completarían; %d ya tienen un valor y %d filas no corresponden a Miembro, Recluta, Reserva o Cesado.',
                                                 $result['planned'],
                                                 $result['existing'],
                                                 $result['ignored'],

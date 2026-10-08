@@ -452,7 +452,7 @@ class MemberProcedureEngine
     {
         $statusId = (int) Status::withTrashed()->whereRaw('UPPER(name) = ?', [mb_strtoupper($name)])->value('id');
         if (! $statusId) {
-            throw new LogicException('No existe el estado ' . $name . ' en NewSlot.');
+            throw new LogicException('No existe el estado ' . $name . ' en Squad ALPHA.');
         }
 
         if ((int) $user->status_id !== $statusId) {
@@ -564,7 +564,7 @@ class MemberProcedureEngine
             ];
         }
 
-        $reason = 'NewSlot · ' . $procedure->typeLabel() . ' · ' . $user->nick;
+        $reason = 'Squad ALPHA · ' . $procedure->typeLabel() . ' · ' . $user->nick;
         $result = match ($mode) {
             'recruit' => $this->discord->setRecruit($user, $setting, $reason),
             'alpha' => $this->discord->setAlpha($user, $setting, $reason),
@@ -592,7 +592,7 @@ class MemberProcedureEngine
             ];
         }
 
-        $reason = 'NewSlot · ' . $procedure->typeLabel() . ' · ' . $user->nick;
+        $reason = 'Squad ALPHA · ' . $procedure->typeLabel() . ' · ' . $user->nick;
         $banRequired = $procedure->type === MemberProcedure::TYPE_DISMISSAL
             && (bool) (($procedure->input ?? [])['ban_required'] ?? false);
 
