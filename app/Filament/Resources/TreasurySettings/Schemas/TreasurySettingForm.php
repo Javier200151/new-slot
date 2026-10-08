@@ -26,7 +26,8 @@ class TreasurySettingForm
         return $schema->components([
             Grid::make([
                 'default' => 1,
-                'lg' => 2,
+                'md' => 2,
+                'xl' => 3,
             ])->schema([
                 Section::make('Conexión con Google Sheets')
                     ->description('La Tesorería usa la misma Service Account ya configurada para Squad ALPHA. El documento puede pertenecer a otra cuenta de Google siempre que esté compartido con esa Service Account.')
@@ -102,6 +103,11 @@ class TreasurySettingForm
                                 ->openUrlInNewTab(),
                         ])
                             ->fullWidth(),
+                    ])
+                    ->columnSpan([
+                        'default' => 1,
+                        'md' => 2,
+                        'xl' => 2,
                     ]),
 
                 Section::make('Privacidad · Mi saldo')
