@@ -127,3 +127,352 @@
         font-size: 0.98rem;
     }
 }
+
+/* =========================================================
+   TESORERÍA · PÁGINA DINÁMICA
+========================================================= */
+.treasury-page__container {
+    width: min(1180px, calc(100% - 48px));
+}
+
+.treasury-page__header p {
+    max-width: 760px;
+    margin: 22px 0 0;
+    color: var(--text-soft);
+    font-size: 1rem;
+    line-height: 1.75;
+}
+
+.treasury-page__intro {
+    padding-bottom: 20px;
+}
+
+.treasury-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin: 18px 0 64px;
+}
+
+.treasury-kpi {
+    position: relative;
+    overflow: hidden;
+    min-height: 170px;
+    padding: 26px 28px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 16px;
+    background:
+        linear-gradient(145deg, rgba(18, 23, 32, 0.96), rgba(7, 10, 14, 0.98));
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.24);
+}
+
+.treasury-kpi::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--treasury-accent, #f59e0b);
+}
+
+.treasury-kpi--bank {
+    --treasury-accent: #60a5fa;
+}
+
+.treasury-kpi--paypal {
+    --treasury-accent: #f59e0b;
+}
+
+.treasury-kpi--total {
+    --treasury-accent: #4ade80;
+}
+
+.treasury-kpi > span {
+    display: block;
+    color: var(--treasury-accent);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.treasury-kpi > strong {
+    display: block;
+    margin-top: 20px;
+    color: #fff;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 900;
+    letter-spacing: -0.045em;
+    line-height: 1;
+}
+
+.treasury-kpi > small {
+    display: block;
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.treasury-private {
+    margin: -28px 0 64px;
+    padding: 26px 28px;
+    border: 1px solid rgba(245, 158, 11, 0.24);
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(20, 18, 12, 0.96), rgba(8, 10, 14, 0.98));
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.22);
+}
+
+.treasury-private__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 28px;
+    align-items: end;
+    margin-bottom: 22px;
+}
+
+.treasury-private__header span {
+    color: #fbbf24;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.treasury-private__header h2 {
+    margin: 6px 0 0;
+    color: #fff;
+    font-size: 1.55rem;
+}
+
+.treasury-private__header p {
+    max-width: 420px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.55;
+    text-align: right;
+}
+
+.treasury-private__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.treasury-private__item {
+    min-width: 0;
+    padding: 18px 20px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.treasury-private__item > span,
+.treasury-private__item > small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+}
+
+.treasury-private__item > strong {
+    display: block;
+    margin-top: 8px;
+    color: #fff;
+    font-size: 1.25rem;
+    overflow-wrap: anywhere;
+}
+
+.treasury-private__item > strong.is-paid { color: #4ade80; }
+.treasury-private__item > strong.is-debt { color: #f87171; }
+
+.treasury-private__item > small {
+    margin-top: 5px;
+}
+
+.treasury-private__concept {
+    margin: 14px 0 0;
+    color: var(--text-soft);
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+}
+
+.treasury-private__state {
+    margin: 0;
+}
+
+.treasury-section-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
+    gap: 34px;
+    align-items: end;
+    margin-bottom: 24px;
+}
+
+.treasury-section-heading > div > span {
+    color: var(--primary);
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.treasury-section-heading h2 {
+    margin: 8px 0 0;
+    color: #fff;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+}
+
+.treasury-section-heading p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    line-height: 1.7;
+}
+
+.treasury-section-heading p strong {
+    color: #fff;
+}
+
+.treasury-table-wrap {
+    overflow-x: auto;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 15px;
+    background: rgba(9, 12, 17, 0.88);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.22);
+}
+
+.treasury-table {
+    width: 100%;
+    min-width: 800px;
+    border-collapse: collapse;
+}
+
+.treasury-table th,
+.treasury-table td {
+    padding: 15px 17px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.13);
+    text-align: left;
+    vertical-align: top;
+}
+
+.treasury-table th {
+    color: #fff;
+    background: rgba(148, 163, 184, 0.075);
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.treasury-table td {
+    color: #d6dae1;
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.treasury-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.treasury-table tbody tr:hover td {
+    background: rgba(245, 158, 11, 0.035);
+}
+
+.treasury-table .is-number {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.treasury-table .is-amount {
+    color: #fff;
+    font-weight: 850;
+}
+
+.treasury-category {
+    display: inline-flex;
+    padding: 5px 8px;
+    border: 1px solid rgba(245, 158, 11, 0.24);
+    border-radius: 999px;
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.06);
+    font-size: 0.72rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.treasury-concept {
+    min-width: 240px;
+    overflow-wrap: anywhere;
+}
+
+.treasury-updated {
+    margin: 16px 0 0;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-align: right;
+}
+
+.treasury-state {
+    display: grid;
+    gap: 6px;
+    margin: 34px 0 56px;
+    padding: 22px 24px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 14px;
+    color: var(--text-soft);
+    background: rgba(15, 19, 26, 0.84);
+}
+
+.treasury-state strong {
+    color: #fff;
+}
+
+.treasury-state--error {
+    border-color: rgba(248, 113, 113, 0.28);
+    background: rgba(248, 113, 113, 0.06);
+}
+
+.treasury-state--compact {
+    margin-top: 0;
+}
+
+@media (max-width: 860px) {
+    .treasury-private {
+        margin-top: -18px;
+        padding: 22px;
+    }
+
+    .treasury-private__header {
+        display: block;
+    }
+
+    .treasury-private__header p {
+        margin-top: 10px;
+        text-align: left;
+    }
+
+    .treasury-private__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .treasury-summary {
+        grid-template-columns: 1fr;
+        margin-bottom: 46px;
+    }
+
+    .treasury-kpi {
+        min-height: 0;
+    }
+
+    .treasury-section-heading {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 760px) {
+    .treasury-page__container {
+        width: min(100%, calc(100% - 28px));
+    }
+}

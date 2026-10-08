@@ -13,7 +13,6 @@ class MemberProcedureSettingsTable
         return $table
             ->columns([
                 TextColumn::make('alphaMetopa.name')->label('Metopa ALPHA')->default('Sin configurar'),
-                TextColumn::make('treasuryGroup.name')->label('Tesorería')->default('Sin configurar'),
                 TextColumn::make('tutorsGroup.name')->label('Tutores')->default('Sin configurar'),
                 TextColumn::make('armasquads_squad_id')->label('ArmaSquads')->default('Sin configurar'),
                 TextColumn::make('updated_at')->label('Actualizado')->since(),

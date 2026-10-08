@@ -46,14 +46,77 @@ class GoogleSheetsService
 
     public function isConfigured(MemberProcedureSetting $setting): bool
     {
+        return $this->hasCredentials()
+            && filled($this->spreadsheetId($setting));
+    }
+
+    public function hasCredentials(): bool
+    {
         if (! (bool) config('newslot.procedures.google_sheets.enabled')) {
             return false;
         }
 
-        $credentials = trim((string) config('newslot.procedures.google_sheets.credentials'));
+        $path = $this->credentialsPath();
 
-        return $credentials !== ''
-            && filled($this->spreadsheetId($setting));
+        return $path !== '' && is_file($path) && is_readable($path);
+    }
+
+    /**
+     * Lectura genérica para otras hojas privadas que usan la misma Service Account.
+     *
+     * @return array<int, array<int, mixed>>
+     */
+    public function readSpreadsheetValues(
+        string $spreadsheetId,
+        string $range,
+        string $renderOption = 'UNFORMATTED_VALUE',
+    ): array {
+        $spreadsheetId = trim($spreadsheetId);
+        if ($spreadsheetId === '') {
+            throw new RuntimeException('Falta el Spreadsheet ID.');
+        }
+
+        $this->assertCredentialsAvailable();
+
+        return $this->getValues($spreadsheetId, $range, $renderOption);
+    }
+
+    /**
+     * Escritura genérica para hojas privadas que usan la misma Service Account.
+     *
+     * @param  array<int, array<int, mixed>>  $values
+     */
+    public function writeSpreadsheetValues(
+        string $spreadsheetId,
+        string $range,
+        array $values,
+        string $inputOption = 'RAW',
+    ): void {
+        $spreadsheetId = trim($spreadsheetId);
+        if ($spreadsheetId === '') {
+            throw new RuntimeException('Falta el Spreadsheet ID.');
+        }
+
+        $this->assertCredentialsAvailable();
+        $this->updateValues($spreadsheetId, $range, $values, $inputOption);
+    }
+
+    /**
+     * @param  list<array{range:string,values:array}>  $data
+     */
+    public function batchWriteSpreadsheetValues(string $spreadsheetId, array $data): void
+    {
+        $spreadsheetId = trim($spreadsheetId);
+        if ($spreadsheetId === '') {
+            throw new RuntimeException('Falta el Spreadsheet ID.');
+        }
+
+        if ($data === []) {
+            return;
+        }
+
+        $this->assertCredentialsAvailable();
+        $this->batchUpdateValues($spreadsheetId, $data);
     }
 
     /** @return array<string, mixed> */
@@ -555,12 +618,21 @@ class GoogleSheetsService
 
     private function assertConfigured(MemberProcedureSetting $setting): void
     {
-        if (! $this->isConfigured($setting)) {
-            throw new RuntimeException('Google Sheets no está configurado. Revisa GOOGLE_SHEETS_ENABLED, GOOGLE_SHEETS_CREDENTIALS y el Spreadsheet ID.');
+        if (! filled($this->spreadsheetId($setting))) {
+            throw new RuntimeException('Google Sheets no está configurado. Revisa el Spreadsheet ID.');
+        }
+
+        $this->assertCredentialsAvailable();
+    }
+
+    private function assertCredentialsAvailable(): void
+    {
+        if (! (bool) config('newslot.procedures.google_sheets.enabled')) {
+            throw new RuntimeException('Google Sheets está desactivado. Activa GOOGLE_SHEETS_ENABLED.');
         }
 
         $path = $this->credentialsPath();
-        if (! is_file($path) || ! is_readable($path)) {
+        if ($path === '' || ! is_file($path) || ! is_readable($path)) {
             throw new RuntimeException('El archivo de credenciales de Google Sheets no existe o no puede leerse dentro del contenedor.');
         }
     }

@@ -33,3 +33,8 @@ Schedule::command('discord:refresh-invite')
     ->dailyAt('04:25')
     ->timezone('Europe/Madrid')
     ->withoutOverlapping();
+
+Schedule::command('treasury:sync-monthly-control')
+    ->monthlyOn(15, '00:15')
+    ->timezone('Europe/Madrid')
+    ->withoutOverlapping();

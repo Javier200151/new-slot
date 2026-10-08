@@ -30,6 +30,13 @@ class PagesTable
                     ->copyable()
                     ->sortable(),
 
+                TextColumn::make('template')
+                    ->label('Tipo')
+                    ->formatStateUsing(fn (?string $state): string => $state === 'treasury' ? 'Tesorería' : 'Contenido')
+                    ->badge()
+                    ->color(fn (?string $state): string => $state === 'treasury' ? 'warning' : 'gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 IconColumn::make('is_published')
                     ->label('Publicada')
                     ->boolean()
