@@ -244,6 +244,21 @@ return [
             ],
         ],
 
+        'treasury' => [
+            'label' => 'Tesorería',
+            'icon' => 'heroicon-o-banknotes',
+            'resources' => [
+                'treasury-settings' => [
+                    'label' => 'Panel de Tesorería',
+                    'actions' => [
+                        'view' => 'Ver panel de Tesorería',
+                        'update' => 'Modificar configuración de Tesorería',
+                        'sync' => 'Probar conexión y ejecutar sincronizaciones',
+                    ],
+                ],
+            ],
+        ],
+
         'system' => [
             'label' => 'Sistema',
             'icon' => 'heroicon-o-command-line',

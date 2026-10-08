@@ -9,12 +9,16 @@ class MemberProcedureSetting extends Model
 {
     use Auditable;
 
+    public const DEFAULT_TREASURY_SPREADSHEET_ID = '15YANw9Dz3DpOOiAqcahRqnIQEivuiFV5';
+
     protected $fillable = [
         'alpha_metopa_id',
         'treasury_group_id',
         'tutors_group_id',
         'google_spreadsheet_id',
         'google_general_sheet_gid',
+        'treasury_spreadsheet_id',
+        'treasury_private_status_ids',
         'armasquads_squad_id',
         'discord_guild_id',
         'discord_recruit_role_id',
@@ -57,6 +61,7 @@ class MemberProcedureSetting extends Model
             'telegram_weekly_required_weekdays' => 'array',
             'telegram_weekly_required_activity_type_ids' => 'array',
             'telegram_weekly_active_event_status_id' => 'integer',
+            'treasury_private_status_ids' => 'array',
         ];
     }
 
@@ -65,6 +70,7 @@ class MemberProcedureSetting extends Model
         $setting = static::query()->firstOrCreate([], [
             'google_spreadsheet_id' => '1hMezm3dfuvuvYSrBECzvHll0vGqXgOIH8_0FzXKnvAk',
             'google_general_sheet_gid' => '1711111556',
+            'treasury_spreadsheet_id' => self::DEFAULT_TREASURY_SPREADSHEET_ID,
         ]);
 
         if (! $setting->alpha_metopa_id) {

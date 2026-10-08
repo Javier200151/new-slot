@@ -6,7 +6,6 @@ use App\Filament\Resources\MemberProcedureSettings\Support\MemberProcedureSettin
 use App\Models\ActivityType;
 use App\Models\EventStatus;
 use App\Models\Metopa;
-use App\Models\MemberProcedureSetting;
 use App\Models\SqaGroup;
 use App\Services\MemberProcedures\CommunicationPreviewService;
 use App\Services\MemberProcedures\DiscordService;
@@ -67,11 +66,6 @@ class MemberProcedureSettingForm
                                         ->options(fn () => Metopa::query()->orderBy('name')->pluck('name', 'id'))
                                         ->searchable()->preload()
                                         ->helperText('Se entrega automáticamente al completar el reclutamiento.'),
-                                    Select::make('treasury_group_id')
-                                        ->label('Grupo SQA · Tesorería')
-                                        ->options(fn () => SqaGroup::query()->orderBy('display_order')->orderBy('name')->pluck('name', 'id'))
-                                        ->searchable()->preload()
-                                        ->helperText('Los avisos de señales, altas, reservas, reactivaciones, bajas y ceses se dirigirán a los miembros de este grupo.'),
                                     Select::make('tutors_group_id')
                                         ->label('Grupo SQA · Tutores')
                                         ->options(fn () => SqaGroup::query()->orderBy('display_order')->orderBy('name')->pluck('name', 'id'))

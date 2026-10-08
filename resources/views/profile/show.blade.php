@@ -301,6 +301,75 @@
                         </dl>
                     </section>
 
+                    @if($treasuryPrivateVisible)
+                    <section class="profile-card profile-treasury">
+                        <header class="profile-card__header">
+                            <span>Tesorería · Privado</span>
+                            <h2>Mi saldo</h2>
+                            <p>Esta información solo aparece en tu propio perfil.</p>
+                        </header>
+
+                        @if($treasuryMemberUnavailable)
+                            <div class="profile-treasury__state profile-treasury__state--warning">
+                                La información de Tesorería no está disponible ahora mismo.
+                            </div>
+                        @elseif(! ($treasuryMember['configured'] ?? false))
+                            <div class="profile-treasury__state">
+                                Tesorería todavía no está conectada con NewSlot.
+                            </div>
+                        @elseif(! ($treasuryMember['found'] ?? false))
+                            <div class="profile-treasury__state">
+                                No hemos encontrado una ficha de Tesorería asociada a tu nick actual.
+                            </div>
+                        @else
+                            @php
+                                $quarterText = trim((string) ($treasuryMember['next_quarter'] ?? ''));
+                                $quarterNormalized = mb_strtoupper($quarterText);
+                                $quarterClass = str_contains($quarterNormalized, 'DEBE')
+                                    ? 'is-debt'
+                                    : (str_contains($quarterNormalized, 'PAGADO') ? 'is-paid' : '');
+                                $lastPayment = $treasuryMember['last_payment'] ?? null;
+                            @endphp
+
+                            <div class="profile-treasury__balance">
+                                <span>Remanente actual</span>
+                                <strong>
+                                    {{ $treasuryMember['remanent'] !== null
+                                        ? number_format((float) $treasuryMember['remanent'], 2, ',', '.') . ' €'
+                                        : '—' }}
+                                </strong>
+                            </div>
+
+                            <dl class="profile-treasury__details">
+                                <div>
+                                    <dt>Próximo trimestre</dt>
+                                    <dd class="{{ $quarterClass }}">
+                                        {{ $quarterText !== '' ? $quarterText : 'Sin dato' }}
+                                    </dd>
+                                </div>
+
+                                <div>
+                                    <dt>Último pago</dt>
+                                    <dd>
+                                        @if($lastPayment)
+                                            <strong>{{ number_format((float) $lastPayment['amount'], 2, ',', '.') }} €</strong>
+                                            <span>{{ $lastPayment['date'] }}</span>
+                                        @else
+                                            Sin pagos registrados
+                                        @endif
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            @if($lastPayment && filled($lastPayment['concept'] ?? null))
+                                <p class="profile-treasury__concept">
+                                    {{ $lastPayment['concept'] }}
+                                </p>
+                            @endif
+                        @endif
+                    </section>
+                    @endif
+
                 </aside>
 
                 <div class="profile-content">

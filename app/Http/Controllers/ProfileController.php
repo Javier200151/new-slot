@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\HomepageSetting;
 use App\Rules\NotReservedUsername;
 use App\Services\ProfileCompletionService;
+use App\Services\Treasury\TreasuryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,8 +18,11 @@ use Throwable;
 
 class ProfileController extends Controller
 {
-    public function show(Request $request, ProfileCompletionService $profileCompletionService): View
-    {
+    public function show(
+        Request $request,
+        ProfileCompletionService $profileCompletionService,
+        TreasuryService $treasuryService,
+    ): View {
         $user = $request->user()->load([
             'promo',
             'status',
@@ -29,8 +33,27 @@ class ProfileController extends Controller
 
         $profileCompletion = $profileCompletionService->forUser($user);
         $linkedAccountSettings = HomepageSetting::current();
+        $treasuryPrivateVisible = $treasuryService->canViewPrivateBalance($user);
+        $treasuryMember = null;
+        $treasuryMemberUnavailable = false;
 
-        return view('profile.show', compact('user', 'profileCompletion', 'linkedAccountSettings'));
+        if ($treasuryPrivateVisible) {
+            try {
+                $treasuryMember = $treasuryService->memberOverview($user);
+            } catch (Throwable $exception) {
+                report($exception);
+                $treasuryMemberUnavailable = true;
+            }
+        }
+
+        return view('profile.show', compact(
+            'user',
+            'profileCompletion',
+            'linkedAccountSettings',
+            'treasuryPrivateVisible',
+            'treasuryMember',
+            'treasuryMemberUnavailable',
+        ));
     }
 
     public function update(Request $request): RedirectResponse

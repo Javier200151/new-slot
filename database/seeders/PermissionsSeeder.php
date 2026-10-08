@@ -175,6 +175,25 @@ class PermissionsSeeder extends Seeder
                 }
             });
 
+        $treasuryRole = Role::firstOrCreate([
+            'name' => 'tesoreria',
+            'guard_name' => $guard,
+        ]);
+
+        $treasuryDefaultPermissions = [
+            'filament.access',
+            'treasury-settings.view',
+            'treasury-settings.update',
+            'treasury-settings.sync',
+        ];
+
+        if (
+            $treasuryRole->wasRecentlyCreated
+            || array_intersect($treasuryDefaultPermissions, $newPermissionNames) !== []
+        ) {
+            $treasuryRole->givePermissionTo($treasuryDefaultPermissions);
+        }
+
         $registrar->forgetCachedPermissions();
     }
 }
