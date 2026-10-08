@@ -66,6 +66,34 @@ class TreasurySettingForm
                                     }
                                 }),
 
+                            Action::make('diagnoseTreasuryPlayers')
+                                ->label('Comprobar nombres y estados')
+                                ->icon('heroicon-o-user-group')
+                                ->color('warning')
+                                ->visible(fn (): bool => auth()->user()?->can('treasury-settings.sync') ?? false)
+                                ->modalHeading('Diagnóstico · Jugadores ↔ Squad ALPHA')
+                                ->modalDescription('Solo comprueba. No modifica ninguna fila del Excel ni ningún usuario de la web.')
+                                ->modalSubmitAction(false)
+                                ->modalCancelActionLabel('Cerrar')
+                                ->modalContent(function () {
+                                    try {
+                                        $report = app(TreasuryService::class)
+                                            ->diagnosePlayers(MemberProcedureSetting::current());
+
+                                        return view('filament.treasury.players-diagnostic', [
+                                            'report' => $report,
+                                            'error' => null,
+                                        ]);
+                                    } catch (Throwable $exception) {
+                                        report($exception);
+
+                                        return view('filament.treasury.players-diagnostic', [
+                                            'report' => null,
+                                            'error' => $exception->getMessage(),
+                                        ]);
+                                    }
+                                }),
+
                             Action::make('openPublicTreasury')
                                 ->label('Abrir /tesoreria')
                                 ->icon('heroicon-o-arrow-top-right-on-square')

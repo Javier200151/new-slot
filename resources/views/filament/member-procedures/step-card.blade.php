@@ -35,6 +35,10 @@
             \App\Models\MemberProcedureStep::STATUS_MANUAL,
             \App\Models\MemberProcedureStep::STATUS_WAITING,
         ], true);
+    $result = $record->result ?? [];
+    $treasuryExplanation = $record->step_key === 'treasury_player_sync'
+        ? data_get($result, 'explanation')
+        : null;
 @endphp
 
 <article class="ns-procedure-step-card">
@@ -53,6 +57,15 @@
             {{ filled($instructions) ? $instructions : '—' }}
         </div>
     </section>
+
+    @if(filled($treasuryExplanation))
+        <section class="ns-procedure-step-card__instructions">
+            <div class="ns-procedure-step-card__field-label">Resultado de Tesorería</div>
+            <div class="ns-procedure-step-card__instructions-text">
+                {{ $treasuryExplanation }}
+            </div>
+        </section>
+    @endif
 
     <div class="ns-procedure-step-card__meta-grid">
         <div class="ns-procedure-step-card__meta-item">
