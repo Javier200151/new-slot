@@ -8,6 +8,8 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Concerns\Auditable;
 use App\Support\BriefingMarkup;
+use App\Support\BriefingSectionImages;
+use App\Support\RadioNetworkOrder;
 use App\Support\BbcodeMarkup;
 
 /**
@@ -237,305 +239,67 @@ class Activity extends Model
 
     public function getDescriptionSummaryHtml(): HtmlString
     {
-        $sections =
-            $this->description['sections'] ?? [];
+        $sections = $this->description['sections'] ?? [];
 
         if (
             blank($sections)
-            && filled(
-                $this->description['content'] ?? null
-            )
+            && filled($this->description['content'] ?? null)
         ) {
-            $sections = [
-                [
-                    'title' => 'Descripción',
-                    'content' =>
-                        $this->description['content'],
-                ],
-            ];
+            $sections = [[
+                'title' => 'Descripción',
+                'content' => $this->description['content'],
+            ]];
         }
 
         if (blank($sections)) {
             return new HtmlString(
-                '<div
-                    style="
-                        color: #6b7280;
-                        font-size: 0.875rem;
-                    "
-                >
-                    Esta operación todavía no tiene descripción.
-                </div>'
+                '<div style="color:#6b7280;font-size:0.875rem;">Esta operación todavía no tiene descripción.</div>'
             );
         }
 
-        $html = '
-            <div
-                style="
-                    display: grid;
-                    gap: 1rem;
-                "
-            >
-        ';
+        $html = '<div style="display:grid;gap:1rem;">';
 
         foreach ($sections as $section) {
-
             $title = BriefingMarkup::render(
-                $section['title']
-                ?? 'Sección sin título'
+                $section['title'] ?? 'Sección sin título'
             )->toHtml();
-
             $content = BriefingMarkup::render(
                 $section['content'] ?? ''
             )->toHtml();
+            $images = BriefingSectionImages::forDisplay($section);
 
-            $image = BriefingMarkup::imageUrl(
-                $section['image'] ?? null
-            ) ?? '';
-
-            $position =
-                $section['image_position']
-                ?? 'left';
-
-            $width = (string) (
-                $section['image_width']
-                ?? '40'
-            );
-
-            $caption = trim(
-                (string) (
-                    $section['image_caption']
-                    ?? ''
-                )
-            );
-
-            if (! in_array(
-                $position,
-                [
-                    'left',
-                    'right',
-                    'top',
-                    'bottom',
-                ],
-                true
-            )) {
-                $position = 'left';
-            }
-
-            if (! in_array(
-                $width,
-                [
-                    '33',
-                    '40',
-                    '50',
-                    '66',
-                    '100',
-                ],
-                true
-            )) {
-                $width = '40';
-            }
-
-            if (
-                $width === '100'
-                && in_array(
-                    $position,
-                    ['left', 'right'],
-                    true
-                )
-            ) {
-                $position = 'top';
-            }
-
-            $html .= '
-                <section
-                    style="
-                        border: 1px solid #e5e7eb;
-                        border-radius: 0.5rem;
-                        padding: 1rem;
-                    "
-                >
-            ';
-
-            $html .= "
-                <div
-                    role=\"heading\"
-                    aria-level=\"3\"
-                    style=\"
-                        font-size: 1.125rem;
-                        font-weight: 700;
-                        margin: 0 0 0.75rem;
-                    \"
-                >
-                    {$title}
-                </div>
-            ";
-
-            $contentHtml = '';
+            $html .= '<section style="border:1px solid #e5e7eb;border-radius:0.5rem;padding:1rem;">';
+            $html .= '<div role="heading" aria-level="3" style="font-size:1.125rem;font-weight:700;margin:0 0 0.75rem;">'
+                . $title
+                . '</div>';
 
             if (filled($content)) {
-                $contentHtml = "
-                    <div
-                        class=\"activity-description-summary-bbcode\"
-                        style=\"
-                            min-width: 0;
-                            line-height: 1.6;
-                        \"
-                    >
-                        {$content}
-                    </div>
-                ";
+                $html .= '<div class="activity-description-summary-bbcode" style="min-width:0;line-height:1.6;">'
+                    . $content
+                    . '</div>';
             }
 
-            $imageHtml = '';
+            if ($images !== []) {
+                $html .= '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;margin-top:1rem;">';
 
-            if (filled($image)) {
+                foreach ($images as $image) {
+                    $safeImage = e((string) $image['image']);
+                    $caption = trim((string) ($image['image_caption'] ?? ''));
+                    $safeCaption = e($caption);
 
-                $safeImage =
-                    e($image);
+                    $html .= '<figure style="margin:0;min-width:0;">'
+                        . '<img src="' . $safeImage . '" alt="' . $safeCaption . '" style="display:block;width:100%;max-width:100%;height:auto;border-radius:0.5rem;object-fit:contain;">';
 
-                $safeCaption =
-                    e($caption);
+                    if ($caption !== '') {
+                        $html .= '<figcaption style="margin-top:0.4rem;color:#9ca3af;font-size:0.75rem;text-align:center;">'
+                            . $safeCaption
+                            . '</figcaption>';
+                    }
 
-                $imageHtml = "
-                    <figure
-                        style=\"
-                            margin: 0;
-                            min-width: 0;
-                        \"
-                    >
-                        <img
-                            src=\"{$safeImage}\"
-                            alt=\"{$safeCaption}\"
-                            style=\"
-                                display: block;
-                                width: 100%;
-                                max-width: 100%;
-                                height: auto;
-                                border-radius: 0.5rem;
-                                object-fit: contain;
-                            \"
-                        >
-                ";
-
-                if (filled($caption)) {
-                    $imageHtml .= "
-                        <figcaption
-                            style=\"
-                                margin-top: 0.5rem;
-                                color: #9ca3af;
-                                font-size: 0.75rem;
-                                text-align: center;
-                            \"
-                        >
-                            {$safeCaption}
-                        </figcaption>
-                    ";
+                    $html .= '</figure>';
                 }
 
-                $imageHtml .= '</figure>';
-            }
-
-            /*
-            * Sin imagen.
-            */
-            if (blank($image)) {
-                $html .= $contentHtml;
-            }
-
-            /*
-            * Imagen izquierda.
-            */
-            elseif ($position === 'left') {
-
-                $html .= "
-                    <div
-                        style=\"
-                            display: grid;
-                            grid-template-columns:
-                                {$width}% minmax(0, 1fr);
-                            gap: 1.5rem;
-                            align-items: start;
-                        \"
-                    >
-                        {$imageHtml}
-                        {$contentHtml}
-                    </div>
-                ";
-            }
-
-            /*
-            * Imagen derecha.
-            */
-            elseif ($position === 'right') {
-
-                $html .= "
-                    <div
-                        style=\"
-                            display: grid;
-                            grid-template-columns:
-                                minmax(0, 1fr) {$width}%;
-                            gap: 1.5rem;
-                            align-items: start;
-                        \"
-                    >
-                        {$contentHtml}
-                        {$imageHtml}
-                    </div>
-                ";
-            }
-
-            /*
-            * Imagen arriba.
-            */
-            elseif ($position === 'top') {
-
-                $html .= "
-                    <div
-                        style=\"
-                            display: flex;
-                            flex-direction: column;
-                            gap: 1rem;
-                        \"
-                    >
-                        <div
-                            style=\"
-                                width: {$width}%;
-                                max-width: 100%;
-                            \"
-                        >
-                            {$imageHtml}
-                        </div>
-
-                        {$contentHtml}
-                    </div>
-                ";
-            }
-
-            /*
-            * Imagen abajo.
-            */
-            else {
-
-                $html .= "
-                    <div
-                        style=\"
-                            display: flex;
-                            flex-direction: column;
-                            gap: 1rem;
-                        \"
-                    >
-                        {$contentHtml}
-
-                        <div
-                            style=\"
-                                width: {$width}%;
-                                max-width: 100%;
-                            \"
-                        >
-                            {$imageHtml}
-                        </div>
-                    </div>
-                ";
+                $html .= '</div>';
             }
 
             $html .= '</section>';
@@ -560,7 +324,6 @@ class Activity extends Model
 
         $addons = Addon::query()
             ->whereIn('id', $addonIds)
-            ->orderBy('mandatory', 'desc')
             ->orderBy('name')
             ->get();
 
@@ -594,7 +357,7 @@ class Activity extends Model
 
     public function getRadioSummaryHtml(): HtmlString
     {
-        $networks = $this->radio['networks'] ?? [];
+        $networks = RadioNetworkOrder::ordered($this->radio['networks'] ?? []);
 
         if (blank($networks) && filled($this->radio['content'] ?? null)) {
             return new HtmlString(e($this->radio['content']));

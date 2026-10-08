@@ -2601,7 +2601,7 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
     const imageElements = [
         ...document.querySelectorAll(
-            '.event-detail__cover img, .briefing-section__image img, .event-rich-content img, [data-event-image-zoom] img'
+            '.event-detail__cover img, .briefing-section__image img, .briefing-gallery__image img, .event-rich-content img, .bbcode-rich img, [data-event-image-zoom] img'
         ),
     ];
 
@@ -2616,6 +2616,15 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="event-image-viewer__backdrop" data-image-viewer-close></div>
         <div class="event-image-viewer__dialog" role="dialog" aria-modal="true" aria-label="Visor de imagen">
             <div class="event-image-viewer__toolbar">
+                <a
+                    class="event-image-viewer__open-original"
+                    data-image-viewer-open-original
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Abrir imagen en una pestaña nueva"
+                    title="Abrir imagen en una pestaña nueva"
+                >Abrir imagen ↗</a>
                 <button type="button" data-image-viewer-zoom-out aria-label="Alejar">−</button>
                 <button type="button" data-image-viewer-reset>100%</button>
                 <button type="button" data-image-viewer-zoom-in aria-label="Acercar">+</button>
@@ -2631,6 +2640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewerImage = overlay.querySelector('[data-image-viewer-image]');
     const stage = overlay.querySelector('[data-image-viewer-stage]');
     const resetButton = overlay.querySelector('[data-image-viewer-reset]');
+    const openOriginalLink = overlay.querySelector('[data-image-viewer-open-original]');
     let scale = 1;
     let offsetX = 0;
     let offsetY = 0;
@@ -2673,6 +2683,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         viewerImage.src = src;
         viewerImage.alt = alt;
+
+        if (openOriginalLink) {
+            openOriginalLink.href = src;
+        }
+
         overlay.hidden = false;
         document.documentElement.classList.add('event-image-viewer-open');
         reset();
@@ -2681,6 +2696,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeViewer = () => {
         overlay.hidden = true;
         viewerImage.src = '';
+
+        if (openOriginalLink) {
+            openOriginalLink.href = '#';
+        }
+
         document.documentElement.classList.remove('event-image-viewer-open');
         dragging = false;
     };
@@ -2690,9 +2710,10 @@ document.addEventListener('DOMContentLoaded', () => {
         trigger.classList.add('is-event-zoomable');
 
         trigger.addEventListener('click', (event) => {
-            if (trigger.tagName === 'A') {
-                event.preventDefault();
-            }
+            // Las imágenes BBCode se renderizan dentro de un <a target="_blank">.
+            // Cancelamos siempre la navegación del clic que abre el visor para que
+            // la pestaña independiente solo se abra mediante "Abrir imagen ↗".
+            event.preventDefault();
 
             openViewer(image);
         });

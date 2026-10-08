@@ -45,6 +45,8 @@ use App\Support\FactionOptionLabel;
 use App\Support\ActivityTypeConfiguration;
 use App\Support\SlotQuickSelection;
 use App\Support\BriefingMarkup;
+use App\Support\BriefingSectionImages;
+use App\Support\RadioNetworkOrder;
 
 class EditActivity extends EditRecord
 {
@@ -903,43 +905,7 @@ JS;
                                 $section['content'] ?? null
                             ),
 
-                            'image_upload' =>
-                                filled($section['image'] ?? null)
-                                && ! Str::startsWith(
-                                    strtolower((string) $section['image']),
-                                    ['http://', 'https://']
-                                )
-                                    ? $section['image']
-                                    : null,
-
-                            'legacy_image' =>
-                                filled($section['image'] ?? null)
-                                && Str::startsWith(
-                                    strtolower((string) $section['image']),
-                                    ['http://', 'https://']
-                                )
-                                    ? $section['image']
-                                    : null,
-
-                            'remove_legacy_image' => false,
-
-                            'image_position' =>
-                                $section['image_position']
-                                ?? 'left',
-
-                            'image_alignment' =>
-                                $section['image_alignment']
-                                ?? 'left',
-
-                            'image_width' =>
-                                (string) (
-                                    $section['image_width']
-                                    ?? '40'
-                                ),
-
-                            'image_caption' =>
-                                $section['image_caption']
-                                ?? null,
+                            'images' => BriefingSectionImages::forEditor($section),
                         ];
                     })
                     ->values()
@@ -972,75 +938,106 @@ JS;
                             ->helperText('Puedes usar BBCode. Imagen por URL: [img]URL[/img].')
                             ->columnSpanFull(),
 
-                        FileUpload::make('image_upload')
-                            ->label('Imagen subida')
-                            ->image()
-                            ->disk('public')
-                            ->directory('activities/briefings')
-                            ->visibility('public')
-                            ->maxSize(5120)
-                            ->helperText('Opcional. Máx. 5 MB.')
-                            ->columnSpanFull(),
+                        Repeater::make('images')
+                            ->label('Imágenes')
+                            ->helperText('Puedes añadir varias imágenes a la misma sección y reordenarlas.')
+                            ->schema([
+                                FileUpload::make('image_upload')
+                                    ->label('Imagen subida')
+                                    ->image()
+                                    ->disk('public')
+                                    ->directory('activities/briefings')
+                                    ->visibility('public')
+                                    ->fetchFileInformation(false)
+                                    ->getUploadedFileUsing(
+                                        static function (string $file): ?array {
+                                            $url = BriefingMarkup::imageUrl($file);
 
-                        Hidden::make('legacy_image'),
+                                            if ($url === null) {
+                                                return null;
+                                            }
 
-                        Toggle::make('remove_legacy_image')
-                            ->label('Quitar imagen antigua por URL')
-                            ->helperText('Solo para imágenes antiguas por URL.')
-                            ->visible(
-                                fn (Get $get): bool => filled(
-                                    $get('legacy_image')
-                                )
-                            )
-                            ->default(false)
-                            ->columnSpanFull(),
-
-                        Select::make('image_position')
-                            ->label('Posición de la imagen')
-                            ->options([
-                                'left' => 'Izquierda',
-                                'right' => 'Derecha',
-                                'top' => 'Arriba',
-                                'bottom' => 'Abajo',
-                            ])
-                            ->default('left')
-                            ->live()
-                            ->native(false),
-
-                        Select::make('image_alignment')
-                            ->label('Alineación de la imagen')
-                            ->options([
-                                'left' => 'Izquierda',
-                                'center' => 'Centrada',
-                                'right' => 'Derecha',
-                            ])
-                            ->default('left')
-                            ->native(false)
-                            ->visible(
-                                fn (Get $get): bool =>
-                                    in_array(
-                                        $get('image_position'),
-                                        ['top', 'bottom'],
-                                        true
+                                            return [
+                                                'name' => basename($file),
+                                                'size' => 0,
+                                                'type' => null,
+                                                'url' => $url,
+                                            ];
+                                        }
                                     )
-                            ),
+                                    ->maxSize(5120)
+                                    ->helperText('Opcional. Máx. 5 MB.')
+                                    ->columnSpanFull(),
 
-                        Select::make('image_width')
-                            ->label('Tamaño de la imagen')
-                            ->options([
-                                '33' => '33%',
-                                '40' => '40%',
-                                '50' => '50%',
-                                '66' => '66%',
-                                '100' => '100%',
+                                Hidden::make('legacy_image'),
+
+                                Toggle::make('remove_legacy_image')
+                                    ->label('Quitar imagen antigua por URL')
+                                    ->helperText('Solo para imágenes antiguas por URL.')
+                                    ->visible(
+                                        fn (Get $get): bool => filled(
+                                            $get('legacy_image')
+                                        )
+                                    )
+                                    ->default(false)
+                                    ->columnSpanFull(),
+
+                                Select::make('image_position')
+                                    ->label('Posición')
+                                    ->options([
+                                        'left' => 'Izquierda',
+                                        'right' => 'Derecha',
+                                        'top' => 'Arriba',
+                                        'bottom' => 'Abajo',
+                                    ])
+                                    ->default('left')
+                                    ->live()
+                                    ->native(false),
+
+                                Select::make('image_alignment')
+                                    ->label('Alineación')
+                                    ->options([
+                                        'left' => 'Izquierda',
+                                        'center' => 'Centrada',
+                                        'right' => 'Derecha',
+                                    ])
+                                    ->default('left')
+                                    ->native(false)
+                                    ->visible(
+                                        fn (Get $get): bool =>
+                                            in_array(
+                                                $get('image_position'),
+                                                ['top', 'bottom'],
+                                                true
+                                            )
+                                    ),
+
+                                Select::make('image_width')
+                                    ->label('Tamaño')
+                                    ->options([
+                                        '33' => '33%',
+                                        '40' => '40%',
+                                        '50' => '50%',
+                                        '66' => '66%',
+                                        '100' => '100%',
+                                    ])
+                                    ->default('40')
+                                    ->native(false),
+
+                                TextInput::make('image_caption')
+                                    ->label('Pie de imagen')
+                                    ->placeholder('Opcional')
+                                    ->maxLength(255)
+                                    ->columnSpanFull(),
                             ])
-                            ->default('40')
-                            ->native(false),
-
-                        TextInput::make('image_caption')
-                            ->label('Pie de imagen')
-                            ->placeholder('Opcional')
-                            ->maxLength(255)
+                            ->columns(3)
+                            ->reorderableWithButtons()
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => filled($state['image_caption'] ?? null)
+                                ? (string) $state['image_caption']
+                                : 'Imagen')
+                            ->default([])
+                            ->addActionLabel('Añadir imagen')
                             ->columnSpanFull(),
                     ])
 
@@ -1057,146 +1054,35 @@ JS;
             ])
 
             ->action(function (array $data): void {
-                $allowedPositions = [
-                    'left',
-                    'right',
-                    'top',
-                    'bottom',
-                ];
+                $sections = collect($data['sections'] ?? [])
+                    ->map(function (array $section): array {
+                        $images = collect($section['images'] ?? [])
+                            ->map(fn (array $image): ?array => BriefingSectionImages::fromEditor($image))
+                            ->filter()
+                            ->values()
+                            ->all();
 
-                $allowedAlignments = [
-                    'left',
-                    'center',
-                    'right',
-                ];
+                        $firstImage = $images[0] ?? null;
 
-                $allowedWidths = [
-                    '33',
-                    '40',
-                    '50',
-                    '66',
-                    '100',
-                ];
+                        return [
+                            'title' => trim((string) ($section['title'] ?? '')),
+                            'content' => trim((string) ($section['content'] ?? '')),
+                            'images' => $images,
 
-                $sections = collect(
-                    $data['sections'] ?? []
-                )
-                    ->map(
-                        function (array $section) use (
-                            $allowedPositions,
-                            $allowedAlignments,
-                            $allowedWidths,
-                        ): array {
-                            $uploadedImage = BriefingMarkup::normalizeImageReference(
-                                $section['image_upload'] ?? null
-                            );
-
-                            $legacyImage = BriefingMarkup::normalizeImageReference(
-                                $section['legacy_image'] ?? null
-                            );
-
-                            $image = $uploadedImage;
-
-                            if (
-                                $image === null
-                                && ! (bool) ($section['remove_legacy_image'] ?? false)
-                            ) {
-                                $image = $legacyImage;
-                            }
-
-                            $caption = trim(
-                                (string) (
-                                    $section['image_caption']
-                                    ?? ''
-                                )
-                            );
-
-                            $position =
-                                $section['image_position']
-                                ?? 'left';
-
-                            $alignment =
-                                $section['image_alignment']
-                                ?? 'left';
-
-                            $width = (string) (
-                                $section['image_width']
-                                ?? '40'
-                            );
-
-                            if (
-                                ! in_array(
-                                    $position,
-                                    $allowedPositions,
-                                    true
-                                )
-                            ) {
-                                $position = 'left';
-                            }
-                            if (
-                                ! in_array(
-                                    $alignment,
-                                    $allowedAlignments,
-                                    true
-                                )
-                            ) {
-                                $alignment = 'left';
-                            }
-                            if (
-                                ! in_array(
-                                    $width,
-                                    $allowedWidths,
-                                    true
-                                )
-                            ) {
-                                $width = '40';
-                            }
-
-                            return [
-                                'title' => trim(
-                                    (string) (
-                                        $section['title']
-                                        ?? ''
-                                    )
-                                ),
-
-                                'content' => trim(
-                                    (string) (
-                                        $section['content']
-                                        ?? ''
-                                    )
-                                ),
-
-                                'image' => $image,
-
-                                'image_position' =>
-                                    $position,
-
-                                'image_alignment' =>
-                                    $alignment,
-
-                                'image_width' =>
-                                    $width,
-
-                                'image_caption' =>
-                                    $caption !== ''
-                                        ? $caption
-                                        : null,
-                            ];
-                        }
-                    )
-
+                            // Compatibilidad con cualquier consumidor antiguo de una sola imagen.
+                            'image' => $firstImage['image'] ?? null,
+                            'image_position' => $firstImage['image_position'] ?? 'left',
+                            'image_alignment' => $firstImage['image_alignment'] ?? 'left',
+                            'image_width' => $firstImage['image_width'] ?? '40',
+                            'image_caption' => $firstImage['image_caption'] ?? null,
+                        ];
+                    })
                     ->filter(
                         fn (array $section): bool =>
                             $section['title'] !== ''
-                            || ! empty(
-                                $section['content']
-                            )
-                            || ! empty(
-                                $section['image']
-                            )
+                            || $section['content'] !== ''
+                            || $section['images'] !== []
                     )
-
                     ->values()
                     ->all();
 
@@ -1209,9 +1095,7 @@ JS;
                 $this->record->refresh();
 
                 Notification::make()
-                    ->title(
-                        'Descripción actualizada'
-                    )
+                    ->title('Descripción actualizada')
                     ->success()
                     ->send();
             }),
@@ -1722,7 +1606,7 @@ JS;
                 ->fillForm(function (): array {
                     $radio = $this->record->radio ?? [];
 
-                    $networks = $radio['networks'] ?? [];
+                    $networks = RadioNetworkOrder::ordered($radio['networks'] ?? []);
 
                     if (
                         blank($networks)
@@ -1746,6 +1630,7 @@ JS;
                                     $radio['content'],
 
                                 'visible' => true,
+                                'order' => 1,
                             ],
                         ];
                     }
@@ -1794,7 +1679,7 @@ JS;
                                 }
 
                                 $currentNetworks = collect(
-                                    $get('networks') ?? []
+                                    RadioNetworkOrder::ordered($get('networks') ?? [])
                                 )->values();
 
                                 $currentModelIds = $currentNetworks
@@ -2078,6 +1963,7 @@ JS;
 
                     Repeater::make('networks')
                         ->label('Redes de radio')
+                        ->helperText('Usa las flechas para cambiar el orden. Ese orden se guarda y se respeta en la web.')
                         ->schema([
                             TextInput::make('name')
                                 ->label('Nombre')
@@ -2216,7 +2102,8 @@ JS;
                         ->get()
                         ->keyBy('id');
 
-                    $networks = $submittedNetworks
+                    $networks = RadioNetworkOrder::forStorage(
+                        $submittedNetworks
                         ->map(function (
                             array $network
                         ) use ($radioModels): array {
@@ -2296,9 +2183,9 @@ JS;
                                     ),
                             ];
                         })
-
                         ->values()
-                        ->all();
+                        ->all()
+                    );
 
                     $this->record->forceFill([
                         'radio' => [
@@ -2461,13 +2348,11 @@ JS;
                         ->label('Addons')
                         ->options(fn (): array => Addon::query()
                             ->where('active', true)
-                            ->orderBy('mandatory', 'desc')
                             ->orderBy('name')
                             ->pluck('name', 'id')
                             ->all())
                         ->descriptions(fn (): array => Addon::query()
                             ->where('active', true)
-                            ->orderBy('mandatory', 'desc')
                             ->orderBy('name')
                             ->get()
                             ->mapWithKeys(fn (Addon $addon): array => [
@@ -2635,7 +2520,6 @@ JS;
     {
         $addons = Addon::query()
             ->whereIn('id', $addonIds)
-            ->orderBy('mandatory', 'desc')
             ->orderBy('name')
             ->get();
 

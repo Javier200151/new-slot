@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 class BriefingMarkup
@@ -67,7 +66,21 @@ class BriefingMarkup
             return $image;
         }
 
-        return Storage::disk('public')->url($image);
+        $briefingPrefix = 'activities/briefings/';
+
+        if (str_starts_with($image, $briefingPrefix)) {
+            $filename = substr($image, strlen($briefingPrefix));
+
+            if ($filename !== '' && ! str_contains($filename, '/')) {
+                return '/media/briefings/' . rawurlencode($filename);
+            }
+        }
+
+        $encodedPath = collect(explode('/', $image))
+            ->map(static fn (string $segment): string => rawurlencode($segment))
+            ->implode('/');
+
+        return '/storage/' . $encodedPath;
     }
 
 

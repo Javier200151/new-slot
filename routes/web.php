@@ -31,6 +31,7 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PublicStreamerController;
 use App\Http\Controllers\StreamerBroadcastController;
 use App\Http\Controllers\MemberProcedureEmailPreviewController;
+use App\Http\Controllers\BriefingImageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +40,11 @@ use App\Http\Controllers\MemberProcedureEmailPreviewController;
 */
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+
+Route::get('/media/briefings/{filename}', [BriefingImageController::class, 'show'])
+    ->where('filename', '[A-Za-z0-9._-]+')
+    ->name('briefing-media.show');
 
 Route::post('/contacto', [PublicContactController::class, 'store'])
     ->middleware('throttle:5,1')
