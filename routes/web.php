@@ -224,11 +224,19 @@ Route::middleware('auth')->group(function (): void {
 });
 
 
-Route::middleware('auth')->get(
-    '/area/procedimientos/correos/previsualizacion/{type}',
-    MemberProcedureEmailPreviewController::class,
-)->whereIn('type', ['welcome', 'reactivation'])
-    ->name('member-procedure-email-preview.show');
+Route::middleware('auth')->group(function (): void {
+    Route::get(
+        '/area/procedimientos/correos/previsualizacion/{type}',
+        [MemberProcedureEmailPreviewController::class, 'show'],
+    )->whereIn('type', ['welcome', 'reactivation'])
+        ->name('member-procedure-email-preview.show');
+
+    Route::post(
+        '/area/procedimientos/correos/previsualizacion/{type}',
+        [MemberProcedureEmailPreviewController::class, 'update'],
+    )->whereIn('type', ['welcome', 'reactivation'])
+        ->name('member-procedure-email-preview.update');
+});
 
 /*
 |--------------------------------------------------------------------------

@@ -317,41 +317,11 @@ class MemberProcedureSettingForm
                                 ])->columns(2),
 
                             Section::make('Emails automáticos')
-                                ->description('Plantillas de los correos enviados al completar el reclutamiento o al volver de RESERVA. La presentación utiliza el mismo lenguaje visual que los correos de verificación y restablecimiento de contraseña de NewSlot.')
+                                ->description('Los correos de alta y reactivación tienen un diseño fijo de Squad ALPHA. El texto se edita desde la propia previsualización; no se puede modificar el estilo, las tarjetas ni la estructura.')
                                 ->schema([
-                                    TextInput::make('member_welcome_email_subject')
-                                        ->label('Asunto · bienvenida a miembro')
-                                        ->maxLength(255)
-                                        ->placeholder('Bienvenido a Squad ALPHA, {{nick}}')
-                                        ->live(debounce: 500)
-                                        ->helperText('Variable disponible: {{nick}}. Si se deja vacío se usa el asunto predeterminado.'),
-                                    TextInput::make('reactivation_email_subject')
-                                        ->label('Asunto · bienvenida de vuelta')
-                                        ->maxLength(255)
-                                        ->placeholder('Bienvenido de vuelta a Squad ALPHA, {{nick}}')
-                                        ->live(debounce: 500)
-                                        ->helperText('Variable disponible: {{nick}}. Si se deja vacío se usa el asunto predeterminado.'),
-                                    Textarea::make('member_welcome_email_body')
-                                        ->label('Mensaje · bienvenida a miembro')
-                                        ->rows(6)
-                                        ->maxLength(6000)
-                                        ->placeholder("Hola {{nick}},\n\nEnhorabuena por completar tu reclutamiento. Ya formas parte de Squad ALPHA. Aquí tienes los enlaces vigentes para incorporarte a los grupos oficiales de Telegram.")
-                                        ->live(debounce: 600)
-                                        ->helperText('Variable disponible: {{nick}}. El correo añade automáticamente debajo los botones de ALPHA Cantina, ALPHA Oficial y = ALPHA FORCE NETWORK =.'),
-                                    Textarea::make('reactivation_email_body')
-                                        ->label('Mensaje · bienvenida de vuelta')
-                                        ->rows(6)
-                                        ->maxLength(6000)
-                                        ->placeholder("Hola {{nick}},\n\nTu reactivación ya está completada y vuelves a estar ACTIVO en Squad ALPHA. Aquí tienes los enlaces vigentes para reincorporarte a los grupos oficiales de Telegram.")
-                                        ->live(debounce: 600)
-                                        ->helperText('Variable disponible: {{nick}}. El correo añade automáticamente debajo los botones de ALPHA Cantina, ALPHA Oficial y = ALPHA FORCE NETWORK =.'),
                                     View::make('filament.components.member-email-previews')
-                                        ->viewData(fn (Get $get): array => [
-                                            'previews' => app(CommunicationPreviewService::class)->emailPreviews(self::previewSetting($get)),
-                                        ])
                                         ->columnSpanFull(),
-                                ])
-                                ->columns(2),
+                                ]),
 
                             Section::make('Previsualización Telegram')
                                 ->description('Simulación visual de = ALPHA FORCE NETWORK =. No envía nada al bot. Los datos son de ejemplo y la previsualización utiliza el primer cierre configurado; en el envío real se escoge uno al azar.')
