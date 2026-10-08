@@ -223,6 +223,62 @@
         document.addEventListener('livewire:navigated', relayoutAll);
     };
 
+    const orbatModalScope = (element) =>
+        element.closest('.fi-modal-window') || document;
+
+    const setOrbatSectionExpanded = (section, expanded) => {
+        if (!section) return;
+
+        section.classList.toggle(
+            'event-orbat-visibility-section--collapsed',
+            !expanded,
+        );
+
+        const toggle = section.querySelector('[data-orbat-toggle-section]');
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+
+            const chevron = toggle.querySelector('[data-orbat-collapse-chevron]');
+            if (chevron) {
+                chevron.textContent = expanded ? '▾' : '▸';
+            }
+        }
+    };
+
+    const handleOrbatCollapseClick = (event) => {
+        const individualToggle = event.target.closest('[data-orbat-toggle-section]');
+
+        if (individualToggle) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const section = individualToggle.closest('.event-orbat-visibility-section');
+            if (!section) return;
+
+            const shouldExpand = section.classList.contains(
+                'event-orbat-visibility-section--collapsed',
+            );
+
+            setOrbatSectionExpanded(section, shouldExpand);
+            return;
+        }
+
+        const bulkToggle = event.target.closest('[data-orbat-toggle-all]');
+        if (!bulkToggle) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const expanded = bulkToggle.dataset.orbatToggleAll === 'expand';
+        const scope = orbatModalScope(bulkToggle);
+
+        scope.querySelectorAll('.event-orbat-visibility-section').forEach((section) => {
+            setOrbatSectionExpanded(section, expanded);
+        });
+    };
+
+    document.addEventListener('click', handleOrbatCollapseClick);
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', start, { once: true });
     } else {

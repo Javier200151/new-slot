@@ -108,4 +108,25 @@ class MemberProcedureRegistryTest extends TestCase
         $this->assertSame(MemberProcedureStep::KIND_MANUAL, $departure['telegram_leave_all']['kind']);
     }
 
+    public function test_teamspeak_steps_remain_manual_across_the_member_lifecycle(): void
+    {
+        $registry = new MemberProcedureRegistry();
+
+        $expected = [
+            MemberProcedure::TYPE_RECRUITMENT_START => 'ts3_recruit',
+            MemberProcedure::TYPE_RECRUITMENT_COMPLETE => 'ts3_alpha',
+            MemberProcedure::TYPE_NOT_PROMOTED => 'ts3_not_promoted',
+            MemberProcedure::TYPE_REACTIVATION => 'ts3_reactivation',
+            MemberProcedure::TYPE_RESERVE => 'ts3_reserve',
+            MemberProcedure::TYPE_DEPARTURE => 'ts3_departure',
+            MemberProcedure::TYPE_DISMISSAL => 'ts3_departure',
+        ];
+
+        foreach ($expected as $type => $stepKey) {
+            $steps = collect($registry->definition($type)['steps'])->keyBy('key');
+            $this->assertArrayHasKey($stepKey, $steps, $type . ' debe incluir su tarea manual de TeamSpeak 3.');
+            $this->assertSame(MemberProcedureStep::KIND_MANUAL, $steps[$stepKey]['kind'], $type . ' no debe automatizar TeamSpeak 3.');
+        }
+    }
+
 }

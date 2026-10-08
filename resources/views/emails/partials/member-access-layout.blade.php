@@ -1,3 +1,9 @@
+@php
+    $telegramLogoPath = \App\Models\HomepageSetting::current()->telegram_account_logo;
+    $telegramLogoUrl = filled($telegramLogoPath)
+        ? asset('storage/' . ltrim((string) $telegramLogoPath, '/'))
+        : null;
+@endphp
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -103,7 +109,13 @@
                                             $displayLabel = $label === '= ALPHA FORCE NETWORK =' ? 'ALPHA FORCE NETWORK' : $label;
                                         @endphp
                                         <td class="sqa-group-cell" width="33.33%" valign="top" align="center" style="padding:18px 10px 12px;">
-                                            <div style="width:42px;height:42px;border-radius:999px;background:#229ed9;color:#ffffff;line-height:42px;font-size:20px;font-weight:900;margin:0 auto 12px;">↗</div>
+                                            @if($telegramLogoUrl)
+                                                <div style="width:42px;height:42px;line-height:42px;margin:0 auto 12px;text-align:center;">
+                                                    <img src="{{ $telegramLogoUrl }}" alt="Telegram" width="42" style="display:inline-block;vertical-align:middle;width:42px;max-width:42px;max-height:42px;height:auto;border:0;">
+                                                </div>
+                                            @else
+                                                <div style="width:42px;height:42px;border-radius:999px;background:#229ed9;color:#ffffff;line-height:42px;font-size:20px;font-weight:900;margin:0 auto 12px;">↗</div>
+                                            @endif
                                             <div style="min-height:36px;color:#f5a900;font-size:14px;font-weight:900;line-height:1.25;text-transform:uppercase;">{{ $displayLabel }}</div>
                                             <div style="margin-top:8px;color:#d1d5db;font-size:11px;line-height:1.4;">{{ $description }}</div>
                                             <a href="{{ $url }}" style="display:inline-block;margin-top:12px;padding:9px 12px;border:1px solid #374151;border-radius:6px;color:#ffffff;font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase;">Abrir invitación</a>
