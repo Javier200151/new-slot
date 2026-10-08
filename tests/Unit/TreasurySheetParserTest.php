@@ -119,4 +119,85 @@ class TreasurySheetParserTest extends TestCase
         $this->assertSame(0, $control['ignored']);
     }
 
+    public function test_quarterly_balance_treats_nine_euros_as_paid_before_quarter_starts(): void
+    {
+        $parser = new TreasurySheetParser();
+        $control = [
+            ['SQUAD ALPHA · CONTROL MENSUAL 2026'],
+            ['', '', '', '', '2026'],
+            ['ID', 'Jugador', 'Estado', 'Remanente (€)', 'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'],
+            [],
+            [1, 'Rylod', 'Miembro', 9, 'X', 'X', 'X', 'X', 'X', 'X', 'G', 'G', 'G', '', '', ''],
+        ];
+
+        $quarter = $parser->quarterlyBalance($control, 'Rylod', 9.0, CarbonImmutable::create(2026, 10, 8));
+
+        $this->assertSame(4, $quarter['quarter']);
+        $this->assertSame(2026, $quarter['quarter_year']);
+        $this->assertSame('4.º trimestre 2026', $quarter['quarter_label']);
+        $this->assertSame('OCT · NOV · DIC', $quarter['quarter_period']);
+        $this->assertTrue($quarter['quarter_paid']);
+        $this->assertSame(0.0, $quarter['display_balance']);
+        $this->assertSame(0.0, $quarter['quarter_missing']);
+    }
+
+    public function test_quarterly_balance_shows_partial_amount_and_missing_money(): void
+    {
+        $parser = new TreasurySheetParser();
+        $control = [
+            ['SQUAD ALPHA · CONTROL MENSUAL 2026'],
+            ['', '', '', '', '2026'],
+            ['ID', 'Jugador', 'Estado', 'Remanente (€)', 'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'],
+            [],
+            [1, 'Rylod', 'Miembro', 4, 'X', 'X', 'X', 'X', 'X', 'X', 'G', 'G', 'G', '', '', ''],
+        ];
+
+        $quarter = $parser->quarterlyBalance($control, 'Rylod', 4.0, CarbonImmutable::create(2026, 10, 8));
+
+        $this->assertFalse($quarter['quarter_paid']);
+        $this->assertSame(4.0, $quarter['display_balance']);
+        $this->assertSame(5.0, $quarter['quarter_missing']);
+        $this->assertSame(4.0, $quarter['quarter_available']);
+    }
+
+    public function test_quarterly_balance_keeps_quarter_paid_after_monthly_x_is_consumed(): void
+    {
+        $parser = new TreasurySheetParser();
+        $control = [
+            ['SQUAD ALPHA · CONTROL MENSUAL 2026'],
+            ['', '', '', '', '2026'],
+            ['ID', 'Jugador', 'Estado', 'Remanente (€)', 'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'],
+            [],
+            [1, 'Rylod', 'Miembro', 6, 'X', 'X', 'X', 'X', 'X', 'X', 'G', 'G', 'G', 'X', '', ''],
+        ];
+
+        $quarter = $parser->quarterlyBalance($control, 'Rylod', 6.0, CarbonImmutable::create(2026, 10, 20));
+
+        $this->assertTrue($quarter['quarter_paid']);
+        $this->assertSame(1, $quarter['consumed_months']);
+        $this->assertSame(9.0, $quarter['quarter_available']);
+        $this->assertSame(0.0, $quarter['display_balance']);
+    }
+
+    public function test_december_prepares_first_quarter_of_next_year(): void
+    {
+        $parser = new TreasurySheetParser();
+        $control = [
+            ['SQUAD ALPHA · CONTROL MENSUAL 2026'],
+            ['', '', '', '', '2026'],
+            ['ID', 'Jugador', 'Estado', 'Remanente (€)', 'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'],
+            [],
+            [1, 'Rylod', 'Miembro', 18, 'X', 'X', 'X', 'X', 'X', 'X', 'G', 'G', 'G', 'X', 'X', 'X'],
+        ];
+
+        $quarter = $parser->quarterlyBalance($control, 'Rylod', 18.0, CarbonImmutable::create(2026, 12, 5));
+
+        $this->assertSame(1, $quarter['quarter']);
+        $this->assertSame(2027, $quarter['quarter_year']);
+        $this->assertSame('1.er trimestre 2027', $quarter['quarter_label']);
+        $this->assertSame(0, $quarter['consumed_months']);
+        $this->assertTrue($quarter['quarter_paid']);
+        $this->assertSame(9.0, $quarter['display_balance']);
+    }
+
 }

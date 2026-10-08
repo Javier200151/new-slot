@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Page;
 use App\Models\PublicNavigationSetting;
 use App\Models\Status;
+use App\Services\Treasury\TreasuryService;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
@@ -51,7 +52,7 @@ class PublicNavigation
         try {
             if (Schema::hasTable('pages')) {
                 Page::query()
-                    ->select(['title', 'slug', 'is_published'])
+                    ->select(['title', 'slug', 'template', 'is_published'])
                     ->orderBy('title')
                     ->get()
                     ->each(function (Page $page) use (&$destinations): void {
@@ -72,6 +73,7 @@ class PublicNavigation
                             'dynamic' => true,
                             'slug' => $slug,
                             'published' => (bool) $page->is_published,
+                            'template' => (string) ($page->template ?? 'content'),
                         ];
                     });
             }
@@ -695,7 +697,19 @@ class PublicNavigation
         // Dynamic Filament pages may be prepared in the header before they
         // are published, but they must not produce a public 404 menu link.
         if (! empty($definition['dynamic'])) {
-            return (bool) ($definition['published'] ?? false);
+            if (! (bool) ($definition['published'] ?? false)) {
+                return false;
+            }
+
+            if (($definition['template'] ?? null) === 'treasury') {
+                try {
+                    return app(TreasuryService::class)->canViewTreasuryPage(auth()->user());
+                } catch (\Throwable) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         return true;

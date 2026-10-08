@@ -19,6 +19,7 @@ class MemberProcedureSetting extends Model
         'google_general_sheet_gid',
         'treasury_spreadsheet_id',
         'treasury_private_status_ids',
+        'treasury_page_status_ids',
         'armasquads_squad_id',
         'discord_guild_id',
         'discord_recruit_role_id',
@@ -62,6 +63,7 @@ class MemberProcedureSetting extends Model
             'telegram_weekly_required_activity_type_ids' => 'array',
             'telegram_weekly_active_event_status_id' => 'integer',
             'treasury_private_status_ids' => 'array',
+            'treasury_page_status_ids' => 'array',
         ];
     }
 

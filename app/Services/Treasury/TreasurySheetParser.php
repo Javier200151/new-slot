@@ -264,6 +264,141 @@ class TreasurySheetParser
     }
 
     /**
+     * Convierte el remanente mensual de la hoja en una lectura trimestral para el usuario.
+     * La cuota base es de 9 € por trimestre (3 meses x 3 €). Durante el trimestre,
+     * las X ya cargadas se suman temporalmente al remanente para reconstruir cuánto
+     * dinero había disponible para cubrir el trimestre completo y evitar mostrar una
+     * falsa deuda a medida que se consumen los meses.
+     *
+     * El trimestre que se muestra cambia durante el mes anterior a su inicio:
+     * MAR -> T2, JUN -> T3, SEP -> T4 y DIC -> T1 del año siguiente.
+     *
+     * @param  array<int, array<int, mixed>>  $controlRows
+     * @return array{
+     *     quarter:int,quarter_year:int,quarter_label:string,quarter_period:string,
+     *     quarter_price:float,quarter_paid:bool,quarter_missing:float,
+     *     quarter_available:float,display_balance:float,consumed_months:int
+     * }
+     */
+    public function quarterlyBalance(
+        array $controlRows,
+        string $nick,
+        ?float $remanent,
+        CarbonInterface $date,
+    ): array {
+        $target = $this->billingQuarter($date);
+        $quarterPrice = 9.0;
+        $rawRemanent = (float) ($remanent ?? 0.0);
+        $consumedMonths = 0;
+
+        [$headerRow, $headers] = $this->headers($controlRows, ['JUGADOR', 'ENE', 'DIC']);
+
+        if ($headerRow !== null && $target['year'] === (int) $date->year) {
+            $controlYear = null;
+            foreach (array_slice($controlRows, 0, $headerRow + 1) as $row) {
+                foreach ($row as $value) {
+                    if (preg_match('/\\b(20\\d{2})\\b/', (string) $value, $matches)) {
+                        $controlYear = (int) $matches[1];
+                        break 2;
+                    }
+                }
+            }
+
+            if ($controlYear === $target['year']) {
+                $nickIndex = $this->headerIndex($headers, ['JUGADOR', 'NICK']);
+                $normalizedNick = $this->normalize($nick);
+                $memberRow = null;
+
+                if ($nickIndex !== null) {
+                    foreach (array_slice($controlRows, $headerRow + 1) as $row) {
+                        if ($this->normalize((string) ($row[$nickIndex] ?? '')) === $normalizedNick) {
+                            $memberRow = $row;
+                            break;
+                        }
+                    }
+                }
+
+                if (is_array($memberRow)) {
+                    foreach ($target['months'] as $month) {
+                        $monthIndex = $this->headerIndex($headers, [$month]);
+                        if ($monthIndex === null) {
+                            continue;
+                        }
+
+                        if ($this->normalize((string) ($memberRow[$monthIndex] ?? '')) === 'X') {
+                            $consumedMonths++;
+                        }
+                    }
+                }
+            }
+        }
+
+        $quarterAvailable = $rawRemanent + ($consumedMonths * 3.0);
+        $quarterPaid = $quarterAvailable >= $quarterPrice;
+        $quarterMissing = max(0.0, $quarterPrice - $quarterAvailable);
+        $displayBalance = $quarterPaid
+            ? max(0.0, $quarterAvailable - $quarterPrice)
+            : max(0.0, $quarterAvailable);
+
+        return [
+            'quarter' => $target['quarter'],
+            'quarter_year' => $target['year'],
+            'quarter_label' => $target['label'],
+            'quarter_period' => $target['period'],
+            'quarter_price' => $quarterPrice,
+            'quarter_paid' => $quarterPaid,
+            'quarter_missing' => $quarterMissing,
+            'quarter_available' => max(0.0, $quarterAvailable),
+            'display_balance' => $displayBalance,
+            'consumed_months' => $consumedMonths,
+        ];
+    }
+
+    /**
+     * @return array{quarter:int,year:int,label:string,period:string,months:array<int,string>}
+     */
+    private function billingQuarter(CarbonInterface $date): array
+    {
+        $month = (int) $date->month;
+        $year = (int) $date->year;
+
+        if ($month === 12) {
+            $quarter = 1;
+            $year++;
+        } elseif ($month <= 2) {
+            $quarter = 1;
+        } elseif ($month <= 5) {
+            $quarter = 2;
+        } elseif ($month <= 8) {
+            $quarter = 3;
+        } else {
+            $quarter = 4;
+        }
+
+        $months = match ($quarter) {
+            1 => ['ENE', 'FEB', 'MAR'],
+            2 => ['ABR', 'MAY', 'JUN'],
+            3 => ['JUL', 'AGO', 'SEP'],
+            default => ['OCT', 'NOV', 'DIC'],
+        };
+
+        $ordinal = match ($quarter) {
+            1 => '1.er',
+            2 => '2.º',
+            3 => '3.er',
+            default => '4.º',
+        };
+
+        return [
+            'quarter' => $quarter,
+            'year' => $year,
+            'label' => $ordinal . ' trimestre ' . $year,
+            'period' => implode(' · ', $months),
+            'months' => $months,
+        ];
+    }
+
+    /**
      * Prepara las celdas vacías del mes que deben rellenarse el día 15.
      * Cualquier valor ya existente se considera manual y nunca se modifica.
      *

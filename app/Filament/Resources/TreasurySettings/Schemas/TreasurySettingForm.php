@@ -77,7 +77,7 @@ class TreasurySettingForm
                     ]),
 
                 Section::make('Privacidad · Mi saldo')
-                    ->description('Define qué estados de usuario pueden consultar su información económica privada. La misma regla se aplica en Mi Perfil y dentro de /tesoreria.')
+                    ->description('Define qué estados pueden consultar su información económica individual. La misma regla se aplica a Mi Perfil y al recuadro privado dentro de /tesoreria.')
                     ->schema([
                         Select::make('treasury_private_status_ids')
                             ->label('Estados que pueden ver · Mi saldo')
@@ -88,13 +88,28 @@ class TreasurySettingForm
                                 ->orderBy('name')
                                 ->pluck('name', 'id')
                                 ->all())
-                            ->helperText('Por defecto solo ACTIVO. Los usuarios fuera de estos estados no reciben ni visualizan datos privados de Tesorería.'),
+                            ->helperText('Por defecto solo ACTIVO. Los estados no seleccionados no reciben ni visualizan datos económicos individuales.'),
 
                         Placeholder::make('_privacy_note')
                             ->hiddenLabel()
                             ->content(new HtmlString(
                                 '<strong>Vinculación:</strong> la asociación con la hoja de Tesorería se realiza únicamente mediante el nickname del usuario.'
                             )),
+                    ]),
+
+                Section::make('Acceso a /tesoreria')
+                    ->description('Controla quién puede entrar a la página completa de Tesorería. Es independiente de quién puede ver Mi saldo.')
+                    ->schema([
+                        Select::make('treasury_page_status_ids')
+                            ->label('Estados que pueden acceder a /tesoreria')
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->options(fn (): array => Status::query()
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->helperText('Por defecto solo ACTIVO. Invitados y estados no seleccionados no verán el enlace y tampoco podrán abrir la página directamente.'),
                     ]),
 
                 Section::make('Avisos internos')
