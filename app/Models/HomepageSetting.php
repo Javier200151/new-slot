@@ -19,6 +19,7 @@ class HomepageSetting extends Model
         'discord_invite_expires_at',
         'discord_account_logo',
         'steam_account_logo',
+        'telegram_account_logo',
         'google_photos_url',
         'news_title',
         'news_intro',

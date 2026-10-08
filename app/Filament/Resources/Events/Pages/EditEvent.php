@@ -16,6 +16,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Flex;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Enums\VerticalAlignment;
 use App\Services\CommunityNotificationService;
@@ -588,7 +589,23 @@ class EditEvent extends EditRecord
             }
         }
 
-        $sections = [];
+        $sections = [
+            \Filament\Schemas\Components\Section::make()
+                ->schema([
+                    Placeholder::make('orbat_bulk_toggle_controls')
+                        ->hiddenLabel()
+                        ->content(new HtmlString(
+                            '<div class="event-orbat-bulk-actions">'
+                            . '<button type="button" class="event-orbat-bulk-action" data-orbat-toggle-all="collapse">Colapsar todos</button>'
+                            . '<button type="button" class="event-orbat-bulk-action" data-orbat-toggle-all="expand">Desplegar todos</button>'
+                            . '</div>'
+                        )),
+                ])
+                ->compact()
+                ->extraAttributes([
+                    'class' => 'event-orbat-bulk-actions-section',
+                ]),
+        ];
 
         foreach ($groups as $groupIndex => $group) {
             $groupIndex = (int) $groupIndex;
@@ -644,7 +661,7 @@ class EditEvent extends EditRecord
                 ])
                     ->verticalAlignment(VerticalAlignment::Center)
                     ->extraAttributes([
-                        'class' => 'event-orbat-visibility-row',
+                        'class' => 'event-orbat-visibility-row event-orbat-slot-row',
                     ]);
             }
 
@@ -653,7 +670,18 @@ class EditEvent extends EditRecord
                     Flex::make([
                         Placeholder::make("group_label_{$groupIndex}")
                             ->hiddenLabel()
-                            ->content(new HtmlString('<strong style="font-size:1rem;">' . e($groupName) . '</strong>'))
+                            ->content(new HtmlString(
+                                '<div style="display:flex;align-items:center;gap:.4rem;min-width:0;">'
+                                . '<strong style="font-size:1rem;">' . e($groupName) . '</strong>'
+                                . '<button type="button" class="event-orbat-collapse-toggle" '
+                                . 'data-orbat-toggle-section '
+                                . 'title="Colapsar o desplegar esta escuadra" '
+                                . 'aria-expanded="true" '
+                                . 'aria-label="Colapsar o expandir ' . e($groupName) . '">'
+                                . '<span aria-hidden="true" data-orbat-collapse-chevron>▾</span>'
+                                . '</button>'
+                                . '</div>'
+                            ))
                             ->grow(false)
                             ->extraAttributes([
                                 'class' => 'event-orbat-visibility-copy',
@@ -688,7 +716,10 @@ class EditEvent extends EditRecord
                         ->extraAttributes([
                             'class' => 'event-orbat-visibility-group-row',
                         ]),
-                    ...$slotRows,
+                    Group::make($slotRows)
+                        ->extraAttributes([
+                            'class' => 'event-orbat-slot-list',
+                        ]),
                 ])
                 ->compact()
                 ->extraAttributes([

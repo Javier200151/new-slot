@@ -83,6 +83,7 @@ class MemberProcedureRegistry
                     $this->auto('tutor_coordinator_notice', 'Notificar al coordinador de tutores la disponibilidad del nuevo recluta', ['tutor_area'], 'Avisa al grupo/configuración de tutores de que hay un nuevo recluta disponible para ser asignado.'),
                     $this->auto('telegram_recruit_update', 'Publicar actualización del nuevo recluta en Telegram', ['status_recruit'], 'Publica en = ALPHA FORCE NETWORK = la entrada del nuevo recluta usando la plantilla configurable de Telegram y uno de los cierres aleatorios configurados.'),
                     $this->manual('whatsapp_recruit_group', 'Añadir al grupo de WhatsApp de reclutas', ['status_recruit'], 'Añade al recluta al grupo de WhatsApp destinado a reclutas. Marca este paso como completado cuando confirmes que ya está dentro.'),
+                    $this->manual('ts3_recruit', 'Asignar en TS3 el rol RECLUTA', ['status_recruit'], 'En TeamSpeak 3, asigna manualmente al usuario el grupo o rol de RECLUTA y marca este paso como completado cuando esté confirmado.'),
                     $this->waiting('tutor_assignment', 'Esperar a que un tutor se asigne al recluta', ['tutor_area'], 'Este paso se completa automáticamente cuando el Área de tutores detecta que un tutor ha recogido al recluta.'),
                 ],
             ],

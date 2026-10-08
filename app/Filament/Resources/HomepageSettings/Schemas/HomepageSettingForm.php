@@ -81,7 +81,7 @@ class HomepageSettingForm
                                 ->columns(2),
 
                             Section::make('Servicios conectados')
-                                ->description('Logos que se muestran en Mi perfil dentro de Cuentas vinculadas. El bloque está preparado para poder incorporar más servicios en el futuro.')
+                                ->description('Logos de servicios externos. Discord y Steam se muestran en Mi perfil; Telegram se utiliza en los correos automáticos de alta y reactivación.')
                                 ->schema([
                                     FileUpload::make('discord_account_logo')
                                         ->label('Logo de Discord')
@@ -105,8 +105,19 @@ class HomepageSettingForm
                                         ->maxSize(1024)
                                         ->previewable(false)
                                         ->deletable(),
+                                    FileUpload::make('telegram_account_logo')
+                                        ->label('Logo de Telegram')
+                                        ->helperText('Sube el logo de Telegram que se utilizará en los correos automáticos de alta y reactivación. Para máxima compatibilidad con clientes de correo se recomienda PNG.')
+                                        ->image()
+                                        ->acceptedFileTypes(['image/png', 'image/webp', 'image/svg+xml'])
+                                        ->disk('public')
+                                        ->directory('site/linked-accounts')
+                                        ->visibility('public')
+                                        ->maxSize(1024)
+                                        ->previewable(false)
+                                        ->deletable(),
                                 ])
-                                ->columns(2),
+                                ->columns(3),
 
                             Section::make('Bloque de actualidad')->schema([
                                 TextInput::make('news_title')->label('Título')->required()->maxLength(255),

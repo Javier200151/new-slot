@@ -10,6 +10,7 @@ use App\Models\MemberProcedureSetting;
 use App\Models\SqaGroup;
 use App\Services\MemberProcedures\CommunicationPreviewService;
 use App\Services\MemberProcedures\DiscordService;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -85,6 +86,14 @@ class MemberProcedureSettingForm
                                         ->label('Squad ID')
                                         ->maxLength(80)
                                         ->helperText('Identificador numérico del Squad en ArmaSquads. Con ARMASQUADS_ENABLED=true y la API key configurada, el alta/baja se automatiza.'),
+                                ]),
+
+                            Section::make('TeamSpeak 3')
+                                ->description('Gestión manual dentro de los Procedimientos. No se utilizan ServerQuery, WebQuery, credenciales ni identificadores TS3 en NewSlot.')
+                                ->schema([
+                                    Placeholder::make('_teamspeak_manual_mode')
+                                        ->hiddenLabel()
+                                        ->content('Los procedimientos incluyen tareas manuales para asignar RECLUTA, cambiar RECLUTA/RESERVA a ALPHA, pasar ALPHA a RESERVA y retirar los grupos de TeamSpeak en NO PROMOCIONADO, BAJA o CESE. Cada tarea se confirma desde el checklist del procedimiento.'),
                                 ]),
 
                             Section::make('Telegram')
