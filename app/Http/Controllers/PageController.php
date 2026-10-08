@@ -18,6 +18,8 @@ class PageController extends Controller
         $content = BbcodeMarkup::render($page->content);
 
         if (($page->template ?? 'content') === 'treasury') {
+            abort_unless($treasuryService->canViewTreasuryPage($request->user()), 404);
+
             $treasury = null;
             $treasuryUnavailable = false;
             $treasuryMember = null;

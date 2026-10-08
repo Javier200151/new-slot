@@ -323,28 +323,36 @@
                             </div>
                         @else
                             @php
-                                $quarterText = trim((string) ($treasuryMember['next_quarter'] ?? ''));
-                                $quarterNormalized = mb_strtoupper($quarterText);
-                                $quarterClass = str_contains($quarterNormalized, 'DEBE')
-                                    ? 'is-debt'
-                                    : (str_contains($quarterNormalized, 'PAGADO') ? 'is-paid' : '');
+                                $quarterPaid = (bool) ($treasuryMember['quarter_paid'] ?? false);
+                                $quarterClass = $quarterPaid ? 'is-paid' : 'is-debt';
+                                $quarterLabel = (string) ($treasuryMember['quarter_label'] ?? 'Trimestre');
+                                $quarterPeriod = (string) ($treasuryMember['quarter_period'] ?? '');
+                                $quarterPrice = (float) ($treasuryMember['quarter_price'] ?? 9);
+                                $quarterMissing = (float) ($treasuryMember['quarter_missing'] ?? 0);
+                                $quarterAvailable = (float) ($treasuryMember['quarter_available'] ?? 0);
+                                $displayBalance = (float) ($treasuryMember['display_balance'] ?? 0);
+                                $balanceLabel = $quarterPaid
+                                    ? 'Remanente tras cubrir el trimestre'
+                                    : 'Disponible para completar el trimestre';
+                                $quarterStatus = $quarterPaid
+                                    ? 'PAGADO'
+                                    : ($quarterAvailable <= 0.00001
+                                        ? 'DEBE ' . number_format($quarterPrice, 2, ',', '.') . ' €'
+                                        : 'Faltan ' . number_format($quarterMissing, 2, ',', '.') . ' €');
                                 $lastPayment = $treasuryMember['last_payment'] ?? null;
                             @endphp
 
                             <div class="profile-treasury__balance">
-                                <span>Remanente actual</span>
-                                <strong>
-                                    {{ $treasuryMember['remanent'] !== null
-                                        ? number_format((float) $treasuryMember['remanent'], 2, ',', '.') . ' €'
-                                        : '—' }}
-                                </strong>
+                                <span>{{ $balanceLabel }}</span>
+                                <strong>{{ number_format($displayBalance, 2, ',', '.') }} €</strong>
                             </div>
 
                             <dl class="profile-treasury__details">
                                 <div>
-                                    <dt>Próximo trimestre</dt>
+                                    <dt>{{ $quarterLabel }}</dt>
                                     <dd class="{{ $quarterClass }}">
-                                        {{ $quarterText !== '' ? $quarterText : 'Sin dato' }}
+                                        {{ $quarterStatus }}
+                                        <span>{{ $quarterPeriod }} · Cuota {{ number_format($quarterPrice, 2, ',', '.') }} €</span>
                                     </dd>
                                 </div>
 

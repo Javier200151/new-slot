@@ -43,6 +43,26 @@ class TreasurySettingsTable
                     })
                     ->wrap(),
 
+                TextColumn::make('page_statuses')
+                    ->label('/tesoreria visible para')
+                    ->state(function (MemberProcedureSetting $record): string {
+                        $ids = collect($record->treasury_page_status_ids ?? [])
+                            ->map(fn ($id): int => (int) $id)
+                            ->filter()
+                            ->values();
+
+                        if ($ids->isEmpty()) {
+                            return 'Ningún estado';
+                        }
+
+                        return Status::query()
+                            ->whereIn('id', $ids->all())
+                            ->orderBy('name')
+                            ->pluck('name')
+                            ->implode(', ');
+                    })
+                    ->wrap(),
+
                 TextColumn::make('updated_at')
                     ->label('Actualizado')
                     ->since(),

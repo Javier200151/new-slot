@@ -35,8 +35,23 @@ class TreasuryService
     public function canViewPrivateBalance(User $user, ?MemberProcedureSetting $setting = null): bool
     {
         $setting ??= MemberProcedureSetting::current();
-        $configuredStatusIds = $setting->treasury_private_status_ids;
 
+        return $this->userStatusAllowed($user, $setting->treasury_private_status_ids);
+    }
+
+    public function canViewTreasuryPage(?User $user, ?MemberProcedureSetting $setting = null): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $setting ??= MemberProcedureSetting::current();
+
+        return $this->userStatusAllowed($user, $setting->treasury_page_status_ids);
+    }
+
+    private function userStatusAllowed(User $user, mixed $configuredStatusIds): bool
+    {
         if ($configuredStatusIds === null) {
             $activeStatusId = Status::query()
                 ->whereRaw('UPPER(name) = ?', ['ACTIVO'])
@@ -108,6 +123,16 @@ class TreasuryService
      *     next_quarter:?string,
      *     last_payment:?array,
      *     state:?string,
+     *     quarter:int,
+     *     quarter_year:int,
+     *     quarter_label:string,
+     *     quarter_period:string,
+     *     quarter_price:float,
+     *     quarter_paid:bool,
+     *     quarter_missing:float,
+     *     quarter_available:float,
+     *     display_balance:float,
+     *     consumed_months:int,
      *     fetched_at:string
      * }
      */
@@ -123,21 +148,40 @@ class TreasuryService
                 'next_quarter' => null,
                 'last_payment' => null,
                 'state' => null,
+                'quarter' => 0,
+                'quarter_year' => (int) now('Europe/Madrid')->year,
+                'quarter_label' => '',
+                'quarter_period' => '',
+                'quarter_price' => 9.0,
+                'quarter_paid' => false,
+                'quarter_missing' => 9.0,
+                'quarter_available' => 0.0,
+                'display_balance' => 0.0,
+                'consumed_months' => 0,
                 'fetched_at' => now()->toIso8601String(),
             ];
         }
 
         $spreadsheetId = $this->spreadsheetId($setting);
-        $cacheKey = 'newslot:treasury:member:' . sha1($spreadsheetId . '|' . $user->id . '|' . $user->nick);
+        $cacheKey = 'newslot:treasury:member:' . sha1($spreadsheetId . '|' . $user->id . '|' . $user->nick . '|' . now('Europe/Madrid')->format('Y-m'));
 
         return Cache::remember($cacheKey, now()->addMinutes(3), function () use ($spreadsheetId, $user): array {
             $players = $this->read($spreadsheetId, self::PLAYERS_SHEET, 'A1:H');
             $dues = $this->read($spreadsheetId, self::DUES_SHEET, 'A1:Z');
             $movements = $this->read($spreadsheetId, self::MOVEMENTS_SHEET, 'A1:J');
+            $control = $this->read($spreadsheetId, self::CONTROL_SHEET, 'A1:P');
+            $member = $this->parser->member($players, $dues, $movements, (string) $user->nick);
+            $quarter = $this->parser->quarterlyBalance(
+                $control,
+                (string) $user->nick,
+                $member['remanent'] ?? null,
+                now('Europe/Madrid'),
+            );
 
             return [
                 'configured' => true,
-                ...$this->parser->member($players, $dues, $movements, (string) $user->nick),
+                ...$member,
+                ...$quarter,
                 'fetched_at' => now()->toIso8601String(),
             ];
         });
