@@ -4,9 +4,6 @@
         $activeDashboard = $this->activeDashboard();
         $widgets = $this->dashboardWidgets();
         $availableWidgets = $this->availableWidgetDefinitions();
-        $weeklyActivityWindow = $this->canUseWeeklyActivityTelegram()
-            ? $this->weeklyActivityWindow()
-            : null;
     @endphp
 
     <div class="ns-pd-shell">
@@ -27,19 +24,6 @@
             </div>
 
             <div class="ns-pd-topbar-actions">
-                @if ($weeklyActivityWindow)
-                    <x-filament::button
-                        type="button"
-                        color="info"
-                        icon="heroicon-o-paper-airplane"
-                        wire:click="prepareWeeklyActivityTelegram"
-                        :disabled="!($weeklyActivityWindow['open'] ?? false)"
-                        title="{{ $weeklyActivityWindow['label'] ?? '' }}"
-                    >
-                        Enviar actividad semanal
-                    </x-filament::button>
-                @endif
-
                 <x-filament::button
                     type="button"
                     :color="$editing ? 'success' : 'gray'"
@@ -50,95 +34,6 @@
                 </x-filament::button>
             </div>
         </section>
-
-        @if ($weeklyActivityPanelOpen)
-            @php
-                $weeklyBlocking = (array) ($weeklyActivityPreview['blocking_errors'] ?? []);
-                $weeklyWarnings = (array) ($weeklyActivityPreview['warnings'] ?? []);
-                $weeklyCanSend = (bool) ($weeklyActivityPreview['can_send'] ?? false);
-            @endphp
-            <section class="ns-pd-weekly-panel">
-                <div class="ns-pd-section-heading">
-                    <div>
-                        <span class="ns-pd-kicker">Telegram · = ALPHA FORCE NETWORK =</span>
-                        <h3>Revisión de actividad semanal</h3>
-                        <p>
-                            Semana {{ $weeklyActivityPreview['week_label'] ?? '' }}.
-                            Revisa los seis días antes de enviar.
-                        </p>
-                    </div>
-                    <button type="button" class="ns-pd-icon-button" wire:click="closeWeeklyActivityTelegram">Cerrar</button>
-                </div>
-
-                <div class="ns-pd-weekly-days">
-                    @foreach ((array) ($weeklyActivityPreview['days'] ?? []) as $day)
-                        <article class="ns-pd-weekly-day {{ ($day['required'] ?? false) ? 'is-required' : '' }}">
-                            <div class="ns-pd-weekly-day__head">
-                                <strong>{{ $day['label'] ?? '' }} {{ $day['date'] ?? '' }}</strong>
-                                @if ($day['required'] ?? false)
-                                    <span>Obligatorio</span>
-                                @endif
-                            </div>
-
-                            @forelse ((array) ($day['events'] ?? []) as $event)
-                                <div class="ns-pd-weekly-event {{ ($event['active'] ?? false) ? 'is-active' : 'is-draft' }}">
-                                    <div>
-                                        <strong>{{ $event['time'] ?? '' }} · {{ $event['name'] ?? '' }}</strong>
-                                        <small>{{ $event['activity_type'] ?? '' }} · {{ $event['status'] ?? '' }}</small>
-                                    </div>
-                                    <span>{{ ($event['active'] ?? false) ? 'ACTIVO' : 'No se enviará' }}</span>
-                                </div>
-                            @empty
-                                <div class="ns-pd-card-empty">Sin actividad programada.</div>
-                            @endforelse
-                        </article>
-                    @endforeach
-                </div>
-
-                @if ($weeklyBlocking !== [])
-                    <div class="ns-pd-weekly-alert is-danger">
-                        <strong>Bloqueos</strong>
-                        <ul>
-                            @foreach ($weeklyBlocking as $message)
-                                <li>{{ $message }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                @if ($weeklyWarnings !== [])
-                    <div class="ns-pd-weekly-alert is-warning">
-                        <strong>Avisos</strong>
-                        <ul>
-                            @foreach ($weeklyWarnings as $message)
-                                <li>{{ $message }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                <div class="ns-pd-weekly-preview">
-                    <strong>Vista previa del mensaje</strong>
-                    <pre>{{ $weeklyActivityPreview['message'] ?? '' }}</pre>
-                </div>
-
-                <div class="ns-pd-config-actions">
-                    <x-filament::button
-                        type="button"
-                        color="success"
-                        icon="heroicon-o-paper-airplane"
-                        wire:click="sendWeeklyActivityTelegram"
-                        wire:confirm="¿Enviar esta actividad semanal a = ALPHA FORCE NETWORK =?"
-                        :disabled="!$weeklyCanSend"
-                    >
-                        Confirmar y enviar
-                    </x-filament::button>
-                    <x-filament::button type="button" color="gray" wire:click="closeWeeklyActivityTelegram">
-                        Cancelar
-                    </x-filament::button>
-                </div>
-            </section>
-        @endif
 
         @if ($editing)
             <section class="ns-pd-editor-panel">

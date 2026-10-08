@@ -11,6 +11,7 @@ class CommunicationPreviewService
     public function __construct(
         private readonly TelegramNotificationService $telegramMessages,
         private readonly WeeklyActivityTelegramService $weeklyActivity,
+        private readonly MemberProcedureEmailTemplateService $emailTemplates,
     ) {
     }
 
@@ -35,27 +36,10 @@ class CommunicationPreviewService
      */
     public function emailPreview(User $user, MemberProcedureSetting $setting, bool $reactivation): array
     {
-        $subjectTemplate = trim((string) ($reactivation
-            ? $setting->reactivation_email_subject
-            : $setting->member_welcome_email_subject));
-        $bodyTemplate = trim((string) ($reactivation
-            ? $setting->reactivation_email_body
-            : $setting->member_welcome_email_body));
+        $rendered = $this->emailTemplates->render($user, $setting, $reactivation);
+        $subject = $rendered['subject'];
+        $body = $rendered['body'];
 
-        if ($subjectTemplate === '') {
-            $subjectTemplate = $reactivation
-                ? 'Bienvenido de vuelta a Squad ALPHA, {{nick}}'
-                : 'Bienvenido a Squad ALPHA, {{nick}}';
-        }
-
-        if ($bodyTemplate === '') {
-            $bodyTemplate = $reactivation
-                ? "Hola {{nick}},\n\nTu reactivación ya está completada y vuelves a estar ACTIVO en Squad ALPHA. Aquí tienes los enlaces vigentes para reincorporarte a los grupos oficiales de Telegram."
-                : "Hola {{nick}},\n\nEnhorabuena por completar tu reclutamiento. Ya formas parte de Squad ALPHA. Aquí tienes los enlaces vigentes para incorporarte a los grupos oficiales de Telegram.";
-        }
-
-        $subject = $this->renderSimpleTemplate($subjectTemplate, $user);
-        $body = $this->renderSimpleTemplate($bodyTemplate, $user);
         $links = [
             'ALPHA Cantina' => $this->previewInvite((string) $setting->telegram_cantina_invite_url, 'cantina'),
             'ALPHA Oficial' => $this->previewInvite((string) $setting->telegram_official_invite_url, 'oficial'),
@@ -133,13 +117,6 @@ class CommunicationPreviewService
             'html' => $this->telegramMarkdownToHtml($message),
             'note' => 'La previsualización utiliza datos de ejemplo. En los envíos reales NewSlot sustituye las variables y escoge un cierre aleatorio.',
         ];
-    }
-
-    private function renderSimpleTemplate(string $template, User $user): string
-    {
-        return strtr($template, [
-            '{{nick}}' => (string) $user->nick,
-        ]);
     }
 
     private function previewInvite(string $value, string $slug): string

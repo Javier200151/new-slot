@@ -29,11 +29,13 @@ class CommunicationPreviewServiceTest extends TestCase
         $previews = app(CommunicationPreviewService::class)->emailPreviews($setting);
 
         $this->assertSame('Alta de Rylod', $previews['welcome']['subject']);
-        $this->assertStringContainsString('Bienvenido a Squad ALPHA', $previews['welcome']['html']);
+        $this->assertStringContainsString('¡Enhorabuena por tu promoción a miembro de Squad ALPHA!', $previews['welcome']['html']);
+        $this->assertStringContainsString('PASOS QUE DEBES COMPLETAR', $previews['welcome']['html']);
+        $this->assertStringContainsString('PONTE EN CONTACTO', $previews['welcome']['html']);
         $this->assertStringContainsString('REALISMO · DISCIPLINA · EQUIPO', $previews['welcome']['html']);
         $this->assertStringContainsString('https://t.me/+cantina', $previews['welcome']['html']);
         $this->assertSame('Vuelve Rylod', $previews['reactivation']['subject']);
-        $this->assertStringContainsString('Bienvenido de vuelta', $previews['reactivation']['html']);
+        $this->assertStringContainsString('TU REACTIVACIÓN ESTÁ EN MARCHA', $previews['reactivation']['html']);
     }
 
     public function test_telegram_preview_uses_example_data_without_sending_anything(): void

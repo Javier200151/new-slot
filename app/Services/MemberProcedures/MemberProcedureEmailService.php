@@ -10,6 +10,11 @@ use LogicException;
 
 class MemberProcedureEmailService
 {
+    public function __construct(
+        private readonly MemberProcedureEmailTemplateService $templates,
+    ) {
+    }
+
     /** @return array<string, mixed> */
     public function sendTelegramLinks(User $user, MemberProcedureSetting $setting, bool $reactivation): array
     {
@@ -24,27 +29,9 @@ class MemberProcedureEmailService
             '= ALPHA FORCE NETWORK =' => $this->validatedTelegramInvite((string) $setting->telegram_network_invite_url, '= ALPHA FORCE NETWORK ='),
         ];
 
-        $subjectTemplate = trim((string) ($reactivation
-            ? $setting->reactivation_email_subject
-            : $setting->member_welcome_email_subject));
-        $bodyTemplate = trim((string) ($reactivation
-            ? $setting->reactivation_email_body
-            : $setting->member_welcome_email_body));
-
-        if ($subjectTemplate === '') {
-            $subjectTemplate = $reactivation
-                ? 'Bienvenido de vuelta a Squad ALPHA, {{nick}}'
-                : 'Bienvenido a Squad ALPHA, {{nick}}';
-        }
-
-        if ($bodyTemplate === '') {
-            $bodyTemplate = $reactivation
-                ? "Hola {{nick}},\n\nTu reactivación ya está completada y vuelves a estar ACTIVO en Squad ALPHA. Aquí tienes los enlaces vigentes para reincorporarte a los grupos oficiales de Telegram."
-                : "Hola {{nick}},\n\nEnhorabuena por completar tu reclutamiento. Ya formas parte de Squad ALPHA. Aquí tienes los enlaces vigentes para incorporarte a los grupos oficiales de Telegram.";
-        }
-
-        $subject = $this->renderTemplate($subjectTemplate, $user);
-        $body = $this->renderTemplate($bodyTemplate, $user);
+        $rendered = $this->templates->render($user, $setting, $reactivation);
+        $subject = $rendered['subject'];
+        $body = $rendered['body'];
 
         Mail::to($email)->send(new MemberTelegramLinksMail(
             user: $user,
@@ -60,13 +47,6 @@ class MemberProcedureEmailService
             'links' => array_keys($links),
             'reactivation' => $reactivation,
         ];
-    }
-
-    private function renderTemplate(string $template, User $user): string
-    {
-        return strtr($template, [
-            '{{nick}}' => (string) $user->nick,
-        ]);
     }
 
     private function validatedTelegramInvite(string $url, string $label): string

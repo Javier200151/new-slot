@@ -2,17 +2,139 @@
     <link rel="stylesheet" href="{{ asset('css/filament-event-calendar.css') }}?v={{ filemtime(public_path('css/filament-event-calendar.css')) }}">
 
     <div class="admin-calendar-theme">
+    @php
+        $weeklyActivityWindow = $this->weeklyActivityWindow();
+    @endphp
+
     <div class="admin-calendar-head">
         <div>
             <span>Calendario compartido</span>
             <h2>{{ $monthName }} {{ $year }}</h2>
             <p>Los eventos se muestran igual que en el calendario público. Las reservas sirven para bloquear una fecha antes de crear el evento.</p>
         </div>
-        <div class="admin-calendar-nav">
-            <a href="{{ $previousMonthUrl }}" aria-label="Mes anterior">←</a>
-            <a href="{{ $nextMonthUrl }}" aria-label="Mes siguiente">→</a>
+        <div class="admin-calendar-head__actions">
+            @if($weeklyActivityWindow['open'] ?? false)
+                <button
+                    type="button"
+                    class="admin-calendar-weekly-trigger is-open"
+                    wire:click="prepareWeeklyActivityTelegram"
+                    title="{{ $weeklyActivityWindow['label'] ?? '' }}"
+                >
+                    <span class="admin-calendar-weekly-trigger__state">Disponible</span>
+                    <span class="admin-calendar-weekly-trigger__copy">
+                        <strong>Enviar actividad semanal</strong>
+                        <small>{{ $weeklyActivityWindow['label'] ?? '' }}</small>
+                    </span>
+                </button>
+            @else
+                <button
+                    type="button"
+                    class="admin-calendar-weekly-trigger is-closed"
+                    disabled
+                    aria-disabled="true"
+                    title="{{ $weeklyActivityWindow['label'] ?? '' }}"
+                >
+                    <span class="admin-calendar-weekly-trigger__state">Cerrado</span>
+                    <span class="admin-calendar-weekly-trigger__copy">
+                        <strong>Actividad semanal no disponible</strong>
+                        <small>{{ $weeklyActivityWindow['label'] ?? 'Disponible desde el domingo a las 00:00 hasta el lunes a las 18:00.' }}</small>
+                    </span>
+                </button>
+            @endif
+
+            <div class="admin-calendar-nav">
+                <a href="{{ $previousMonthUrl }}" aria-label="Mes anterior">←</a>
+                <a href="{{ $nextMonthUrl }}" aria-label="Mes siguiente">→</a>
+            </div>
         </div>
     </div>
+
+    @if ($weeklyActivityPanelOpen)
+        @php
+            $weeklyBlocking = (array) ($weeklyActivityPreview['blocking_errors'] ?? []);
+            $weeklyWarnings = (array) ($weeklyActivityPreview['warnings'] ?? []);
+            $weeklyCanSend = (bool) ($weeklyActivityPreview['can_send'] ?? false);
+        @endphp
+
+        <section class="admin-calendar-weekly-panel">
+            <div class="admin-calendar-weekly-panel__head">
+                <div>
+                    <span>Telegram · = ALPHA FORCE NETWORK =</span>
+                    <h3>Revisión de actividad semanal</h3>
+                    <p>Semana {{ $weeklyActivityPreview['week_label'] ?? '' }}. Revisa los seis días antes de enviar.</p>
+                </div>
+                <button type="button" class="admin-calendar-weekly-panel__close" wire:click="closeWeeklyActivityTelegram">Cerrar</button>
+            </div>
+
+            <div class="admin-calendar-weekly-days">
+                @foreach ((array) ($weeklyActivityPreview['days'] ?? []) as $day)
+                    <article class="admin-calendar-weekly-day {{ ($day['required'] ?? false) ? 'is-required' : '' }}">
+                        <div class="admin-calendar-weekly-day__head">
+                            <strong>{{ $day['label'] ?? '' }} {{ $day['date'] ?? '' }}</strong>
+                            @if ($day['required'] ?? false)
+                                <span>Obligatorio</span>
+                            @endif
+                        </div>
+
+                        @forelse ((array) ($day['events'] ?? []) as $event)
+                            <div class="admin-calendar-weekly-event {{ ($event['active'] ?? false) ? 'is-active' : 'is-draft' }}">
+                                <div>
+                                    <strong>{{ $event['time'] ?? '' }} · {{ $event['name'] ?? '' }}</strong>
+                                    <small>{{ $event['activity_type'] ?? '' }} · {{ $event['status'] ?? '' }}</small>
+                                </div>
+                                <span>{{ ($event['active'] ?? false) ? 'ACTIVO' : 'No se enviará' }}</span>
+                            </div>
+                        @empty
+                            <div class="admin-calendar-weekly-empty">Sin actividad programada.</div>
+                        @endforelse
+                    </article>
+                @endforeach
+            </div>
+
+            @if ($weeklyBlocking !== [])
+                <div class="admin-calendar-weekly-alert is-danger">
+                    <strong>Bloqueos</strong>
+                    <ul>
+                        @foreach ($weeklyBlocking as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            @if ($weeklyWarnings !== [])
+                <div class="admin-calendar-weekly-alert is-warning">
+                    <strong>Avisos</strong>
+                    <ul>
+                        @foreach ($weeklyWarnings as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <div class="admin-calendar-weekly-preview">
+                <strong>Vista previa del mensaje</strong>
+                <pre>{{ $weeklyActivityPreview['message'] ?? '' }}</pre>
+            </div>
+
+            <div class="admin-calendar-weekly-actions">
+                <x-filament::button
+                    type="button"
+                    color="success"
+                    icon="heroicon-o-paper-airplane"
+                    wire:click="sendWeeklyActivityTelegram"
+                    wire:confirm="¿Enviar esta actividad semanal a = ALPHA FORCE NETWORK =?"
+                    :disabled="!$weeklyCanSend"
+                >
+                    Confirmar y enviar
+                </x-filament::button>
+                <x-filament::button type="button" color="gray" wire:click="closeWeeklyActivityTelegram">
+                    Cancelar
+                </x-filament::button>
+            </div>
+        </section>
+    @endif
 
     @if($selectedDate)
         <form wire:submit="saveReservation" class="admin-calendar-form">

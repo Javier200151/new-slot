@@ -5,7 +5,7 @@
         target="_blank"
         rel="noopener noreferrer"
     >
-        Ver correo de alta
+        Previsualizar correo de alta
         <span aria-hidden="true">↗</span>
     </a>
 
@@ -15,7 +15,7 @@
         target="_blank"
         rel="noopener noreferrer"
     >
-        Ver correo de reactivación
+        Previsualizar correo de reactivación
         <span aria-hidden="true">↗</span>
     </a>
 </div>
@@ -27,7 +27,6 @@
         gap: .75rem;
         width: 100%;
     }
-
     .ns-email-preview-action {
         display: inline-flex;
         align-items: center;
@@ -44,22 +43,10 @@
         line-height: 1.2;
         text-decoration: none;
         white-space: nowrap;
-        transition: background 140ms ease, border-color 140ms ease;
     }
-
-    .ns-email-preview-action:hover {
-        border-color: rgba(245, 158, 11, .70);
-        background: rgba(245, 158, 11, .16);
-    }
-
-    @media (max-width: 640px) {
-        .ns-email-preview-actions {
-            display: grid;
-            grid-template-columns: 1fr;
-        }
-
-        .ns-email-preview-action {
-            width: 100%;
-        }
+    .ns-email-preview-action:hover { border-color: rgba(245,158,11,.70); background: rgba(245,158,11,.16); }
+    @media (max-width:640px) {
+        .ns-email-preview-actions { display:grid; grid-template-columns:1fr; }
+        .ns-email-preview-action { width:100%; }
     }
 </style>
