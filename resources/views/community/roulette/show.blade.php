@@ -290,7 +290,7 @@
                 <section>
                     <h3>Qué cuenta como responsabilidad</h3>
                     <p>
-                        Por defecto NewSlot considera responsabilidad cualquier tipo de slot que no permita RECLUTA.
+                        Por defecto el sistema considera responsabilidad cualquier tipo de slot que no permita RECLUTA.
                         Puedes cambiarlo aquí de forma excepcional. <b>Mando global</b> permanece fijo porque aplica la regla HQ = 0.
                     </p>
                     <div class="roulette-responsibility-grid">

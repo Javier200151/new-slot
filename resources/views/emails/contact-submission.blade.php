@@ -38,7 +38,7 @@
                                         </h1>
 
                                         <p style="margin:0;color:#adb4c0;font-size:15px;line-height:1.7;">
-                                            NewSlot ha recibido un nuevo mensaje de
+                                            Squad ALPHA ha recibido un nuevo mensaje de
                                             <strong style="color:#f59e0b;">{{ $submission->nickname }}</strong>.
                                         </p>
                                     </td>
@@ -179,7 +179,7 @@
                                 <tr>
                                     <td style="padding:8px 42px 38px;">
                                         <p style="margin:0;color:#6f7888;font-size:12px;line-height:1.7;text-align:center;">
-                                            El correo se ha enviado usando el sistema de correo de NewSlot. Al pulsar «Responder» en tu cliente de correo, la respuesta se dirigirá automáticamente a {{ $submission->email }}.
+                                            El correo se ha enviado usando el sistema de correo de Squad ALPHA. Al pulsar «Responder» en tu cliente de correo, la respuesta se dirigirá automáticamente a {{ $submission->email }}.
                                         </p>
                                     </td>
                                 </tr>
@@ -192,7 +192,7 @@
                             <p style="margin:0 0 7px;color:#f59e0b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">
                                 REALISMO · DISCIPLINA · EQUIPO
                             </p>
-                            <p style="margin:0;color:#6f7888;font-size:12px;line-height:1.6;">© {{ date('Y') }} Squad ALPHA · NewSlot</p>
+                            <p style="margin:0;color:#6f7888;font-size:12px;line-height:1.6;">© {{ date('Y') }} Squad ALPHA</p>
                         </td>
                     </tr>
                 </table>

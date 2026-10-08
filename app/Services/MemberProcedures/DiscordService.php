@@ -445,7 +445,7 @@ class DiscordService
         }
 
         $guildId = rawurlencode((string) $setting->discord_guild_id);
-        $response = $this->client('Cambio manual del apodo del bot desde NewSlot')
+        $response = $this->client('Cambio manual del apodo del bot desde Squad ALPHA')
             ->patch("/guilds/{$guildId}/members/@me", ['nick' => $nickname]);
 
         $member = $this->expectJson($response, 'Discord rechazó el cambio de apodo del bot');
@@ -466,7 +466,7 @@ class DiscordService
             throw new RuntimeException('Configura un Canal ID numérico válido para la invitación pública de Discord.');
         }
 
-        $response = $this->client('Renovación de la invitación pública de NewSlot')
+        $response = $this->client('Renovación de la invitación pública de Squad ALPHA')
             ->post('/channels/' . rawurlencode($channelId) . '/invites', [
                 'max_age' => 604800,
                 'max_uses' => 0,

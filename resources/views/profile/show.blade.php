@@ -315,7 +315,7 @@
                             </div>
                         @elseif(! ($treasuryMember['configured'] ?? false))
                             <div class="profile-treasury__state">
-                                Tesorería todavía no está conectada con NewSlot.
+                                Tesorería todavía no está conectada.
                             </div>
                         @elseif(! ($treasuryMember['found'] ?? false))
                             <div class="profile-treasury__state">

@@ -27,7 +27,7 @@ class CheckAutomaticStreams extends Command
         $this->newLine();
 
         if ($streamers->isEmpty()) {
-            $this->warn('No hay streamers habilitados en NewSlot.');
+            $this->warn('No hay streamers habilitados en Squad ALPHA.');
 
             return self::SUCCESS;
         }

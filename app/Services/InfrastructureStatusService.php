@@ -230,7 +230,7 @@ class InfrastructureStatusService
 
         try {
             $response = Http::accept('text/html,*/*;q=0.8')
-                ->withUserAgent('NewSlot/1.0 (+https://squadalpha.es)')
+                ->withUserAgent('SquadAlpha/1.0 (+https://squadalpha.es)')
                 ->timeout(5)
                 ->get(self::TSVIEWER_SERVER_URL, [
                     'page' => 'ts_viewer',

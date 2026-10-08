@@ -115,7 +115,7 @@ class CommunicationPreviewService
             'title' => $title,
             'message' => $message,
             'html' => $this->telegramMarkdownToHtml($message),
-            'note' => 'La previsualización utiliza datos de ejemplo. En los envíos reales NewSlot sustituye las variables y escoge un cierre aleatorio.',
+            'note' => 'La previsualización utiliza datos de ejemplo. En los envíos reales el sistema sustituye las variables y escoge un cierre aleatorio.',
         ];
     }
 

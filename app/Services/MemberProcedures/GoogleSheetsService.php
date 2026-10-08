@@ -479,7 +479,7 @@ class GoogleSheetsService
 
         $rowNumber = $this->findRowByWebId($spreadsheetId, $sheetTitle, (int) ($values[1] ?? 0));
         if ($rowNumber === null) {
-            throw new RuntimeException('Google Sheets creó la fila, pero NewSlot no pudo localizarla después por ID Web.');
+            throw new RuntimeException('Google Sheets creó la fila, pero no se pudo localizar después por ID Web.');
         }
 
         return $rowNumber;

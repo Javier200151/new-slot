@@ -209,7 +209,7 @@ class MemberProcedureSettingActions
 
                         $result = $telegram->sendMessage(
                             $chatId,
-                            '✅ NewSlot conectado correctamente con Telegram.',
+                            '✅ Conexión con Telegram verificada correctamente.',
                         );
 
                         Notification::make()

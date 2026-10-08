@@ -59,7 +59,7 @@ class MemberProcedureSettingForm
                     Grid::make(1)
                         ->schema([
                             Section::make('Configuración interna')
-                                ->description('Elementos de NewSlot utilizados automáticamente por los procedimientos.')
+                                ->description('Elementos utilizados automáticamente por los procedimientos.')
                                 ->schema([
                                     Select::make('alpha_metopa_id')
                                         ->label('Metopa de miembro ALPHA')
@@ -83,7 +83,7 @@ class MemberProcedureSettingForm
                                 ]),
 
                             Section::make('TeamSpeak 3')
-                                ->description('Gestión manual dentro de los Procedimientos. No se utilizan ServerQuery, WebQuery, credenciales ni identificadores TS3 en NewSlot.')
+                                ->description('Gestión manual dentro de los Procedimientos. No se utilizan ServerQuery, WebQuery, credenciales ni identificadores TS3 en la web.')
                                 ->schema([
                                     Placeholder::make('_teamspeak_manual_mode')
                                         ->hiddenLabel()
@@ -122,7 +122,7 @@ class MemberProcedureSettingForm
                                 ->columns(2),
 
                             Section::make('Telegram · mensajes automáticos')
-                                ->description('Plantillas enviadas a = ALPHA FORCE NETWORK =. Admiten MarkdownV2. Los cierres aleatorios funcionan como una ruleta: si hay varios, NewSlot escoge uno al realizar el envío real.')
+                                ->description('Plantillas enviadas a = ALPHA FORCE NETWORK =. Admiten MarkdownV2. Los cierres aleatorios funcionan como una ruleta: si hay varios, el sistema escoge uno al realizar el envío real.')
                                 ->schema([
                                     Textarea::make('telegram_recruit_update_template')
                                         ->label('Plantilla · actualización de reclutas')
@@ -198,7 +198,7 @@ class MemberProcedureSettingForm
                                         ->default([2, 5])
                                         ->required()
                                         ->live()
-                                        ->helperText('Si falta una actividad válida en cualquiera de estos días, NewSlot no permite enviar la actividad semanal.'),
+                                        ->helperText('Si falta una actividad válida en cualquiera de estos días, no se permite enviar la actividad semanal.'),
                                     Select::make('telegram_weekly_required_activity_type_ids')
                                         ->label('Tipos válidos en días obligatorios')
                                         ->multiple()
@@ -240,7 +240,7 @@ class MemberProcedureSettingForm
                     Grid::make(1)
                         ->schema([
                             Section::make('Google Sheets · registro de miembros')
-                                ->description('La integración usa una Service Account del servidor. Al completar reclutamiento, NewSlot crea/actualiza la fila por ID Web, la verifica y solo después permite purgar los datos personales del formulario.')
+                                ->description('La integración usa una Service Account del servidor. Al completar reclutamiento, el sistema crea/actualiza la fila por ID Web, la verifica y solo después permite purgar los datos personales del formulario.')
                                 ->schema([
                                     TextInput::make('google_spreadsheet_id')
                                         ->label('Spreadsheet ID')
@@ -316,7 +316,7 @@ class MemberProcedureSettingForm
                                         ->label('Prefijo de apodo ALPHA')
                                         ->default('[=ALPHA=] ')
                                         ->maxLength(16)
-                                        ->helperText('Al activar o reactivar un miembro, el bot deja el apodo como este prefijo + nick de NewSlot. Ejemplo: [=ALPHA=] Rylod.'),
+                                        ->helperText('Al activar o reactivar un miembro, el bot deja el apodo como este prefijo + nick del usuario. Ejemplo: [=ALPHA=] Rylod.'),
                                 ])->columns(2),
 
                             Section::make('Emails automáticos')

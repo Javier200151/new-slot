@@ -77,7 +77,7 @@ class LinkedAccountController extends Controller
                 ->exists();
 
             if ($conflict) {
-                return $this->warning('Esa cuenta de Discord ya está vinculada a otro usuario de NewSlot.');
+                return $this->warning('Esa cuenta de Discord ya está vinculada a otro usuario de Squad ALPHA.');
             }
 
             $currentDiscordId = trim((string) $user->discord_id);
@@ -98,7 +98,7 @@ class LinkedAccountController extends Controller
         } catch (QueryException $exception) {
             report($exception);
 
-            return $this->warning('Esa cuenta de Discord ya está vinculada a otro usuario de NewSlot.');
+            return $this->warning('Esa cuenta de Discord ya está vinculada a otro usuario de Squad ALPHA.');
         } catch (RuntimeException $exception) {
             report($exception);
 
@@ -173,7 +173,7 @@ class LinkedAccountController extends Controller
                 ->exists();
 
             if ($conflict) {
-                return $this->warning('Esa cuenta de Steam ya está vinculada a otro usuario de NewSlot.');
+                return $this->warning('Esa cuenta de Steam ya está vinculada a otro usuario de Squad ALPHA.');
             }
 
             $currentSteamId = trim((string) $user->steam_id);
@@ -194,7 +194,7 @@ class LinkedAccountController extends Controller
         } catch (QueryException $exception) {
             report($exception);
 
-            return $this->warning('Esa cuenta de Steam ya está vinculada a otro usuario de NewSlot.');
+            return $this->warning('Esa cuenta de Steam ya está vinculada a otro usuario de Squad ALPHA.');
         } catch (RuntimeException $exception) {
             report($exception);
 

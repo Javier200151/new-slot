@@ -117,7 +117,7 @@ class UserForm
                     ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? trim($state) : null)
                     ->validationMessages([
                         'regex' => 'El Discord ID debe ser el ID numérico de usuario (17 a 20 dígitos), no el nombre de usuario.',
-                        'unique' => 'Este Discord ID ya está asociado a otro usuario de NewSlot.',
+                        'unique' => 'Este Discord ID ya está asociado a otro usuario de Squad ALPHA.',
                     ])
                     ->helperText('Fallback administrativo. El flujo normal del usuario es Enlazar con Discord desde Mi perfil.'),
                 TextInput::make('steam_id')

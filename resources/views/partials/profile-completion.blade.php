@@ -23,7 +23,7 @@
         </div>
 
         <p>
-            Vincula Discord y Steam para que NewSlot obtenga automáticamente los identificadores usados por
+            Vincula Discord y Steam para obtener automáticamente los identificadores usados por
             Discord, ArmaSquads y los procedimientos de miembro.
         </p>
 

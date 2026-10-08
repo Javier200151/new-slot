@@ -34,7 +34,7 @@
                                         <h1 style="margin:0 0 14px;color:#f7f7f8;font-size:30px;line-height:1.2;font-weight:800;">Nueva consulta recibida</h1>
 
                                         <p style="margin:0;color:#adb4c0;font-size:15px;line-height:1.7;">
-                                            NewSlot ha recibido un nuevo mensaje de
+                                            Squad ALPHA ha recibido un nuevo mensaje de
                                             <strong style="color:#f59e0b;">{{ $submission->nickname }}</strong>.
                                         </p>
                                     </td>
@@ -89,7 +89,7 @@
                     <tr>
                         <td align="center" style="padding:28px 20px 0;">
                             <p style="margin:0 0 7px;color:#f59e0b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">REALISMO · DISCIPLINA · EQUIPO</p>
-                            <p style="margin:0;color:#6f7888;font-size:12px;line-height:1.6;">© {{ date('Y') }} Squad ALPHA · NewSlot</p>
+                            <p style="margin:0;color:#6f7888;font-size:12px;line-height:1.6;">© {{ date('Y') }} Squad ALPHA</p>
                         </td>
                     </tr>
                 </table>

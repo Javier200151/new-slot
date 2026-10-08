@@ -25,7 +25,7 @@ class HomepageSettingForm
                             Section::make('Contacto y alistamiento')
                                 ->description(
                                     'Controla si el formulario público admite solicitudes de alistamiento. '
-                                    . 'Todas las consultas y solicitudes se envían usando el SMTP configurado para NewSlot.'
+                                    . 'Todas las consultas y solicitudes se envían usando el SMTP configurado para Squad ALPHA.'
                                 )
                                 ->schema([
                                     Toggle::make('recruitment_open')
@@ -75,7 +75,7 @@ class HomepageSettingForm
                                         ->helperText('Puede editarse manualmente. El botón «Regenerar invitación Discord» sustituye este valor usando el bot.'),
                                     Toggle::make('discord_invite_auto_refresh')
                                         ->label('Renovar automáticamente la invitación de Discord')
-                                        ->helperText('NewSlot comprueba a diario la invitación y crea una nueva cuando queda menos de 24 h para caducar. Requiere un Canal ID configurado en Procedimientos → Config. procedimientos → Discord.')
+                                        ->helperText('El sistema comprueba a diario la invitación y crea una nueva cuando queda menos de 24 h para caducar. Requiere un Canal ID configurado en Procedimientos → Config. procedimientos → Discord.')
                                         ->columnSpanFull(),
                                 ])
                                 ->columns(2),

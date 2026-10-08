@@ -322,7 +322,7 @@ class TreasurySheetParser
             $stateRaw = trim((string) ($row[$stateIndex] ?? ''));
             $state = $this->normalize($stateRaw);
             $value = match (true) {
-                in_array($state, ['MIEMBRO', 'ACTIVO'], true) => 'X',
+                in_array($state, ['MIEMBRO', 'ACTIVO', 'RECLUTA'], true) => 'X',
                 $state === 'RESERVA' => 'R',
                 in_array($state, ['CESADO', 'CESE'], true) => '-',
                 default => null,

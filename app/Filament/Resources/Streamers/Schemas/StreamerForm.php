@@ -30,7 +30,7 @@ class StreamerForm
                     ->label('Habilitado como streamer')
                     ->helperText(
                         'Permite a este usuario aparecer en la sección pública de directos. '
-                        . 'Si tiene Twitch o YouTube configurado, NewSlot intentará detectar automáticamente cuándo está en directo '
+                        . 'Si tiene Twitch o YouTube configurado, el sistema intentará detectar automáticamente cuándo está en directo '
                         . 'y también incluirá sus últimos VODs en portada.'
                     )
                     ->default(false)
@@ -40,7 +40,7 @@ class StreamerForm
                     ->label('Canal de Twitch')
                     ->placeholder('https://www.twitch.tv/usuario')
                     ->helperText(
-                        'Con este enlace es suficiente. NewSlot detecta automáticamente si el canal está en directo y consulta sus VODs. '
+                        'Con este enlace es suficiente. El sistema detecta automáticamente si el canal está en directo y consulta sus VODs. '
                         . 'Twitch exige las credenciales globales TWITCH_CLIENT_ID y TWITCH_CLIENT_SECRET.'
                     )
                     ->url()
@@ -51,7 +51,7 @@ class StreamerForm
                     ->label('Canal de YouTube')
                     ->placeholder('https://www.youtube.com/@usuario')
                     ->helperText(
-                        'Con el enlace del canal es suficiente. NewSlot resuelve automáticamente el Channel ID, detecta si está en directo '
+                        'Con el enlace del canal es suficiente. El sistema resuelve automáticamente el Channel ID, detecta si está en directo '
                         . 'y consulta los últimos vídeos mediante el feed público de YouTube, sin API Key.'
                     )
                     ->url()

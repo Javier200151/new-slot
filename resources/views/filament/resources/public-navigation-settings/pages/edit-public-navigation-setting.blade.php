@@ -590,7 +590,7 @@
             <div>
                 <span>Enlace externo</span>
                 <strong>Añadir URL personalizada</strong>
-                <p>Úsalo para Wiki, documentación u otras páginas fuera de NewSlot. Después puedes arrastrarlo dentro de un desplegable.</p>
+                <p>Úsalo para Wiki, documentación u otras páginas externas a Squad ALPHA. Después puedes arrastrarlo dentro de un desplegable.</p>
             </div>
 
             <label>

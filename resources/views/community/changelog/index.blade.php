@@ -12,7 +12,7 @@
     <a class="community-kicker forum-back-link" href="{{ route('community.forum.home') }}">← Foro</a>
 
     <header class="changelog-page-head">
-        <span class="community-kicker">NEWSLOT</span>
+        <span class="community-kicker">SQUAD ALPHA</span>
         <h1 class="community-title">Changelog</h1>
     </header>
 

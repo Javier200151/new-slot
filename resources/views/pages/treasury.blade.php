@@ -72,7 +72,7 @@
                                 <span>Privado · Solo tú</span>
                                 <h2>Mi Tesorería</h2>
                             </div>
-                            <p>Datos asociados únicamente a tu nickname de NewSlot.</p>
+                            <p>Datos asociados únicamente a tu nickname.</p>
                         </header>
 
                         @if($treasuryMemberUnavailable)
@@ -81,7 +81,7 @@
                             </div>
                         @elseif(! ($treasuryMember['configured'] ?? false))
                             <div class="treasury-state treasury-state--compact treasury-private__state">
-                                Tesorería todavía no está conectada con NewSlot.
+                                Tesorería todavía no está conectada.
                             </div>
                         @elseif(! ($treasuryMember['found'] ?? false))
                             <div class="treasury-state treasury-state--compact treasury-private__state">
