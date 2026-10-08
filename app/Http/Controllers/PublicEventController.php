@@ -35,6 +35,8 @@ use App\Services\CommunityRouletteService;
 use App\Services\RecruitmentOfficialEventEligibilityService;
 use App\Support\ActivityTypeAccess;
 use App\Support\BriefingMarkup;
+use App\Support\BriefingSectionImages;
+use App\Support\RadioNetworkOrder;
 
 class PublicEventController extends Controller
 {
@@ -593,6 +595,9 @@ class PublicEventController extends Controller
                 $position = 'top';
             }
 
+            $images = BriefingSectionImages::forDisplay($section);
+            $firstImage = $images[0] ?? null;
+
             return [
                 'title' => BriefingMarkup::render(
                     $section['title'] ?? 'Descripción'
@@ -602,26 +607,19 @@ class PublicEventController extends Controller
                     $section['content'] ?? ''
                 ),
 
-                'image' => BriefingMarkup::imageUrl(
-                    $section['image'] ?? null
-                ),
+                'images' => $images,
 
-                'image_position' =>
-                    $position,
-
-                'image_alignment' =>
-                    $alignment,
-
-                'image_width' =>
-                    $width,
-
-                'image_caption' =>
-                    $section['image_caption'] ?? null,
+                // Compatibilidad temporal con vistas/consumidores de una imagen.
+                'image' => $firstImage['image'] ?? null,
+                'image_position' => $firstImage['image_position'] ?? $position,
+                'image_alignment' => $firstImage['image_alignment'] ?? $alignment,
+                'image_width' => $firstImage['image_width'] ?? $width,
+                'image_caption' => $firstImage['image_caption'] ?? ($section['image_caption'] ?? null),
             ];
         });
 
         $radioNetworks = ($activity->activityType?->usesRadio() ?? true)
-            ? collect($activity->radio['networks'] ?? [])
+            ? collect(RadioNetworkOrder::ordered($activity->radio['networks'] ?? []))
                 ->filter(fn (array $network): bool => (bool) ($network['visible'] ?? true))
                 ->values()
             : collect();
@@ -632,7 +630,6 @@ class PublicEventController extends Controller
         $addons = ($usesAddons && ! $isReforger)
             ? Addon::query()
                 ->whereIn('id', $activity->addons['addon_ids'] ?? [])
-                ->orderByDesc('mandatory')
                 ->orderBy('name')
                 ->get()
             : collect();

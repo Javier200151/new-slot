@@ -63,7 +63,7 @@ class BlockBConfigurationTest extends TestCase
 
         $this->assertTrue($media->isPhoto());
         $this->assertTrue($media->isLocal());
-        $this->assertSame('NewSlot', $media->getProviderName());
+        $this->assertSame('Squad ALPHA', $media->getProviderName());
         $this->assertSame('Foto', $media->getDisplayTitle());
     }
 }
