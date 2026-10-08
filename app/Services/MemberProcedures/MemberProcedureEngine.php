@@ -11,6 +11,7 @@ use App\Models\RecruitmentPeriod;
 use App\Models\SqaGroupUser;
 use App\Models\Status;
 use App\Models\User;
+use App\Services\Treasury\TreasuryService;
 use App\Services\UserMetopaAssignmentService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,7 @@ class MemberProcedureEngine
         private readonly MemberProcedureEmailService $emails,
         private readonly TelegramNotificationService $telegramNotifications,
         private readonly UserMetopaAssignmentService $metopas,
+        private readonly TreasuryService $treasury,
     ) {
     }
 
@@ -275,6 +277,7 @@ class MemberProcedureEngine
             'discord_alpha' => $this->discordRoleSync($procedure, $user, $setting, 'alpha'),
             'telegram_groups_email' => $this->sendTelegramGroupsEmail($procedure, $user, $setting),
             'treasury_member_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Alta de nuevo miembro', $user->nick . ' ha completado su reclutamiento y ha pasado a ACTIVO.'),
+            'treasury_player_sync' => $this->treasuryPlayerSync($procedure, $user, $setting),
 
             'not_promoted_validation' => $this->notPromotedValidation($user),
             'treasury_not_promoted_notice' => $this->notifyTreasury($procedure, $step, $setting, 'Recluta no promocionado', $user->nick . ' finaliza su reclutamiento sin promocionar a miembro.'),
@@ -305,6 +308,15 @@ class MemberProcedureEngine
 
             default => throw new LogicException('No existe automatización para el paso ' . $step->step_key . '.'),
         };
+    }
+
+    /** @return array{status:string,result:array<string,mixed>} */
+    private function treasuryPlayerSync(MemberProcedure $procedure, User $user, MemberProcedureSetting $setting): array
+    {
+        return [
+            'status' => MemberProcedureStep::STATUS_COMPLETED,
+            'result' => $this->treasury->syncProcedureUser($procedure, $user, $setting),
+        ];
     }
 
     private function dependenciesCompleted(MemberProcedure $procedure, MemberProcedureStep $step): bool

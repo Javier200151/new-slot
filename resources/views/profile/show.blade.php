@@ -331,13 +331,17 @@
                                 $quarterMissing = (float) ($treasuryMember['quarter_missing'] ?? 0);
                                 $quarterAvailable = (float) ($treasuryMember['quarter_available'] ?? 0);
                                 $displayBalance = (float) ($treasuryMember['display_balance'] ?? 0);
+                                $arrearsDue = (float) ($treasuryMember['arrears_due'] ?? 0);
+                                $quarterDue = (float) ($treasuryMember['quarter_due'] ?? $quarterMissing);
+                                $giftedMonths = (int) ($treasuryMember['gifted_months'] ?? 0);
+                                $pendingCurrentMonth = (float) ($treasuryMember['pending_current_month'] ?? 0);
                                 $balanceLabel = $quarterPaid
                                     ? 'Remanente tras cubrir el trimestre'
                                     : 'Disponible para completar el trimestre';
                                 $quarterStatus = $quarterPaid
                                     ? 'PAGADO'
                                     : ($quarterAvailable <= 0.00001
-                                        ? 'DEBE ' . number_format($quarterPrice, 2, ',', '.') . ' €'
+                                        ? 'DEBE ' . number_format($quarterMissing, 2, ',', '.') . ' €'
                                         : 'Faltan ' . number_format($quarterMissing, 2, ',', '.') . ' €');
                                 $lastPayment = $treasuryMember['last_payment'] ?? null;
                             @endphp
@@ -353,6 +357,9 @@
                                     <dd class="{{ $quarterClass }}">
                                         {{ $quarterStatus }}
                                         <span>{{ $quarterPeriod }} · Cuota {{ number_format($quarterPrice, 2, ',', '.') }} €</span>
+                                        @if($giftedMonths > 0)
+                                            <span>{{ $giftedMonths === 1 ? '1 mes regalado (G)' : $giftedMonths . ' meses regalados (G)' }}</span>
+                                        @endif
                                     </dd>
                                 </div>
 
@@ -368,6 +375,17 @@
                                     </dd>
                                 </div>
                             </dl>
+
+                            @if(! $quarterPaid && ($arrearsDue > 0.00001 || $pendingCurrentMonth > 0.00001))
+                                <p class="profile-treasury__concept">
+                                    @if($arrearsDue > 0.00001)
+                                        Pendiente anterior o del mes en curso: <strong>{{ number_format($arrearsDue, 2, ',', '.') }} €</strong>.
+                                    @endif
+                                    @if($quarterDue > 0.00001)
+                                        Para {{ $quarterLabel }}: <strong>{{ number_format($quarterDue, 2, ',', '.') }} €</strong>.
+                                    @endif
+                                </p>
+                            @endif
 
                             @if($lastPayment && filled($lastPayment['concept'] ?? null))
                                 <p class="profile-treasury__concept">

@@ -128,9 +128,7 @@ class TreasurySheetParser
         foreach (array_slice($playersRows, $playersHeaderRow + 1) as $row) {
             $rowNick = $this->normalize((string) ($row[$nickIndex] ?? ''));
 
-            // Tesorería no comparte identificadores con NewSlot. La unión entre
-            // ambos sistemas es únicamente el nickname, tal y como se gestiona
-            // en la hoja privada.
+            // La unión entre la web y Tesorería es únicamente el nickname.
             if ($rowNick !== '' && $rowNick === $normalizedNick) {
                 $player = $row;
                 break;
@@ -153,6 +151,148 @@ class TreasurySheetParser
             'next_quarter' => $this->duesStatus($duesRows, $nick),
             'last_payment' => $this->lastPayment($movementRows, $nick),
             'state' => $stateIndex !== null ? (trim((string) ($player[$stateIndex] ?? '')) ?: null) : null,
+        ];
+    }
+
+    /**
+     * Interpreta la tabla privada de Jugadores sin modificarla.
+     *
+     * @param  array<int, array<int, mixed>>  $rows
+     * @return array{
+     *     valid:bool,reason:?string,header_row:?int,nick_column:?string,state_column:?string,date_column:?string,
+     *     entries:array<int,array{row:int,id:?int,nick:string,state:string,date:mixed}>,next_row:?int
+     * }
+     */
+    public function playersTable(array $rows): array
+    {
+        [$headerRow, $headers] = $this->headers($rows, ['ID', 'NICK', 'ESTADO']);
+
+        if ($headerRow === null) {
+            return [
+                'valid' => false,
+                'reason' => 'No se encontró la cabecera de la pestaña Jugadores.',
+                'header_row' => null,
+                'nick_column' => null,
+                'state_column' => null,
+                'date_column' => null,
+                'entries' => [],
+                'next_row' => null,
+            ];
+        }
+
+        $idIndex = $this->headerIndex($headers, ['ID']);
+        $nickIndex = $this->headerIndex($headers, ['NICK', 'JUGADOR']);
+        $stateIndex = $this->headerIndex($headers, ['ESTADO']);
+        $dateIndex = $this->headerIndex($headers, ['FECHA ALTA', 'ALTA']);
+
+        if ($nickIndex === null || $stateIndex === null || $dateIndex === null) {
+            return [
+                'valid' => false,
+                'reason' => 'Faltan Nick, Estado o Fecha alta en la pestaña Jugadores.',
+                'header_row' => $headerRow + 1,
+                'nick_column' => $nickIndex !== null ? $this->columnLetter($nickIndex + 1) : null,
+                'state_column' => $stateIndex !== null ? $this->columnLetter($stateIndex + 1) : null,
+                'date_column' => $dateIndex !== null ? $this->columnLetter($dateIndex + 1) : null,
+                'entries' => [],
+                'next_row' => null,
+            ];
+        }
+
+        $entries = [];
+        $lastOccupiedRow = $headerRow + 1;
+
+        foreach (array_slice($rows, $headerRow + 1) as $offset => $row) {
+            $sheetRow = $headerRow + 2 + $offset;
+            $nick = trim((string) ($row[$nickIndex] ?? ''));
+
+            if ($nick === '') {
+                continue;
+            }
+
+            $lastOccupiedRow = max($lastOccupiedRow, $sheetRow);
+            $id = $idIndex !== null ? (int) ($row[$idIndex] ?? 0) : 0;
+
+            $entries[] = [
+                'row' => $sheetRow,
+                'id' => $id > 0 ? $id : null,
+                'nick' => $nick,
+                'state' => trim((string) ($row[$stateIndex] ?? '')),
+                'date' => $row[$dateIndex] ?? null,
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'reason' => null,
+            'header_row' => $headerRow + 1,
+            'nick_column' => $this->columnLetter($nickIndex + 1),
+            'state_column' => $this->columnLetter($stateIndex + 1),
+            'date_column' => $this->columnLetter($dateIndex + 1),
+            'entries' => $entries,
+            // Se escribe siempre después del último nick real, nunca rellenando
+            // huecos intermedios que puedan haberse dejado a propósito.
+            'next_row' => $lastOccupiedRow + 1,
+        ];
+    }
+
+    /**
+     * Comprueba si el usuario tiene registrada una señal real de al menos 6 €.
+     * Se suman varios movimientos de tipo Señal por si el pago se fraccionó.
+     *
+     * @param  array<int, array<int, mixed>>  $rows
+     * @return array{paid:bool,total:float,count:int,last_date:?string}
+     */
+    public function signalPayment(array $rows, string $nick): array
+    {
+        [$headerRow, $headers] = $this->headers($rows, ['FECHA', 'TIPO', 'IMPORTE']);
+        if ($headerRow === null) {
+            return ['paid' => false, 'total' => 0.0, 'count' => 0, 'last_date' => null];
+        }
+
+        $dateIndex = $this->headerIndex($headers, ['FECHA']);
+        $typeIndex = $this->headerIndex($headers, ['TIPO']);
+        $playerIndex = $this->headerIndex($headers, ['JUGADOR ID NICK', 'JUGADOR']);
+        $amountIndex = $this->headerIndex($headers, ['IMPORTE', 'IMPORTE EUR']);
+
+        if ($typeIndex === null || $playerIndex === null || $amountIndex === null) {
+            return ['paid' => false, 'total' => 0.0, 'count' => 0, 'last_date' => null];
+        }
+
+        $normalizedNick = $this->normalize($nick);
+        $total = 0.0;
+        $count = 0;
+        $lastDate = null;
+
+        foreach (array_slice($rows, $headerRow + 1) as $row) {
+            if ($this->normalize((string) ($row[$typeIndex] ?? '')) !== 'SENAL') {
+                continue;
+            }
+
+            if (! $this->movementNickMatches((string) ($row[$playerIndex] ?? ''), $normalizedNick)) {
+                continue;
+            }
+
+            $amount = $this->number($row[$amountIndex] ?? null);
+            if ($amount === null || $amount <= 0) {
+                continue;
+            }
+
+            $total += $amount;
+            $count++;
+
+            if ($dateIndex !== null) {
+                $date = $this->date($row[$dateIndex] ?? null);
+                if ($date && ($lastDate === null || $date->format('Y-m-d') > $lastDate)) {
+                    $lastDate = $date->format('Y-m-d');
+                }
+            }
+        }
+
+        return [
+            'paid' => $total >= 6.0 - 0.00001,
+            'total' => round($total, 2),
+            'count' => $count,
+            'last_date' => $lastDate,
         ];
     }
 
@@ -277,7 +417,8 @@ class TreasurySheetParser
      * @return array{
      *     quarter:int,quarter_year:int,quarter_label:string,quarter_period:string,
      *     quarter_price:float,quarter_paid:bool,quarter_missing:float,
-     *     quarter_available:float,display_balance:float,consumed_months:int
+     *     quarter_available:float,display_balance:float,consumed_months:int,
+     *     gifted_months:int,excluded_months:int,billable_months:int,pending_current_month:float,arrears_due:float,quarter_due:float
      * }
      */
     public function quarterlyBalance(
@@ -290,10 +431,13 @@ class TreasurySheetParser
         $quarterPrice = 9.0;
         $rawRemanent = (float) ($remanent ?? 0.0);
         $consumedMonths = 0;
+        $giftedMonths = 0;
+        $excludedMonths = 0;
+        $pendingCurrentMonth = 0.0;
 
         [$headerRow, $headers] = $this->headers($controlRows, ['JUGADOR', 'ENE', 'DIC']);
 
-        if ($headerRow !== null && $target['year'] === (int) $date->year) {
+        if ($headerRow !== null) {
             $controlYear = null;
             foreach (array_slice($controlRows, 0, $headerRow + 1) as $row) {
                 foreach ($row as $value) {
@@ -304,7 +448,7 @@ class TreasurySheetParser
                 }
             }
 
-            if ($controlYear === $target['year']) {
+            if ($controlYear === (int) $date->year) {
                 $nickIndex = $this->headerIndex($headers, ['JUGADOR', 'NICK']);
                 $normalizedNick = $this->normalize($nick);
                 $memberRow = null;
@@ -319,26 +463,74 @@ class TreasurySheetParser
                 }
 
                 if (is_array($memberRow)) {
-                    foreach ($target['months'] as $month) {
-                        $monthIndex = $this->headerIndex($headers, [$month]);
-                        if ($monthIndex === null) {
-                            continue;
+                    if ($target['year'] === (int) $date->year) {
+                        foreach ($target['months'] as $month) {
+                            $monthIndex = $this->headerIndex($headers, [$month]);
+                            if ($monthIndex === null) {
+                                continue;
+                            }
+
+                            $rawMarker = trim((string) ($memberRow[$monthIndex] ?? ''));
+                            $marker = $this->normalize($rawMarker);
+
+                            if ($marker === 'X') {
+                                $consumedMonths++;
+                            }
+
+                            if ($marker === 'G') {
+                                // G = mes regalado manualmente por Tesorería. No consume
+                                // remanente y tampoco forma parte del importe exigible.
+                                $giftedMonths++;
+                                $excludedMonths++;
+                                continue;
+                            }
+
+                            if ($rawMarker === '-' || $marker === 'R') {
+                                $excludedMonths++;
+                            }
                         }
 
-                        if ($this->normalize((string) ($memberRow[$monthIndex] ?? '')) === 'X') {
-                            $consumedMonths++;
+                        $quarterPrice = max(0.0, (3 - $excludedMonths) * 3.0);
+                    }
+
+                    // MAR/JUN/SEP/DIC son meses de cobro del siguiente trimestre.
+                    // Hasta que llegue el día 15, la X del mes actual todavía puede
+                    // estar vacía. Reservamos esos 3 € antes de calcular cuánto saldo
+                    // queda realmente disponible para el trimestre siguiente.
+                    if (in_array((int) $date->month, [3, 6, 9, 12], true)) {
+                        $currentMonths = [
+                            3 => 'MAR', 6 => 'JUN', 9 => 'SEP', 12 => 'DIC',
+                        ];
+                        $currentMonth = $currentMonths[(int) $date->month];
+                        $currentIndex = $this->headerIndex($headers, [$currentMonth]);
+                        $stateIndex = $this->headerIndex($headers, ['ESTADO']);
+                        $state = $stateIndex !== null
+                            ? $this->normalize((string) ($memberRow[$stateIndex] ?? ''))
+                            : '';
+                        $currentRaw = $currentIndex !== null
+                            ? trim((string) ($memberRow[$currentIndex] ?? ''))
+                            : '';
+
+                        if (
+                            $currentRaw === ''
+                            && in_array($state, ['MIEMBRO', 'ACTIVO', 'RECLUTA'], true)
+                        ) {
+                            $pendingCurrentMonth = 3.0;
                         }
                     }
                 }
             }
         }
 
-        $quarterAvailable = $rawRemanent + ($consumedMonths * 3.0);
-        $quarterPaid = $quarterAvailable >= $quarterPrice;
-        $quarterMissing = max(0.0, $quarterPrice - $quarterAvailable);
+        $quarterAvailable = $rawRemanent + ($consumedMonths * 3.0) - $pendingCurrentMonth;
+        $arrearsDue = max(0.0, -$quarterAvailable);
+        $usableForQuarter = max(0.0, $quarterAvailable);
+        $quarterDue = max(0.0, $quarterPrice - $usableForQuarter);
+        $quarterMissing = $arrearsDue + $quarterDue;
+        $quarterPaid = $quarterMissing <= 0.00001;
         $displayBalance = $quarterPaid
-            ? max(0.0, $quarterAvailable - $quarterPrice)
-            : max(0.0, $quarterAvailable);
+            ? max(0.0, $usableForQuarter - $quarterPrice)
+            : $usableForQuarter;
 
         return [
             'quarter' => $target['quarter'],
@@ -351,6 +543,12 @@ class TreasurySheetParser
             'quarter_available' => max(0.0, $quarterAvailable),
             'display_balance' => $displayBalance,
             'consumed_months' => $consumedMonths,
+            'gifted_months' => $giftedMonths,
+            'excluded_months' => $excludedMonths,
+            'billable_months' => max(0, 3 - $excludedMonths),
+            'pending_current_month' => $pendingCurrentMonth,
+            'arrears_due' => $arrearsDue,
+            'quarter_due' => $quarterDue,
         ];
     }
 
