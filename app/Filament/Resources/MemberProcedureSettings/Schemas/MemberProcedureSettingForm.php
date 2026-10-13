@@ -5,6 +5,7 @@ namespace App\Filament\Resources\MemberProcedureSettings\Schemas;
 use App\Filament\Resources\MemberProcedureSettings\Support\MemberProcedureSettingActions;
 use App\Models\ActivityType;
 use App\Models\EventStatus;
+use App\Models\MemberProcedureSetting;
 use App\Models\Metopa;
 use App\Models\SqaGroup;
 use App\Services\MemberProcedures\CommunicationPreviewService;
