@@ -175,6 +175,23 @@ class PermissionsSeeder extends Seeder
                 }
             });
 
+        $taskAreaRole = Role::firstOrCreate([
+            'name' => 'area de tareas',
+            'guard_name' => $guard,
+        ]);
+
+        $taskAreaDefaultPermissions = [
+            'filament.access',
+            'task-area.access',
+        ];
+
+        if (
+            $taskAreaRole->wasRecentlyCreated
+            || array_intersect($taskAreaDefaultPermissions, $newPermissionNames) !== []
+        ) {
+            $taskAreaRole->givePermissionTo($taskAreaDefaultPermissions);
+        }
+
         $treasuryRole = Role::firstOrCreate([
             'name' => 'tesoreria',
             'guard_name' => $guard,

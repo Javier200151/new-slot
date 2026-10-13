@@ -99,6 +99,16 @@ class ProfileController extends Controller
                     'before_or_equal:today',
                 ],
 
+                'birthday_public' => [
+                    'nullable',
+                    'boolean',
+                ],
+
+                'birthday_visibility_reviewed' => [
+                    'nullable',
+                    'boolean',
+                ],
+
                 'image' => [
                     'nullable',
                     File::image()
@@ -152,7 +162,12 @@ class ProfileController extends Controller
                 'email' => $newEmail,
                 'quote' => $validated['quote'] ?? null,
                 'birth_at' => $validated['birth_at'] ?? null,
+                'birthday_public' => $request->boolean('birthday_public'),
             ]);
+
+            if ($request->boolean('birthday_visibility_reviewed')) {
+                $user->birthday_visibility_confirmed_at = now();
+            }
 
             if ($newImage !== null) {
                 $user->image = $newImage;

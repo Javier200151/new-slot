@@ -504,6 +504,31 @@
                                     @enderror
                                 </div>
 
+                                <div class="profile-field" id="profile-birthday-visibility">
+                                    <input type="hidden" name="birthday_visibility_reviewed" value="1">
+                                    <label for="birthday_public">
+                                        Visibilidad del cumpleaños
+                                    </label>
+
+                                    <label class="profile-checkbox" for="birthday_public">
+                                        <input
+                                            id="birthday_public"
+                                            name="birthday_public"
+                                            type="checkbox"
+                                            value="1"
+                                            @checked(old('birthday_public', $user->birthday_public ?? false))
+                                        >
+                                        <span>Hacer público mi cumpleaños</span>
+                                    </label>
+
+                                    <small>
+                                        Si lo desactivas, no se avisará al resto de miembros cuando llegue tu cumpleaños.
+                                        @if(blank($user->birthday_visibility_confirmed_at))
+                                            Guarda el perfil para confirmar por primera vez esta preferencia.
+                                        @endif
+                                    </small>
+                                </div>
+
                                 <div class="profile-field">
                                     <label for="image">
                                         Imagen de perfil

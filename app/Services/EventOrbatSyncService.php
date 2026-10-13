@@ -10,12 +10,13 @@ use App\Notifications\EventSlotChangedNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Support\OrbatGlobalCommand;
 
 class EventOrbatSyncService
 {
     public function preview(Event $event): array
     {
-        $event->loadMissing(['activity', 'slots.user', 'slots.ally']);
+        $event->loadMissing(['activity.activityType.requiredOrbatSlotType', 'slots.user', 'slots.ally']);
 
         if (! $event->activity) {
             throw ValidationException::withMessages([
@@ -25,7 +26,7 @@ class EventOrbatSyncService
 
         $newOrbat = $event->activity->orbat ?? ['groups' => []];
         $slotMap = $this->slotMap($newOrbat);
-        $this->assertValidSlotKeys($newOrbat, $slotMap);
+        $this->assertValidSlotKeys($newOrbat, $slotMap, $event->activity?->activityType);
 
         $removedAssignments = $event->slots
             ->filter(fn (EventSlot $slot): bool => ! $slotMap->has((string) $slot->slot_key))
@@ -100,7 +101,7 @@ class EventOrbatSyncService
         $result = DB::transaction(function () use ($event, $actor, &$notifications): array {
             $lockedEvent = Event::query()
                 ->whereKey($event->id)
-                ->with(['activity'])
+                ->with(['activity.activityType.requiredOrbatSlotType'])
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -114,7 +115,7 @@ class EventOrbatSyncService
 
             $newOrbat = $lockedEvent->activity->orbat ?? ['groups' => []];
             $slotMap = $this->slotMap($newOrbat);
-            $this->assertValidSlotKeys($newOrbat, $slotMap);
+            $this->assertValidSlotKeys($newOrbat, $slotMap, $lockedEvent->activity?->activityType);
 
             $slots = EventSlot::query()
                 ->where('event_id', $lockedEvent->id)
@@ -231,8 +232,17 @@ class EventOrbatSyncService
             ->keyBy('slot_key');
     }
 
-    private function assertValidSlotKeys(array $orbat, Collection $slotMap): void
+    private function assertValidSlotKeys(array $orbat, Collection $slotMap, ?\App\Models\ActivityType $activityType): void
     {
+        if (
+            OrbatGlobalCommand::hasRequirement($activityType)
+            && OrbatGlobalCommand::count($orbat, $activityType) < 1
+        ) {
+            throw ValidationException::withMessages([
+                'orbat' => OrbatGlobalCommand::validationMessage($activityType),
+            ]);
+        }
+
         $slots = collect($orbat['groups'] ?? [])
             ->flatMap(fn (array $group): array => $group['slots'] ?? []);
         $keys = $slots

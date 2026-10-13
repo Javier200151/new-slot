@@ -1992,8 +1992,8 @@
                         <strong>
                             {{ $radioNetworks->count() }}
                             {{ $radioNetworks->count() === 1
-                                ? 'red'
-                                : 'redes' }}
+                                ? 'malla'
+                                : 'mallas' }}
                         </strong>
                     </summary>
 
@@ -2002,7 +2002,7 @@
                             <table class="event-detail__table">
                                 <thead>
                                     <tr>
-                                        <th>Red</th>
+                                        <th>Malla</th>
                                         <th>Radio</th>
                                         <th>Configuración</th>
                                         <th>Notas</th>

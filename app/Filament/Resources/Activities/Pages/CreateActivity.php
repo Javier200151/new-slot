@@ -8,6 +8,8 @@ use App\Services\AuditLogger;
 use App\Support\ActivityTypeAccess;
 use App\Support\ActivityEditorSelection;
 use App\Support\ActivityTypeConfiguration;
+use App\Support\OrbatGlobalCommand;
+use App\Models\ActivityStatus;
 use Illuminate\Validation\ValidationException;
 
 class CreateActivity extends CreateRecord
@@ -44,6 +46,24 @@ class CreateActivity extends CreateRecord
             throw ValidationException::withMessages([
                 'data.activity_type_id' =>
                     'No tienes permiso para crear actividades de este tipo.',
+            ]);
+        }
+
+        $activityType = ActivityTypeConfiguration::find($activityTypeId);
+        $targetStatus = ActivityStatus::query()
+            ->whereKey($data['activity_status_id'] ?? null)
+            ->value('name');
+
+        if (
+            ($activityType?->usesOrbat() ?? true)
+            && OrbatGlobalCommand::hasRequirement($activityType)
+            && $targetStatus !== 'BORRADOR'
+        ) {
+            throw ValidationException::withMessages([
+                'data.activity_status_id' =>
+                    'Este tipo de actividad exige un slot ORBAT obligatorio ('
+                    . OrbatGlobalCommand::requiredSlotName($activityType)
+                    . '). Crea primero la actividad en BORRADOR, configura el ORBAT y después publícala.',
             ]);
         }
 

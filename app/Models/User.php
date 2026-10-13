@@ -41,12 +41,10 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'quote',
         'image',
         'discord_id',
-        'discord_username',
-        'discord_linked_at',
         'steam_id',
-        'steam_linked_at',
-        'steam_profile_url',
         'birth_at',
+        'birthday_public',
+        'birthday_visibility_confirmed_at',
         'tutor_id',
         'member_at',
         'created_by',
@@ -59,24 +57,13 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             'password' => 'hashed',
             'email_verified_at' => 'datetime',
             'birth_at' => 'date',
+            'birthday_public' => 'boolean',
+            'birthday_visibility_confirmed_at' => 'datetime',
             'member_at' => 'date',
-            'discord_linked_at' => 'datetime',
-            'steam_linked_at' => 'datetime',
             'is_protected_admin' => 'boolean',
             'forum_unread_baseline_at' => 'datetime',
             'diary_unread_baseline_at' => 'datetime',
         ];
-    }
-
-    protected function discordId(): Attribute
-    {
-        return Attribute::make(
-            set: function (mixed $value): ?string {
-                $value = trim((string) $value);
-
-                return $value !== '' ? $value : null;
-            },
-        );
     }
 
     protected function steamId(): Attribute
@@ -139,6 +126,10 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     protected static function booted(): void
     {
         static::updating(function (User $user): void {
+            if ($user->isDirty('birthday_public') && ! $user->isDirty('birthday_visibility_confirmed_at')) {
+                $user->birthday_visibility_confirmed_at = now();
+            }
+
             // Si una instalación histórica todavía identifica al administrador
             // principal solo por ADMIN_EMAIL, persistimos la marca antes de que
             // el propio propietario pueda cambiar ese correo.
@@ -147,19 +138,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             }
 
             app(ProtectedAdminGuard::class)->authorize($user);
-        });
-
-
-        static::updating(function (User $user): void {
-            if ($user->isDirty('discord_id') && ! $user->isDirty('discord_linked_at')) {
-                $user->discord_username = null;
-                $user->discord_linked_at = null;
-            }
-
-            if ($user->isDirty('steam_id') && ! $user->isDirty('steam_linked_at')) {
-                $user->steam_linked_at = null;
-                $user->steam_profile_url = null;
-            }
         });
 
         static::deleting(function (User $user): void {

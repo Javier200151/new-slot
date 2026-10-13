@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\Auditable;
 use App\Services\SqaGroupDiscordSyncService;
+use App\Services\SqaGroupLocalRoleSyncService;
 
 class SqaGroup extends Model
 {
@@ -46,10 +47,12 @@ class SqaGroup extends Model
 
         static::deleted(function (self $group): void {
             app(SqaGroupDiscordSyncService::class)->groupDeleted($group);
+            app(SqaGroupLocalRoleSyncService::class)->groupDeleted($group);
         });
 
         static::restored(function (self $group): void {
             app(SqaGroupDiscordSyncService::class)->groupRestored($group);
+            app(SqaGroupLocalRoleSyncService::class)->groupRestored($group);
         });
 
         static::saved(function (self $group): void {
@@ -85,6 +88,12 @@ class SqaGroup extends Model
             ])
             ->withTimestamps()
             ->wherePivotNull('deleted_at');
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'sqa_group_roles')
+            ->withTimestamps();
     }
 
     public function coordinatorAssignment()

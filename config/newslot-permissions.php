@@ -39,6 +39,12 @@ return [
                         'update' => 'Modificar configuración',
                     ],
                 ],
+                'task-area' => [
+                    'label' => 'Área de tareas',
+                    'actions' => [
+                        'access' => 'Acceso y gestión del tablero de tareas',
+                    ],
+                ],
             ],
         ],
 

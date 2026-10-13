@@ -48,6 +48,14 @@ class SqaGroupForm
                     ->helperText('Si se desactiva, el organigrama no mostrará ningún puesto de coordinador para este grupo. Úsalo en grupos donde las decisiones se toman de forma colegiada.')
                     ->default(true),
 
+                Select::make('roles')
+                    ->label('Roles de la web')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->helperText('Opcional. Al añadir un usuario a este Grupo SQA se le asignarán automáticamente estos roles de Squad ALPHA. Al salir del grupo se retirarán los roles que procedan del grupo, salvo que otro Grupo SQA también los mantenga.'),
+
                 Select::make('discord_role_id')
                     ->label('Rol de Discord')
                     ->options(fn (?SqaGroup $record): array => self::discordRoleOptions($record?->discord_role_id))

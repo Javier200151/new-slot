@@ -18,6 +18,7 @@ class BirthdayNotificationService
         $birthdayUsers = User::query()
             ->with('status')
             ->whereNotNull('birth_at')
+            ->where('birthday_public', true)
             ->whereMonth('birth_at', $today->month)
             ->whereDay('birth_at', $today->day)
             ->whereHas('status', fn ($query) => $query->whereIn('name', ['ACTIVO', 'RESERVA']))
