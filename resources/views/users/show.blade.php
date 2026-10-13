@@ -181,6 +181,18 @@
                         </div>
 
                         <div>
+                            <dt>Tutor</dt>
+                            <dd>
+                                @php($tutor = $user->currentRecruitmentPeriod?->tutor ?? $user->tutor)
+                                @if($tutor)
+                                    <a href="{{ route('users.show', ['user' => $tutor->nick]) }}">{{ $tutor->nick }}</a>
+                                @else
+                                    Sin tutor asignado
+                                @endif
+                            </dd>
+                        </div>
+
+                        <div>
                             <dt>Tiempo efectivo como ACTIVO</dt>
                             <dd>{{ number_format((int) ($veterancy['effective_days'] ?? 0), 0, ',', '.') }} días</dd>
                         </div>
