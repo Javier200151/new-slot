@@ -128,6 +128,8 @@ class PublicUserController extends Controller
             'promo',
             'sqaGroups',
             'mainSqaGroup',
+            'currentRecruitmentPeriod.tutor',
+            'tutor',
             'metopas.sqaGroup',
         ]);
 
