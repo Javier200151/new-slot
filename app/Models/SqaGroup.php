@@ -22,6 +22,7 @@ class SqaGroup extends Model
         'display_order',
         'show_in_organization',
         'has_coordinator_role',
+        'coordinator_role_id',
         'discord_role_id',
     ];
 
@@ -94,6 +95,11 @@ class SqaGroup extends Model
     {
         return $this->belongsToMany(Role::class, 'sqa_group_roles')
             ->withTimestamps();
+    }
+
+    public function coordinatorWebRole()
+    {
+        return $this->belongsTo(Role::class, 'coordinator_role_id');
     }
 
     public function coordinatorAssignment()

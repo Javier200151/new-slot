@@ -149,7 +149,6 @@ return [
                     'label' => 'ORBAT',
                     'scope' => 'activity_type',
                     'actions' => [
-                        'manage' => 'Manejar ORBAT',
                     ],
                 ],
 

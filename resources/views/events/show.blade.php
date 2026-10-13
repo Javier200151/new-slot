@@ -1395,7 +1395,9 @@
                                                 $isOrbatManager =
                                                     $canManageOrbat
                                                     && $event->eventStatus?->name === 'ACTIVO'
-                                                    && filled($slotKey);
+                                                    && filled($slotKey)
+                                                    && (! $assignment?->user_id || \App\Support\OrbatAssignmentAccess::canAssignUser(auth()->user(), $event, $assignment->user))
+                                                    && (! $assignment?->ally_id || \App\Support\OrbatAssignmentAccess::canAssignAlly(auth()->user(), $event));
                                             @endphp
 
                                             <div
@@ -1784,7 +1786,7 @@
                                                     </strong>
 
                                                     <small>
-                                                        {{ $assignableUser->getAttribute('is_event_reservation') ? 'Reserva · Miembro' : 'Miembro' }}
+                                                        {{ $assignableUser->getAttribute('is_event_reservation') ? 'Reserva · ' : '' }}{{ $assignableUser->status?->name ?? 'Sin estado' }}
                                                     </small>
                                                 </span>
                                             </button>

@@ -59,6 +59,9 @@ class EditActivity extends EditRecord
 
     private ?array $orbatFactionOptionsCache = null;
 
+    /** ORBAT validado a la espera de confirmación explícita, sin escribir en la BD. */
+    public ?array $pendingOrbatConfirmation = null;
+
 
     /**
      * Capacidades de los modelos de radio durante la petición Livewire actual.
@@ -1116,6 +1119,29 @@ JS;
                     ->success()
                     ->send();
             }),
+            Action::make('confirmMultipleRequiredOrbatSlot')
+                ->label('Confirmación de ORBAT')
+                ->extraAttributes(['class' => 'hidden'])
+                ->modalHeading('Confirmar ORBAT')
+                ->modalDescription(fn (): string => OrbatGlobalCommand::secondSlotQuestion($this->record->activityType)
+                    . ' Se han añadido varios slots del tipo obligatorio. ¿Quieres guardar igualmente el ORBAT?')
+                ->modalSubmitActionLabel('Estoy seguro')
+                ->modalCancelActionLabel('Cancelar')
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    $orbat = $this->pendingOrbatConfirmation;
+                    if (! is_array($orbat)) {
+                        return;
+                    }
+                    $this->record->forceFill(['orbat' => $orbat])->save();
+                    $this->pendingOrbatConfirmation = null;
+                    Notification::make()->success()->title('ORBAT guardado')->send();
+                })
+                ->modalCancelAction(fn (Action $action) => $action->action(function (): void {
+                    // No guardar: recuperamos el borrador en el editor.
+                    $this->mountAction('editOrbat');
+                })),
+
             Action::make('editOrbat')
                 ->label('Editar ORBAT')
                 ->visible(fn (): bool => $this->record->activityType?->usesOrbat() ?? true)
@@ -1130,23 +1156,13 @@ JS;
                     $data = SlotQuickSelection::prepareOrbat(
                         $this->record->orbat ?? ['groups' => []]
                     );
-                    $data['confirm_multiple_required_slot'] = false;
+                    if (is_array($this->pendingOrbatConfirmation)) {
+                        $data = SlotQuickSelection::prepareOrbat($this->pendingOrbatConfirmation);
+                    }
 
                     return $data;
                 })
                 ->form([
-                    Toggle::make('confirm_multiple_required_slot')
-                        ->label(fn (): string => OrbatGlobalCommand::secondSlotQuestion($this->record->activityType))
-                        ->helperText(fn (): string => 'Este tipo de actividad exige al menos un slot "'
-                            . OrbatGlobalCommand::requiredSlotName($this->record->activityType)
-                            . '". Activa esta confirmación únicamente si necesitas colocar más de uno.')
-                        ->visible(fn (Get $get): bool => OrbatGlobalCommand::countEditorGroups(
-                            $get('groups') ?? [],
-                            $this->record->activityType,
-                        ) > 1)
-                        ->default(false)
-                        ->columnSpanFull(),
-
                     Repeater::make('groups')
                         ->label('Grupos')
                         ->columns(12)
@@ -1632,17 +1648,14 @@ JS;
                         ]);
                     }
 
-                    if (
-                        OrbatGlobalCommand::hasRequirement($activityType)
-                        && $requiredSlotCount > 1
-                        && ! (bool) ($data['confirm_multiple_required_slot'] ?? false)
-                    ) {
-                        throw ValidationException::withMessages([
-                            'confirm_multiple_required_slot' => OrbatGlobalCommand::secondSlotQuestion($activityType)
-                                . ' Activa esta confirmación para guardar más de uno.',
-                        ]);
+                    if (OrbatGlobalCommand::hasRequirement($activityType) && $requiredSlotCount > 1) {
+                        // En este punto Guardar no persiste nada: solicita confirmación.
+                        $this->pendingOrbatConfirmation = $orbat;
+                        $this->mountAction('confirmMultipleRequiredOrbatSlot');
+                        return;
                     }
 
+                    $this->pendingOrbatConfirmation = null;
                     $this->record->forceFill([
                         'orbat' => $orbat,
                     ])->save();

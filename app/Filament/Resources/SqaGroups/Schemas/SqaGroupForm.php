@@ -48,6 +48,15 @@ class SqaGroupForm
                     ->helperText('Si se desactiva, el organigrama no mostrará ningún puesto de coordinador para este grupo. Úsalo en grupos donde las decisiones se toman de forma colegiada.')
                     ->default(true),
 
+                Select::make('coordinator_role_id')
+                    ->label('Rol web exclusivo del coordinador')
+                    ->relationship('coordinatorWebRole', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->visible(fn ($get): bool => (bool) $get('has_coordinator_role'))
+                    ->helperText('Solo se asigna al coordinador del grupo, además de los roles comunes. Al cambiar de coordinador se retira al anterior si no dispone del rol por otra vía.'),
+
                 Select::make('roles')
                     ->label('Roles de la web')
                     ->relationship('roles', 'name')
