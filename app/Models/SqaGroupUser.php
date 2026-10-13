@@ -49,6 +49,9 @@ class SqaGroupUser extends Model
         });
 
         static::updated(function (self $sqaGroupUser): void {
+            if ($sqaGroupUser->wasChanged('coordinator')) {
+                app(SqaGroupLocalRoleSyncService::class)->syncGroupNow($sqaGroupUser->sqaGroup);
+            }
             if ($sqaGroupUser->wasChanged(['user_id', 'sqa_group_id'])) {
                 app(SqaGroupDiscordSyncService::class)->membershipChanged($sqaGroupUser);
                 app(SqaGroupLocalRoleSyncService::class)->membershipChanged($sqaGroupUser);

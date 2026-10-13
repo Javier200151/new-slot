@@ -34,6 +34,7 @@ use App\Services\CourseMetopaAwardService;
 use App\Services\CommunityRouletteService;
 use App\Services\RecruitmentOfficialEventEligibilityService;
 use App\Support\ActivityTypeAccess;
+use App\Support\OrbatAssignmentAccess;
 use App\Support\BriefingMarkup;
 use App\Support\BriefingSectionImages;
 use App\Support\RadioNetworkOrder;
@@ -348,6 +349,7 @@ class PublicEventController extends Controller
 
             $orbatAssignableUsers =
                 User::query()
+                    ->with('status:id,name')
                     ->when(
                         $assignedUserIds !== [],
                         fn ($query) =>
@@ -362,10 +364,14 @@ class PublicEventController extends Controller
                             ->where('review_type', RecruitmentReentryReview::TYPE_RESERVE_TO_ACTIVE)
                             ->whereNull('resolved_at')
                     )
+                    ->whereIn('status_id', collect(\App\Models\Status::query()->pluck('id'))
+                        ->filter(fn ($id) => ActivityTypeAccess::can(auth()->user(), 'event-orbat', 'assign-status-' . $id, $event->activity?->activity_type_id))
+                        ->all())
                     ->orderBy('nick')
                     ->get([
                         'id',
                         'nick',
+                        'status_id',
                     ])
                     ->each(function (User $candidate) use ($reservedUserIds): void {
                         $candidate->setAttribute(
@@ -385,6 +391,7 @@ class PublicEventController extends Controller
 
             $orbatAssignableAllies =
                 Ally::query()
+                    ->when(! OrbatAssignmentAccess::canAssignAlly(auth()->user(), $event), fn ($query) => $query->whereRaw('1 = 0'))
                     ->orderBy('name')
                     ->get([
                         'id',
@@ -1383,6 +1390,13 @@ class PublicEventController extends Controller
 
         if ($validated['action'] === 'clear') {
 
+            if ($targetSlot?->ally_id && ! OrbatAssignmentAccess::canAssignAlly($manager, $lockedEvent)) {
+                throw ValidationException::withMessages(['slot' => 'No tienes permiso para retirar aliados del ORBAT.']);
+            }
+            if ($targetSlot?->user && ! OrbatAssignmentAccess::canAssignUser($manager, $lockedEvent, $targetSlot->user)) {
+                throw ValidationException::withMessages(['slot' => 'No tienes permiso para modificar usuarios de este estado.']);
+            }
+
             if (
                 ! $targetSlot
                 || (
@@ -1522,6 +1536,10 @@ class PublicEventController extends Controller
                     ]);
                 }
 
+                if (! OrbatAssignmentAccess::canAssignUser($manager, $lockedEvent, $assignedUser)) {
+                    throw ValidationException::withMessages(['slot' => 'No tienes permiso para asignar usuarios de este estado al ORBAT.']);
+                }
+
                 if (
                     app(RecruitmentOfficialEventEligibilityService::class)
                         ->hasPendingReserveRetutoring($assignedUser)
@@ -1580,6 +1598,10 @@ class PublicEventController extends Controller
             */
 
             else {
+
+                if (! OrbatAssignmentAccess::canAssignAlly($manager, $lockedEvent)) {
+                    throw ValidationException::withMessages(['slot' => 'No tienes permiso para asignar aliados al ORBAT.']);
+                }
 
                 $assignedAlly =
                     Ally::query()
@@ -1824,6 +1846,13 @@ class PublicEventController extends Controller
             throw ValidationException::withMessages([
                 'slot' => 'El jugador ya no se encuentra en el ORBAT.',
             ]);
+        }
+
+        if (! $sourceSlot->user || ! OrbatAssignmentAccess::canAssignUser($manager, $lockedEvent, $sourceSlot->user)) {
+            throw ValidationException::withMessages(['slot' => 'No tienes permiso para mover usuarios de este estado.']);
+        }
+        if ($targetSlot?->user && ! OrbatAssignmentAccess::canAssignUser($manager, $lockedEvent, $targetSlot->user)) {
+            throw ValidationException::withMessages(['slot' => 'No tienes permiso para intercambiar usuarios de este estado.']);
         }
 
         /*
@@ -2756,12 +2785,7 @@ class PublicEventController extends Controller
         ?User $user,
         Event $event,
     ): bool {
-        return ActivityTypeAccess::can(
-            $user,
-            'event-orbat',
-            'manage',
-            $event->activity?->activity_type_id,
-        );
+        return OrbatAssignmentAccess::hasAny($user, $event);
     }
 
     private function recordSlotUnassignment(

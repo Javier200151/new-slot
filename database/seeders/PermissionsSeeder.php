@@ -84,6 +84,43 @@ class PermissionsSeeder extends Seeder
                 });
         }
 
+        /*
+         * v26: sustituir el permiso antiguo "Manejar ORBAT" por todos los
+         * permisos explícitos del tipo. Se conserva el alcance original.
+         * Repetible: al retirar el permiso antiguo no se vuelven a conceder
+         * permisos que un administrador quite posteriormente.
+         */
+        $orbatActions = PermissionCatalog::actionsFor('event-orbat');
+        $legacyOrbat = Permission::query()
+            ->where('guard_name', $guard)
+            ->where('name', 'like', 'event-orbat.type.%.manage')
+            ->get();
+
+        foreach ($legacyOrbat as $legacy) {
+            if (! preg_match('/^event-orbat\.type\.(\d+)\.manage$/', $legacy->name, $matches)) {
+                continue;
+            }
+
+            $newNames = array_map(
+                fn (string $action): string => PermissionCatalog::activityTypePermissionName(
+                    'event-orbat', (int) $matches[1], $action,
+                ),
+                $orbatActions,
+            );
+
+            foreach (Role::query()->whereHas('permissions', fn ($q) => $q->whereKey($legacy->id))->get() as $role) {
+                $role->givePermissionTo($newNames);
+                $role->revokePermissionTo($legacy);
+            }
+
+            foreach (\App\Models\User::query()->permission($legacy->name)->get() as $user) {
+                if ($user->hasDirectPermission($legacy)) {
+                    $user->givePermissionTo($newNames);
+                    $user->revokePermissionTo($legacy);
+                }
+            }
+        }
+
         $adminRole = Role::firstOrCreate([
             'name' => 'admin',
             'guard_name' => $guard,

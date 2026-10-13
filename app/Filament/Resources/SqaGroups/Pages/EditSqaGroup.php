@@ -65,6 +65,7 @@ class EditSqaGroup extends EditRecord
             $this->record->fresh('roles'),
             $this->localRoleIdsBeforeSave,
         );
+        app(SqaGroupLocalRoleSyncService::class)->syncGroupNow($this->record->fresh('roles'));
 
         if ($this->iconToDeleteAfterSave) {
             Storage::disk('public')->delete($this->iconToDeleteAfterSave);

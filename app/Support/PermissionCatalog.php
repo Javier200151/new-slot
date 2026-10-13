@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\ActivityType;
+use App\Models\Status;
 use Illuminate\Support\Facades\Schema;
 
 class PermissionCatalog
@@ -41,6 +42,18 @@ class PermissionCatalog
                     'delete' => 'Eliminar hilos y respuestas',
                 ],
             ];
+        }
+
+        // Estados configurados desde Filament: permisos de asignación independientes.
+        if (isset($groups['events']['resources']['event-orbat'])) {
+            $actions = &$groups['events']['resources']['event-orbat']['actions'];
+            if (Schema::hasTable('status')) {
+                foreach (Status::query()->orderBy('name')->get(['id', 'name']) as $status) {
+                    $actions['assign-status-' . $status->id] = 'Asignar ORBAT · ESTADO ' . $status->name;
+                }
+            }
+            $actions['assign-allies'] = 'Asignar aliados multiclanes';
+            unset($actions);
         }
 
         return $groups;

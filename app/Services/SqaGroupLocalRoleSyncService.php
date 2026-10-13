@@ -21,9 +21,7 @@ class SqaGroupLocalRoleSyncService
             return;
         }
 
-        foreach ($membership->sqaGroup->roles as $role) {
-            $this->addSource($membership->sqaGroup, $membership->user, $role);
-        }
+        $this->syncMembershipRoles($membership);
     }
 
     public function membershipRemoved(SqaGroupUser $membership): void
@@ -35,8 +33,10 @@ class SqaGroupLocalRoleSyncService
             return;
         }
 
-        foreach ($group->roles as $role) {
-            $this->removeSource($group, $user, $role);
+        foreach (SqaGroupRoleSource::query()->where('sqa_group_id', $group->id)->where('user_id', $user->id)->pluck('role_id') as $roleId) {
+            if ($role = Role::query()->find($roleId)) {
+                $this->removeSource($group, $user, $role);
+            }
         }
     }
 
@@ -50,8 +50,10 @@ class SqaGroupLocalRoleSyncService
             $oldUser = User::withTrashed()->find($oldUserId);
 
             if ($oldGroup && $oldUser) {
-                foreach ($oldGroup->roles as $role) {
-                    $this->removeSource($oldGroup, $oldUser, $role);
+                foreach (SqaGroupRoleSource::query()->where('sqa_group_id', $oldGroup->id)->where('user_id', $oldUser->id)->pluck('role_id') as $roleId) {
+                    if ($role = Role::query()->find($roleId)) {
+                        $this->removeSource($oldGroup, $oldUser, $role);
+                    }
                 }
             }
         }
@@ -82,9 +84,7 @@ class SqaGroupLocalRoleSyncService
                 $this->removeSource($group, $membership->user, $role);
             }
 
-            foreach ($newRoles as $role) {
-                $this->addSource($group, $membership->user, $role);
-            }
+            $this->syncMembershipRoles($membership);
         }
     }
 
@@ -97,8 +97,10 @@ class SqaGroupLocalRoleSyncService
                 continue;
             }
 
-            foreach ($group->roles as $role) {
-                $this->removeSource($group, $membership->user, $role);
+            foreach (SqaGroupRoleSource::query()->where('sqa_group_id', $group->id)->where('user_id', $membership->user->id)->pluck('role_id') as $roleId) {
+                if ($role = Role::query()->find($roleId)) {
+                    $this->removeSource($group, $membership->user, $role);
+                }
             }
         }
     }
@@ -112,9 +114,7 @@ class SqaGroupLocalRoleSyncService
                 continue;
             }
 
-            foreach ($group->roles as $role) {
-                $this->addSource($group, $membership->user, $role);
-            }
+            $this->syncMembershipRoles($membership);
         }
     }
 
@@ -129,15 +129,42 @@ class SqaGroupLocalRoleSyncService
                 continue;
             }
 
-            foreach ($group->roles as $role) {
-                $this->addSource($group, $membership->user, $role);
-            }
+            $this->syncMembershipRoles($membership);
         }
 
         return [
             'members' => $memberships->count(),
             'roles' => $group->roles->count(),
         ];
+    }
+
+    private function syncMembershipRoles(SqaGroupUser $membership): void
+    {
+        $group = $membership->sqaGroup;
+        $user = $membership->user;
+        if (! $group || ! $user) {
+            return;
+        }
+
+        $group->loadMissing('roles');
+        $desiredIds = $group->roles->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        if ($group->has_coordinator_role && $membership->coordinator && $group->coordinator_role_id) {
+            $desiredIds[] = (int) $group->coordinator_role_id;
+        }
+        $desiredIds = array_unique($desiredIds);
+        $actualIds = SqaGroupRoleSource::query()->where('sqa_group_id', $group->id)
+            ->where('user_id', $user->id)->pluck('role_id')->map(fn ($id): int => (int) $id)->all();
+
+        foreach (array_diff($actualIds, $desiredIds) as $id) {
+            if ($role = Role::find($id)) {
+                $this->removeSource($group, $user, $role);
+            }
+        }
+        foreach ($desiredIds as $id) {
+            if ($role = Role::find($id)) {
+                $this->addSource($group, $user, $role);
+            }
+        }
     }
 
     private function addSource(SqaGroup $group, User $user, Role $role): void
