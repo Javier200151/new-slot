@@ -285,6 +285,7 @@
                                 <dt>Tutor</dt>
                                 <dd>
                                     {{ $user->currentRecruitmentPeriod?->tutor?->nick
+                                        ?? $user->tutor?->nick
                                         ?? 'Sin tutor asignado'
                                     }}
                                 </dd>

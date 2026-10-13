@@ -118,10 +118,11 @@ class UsersTable
                     ->date('d/m/Y')
                     ->sortable(),
 
-                TextColumn::make('currentRecruitmentPeriod.tutor.nick')
-                    ->label('Tutor actual')
-                    ->sortable()
-                    ->searchable(),
+                TextColumn::make('tutor_display')
+                    ->label('Tutor asignado')
+                    ->state(fn (User $record): string => $record->currentRecruitmentPeriod?->tutor?->nick
+                        ?? $record->tutor?->nick
+                        ?? 'Sin tutor asignado'),
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

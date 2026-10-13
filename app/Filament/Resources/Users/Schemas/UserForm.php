@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Filament\Forms\BbcodeTextarea;
 use App\Models\Status;
+use App\Models\User;
 use App\Rules\NotReservedUsername;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -71,6 +72,17 @@ class UserForm
                             $set('promo_id', null);
                         }
                     }),
+                Select::make('tutor_id')
+                    ->label('Tutor asignado')
+                    ->options(fn (?User $record): array => User::query()
+                        ->when($record?->exists, fn ($query) => $query->whereKeyNot($record->getKey()))
+                        ->orderBy('nick')
+                        ->pluck('nick', 'id')
+                        ->all())
+                    ->searchable()
+                    ->nullable()
+                    ->placeholder('Sin tutor asignado')
+                    ->helperText('Puedes asignar o cambiar el tutor en cualquier momento. Deja el campo vacío si no tiene tutor. Para reclutas, el cambio se sincroniza con su período de reclutamiento abierto.'),
                 DatePicker::make('birth_at')
                     ->label('Fecha de nacimiento')
                     ->displayFormat('d/m/Y')
