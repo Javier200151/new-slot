@@ -2252,7 +2252,7 @@ class ImportActivities2026 extends Command
             trim(
                 (string) (
                     $radio['canal']
-                    ?? 'Red sin nombre'
+                    ?? 'Malla sin nombre'
                 )
             );
 

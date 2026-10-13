@@ -1314,3 +1314,25 @@ body.avatar-editor-open {
     color: #fde68a;
     background: rgba(245, 158, 11, 0.06);
 }
+
+/* Visibilidad del cumpleaños */
+.profile-checkbox {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-height: 2.85rem;
+    padding: .7rem .85rem;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: .75rem;
+    background: rgba(15, 23, 42, .45);
+    cursor: pointer;
+}
+.profile-checkbox input[type="checkbox"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    accent-color: #f59e0b;
+    flex: 0 0 auto;
+}
+.profile-checkbox span {
+    font-weight: 650;
+}

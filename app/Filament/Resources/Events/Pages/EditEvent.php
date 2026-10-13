@@ -30,6 +30,7 @@ use App\Services\EventOrbatSyncService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use App\Support\OrbatGlobalCommand;
 
 class EditEvent extends EditRecord
 {
@@ -340,7 +341,7 @@ class EditEvent extends EditRecord
 
         $activity =
             Activity::query()
-                ->with('activityStatus')
+                ->with(['activityStatus', 'activityType'])
                 ->find($data['activity_id']);
 
         $eventStatus =
@@ -370,6 +371,16 @@ class EditEvent extends EditRecord
                     'No puedes publicar este evento porque '
                     . 'el actividad seleccionado todavía está '
                     . 'en BORRADOR.',
+            ]);
+        }
+
+        if (
+            ($activity?->activityType?->usesOrbat() ?? true)
+            && OrbatGlobalCommand::hasRequirement($activity?->activityType)
+            && OrbatGlobalCommand::count($this->record->orbat ?? [], $activity?->activityType) < 1
+        ) {
+            throw ValidationException::withMessages([
+                'data.activity_id' => OrbatGlobalCommand::validationMessage($activity?->activityType),
             ]);
         }
 

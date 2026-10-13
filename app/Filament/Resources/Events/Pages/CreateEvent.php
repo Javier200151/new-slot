@@ -10,6 +10,7 @@ use App\Models\EventStatus;
 use Illuminate\Validation\ValidationException;
 use App\Support\ActivityTypeAccess;
 use App\Support\ActivityTypeConfiguration;
+use App\Support\OrbatGlobalCommand;
 
 class CreateEvent extends CreateRecord
 {
@@ -38,7 +39,7 @@ class CreateEvent extends CreateRecord
         */
 
         $activity = Activity::query()
-            ->with('activityStatus')
+            ->with(['activityStatus', 'activityType'])
             ->find($data['activity_id'] ?? null);
 
         if (! ActivityTypeAccess::can(
@@ -118,6 +119,16 @@ class CreateEvent extends CreateRecord
 
         $data['orbat'] =
             $activity?->orbat;
+
+        if (
+            ($activity?->activityType?->usesOrbat() ?? true)
+            && OrbatGlobalCommand::hasRequirement($activity?->activityType)
+            && OrbatGlobalCommand::count($data['orbat'] ?? [], $activity?->activityType) < 1
+        ) {
+            throw ValidationException::withMessages([
+                'data.activity_id' => OrbatGlobalCommand::validationMessage($activity?->activityType),
+            ]);
+        }
 
         if ($activity?->editor_ally_id) {
             $data['multiclans'] = true;

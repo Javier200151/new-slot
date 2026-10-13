@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ActivityTypes\Schemas;
 
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -28,6 +29,14 @@ class ActivityTypeForm
 
                 ColorPicker::make('color')
                     ->label('Color'),
+
+                Select::make('required_orbat_slot_type_id')
+                    ->label('Tipo de slot obligatorio en ORBAT')
+                    ->relationship('requiredOrbatSlotType', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->helperText('Selecciona un único tipo de slot que deba existir al menos una vez en el ORBAT de este tipo de actividad. Déjalo vacío si este tipo no necesita ningún slot obligatorio.'),
 
                 Section::make('Campos de la actividad')
                     ->description('Activa únicamente los datos que deben aparecer al crear y editar actividades de este tipo.')

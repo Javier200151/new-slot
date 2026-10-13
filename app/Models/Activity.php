@@ -370,7 +370,7 @@ class Activity extends Model
         $html = '<table style="border-collapse: collapse; width: 100%;">';
         $html .= '<thead>';
         $html .= '<tr>';
-        $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Red</th>';
+        $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Malla</th>';
         $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Radio</th>';
         $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Configuración</th>';
         $html .= '<th style="border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left;">Notas</th>';
@@ -378,7 +378,7 @@ class Activity extends Model
         $html .= '</thead><tbody>';
 
         foreach ($networks as $network) {
-            $name = e($network['name'] ?? 'Red sin nombre');
+            $name = e($network['name'] ?? 'Malla sin nombre');
             $radioModel = e($network['radio_model_name'] ?? 'Sin radio');
             $notes = e($network['notes'] ?? '');
             $visible = array_key_exists('visible', $network) && ! $network['visible']

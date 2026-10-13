@@ -165,6 +165,7 @@
     'App\\Filament\\Pages\\Dashboard' => 'App\\Filament\\Pages\\Dashboard',
     'App\\Filament\\Pages\\EventCalendar' => 'App\\Filament\\Pages\\EventCalendar',
     'App\\Filament\\Pages\\ManageUserMetopas' => 'App\\Filament\\Pages\\ManageUserMetopas',
+    'App\\Filament\\Pages\\TaskBoard' => 'App\\Filament\\Pages\\TaskBoard',
     'App\\Filament\\Widgets\\PendingRecruitmentDismissalsWidget' => 'App\\Filament\\Widgets\\PendingRecruitmentDismissalsWidget',
     'App\\Filament\\Widgets\\PendingRecruitmentPromotionsWidget' => 'App\\Filament\\Widgets\\PendingRecruitmentPromotionsWidget',
     'App\\Filament\\Widgets\\PendingVeteranciesWidget' => 'App\\Filament\\Widgets\\PendingVeteranciesWidget',
@@ -225,6 +226,7 @@
     'J:\\SQA\\NewSlot\\github\\new-slot\\app\\Filament\\Clusters\\EventConfiguration.php' => 'App\\Filament\\Clusters\\EventConfiguration',
     'J:\\SQA\\NewSlot\\github\\new-slot\\app\\Filament\\Pages\\EventCalendar.php' => 'App\\Filament\\Pages\\EventCalendar',
     'J:\\SQA\\NewSlot\\github\\new-slot\\app\\Filament\\Pages\\ManageUserMetopas.php' => 'App\\Filament\\Pages\\ManageUserMetopas',
+    'J:\\SQA\\NewSlot\\github\\new-slot\\app\\Filament\\Pages\\TaskBoard.php' => 'App\\Filament\\Pages\\TaskBoard',
     0 => 'App\\Filament\\Pages\\Dashboard',
   ),
   'pageConfigurations' => 

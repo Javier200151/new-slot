@@ -19,23 +19,27 @@ class ProfileCompletionService
      */
     public function forUser(User $user): array
     {
-        $discordComplete = $this->hasValidDiscordId($user);
-        $steamComplete = $this->hasValidSteamId($user);
-
         $steps = [
             [
                 'key' => 'discord_id',
-                'label' => 'Discord',
-                'description' => $this->discordDescription($user, $discordComplete),
-                'anchor' => 'profile-linked-accounts',
-                'complete' => $discordComplete,
+                'label' => 'Discord ID',
+                'description' => 'ID numérico de Discord para automatizar roles y apodos.',
+                'anchor' => 'profile-discord-id',
+                'complete' => $this->hasValidDiscordId($user),
             ],
             [
                 'key' => 'steam_id',
-                'label' => 'Steam',
-                'description' => $this->steamDescription($user, $steamComplete),
-                'anchor' => 'profile-linked-accounts',
-                'complete' => $steamComplete,
+                'label' => 'Steam ID64',
+                'description' => 'Steam ID64 para ArmaSquads y los procedimientos de miembro.',
+                'anchor' => 'profile-steam-id',
+                'complete' => $this->hasValidSteamId($user),
+            ],
+            [
+                'key' => 'birthday_visibility',
+                'label' => 'Privacidad del cumpleaños',
+                'description' => 'Confirma si quieres que tu cumpleaños sea público o privado.',
+                'anchor' => 'profile-birthday-visibility',
+                'complete' => $this->hasConfirmedBirthdayVisibility($user),
             ],
         ];
 
@@ -61,6 +65,12 @@ class ProfileCompletionService
         ];
     }
 
+
+    private function hasConfirmedBirthdayVisibility(User $user): bool
+    {
+        return filled($user->getAttributes()['birthday_visibility_confirmed_at'] ?? null);
+    }
+
     private function hasValidDiscordId(User $user): bool
     {
         return preg_match('/^\d{17,20}$/', trim((string) $user->discord_id)) === 1;
@@ -69,40 +79,5 @@ class ProfileCompletionService
     private function hasValidSteamId(User $user): bool
     {
         return preg_match('/^\d{17}$/', trim((string) $user->steam_id)) === 1;
-    }
-
-    private function discordDescription(User $user, bool $complete): string
-    {
-        if (! $complete) {
-            return 'Enlaza tu cuenta de Discord.';
-        }
-
-        if ($this->hasRawLinkedAt($user, 'discord_linked_at')) {
-            return filled($user->discord_username)
-                ? 'Vinculado como @' . $user->discord_username
-                : 'Cuenta de Discord vinculada.';
-        }
-
-        return 'Configurado manualmente; puedes verificarlo con Discord.';
-    }
-
-    private function steamDescription(User $user, bool $complete): string
-    {
-        if (! $complete) {
-            return 'Enlaza tu cuenta de Steam.';
-        }
-
-        if ($this->hasRawLinkedAt($user, 'steam_linked_at')) {
-            return 'Steam vinculado · ' . $user->steam_id;
-        }
-
-        return 'SteamID64 configurado manualmente.';
-    }
-
-    private function hasRawLinkedAt(User $user, string $attribute): bool
-    {
-        $attributes = $user->getAttributes();
-
-        return array_key_exists($attribute, $attributes) && $attributes[$attribute] !== null;
     }
 }

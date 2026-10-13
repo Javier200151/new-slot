@@ -10,6 +10,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rule;
 
@@ -74,6 +75,11 @@ class UserForm
                     ->label('Fecha de nacimiento')
                     ->displayFormat('d/m/Y')
                     ->native(false),
+
+                Toggle::make('birthday_public')
+                    ->label('Cumpleaños público')
+                    ->helperText('Si está activado, Squad ALPHA podrá avisar al resto de miembros cuando llegue su cumpleaños. La fecha completa no se publica.')
+                    ->default(false),
 
                 Select::make('roles')
                     ->label('Rol')

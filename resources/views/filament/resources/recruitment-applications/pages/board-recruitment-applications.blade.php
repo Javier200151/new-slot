@@ -218,6 +218,26 @@
                 width: 100%;
                 max-width: 26rem;
             }
+            .recruitment-search-input {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+                border: 1px solid rgba(148, 163, 184, 0.24);
+                border-radius: 0.75rem;
+                background: rgba(15, 23, 42, 0.72);
+                color: #f8fafc;
+                padding: 0.72rem 0.85rem;
+                font-size: 0.875rem;
+                line-height: 1.25rem;
+                outline: none;
+                transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+            }
+            .recruitment-search-input::placeholder { color: rgba(148, 163, 184, 0.62); }
+            .recruitment-search-input:focus {
+                border-color: rgba(245, 158, 11, 0.68);
+                background: rgba(15, 23, 42, 0.94);
+                box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+            }
             @media (max-width: 1024px) {
                 .recruitment-board {
                     grid-template-columns: 1fr;
@@ -240,7 +260,7 @@
                     type="text"
                     wire:model.live.debounce.300ms="search"
                     placeholder="Nick, email, nombre real o texto..."
-                    class="fi-input block w-full rounded-xl border-none bg-white/5 px-3 py-2.5 text-sm shadow-sm ring-1 ring-white/10"
+                    class="recruitment-search-input"
                 >
             </div>
         </div>

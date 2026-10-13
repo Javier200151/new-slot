@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\Auditable;
-use App\Services\ProtectedAdminGuard;
-use App\Services\SqaGroupDiscordSyncService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Concerns\Auditable;
+use App\Services\SqaGroupDiscordSyncService;
+use App\Services\SqaGroupLocalRoleSyncService;
 
 class SqaGroupUser extends Model
 {
@@ -31,24 +31,13 @@ class SqaGroupUser extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (self $sqaGroupUser): void {
-            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
-
+        static::creating(function ($sqaGroupUser): void {
             if (Auth::check()) {
                 $sqaGroupUser->updated_by = Auth::id();
             }
         });
 
-        static::updating(function (self $sqaGroupUser): void {
-            $currentUserId = (int) $sqaGroupUser->user_id;
-            $originalUserId = (int) $sqaGroupUser->getOriginal('user_id');
-
-            app(ProtectedAdminGuard::class)->authorizeUserId($currentUserId);
-
-            if ($originalUserId > 0 && $originalUserId !== $currentUserId) {
-                app(ProtectedAdminGuard::class)->authorizeUserId($originalUserId);
-            }
-
+        static::updating(function ($sqaGroupUser): void {
             if (Auth::check()) {
                 $sqaGroupUser->updated_by = Auth::id();
             }
@@ -56,28 +45,24 @@ class SqaGroupUser extends Model
 
         static::created(function (self $sqaGroupUser): void {
             app(SqaGroupDiscordSyncService::class)->membershipAdded($sqaGroupUser);
+            app(SqaGroupLocalRoleSyncService::class)->membershipAdded($sqaGroupUser);
         });
 
         static::updated(function (self $sqaGroupUser): void {
             if ($sqaGroupUser->wasChanged(['user_id', 'sqa_group_id'])) {
                 app(SqaGroupDiscordSyncService::class)->membershipChanged($sqaGroupUser);
+                app(SqaGroupLocalRoleSyncService::class)->membershipChanged($sqaGroupUser);
             }
-        });
-
-        static::deleting(function (self $sqaGroupUser): void {
-            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
         });
 
         static::deleted(function (self $sqaGroupUser): void {
             app(SqaGroupDiscordSyncService::class)->membershipRemoved($sqaGroupUser);
-        });
-
-        static::restoring(function (self $sqaGroupUser): void {
-            app(ProtectedAdminGuard::class)->authorizeUserId((int) $sqaGroupUser->user_id);
+            app(SqaGroupLocalRoleSyncService::class)->membershipRemoved($sqaGroupUser);
         });
 
         static::restored(function (self $sqaGroupUser): void {
             app(SqaGroupDiscordSyncService::class)->membershipAdded($sqaGroupUser);
+            app(SqaGroupLocalRoleSyncService::class)->membershipAdded($sqaGroupUser);
         });
 
         static::saved(function ($sqaGroupUser): void {

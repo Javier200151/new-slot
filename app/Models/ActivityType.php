@@ -50,6 +50,7 @@ class ActivityType extends Model
         'uses_reservations',
         'uses_event_briefing',
         'uses_event_end_date',
+        'required_orbat_slot_type_id',
     ];
 
     protected static function booted(): void
@@ -103,6 +104,12 @@ class ActivityType extends Model
     public function activities()
     {
         return $this->hasMany(Activity::class, 'activity_type_id');
+    }
+
+
+    public function requiredOrbatSlotType()
+    {
+        return $this->belongsTo(SlotType::class, 'required_orbat_slot_type_id');
     }
 
 

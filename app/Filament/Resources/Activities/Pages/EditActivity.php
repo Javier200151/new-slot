@@ -47,6 +47,7 @@ use App\Support\SlotQuickSelection;
 use App\Support\BriefingMarkup;
 use App\Support\BriefingSectionImages;
 use App\Support\RadioNetworkOrder;
+use App\Support\OrbatGlobalCommand;
 
 class EditActivity extends EditRecord
 {
@@ -106,6 +107,22 @@ class EditActivity extends EditRecord
                     ?? null
                 )
                 ->value('name');
+
+        $targetActivityType = ActivityTypeConfiguration::find($targetOperationTypeId);
+
+        if (
+            ($targetActivityType?->usesOrbat() ?? true)
+            && OrbatGlobalCommand::hasRequirement($targetActivityType)
+            && $targetStatus !== 'BORRADOR'
+        ) {
+            if (OrbatGlobalCommand::count($this->record->orbat ?? [], $targetActivityType) < 1) {
+                throw ValidationException::withMessages([
+                    'data.activity_status_id' =>
+                        OrbatGlobalCommand::validationMessage($targetActivityType)
+                        . ' Guarda primero el ORBAT y vuelve a publicar la actividad.',
+                ]);
+            }
+        }
 
 
         /*
@@ -1109,10 +1126,27 @@ JS;
                 ->modalHeading('Editor de ORBAT')
                 ->modalSubmitActionLabel('Guardar ORBAT')
                 ->modalWidth('7xl')
-                ->fillForm(fn (): array => SlotQuickSelection::prepareOrbat(
-                    $this->record->orbat ?? ['groups' => []]
-                ))
+                ->fillForm(function (): array {
+                    $data = SlotQuickSelection::prepareOrbat(
+                        $this->record->orbat ?? ['groups' => []]
+                    );
+                    $data['confirm_multiple_required_slot'] = false;
+
+                    return $data;
+                })
                 ->form([
+                    Toggle::make('confirm_multiple_required_slot')
+                        ->label(fn (): string => OrbatGlobalCommand::secondSlotQuestion($this->record->activityType))
+                        ->helperText(fn (): string => 'Este tipo de actividad exige al menos un slot "'
+                            . OrbatGlobalCommand::requiredSlotName($this->record->activityType)
+                            . '". Activa esta confirmación únicamente si necesitas colocar más de uno.')
+                        ->visible(fn (Get $get): bool => OrbatGlobalCommand::countEditorGroups(
+                            $get('groups') ?? [],
+                            $this->record->activityType,
+                        ) > 1)
+                        ->default(false)
+                        ->columnSpanFull(),
+
                     Repeater::make('groups')
                         ->label('Grupos')
                         ->columns(12)
@@ -1363,7 +1397,7 @@ JS;
                                     Hidden::make('slot_key')
                                         ->default(fn (): string => (string) Str::ulid()),
 
-                                    Hidden::make('slot_type_id'),
+                                    Hidden::make('slot_type_id')->live(),
 
                                     Hidden::make('slot_quick_name_id'),
 
@@ -1588,8 +1622,29 @@ JS;
                         ->values()
                         ->all();
 
+                    $orbat = ['groups' => $groups];
+                    $activityType = $this->record->activityType;
+                    $requiredSlotCount = OrbatGlobalCommand::count($orbat, $activityType);
+
+                    if (OrbatGlobalCommand::hasRequirement($activityType) && $requiredSlotCount < 1) {
+                        throw ValidationException::withMessages([
+                            'groups' => OrbatGlobalCommand::validationMessage($activityType),
+                        ]);
+                    }
+
+                    if (
+                        OrbatGlobalCommand::hasRequirement($activityType)
+                        && $requiredSlotCount > 1
+                        && ! (bool) ($data['confirm_multiple_required_slot'] ?? false)
+                    ) {
+                        throw ValidationException::withMessages([
+                            'confirm_multiple_required_slot' => OrbatGlobalCommand::secondSlotQuestion($activityType)
+                                . ' Activa esta confirmación para guardar más de uno.',
+                        ]);
+                    }
+
                     $this->record->forceFill([
-                        'orbat' => ['groups' => $groups],
+                        'orbat' => $orbat,
                     ])->save();
                 }),
 
@@ -1811,7 +1866,7 @@ JS;
                             ->label('Asignar modelo a varias')
                             ->icon('heroicon-o-check-circle')
                             ->modalHeading('Asignar modelo de radio')
-                            ->modalDescription('Selecciona un modelo y las redes a las que quieres aplicarlo.')
+                            ->modalDescription('Selecciona un modelo y las mallas a las que quieres aplicarlo.')
                             ->modalSubmitActionLabel('Aplicar modelo')
                             ->modalWidth('2xl')
                             ->fillForm(fn (): array => [
@@ -1827,7 +1882,7 @@ JS;
                                         $modelName = trim((string) ($network['radio_model_name'] ?? ''));
 
                                         if ($name === '') {
-                                            $name = 'Red ' . ($index + 1);
+                                            $name = 'Malla ' . ($index + 1);
                                         }
 
                                         $label = $modelName !== ''
@@ -1850,7 +1905,7 @@ JS;
                                         ->required(),
 
                                     CheckboxList::make('network_indexes')
-                                        ->label('Redes')
+                                        ->label('Mallas')
                                         ->options($options)
                                         ->bulkToggleable()
                                         ->selectAllAction(
@@ -1875,7 +1930,7 @@ JS;
 
                                 if ($radioModelId <= 0 || $selectedIndexes->isEmpty()) {
                                     Notification::make()
-                                        ->title('Selecciona un modelo y al menos una red.')
+                                        ->title('Selecciona un modelo y al menos una malla.')
                                         ->warning()
                                         ->send();
 
@@ -1926,7 +1981,7 @@ JS;
                                 $set('networks', $networks);
 
                                 Notification::make()
-                                    ->title($selectedIndexes->count() . ' redes actualizadas.')
+                                    ->title($selectedIndexes->count() . ' mallas actualizadas.')
                                     ->success()
                                     ->send();
                             }),
@@ -1962,7 +2017,7 @@ JS;
                     ]),
 
                     Repeater::make('networks')
-                        ->label('Redes de radio')
+                        ->label('Mallas de radio')
                         ->helperText('Usa las flechas para cambiar el orden. Ese orden se guarda y se respeta en la web.')
                         ->schema([
                             TextInput::make('name')
@@ -2081,7 +2136,7 @@ JS;
                         ->collapsible()
                         ->cloneable()
                         ->default([])
-                        ->addActionLabel('Añadir red')
+                        ->addActionLabel('Añadir malla')
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {

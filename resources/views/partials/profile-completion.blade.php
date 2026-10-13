@@ -2,9 +2,10 @@
     @php
         $missingCount = $profileCompletion['missing_count'];
         $stepsLabel = $missingCount === 1 ? 'paso' : 'pasos';
+        $targetAnchor = $profileCompletion['missing'][0]['anchor'] ?? 'profile-linked-accounts';
         $targetUrl = ($variant ?? 'profile') === 'home'
-            ? route('profile.show') . '#profile-linked-accounts'
-            : '#profile-linked-accounts';
+            ? route('profile.show') . '#' . $targetAnchor
+            : '#' . $targetAnchor;
     @endphp
 
     <section class="profile-completion profile-completion--{{ $variant ?? 'profile' }}" aria-label="Progreso de perfil">
@@ -23,8 +24,7 @@
         </div>
 
         <p>
-            Vincula Discord y Steam para obtener automáticamente los identificadores usados por
-            Discord, ArmaSquads y los procedimientos de miembro.
+            Revisa los pasos pendientes para completar la información y preferencias necesarias de tu perfil.
         </p>
 
         <div
@@ -38,7 +38,7 @@
         </div>
 
         <div class="profile-completion__footer">
-            <div class="profile-completion__steps" aria-label="Estado de cuentas vinculadas">
+            <div class="profile-completion__steps" aria-label="Estado de los datos del perfil">
                 @foreach($profileCompletion['steps'] as $step)
                     <span class="{{ $step['complete'] ? 'is-complete' : 'is-pending' }}">
                         <b aria-hidden="true">{{ $step['complete'] ? '✓' : '○' }}</b>

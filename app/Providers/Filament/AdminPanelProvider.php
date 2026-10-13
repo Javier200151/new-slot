@@ -70,13 +70,30 @@ class AdminPanelProvider extends PanelProvider
                     return new HtmlString(implode("\n", $styles));
                 },
             )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                function (): HtmlString {
+                    $path = public_path('js/filament-orbat-layout.js');
+
+                    if (! is_file($path)) {
+                        return new HtmlString('');
+                    }
+
+                    $javascript = file_get_contents($path);
+
+                    if ($javascript === false) {
+                        return new HtmlString('');
+                    }
+
+                    // El editor de ORBAT debe funcionar incluso cuando el proxy/CDN
+                    // conserva una versión antigua del asset JS. Lo inyectamos inline
+                    // igual que los estilos críticos del panel.
+                    $javascript = str_replace('</script>', '<\/script>', $javascript);
+
+                    return new HtmlString('<script id="squadalpha-filament-orbat-layout">' . $javascript . '</script>');
+                },
+            )
             ->assets([
-                Js::make(
-                    'filament-orbat-layout',
-                    asset('js/filament-orbat-layout.js')
-                        . '?v='
-                        . filemtime(public_path('js/filament-orbat-layout.js'))
-                )->defer(),
                 Js::make(
                     'filament-bbcode-editor',
                     asset('js/filament-bbcode-editor.js')

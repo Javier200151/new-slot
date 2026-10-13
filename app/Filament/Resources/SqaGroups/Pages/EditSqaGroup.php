@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SqaGroups\Pages;
 
 use App\Filament\Resources\SqaGroups\SqaGroupResource;
 use App\Services\SqaGroupDiscordSyncService;
+use App\Services\SqaGroupLocalRoleSyncService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -17,6 +18,17 @@ class EditSqaGroup extends EditRecord
     protected static string $resource = SqaGroupResource::class;
 
     protected ?string $iconToDeleteAfterSave = null;
+
+    /** @var array<int, int> */
+    protected array $localRoleIdsBeforeSave = [];
+
+    protected function beforeSave(): void
+    {
+        $this->localRoleIdsBeforeSave = $this->record->roles()
+            ->pluck('roles.id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+    }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
@@ -49,17 +61,36 @@ class EditSqaGroup extends EditRecord
 
     protected function afterSave(): void
     {
-        if (! $this->iconToDeleteAfterSave) {
-            return;
-        }
+        app(SqaGroupLocalRoleSyncService::class)->groupRolesChanged(
+            $this->record->fresh('roles'),
+            $this->localRoleIdsBeforeSave,
+        );
 
-        Storage::disk('public')->delete($this->iconToDeleteAfterSave);
-        $this->iconToDeleteAfterSave = null;
+        if ($this->iconToDeleteAfterSave) {
+            Storage::disk('public')->delete($this->iconToDeleteAfterSave);
+            $this->iconToDeleteAfterSave = null;
+        }
     }
 
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('syncLocalRoles')
+                ->label('Sincronizar roles web')
+                ->icon('heroicon-o-shield-check')
+                ->visible(fn (): bool => ! $this->record->trashed())
+                ->requiresConfirmation()
+                ->modalDescription('Asigna de forma retroactiva los roles web configurados a todos los usuarios que ya pertenecen a este Grupo SQA.')
+                ->action(function (): void {
+                    $result = app(SqaGroupLocalRoleSyncService::class)->syncGroupNow($this->record);
+
+                    Notification::make()
+                        ->success()
+                        ->title('Roles web sincronizados')
+                        ->body($result['members'] . ' miembro(s) revisados · ' . $result['roles'] . ' rol(es) configurados.')
+                        ->send();
+                }),
+
             Action::make('syncDiscord')
                 ->label('Sincronizar Discord')
                 ->icon('heroicon-o-arrow-path')
