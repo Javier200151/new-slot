@@ -27,6 +27,7 @@ class ProfileController extends Controller
             'promo',
             'status',
             'currentRecruitmentPeriod.tutor',
+            'tutor',
             'sqaGroups',
             'mainSqaGroup',
         ]);
