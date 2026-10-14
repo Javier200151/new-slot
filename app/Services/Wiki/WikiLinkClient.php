@@ -23,10 +23,20 @@ class WikiLinkClient
         $timestamp = (string) time();
         $nonce = bin2hex(random_bytes(16));
         $signature = hash_hmac('sha256', $timestamp."\n".$nonce."\n".hash('sha256', $body), (string) config('wiki_link.shared_secret'));
-        $response = Http::timeout(8)->withHeaders([
-            'Content-Type' => 'application/json', 'X-SQA-Timestamp' => $timestamp,
-            'X-SQA-Nonce' => $nonce, 'X-SQA-Signature' => $signature,
-        ])->withBody($body, 'application/json')->post($url);
+        $caCertificate = (string) config('wiki_link.ca_certificate');
+
+		if (! is_file($caCertificate) || ! is_readable($caCertificate)) {
+			throw new RuntimeException('No se encuentra el certificado CA de Wiki Link.');
+		}
+
+		$response = Http::timeout(8)
+			->withOptions([
+				'verify' => $caCertificate,
+			])
+			->withHeaders([
+				'Content-Type' => 'application/json', 'X-SQA-Timestamp' => $timestamp,
+				'X-SQA-Nonce' => $nonce, 'X-SQA-Signature' => $signature,
+			])->withBody($body, 'application/json')->post($url);
         if (! $response->ok() || ! is_array($response->json())) {
             throw new RuntimeException('No se ha podido verificar la cuenta de la Wiki. Inténtalo después.');
         }
