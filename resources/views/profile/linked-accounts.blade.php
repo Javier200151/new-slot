@@ -123,5 +123,25 @@
                 @endif
             </div>
         </article>
+
+        {{-- Wiki: launch-only while OIDC and self-service linking are not enabled.
+             Do not infer linked status from matching email or show an editable password form. --}}
+        <article class="linked-account">
+            <div class="linked-account__identity">
+                <div class="linked-account__icon" aria-hidden="true"><span>W</span></div>
+                <div>
+                    <h3>Wiki Squad ALPHA</h3>
+                    <p class="linked-account__state linked-account__state--manual">
+                        Acceso a la documentación
+                    </p>
+                    <small>La vinculación de cuentas existentes y el acceso único están en preparación. Por ahora, inicia sesión en la wiki con tus credenciales anteriores.</small>
+                </div>
+            </div>
+            <div class="linked-account__actions">
+                <a href="https://wiki.squadalpha.es" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                    Abrir Wiki ↗
+                </a>
+            </div>
+        </article>
     </div>
 </section>
