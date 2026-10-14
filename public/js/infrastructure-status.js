@@ -46,6 +46,7 @@
 
                 row.append(dot, name, detail);
                 if (service.has_password) {
+                    row.classList.add('footer-infrastructure__row--with-key');
                     row.style.position = 'relative';
                     const button = document.createElement('button');
                     button.type = 'button'; button.className = 'footer-infrastructure__key';
