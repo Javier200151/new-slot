@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\ActivityType;
 use App\Models\SlotType;
+use Illuminate\Support\Str;
 
 class OrbatGlobalCommand
 {
@@ -30,6 +31,49 @@ class OrbatGlobalCommand
     public static function hasRequirement(?ActivityType $activityType): bool
     {
         return self::requiredSlotTypeId($activityType) !== null;
+    }
+
+    /**
+     * Inicializa únicamente el slot obligatorio que falte, sin alterar los demás.
+     * Se utiliza tanto al crear como al actualizar una actividad.
+     */
+    public static function ensureRequiredSlot(?array $orbat, ?ActivityType $activityType): array
+    {
+        $orbat = is_array($orbat) ? $orbat : ['groups' => []];
+        $orbat['groups'] = is_array($orbat['groups'] ?? null) ? $orbat['groups'] : [];
+
+        if (! ($activityType?->usesOrbat() ?? false)
+            || ! self::hasRequirement($activityType)
+            || self::count($orbat, $activityType) > 0) {
+            return $orbat;
+        }
+
+        $slot = [
+            'slot_key' => (string) Str::ulid(),
+            'name' => self::requiredSlotName($activityType),
+            'slot_type_id' => self::requiredSlotTypeId($activityType),
+            'slot_quick_name_id' => null,
+            'visible' => true,
+        ];
+
+        // Un grupo ya existente evita generar grupos innecesarios.
+        foreach ($orbat['groups'] as $index => $group) {
+            if (is_array($group)) {
+                $orbat['groups'][$index]['slots'] = is_array($group['slots'] ?? null)
+                    ? $group['slots'] : [];
+                $orbat['groups'][$index]['slots'][] = $slot;
+                return $orbat;
+            }
+        }
+
+        $orbat['groups'][] = [
+            'name' => 'Mando',
+            'faction_id' => null,
+            'visible' => true,
+            'slots' => [$slot],
+        ];
+
+        return $orbat;
     }
 
     public static function count(array $orbat, ?ActivityType $activityType): int
