@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\Wiki\WikiAccessPolicy;
 use App\Services\Wiki\WikiOidcJwt;
+use App\Services\Wiki\WikiLinkClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -82,6 +83,28 @@ class WikiOidcController extends Controller
         }
         $user = auth()->user();
         abort_unless($user instanceof User && $policy->canAuthenticate($user), 403);
+
+        // Synchronize only explicitly managed Wiki roles before BookStack signs the user in.
+        // Fail closed while this feature is enabled: stale group permissions must not grant access.
+        // Protected site administrators are never altered by this bridge.
+        if (config('wiki_link.group_sync_enabled', false) && ! $policy->isSuperAdmin($user)) {
+            try {
+                $result = app(WikiLinkClient::class)->call(
+                    'sync',
+                    'sqa-user-'.$user->getKey(),
+                    (string) $user->email,
+                    null,
+                    $policy->oidcGroups($user)
+                );
+                if (! in_array($result['status'] ?? null, ['synced', 'not_linked'], true)) {
+                    abort(503, 'Wiki group synchronization rejected.');
+                }
+            } catch (\Throwable $e) {
+                report($e);
+                abort(503, 'Wiki group synchronization is unavailable.');
+            }
+        }
+
         $code = WikiOidcJwt::b64(random_bytes(32));
         Cache::put('wiki_oidc:code:'.hash('sha256', $code), [
             'user_id' => $user->getKey(), 'nonce' => $nonce, 'challenge' => $challenge,

@@ -2,6 +2,7 @@
 
 return [
     'enabled' => (bool) env('WIKI_LINK_ENABLED', false),
+    'group_sync_enabled' => (bool) env('WIKI_GROUP_SYNC_ENABLED', false),
 
     'endpoint' => (string) env(
         'WIKI_LINK_ENDPOINT',

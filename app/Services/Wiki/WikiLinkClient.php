@@ -11,14 +11,14 @@ class WikiLinkClient
         return config('wiki_link.enabled') && strlen((string) config('wiki_link.shared_secret')) >= 32;
     }
 
-    public function call(string $action, string $subject, string $email, ?string $password = null): array
+    public function call(string $action, string $subject, string $email, ?string $password = null, ?array $groups = null): array
     {
         if (! $this->enabled()) throw new RuntimeException('La vinculación de Wiki todavía no está disponible.');
         $url = (string) config('wiki_link.endpoint');
         if (! str_starts_with($url, 'https://')) throw new RuntimeException('Wiki link requires HTTPS.');
         $body = json_encode(array_filter([
             'action' => $action, 'sub' => $subject, 'email' => mb_strtolower(trim($email)),
-            'password' => $password,
+            'password' => $password, 'groups' => $groups,
         ], fn ($v) => $v !== null), JSON_THROW_ON_ERROR);
         $timestamp = (string) time();
         $nonce = bin2hex(random_bytes(16));
