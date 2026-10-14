@@ -147,11 +147,23 @@
                         <span class="footer-infrastructure__service-name">TeamSpeak 3</span>
                         <small data-ts3-detail>Comprobando…</small>
                     </div>
-                    <ul class="footer-infrastructure__users" data-ts3-users></ul>
+                    <ul class="footer-infrastructure__users" data-ts3-users hidden></ul>
                 </div>
             </div>
         </details>
         @endif
+
+        <style>
+            .footer-infrastructure__ts-toggle { display:block; margin:8px 0 4px 22px; padding:3px 0; background:none; border:0; color:#f59e0b; font-size:11px; cursor:pointer; text-align:left; }
+            .footer-infrastructure__ts-toggle:hover { text-decoration:underline; }
+            .footer-infrastructure__users { padding:8px 8px 8px 22px; margin:0; list-style:none; max-height:240px; overflow-y:auto; }
+            .footer-infrastructure__users[hidden] { display:none; }
+            .footer-infrastructure__channel { margin-bottom:9px; font-size:11px; color:#d8dee9; overflow-wrap:anywhere; }
+            .footer-infrastructure__channel strong { display:block; margin-bottom:4px; color:#f59e0b; font-weight:600; }
+            .footer-infrastructure__channel ul { list-style:none; margin:0 0 0 8px; padding:0; }
+            .footer-infrastructure__channel li { padding:2px 0; color:#aeb9cc; }
+            .footer-infrastructure__channel li::before { content:'●'; font-size:7px; color:#22c55e; margin-right:7px; }
+        </style>
 
         <a
             href="https://foro.squadalpha.es/"

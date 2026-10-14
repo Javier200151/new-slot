@@ -209,6 +209,32 @@ class PublicInfrastructureStatusTest extends TestCase
         });
     }
 
+    public function test_tsviewer_exposes_occupied_channels_without_affecting_existing_counter(): void
+    {
+        InfrastructureSetting::query()->create([
+            'ts3_enabled' => true,
+            'tsviewer_server_id' => 1128188,
+        ]);
+
+        $tree = <<<'JS'
+TSV.ViewerScript.Data[1128188]['html'] = '<div class="tsv_level tsv_channel"><div class="tsv_content tsv_depth_0">CANTINA</div></div><div class="tsv_level tsv_user" data-client_nickname="Rylod"><div class="tsv_content tsv_depth_2">Rylod</div></div><div class="tsv_level tsv_channel tsv_empty"><div class="tsv_content tsv_depth_0">VACIO</div></div>';
+JS;
+
+        Http::fake([
+            'www.tsviewer.com/index.php*' => Http::response('<button id="regHeadStatusLabel">online</button><span id="virtualserver_realclientsonline">1</span><span id="virtualserver_maxclients">512</span>'),
+            'www.tsviewer.com/ts3viewer.php*' => Http::response($tree),
+        ]);
+
+        $this->actingAs($this->userWithStatus('ACTIVO'));
+        $this->getJson(route('infrastructure.status'))
+            ->assertOk()
+            ->assertJsonPath('teamspeak.players', 1)
+            ->assertJsonPath('teamspeak.max_players', 512)
+            ->assertJsonPath('teamspeak.channels.0.name', 'CANTINA')
+            ->assertJsonPath('teamspeak.channels.0.users.0', 'Rylod')
+            ->assertJsonCount(1, 'teamspeak.channels');
+    }
+
     public function test_tsviewer_offline_state_is_exposed_without_serverquery(): void
     {
         InfrastructureSetting::query()->create([

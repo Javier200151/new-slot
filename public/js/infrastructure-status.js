@@ -92,6 +92,44 @@
             const detail = ts3Block.querySelector('[data-ts3-detail]');
             if (!detail) return;
 
+            const channels = Array.isArray(ts3.channels) ? ts3.channels : [];
+            const list = ts3Block.querySelector('[data-ts3-users]');
+            const oldToggle = ts3Block.querySelector('[data-ts3-toggle]');
+            if (oldToggle) oldToggle.remove();
+            if (list) {
+                list.replaceChildren();
+                list.hidden = true;
+                if (ts3.online && channels.length > 0) {
+                    const toggle = document.createElement('button');
+                    toggle.type = 'button';
+                    toggle.className = 'footer-infrastructure__ts-toggle';
+                    toggle.dataset.ts3Toggle = '';
+                    toggle.setAttribute('aria-expanded', 'false');
+                    toggle.textContent = 'Ver usuarios por canal ▾';
+                    dotRow.after(toggle);
+                    toggle.addEventListener('click', () => {
+                        list.hidden = !list.hidden;
+                        toggle.setAttribute('aria-expanded', String(!list.hidden));
+                        toggle.textContent = list.hidden ? 'Ver usuarios por canal ▾' : 'Ocultar usuarios ▴';
+                    });
+                    channels.forEach((channel) => {
+                        if (!Array.isArray(channel.users) || !channel.users.length) return;
+                        const item = document.createElement('li');
+                        item.className = 'footer-infrastructure__channel';
+                        const title = document.createElement('strong');
+                        title.textContent = `${channel.name} (${channel.users.length})`;
+                        const users = document.createElement('ul');
+                        channel.users.forEach((nick) => {
+                            const user = document.createElement('li');
+                            user.textContent = nick;
+                            users.appendChild(user);
+                        });
+                        item.append(title, users);
+                        list.appendChild(item);
+                    });
+                }
+            }
+
             if (!ts3.configured) {
                 detail.textContent = 'TSViewer sin configurar';
             } else if (!ts3.available) {

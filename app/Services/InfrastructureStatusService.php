@@ -14,6 +14,7 @@ class InfrastructureStatusService
     private const CACHE_SECONDS = 60;
     private const SOCKET_TIMEOUT_SECONDS = 1.0;
     private const TSVIEWER_SERVER_URL = 'https://www.tsviewer.com/index.php';
+    private const TSVIEWER_TREE_URL = 'https://www.tsviewer.com/ts3viewer.php';
 
     public function snapshot(bool $force = false): array
     {
@@ -260,6 +261,7 @@ class InfrastructureStatusService
                 'players' => $parsed['players'],
                 'max_players' => $parsed['max_players'],
                 'provider' => 'tsviewer',
+                'channels' => $parsed['online'] && ($parsed['players'] ?? 0) > 0 ? $this->tsViewerOccupiedChannels($serverId) : [],
             ];
         } catch (Throwable) {
             return [
@@ -272,6 +274,82 @@ class InfrastructureStatusService
                 'provider' => 'tsviewer',
             ];
         }
+    }
+
+    /** Retrieve the public viewer tree separately, without ever affecting the status counter. */
+    private function tsViewerOccupiedChannels(int $serverId): array
+    {
+        try {
+            $response = Http::accept('text/javascript,*/*;q=0.8')
+                ->withUserAgent('SquadAlpha/1.0 (+https://squadalpha.es)')
+                ->timeout(5)
+                ->get(self::TSVIEWER_TREE_URL, ['ID' => $serverId]);
+
+            if (! $response->successful()) {
+                return [];
+            }
+
+            return $this->parseTsViewerTree($response->body(), $serverId);
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /** TSViewer returns a JavaScript assignment containing escaped HTML, not JSON. */
+    private function parseTsViewerTree(string $script, int $serverId): array
+    {
+        if (! preg_match('/TSV\.ViewerScript\.Data\[' . preg_quote((string) $serverId, '/') . '\]\[\x27html\x27\]\s*=\s*\x27(.*?)\x27\s*;/s', $script, $match)) {
+            return [];
+        }
+
+        // Decode only JavaScript's escaped quote/backslash and basic whitespace sequences.
+        $html = preg_replace_callback('/\\\\([\\\\\x27"nrt])/', static fn (array $m): string => match ($m[1]) {
+            'n' => "\n", 'r' => "\r", 't' => "\t", default => $m[1],
+        }, $match[1]);
+
+        if (! is_string($html) || ! str_contains($html, 'tsv_user')) {
+            return [];
+        }
+
+        // TSViewer emits flat tsv_level blocks; parse only channel/user rows.
+        // No external JavaScript is executed and no HTML is sent to the browser.
+        preg_match_all('/<div\s+class="tsv_level\s+tsv_(channel|user)\b([^>]*)"([^>]*)>.*?<div\s+class="tsv_content\s+tsv_depth_(\d+)"[^>]*>(.*?)<\/div>/s', $html, $rows, PREG_SET_ORDER);
+        $parents = [];
+        $channels = [];
+        foreach ($rows as $row) {
+            $type = $row[1];
+            $depth = (int) $row[4];
+            $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($row[5]), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
+            if ($type === 'channel') {
+                foreach (array_keys($parents) as $level) {
+                    if ($level >= $depth) unset($parents[$level]);
+                }
+                if ($text !== '') $parents[$depth] = $text;
+                continue;
+            }
+            $nickname = '';
+            if (preg_match('/\bdata-client_nickname="([^"]*)"/', $row[3], $nm)) {
+                $nickname = html_entity_decode($nm[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+            $nickname = trim($nickname !== '' ? $nickname : $text);
+            if ($nickname === '') continue;
+            $parentDepth = -1;
+            $parentName = 'Sin canal';
+            foreach ($parents as $level => $name) {
+                if ($level < $depth && $level >= $parentDepth) {
+                    $parentDepth = $level;
+                    $parentName = $name;
+                }
+            }
+            $channels[$parentName][] = $nickname;
+        }
+
+        $result = [];
+        foreach ($channels as $name => $users) {
+            $result[] = ['name' => $name, 'users' => $users];
+        }
+
+        return $result;
     }
 
     private function parseTsViewerPage(Response $response): ?array
