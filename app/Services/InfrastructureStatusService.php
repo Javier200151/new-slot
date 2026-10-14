@@ -48,12 +48,14 @@ class InfrastructureStatusService
                 continue;
             }
 
-            $services[] = $this->gameStatus(
+            $status = $this->gameStatus(
                 'arma_server_' . $index,
                 $label,
                 $host,
                 $gamePort > 0 ? $gamePort + 1 : null,
             );
+            $status['has_password'] = ! empty($server['password_ciphertext']);
+            $services[] = $status;
         }
 
         return [

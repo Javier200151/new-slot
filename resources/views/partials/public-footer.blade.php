@@ -118,6 +118,7 @@
             class="footer-infrastructure"
             data-infrastructure-status
             data-endpoint="{{ route('infrastructure.status') }}"
+            data-credential-base="{{ url('/infraestructura/credencial') }}"
         >
             <summary class="footer-users-link footer-infrastructure__trigger">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -147,7 +148,10 @@
                         <span class="footer-infrastructure__service-name">TeamSpeak 3</span>
                         <small data-ts3-detail>Comprobando…</small>
                     </div>
-                    <ul class="footer-infrastructure__users" data-ts3-users hidden></ul>
+                    <div class="footer-infrastructure__ts-floating" data-ts3-floating hidden>
+                        <div class="footer-infrastructure__ts-header"><strong>Usuarios en TeamSpeak</strong><button type="button" data-ts3-close aria-label="Cerrar usuarios">×</button></div>
+                        <ul class="footer-infrastructure__users" data-ts3-users></ul>
+                    </div>
                 </div>
             </div>
         </details>
@@ -163,6 +167,26 @@
             .footer-infrastructure__channel ul { list-style:none; margin:0 0 0 8px; padding:0; }
             .footer-infrastructure__channel li { padding:2px 0; color:#aeb9cc; }
             .footer-infrastructure__channel li::before { content:'●'; font-size:7px; color:#22c55e; margin-right:7px; }
+            /* El panel principal debe quedar fuera del flujo del footer.
+               En v33 un position:relative anulaba el position:absolute de landing.css. */
+            .footer-infrastructure__panel { position:absolute; }
+            @media (max-width:740px) {
+                /* Mantener el comportamiento flotante adaptado a móvil de landing.css. */
+                .footer-infrastructure__panel { position:fixed; }
+            }
+            .footer-infrastructure__ts-floating { position:absolute; right:calc(100% + 12px); bottom:0; width:290px; max-width:calc(100vw - 28px); max-height:340px; z-index:90; padding:12px; border:1px solid #343944; border-radius:12px; background:#101318; box-shadow:0 14px 32px #0009; }
+            .footer-infrastructure__ts-floating[hidden] { display:none; }
+            .footer-infrastructure__ts-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; color:#f2f2f2; font-size:12px; }
+            .footer-infrastructure__ts-header button { border:0; background:transparent; color:#b8bec9; cursor:pointer; font-size:22px; }
+            .footer-infrastructure__ts-floating .footer-infrastructure__users { max-height:280px; overflow:auto; padding:2px 6px; }
+            .footer-infrastructure__key { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; background:transparent; border:0; color:#f59e0b; cursor:pointer; flex:none; }
+            .footer-infrastructure__key svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; }
+            .footer-infrastructure__credential { position:absolute; right:0; top:100%; z-index:100; min-width:230px; max-width:calc(100vw - 32px); background:#11151b; border:1px solid #343944; border-radius:10px; padding:11px; color:#e5e7eb; box-shadow:0 12px 28px #0009; font-size:12px; }
+            .footer-infrastructure__credential[hidden] { display:none; }
+            .footer-infrastructure__credential-header { display:flex; justify-content:space-between; gap:12px; margin-bottom:9px; }
+            .footer-infrastructure__credential button { cursor:pointer; color:#f59e0b; background:#252525; border:1px solid #444; border-radius:6px; padding:4px 7px; }
+            .footer-infrastructure__credential-code { overflow-wrap:anywhere; display:block; margin-bottom:9px; }
+            @media(max-width:740px) { .footer-infrastructure__ts-floating { right:0; bottom:calc(100% + 10px); width:min(300px,calc(100vw - 28px)); } }
         </style>
 
         <a
