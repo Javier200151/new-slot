@@ -29,8 +29,9 @@ function promptHidden(string $message): string {
 }
 
 if (PHP_SAPI !== 'cli') fail('CLI only.');
-if (count($argv) !== 2) fail('Usage: php link-existing-account.php /secure/path/sqa-public.pem');
+if (count($argv) < 2 || count($argv) > 3 || (count($argv) === 3 && $argv[2] !== '--dry-run')) fail('Usage: php link-existing-account.php /secure/path/sqa-public.pem [--dry-run]');
 $keyPath = $argv[1];
+$dryRun = in_array('--dry-run', $argv, true);
 if (!is_file($keyPath) || !is_readable($keyPath)) fail('Missing public verification key.');
 $public = openssl_pkey_get_public(file_get_contents($keyPath));
 if ($public === false) fail('Invalid RSA public key.');
@@ -42,7 +43,7 @@ if (count($parts) !== 3 || strlen($jwt) > 8192) fail('Invalid proof structure.')
 $header = json_decode(decodeUrl($h) ?: '', true);
 $claims = json_decode(decodeUrl($p) ?: '', true);
 $signature = decodeUrl($s);
-if (!is_array($header) || $header['alg'] !== 'RS256' || !is_array($claims) || !is_string($signature) || openssl_verify($h.'.'.$p, $signature, $public, OPENSSL_ALGO_SHA256) !== 1) fail('Invalid proof signature.');
+if (!is_array($header) || ($header['alg'] ?? null) !== 'RS256' || !is_array($claims) || !is_string($signature) || openssl_verify($h.'.'.$p, $signature, $public, OPENSSL_ALGO_SHA256) !== 1) fail('Invalid proof signature.');
 $now = time();
 if (($claims['iss'] ?? null) !== 'https://www.squadalpha.es' || ($claims['aud'] ?? null) !== 'sqa-bookstack-manual-link-v1'
     || !is_int($claims['iat'] ?? null) || !is_int($claims['nbf'] ?? null) || !is_int($claims['exp'] ?? null)
@@ -52,6 +53,7 @@ if (($claims['iss'] ?? null) !== 'https://www.squadalpha.es' || ($claims['aud'] 
     fail('Proof expired or invalid claims.');
 }
 $email = mb_strtolower(trim((string)$claims['email']));
+$jti = (string)$claims['jti'];
 $password = promptHidden('Existing BookStack password (hidden): ');
 if ($password === '') fail('Missing password.');
 
@@ -72,16 +74,46 @@ if ($row->external_auth_id !== null && trim((string)$row->external_auth_id) !== 
 if (!password_verify($password, (string)$row->password)) fail('Existing BookStack password not valid.');
 unset($password);
 $sub = (string)$claims['sub'];
-$linked = DB::transaction(function () use ($email, $sub, $row, $specialIds) {
-    $already = DB::table('users')->where('external_auth_id', $sub)->exists();
-    if ($already) return false;
-    $account = DB::table('users')->where('id', $row->id)->lockForUpdate()->first(['id','email','external_auth_id']);
-    if (!$account || in_array((int)$account->id, $specialIds, true)
-        || mb_strtolower(trim((string)$account->email)) !== $email
-        || trim((string)$account->external_auth_id) !== '') return false;
-    return DB::table('users')->where('id', $row->id)->where(function ($q) {
-        $q->whereNull('external_auth_id')->orWhere('external_auth_id', '');
-    })->update(['external_auth_id' => $sub]) === 1;
-});
-if (!$linked) fail('Account changed or subject already linked. No changes made.');
-fwrite(STDOUT, 'LINKED: BookStack ID '.$row->id.' -> '.$sub.'. Existing roles and content preserved.'."\n");
+// Store replay markers on the persistent BookStack /config mount, NOT in /tmp.
+// Use a single exclusive lock across the replay check, database transaction and marker write.
+$replayDir = '/config/wiki-oidc-link';
+if (!is_dir($replayDir) && !@mkdir($replayDir, 0700, true) && !is_dir($replayDir)) fail('Cannot create persistent replay directory.');
+@chmod($replayDir, 0700);
+$ledgerPath = $replayDir.'/consumed-jti.tsv';
+$ledger = @fopen($ledgerPath, 'c+');
+if ($ledger === false) fail('Cannot open persistent replay ledger.');
+@chmod($ledgerPath, 0600);
+try {
+    if (!flock($ledger, LOCK_EX)) fail('Cannot acquire exclusive replay lock.');
+    rewind($ledger);
+    while (($line = fgets($ledger)) !== false) {
+        $fields = explode("\t", trim($line));
+        if (($fields[0] ?? '') === $jti) fail('Link proof already used.');
+    }
+    // Hold the global ledger lock while checking for subjects already linked.
+    if (DB::table('users')->where('external_auth_id', $sub)->exists()) fail('SQA identity already linked.');
+    if ($dryRun) {
+        fwrite(STDOUT, 'DRY RUN OK: Existing BookStack ID '.$row->id.' matches verified SQA '.$sub.'. No database fields changed; proof NOT consumed.'."\n");
+    } else {
+        $linked = DB::transaction(function () use ($email, $sub, $row, $specialIds) {
+            $account = DB::table('users')->where('id', $row->id)->lockForUpdate()->first(['id','email','external_auth_id']);
+            if (!$account || in_array((int)$account->id, $specialIds, true)
+                || mb_strtolower(trim((string)$account->email)) !== $email
+                || trim((string)$account->external_auth_id) !== ''
+                || DB::table('users')->where('external_auth_id', $sub)->exists()) return false;
+            return DB::table('users')->where('id', $row->id)->where(function ($q) {
+                $q->whereNull('external_auth_id')->orWhere('external_auth_id', '');
+            })->update(['external_auth_id' => $sub]) === 1;
+        });
+        if (!$linked) fail('Account changed or subject already linked. No changes made.');
+        // The database account is now bound. If ledger recording fails, halt;
+        // reuse still cannot bind another account to the same subject.
+        if (fseek($ledger, 0, SEEK_END) !== 0 || fwrite($ledger, $jti."\t".time()."\t".$sub."\n") === false || !fflush($ledger)) {
+            fail('Account linked, but replay ledger write failed: investigate before any further operation.');
+        }
+        fwrite(STDOUT, 'LINKED: BookStack ID '.$row->id.' -> '.$sub.'. Existing roles and content preserved.'."\n");
+    }
+} finally {
+    flock($ledger, LOCK_UN);
+    fclose($ledger);
+}
