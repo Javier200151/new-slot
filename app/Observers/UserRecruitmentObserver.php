@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Services\RecruitmentApplicationService;
 use App\Services\RecruitmentPeriodService;
 use App\Services\VeterancyStatusHistoryService;
+use App\Models\Status;
+use App\Services\Wiki\WikiSessionRevoker;
 
 class UserRecruitmentObserver
 {
@@ -26,6 +28,12 @@ class UserRecruitmentObserver
     public function updated(User $user): void
     {
         if ($user->wasChanged('status_id')) {
+            // Only ACTIVO, RESERVA and RECLUTA may retain authenticated Wiki sessions.
+            $newStatus = mb_strtoupper(trim((string) Status::withTrashed()->whereKey($user->status_id)->value('name')));
+            if (!in_array($newStatus, ['ACTIVO', 'RESERVA', 'RECLUTA'], true)) {
+                app(WikiSessionRevoker::class)->record($user);
+            }
+
             $previousStatusId = (int) ($user->getPrevious()['status_id'] ?? 0);
 
             $this->veterancyHistory->handleTransition($user, $previousStatusId);
