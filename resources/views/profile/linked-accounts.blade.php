@@ -130,22 +130,20 @@
             $wikiAuthorized = $wikiPolicy->canAuthenticate($user);
             $wikiCanLink = $wikiAuthorized && ! $wikiPolicy->isSuperAdmin($user) && config('wiki_link.enabled');
         @endphp
-        <article class="linked-account sqa-wiki-card" aria-labelledby="sqa-wiki-card-title">
+        <article class="linked-account sqa-wiki-card" id="sqa-wiki-card" aria-labelledby="sqa-wiki-card-title" @if($wikiCanLink) data-status-url="{{ route('profile.accounts.wiki.status') }}" @endif>
             <div class="sqa-wiki-card__main">
                 <div class="sqa-wiki-card__heading">
                     <div class="sqa-wiki-card__emblem" aria-hidden="true">W</div>
                     <div class="sqa-wiki-card__heading-copy">
                         <h3 id="sqa-wiki-card-title">Wiki Squad ALPHA</h3>
-                        @if($wikiAuthorized)
-                            <p class="sqa-wiki-card__status sqa-wiki-card__status--ok"><span aria-hidden="true">●</span> Acceso con Squad ALPHA disponible</p>
-                        @else
-                            <p class="sqa-wiki-card__status sqa-wiki-card__status--restricted"><span aria-hidden="true">●</span> Acceso privado no disponible</p>
-                        @endif
+                        <p class="sqa-wiki-card__status {{ $wikiAuthorized ? 'sqa-wiki-card__status--ok' : 'sqa-wiki-card__status--restricted' }}">
+                            <span aria-hidden="true">●</span> {{ $wikiAuthorized ? 'Acceso con Squad ALPHA disponible' : 'Acceso privado no disponible' }}
+                        </p>
                     </div>
                 </div>
                 @if($wikiAuthorized)
-                    <p class="sqa-wiki-card__description">Accede a la Wiki con tu cuenta de Squad ALPHA, sin recordar otra contraseña.</p>
-                    <p class="sqa-wiki-card__hint">Si ya tenías una cuenta anterior, vincúlala antes de entrar por primera vez para conservar tu historial, comentarios y permisos.</p>
+                    <p class="sqa-wiki-card__description">Entra en la Wiki con tu cuenta de Squad ALPHA, sin otra contraseña.</p>
+                    <p class="sqa-wiki-card__hint" data-wiki-guidance>Si es tu primera vez, tu cuenta se creará al acceder. Si ya tenías una cuenta anterior en la Wiki, vincúlala antes para conservar tus libros, comentarios y permisos.</p>
                 @else
                     <p class="sqa-wiki-card__description">Puedes consultar la documentación pública. El acceso privado requiere correo verificado y un estado autorizado.</p>
                 @endif
@@ -154,40 +152,43 @@
                         {{ $wikiAuthorized ? 'Acceder a la Wiki ↗' : 'Ver Wiki pública ↗' }}
                     </a>
                     @if($wikiCanLink)
-                        <a class="btn btn-outline sqa-wiki-card__secondary" href="{{ route('profile.accounts.wiki.status') }}">Comprobar mi cuenta</a>
+                        <button type="button" class="btn btn-outline sqa-wiki-card__secondary" data-wiki-check>Actualizar estado</button>
                     @endif
                 </div>
             </div>
             @if($wikiCanLink)
-                <div class="sqa-wiki-card__divider" aria-hidden="true"></div>
-                <div class="sqa-wiki-card__link">
-                    <div class="sqa-wiki-card__link-heading">
-                        <span class="sqa-wiki-card__link-symbol" aria-hidden="true">↗</span>
-                        <div>
-                            <h4>¿Ya tenías cuenta en la Wiki?</h4>
-                            <p>Vincula tu cuenta anterior para conservar tus libros, comentarios y permisos.</p>
-                        </div>
-                    </div>
+                <div class="sqa-wiki-card__link" aria-live="polite">
                     @error('wiki')
                         <div class="sqa-wiki-card__alert sqa-wiki-card__alert--error" role="alert">{{ $message }}</div>
                     @enderror
-                    @if(session('wiki_link_notice'))
-                        <div class="sqa-wiki-card__alert sqa-wiki-card__alert--success" role="status">{{ session('wiki_link_notice') }}</div>
-                    @endif
-                    <form method="POST" action="{{ route('profile.accounts.wiki.link') }}" autocomplete="off" class="sqa-wiki-card__form">
-                        @csrf
-                        <div class="sqa-wiki-card__fields">
-                            <label class="sqa-wiki-card__field" for="sqa-wiki-sqa-password">
-                                <span>Contraseña de Squad ALPHA</span>
-                                <input id="sqa-wiki-sqa-password" type="password" name="sqa_password" required autocomplete="current-password" minlength="1" placeholder="Tu contraseña actual">
-                            </label>
-                            <label class="sqa-wiki-card__field" for="sqa-wiki-old-password">
-                                <span>Contraseña anterior de la Wiki</span>
-                                <input id="sqa-wiki-old-password" type="password" name="bookstack_password" required autocomplete="off" minlength="1" placeholder="Contraseña de tu antigua cuenta">
-                            </label>
+                    <div data-wiki-loading class="sqa-wiki-card__state-panel">
+                        <div class="sqa-wiki-card__link-heading"><span class="sqa-wiki-card__link-symbol" aria-hidden="true">↻</span><div><h4>Comprobando tu cuenta</h4><p>Estamos verificando si ya tienes una cuenta de Wiki vinculada.</p></div></div>
+                    </div>
+                    <div data-wiki-linked hidden class="sqa-wiki-card__state-panel">
+                        <div class="sqa-wiki-card__link-heading"><span class="sqa-wiki-card__link-symbol" aria-hidden="true">✓</span><div><h4>Cuenta de Wiki vinculada</h4><p>Ya puedes acceder. Tus grupos de Squad ALPHA se sincronizan al iniciar sesión.</p></div></div>
+                        <div class="sqa-wiki-card__alert sqa-wiki-card__alert--success" role="status">Todo listo. No necesitas introducir contraseñas ni volver a vincular tu cuenta.</div>
+                    </div>
+                    <div data-wiki-unlinked hidden class="sqa-wiki-card__state-panel">
+                        <div class="sqa-wiki-card__link-heading"><span class="sqa-wiki-card__link-symbol" aria-hidden="true">↗</span><div><h4>¿Es tu primera vez en la Wiki?</h4><p>Si nunca tuviste cuenta en la Wiki, utiliza «Acceder a la Wiki». Se creará automáticamente al iniciar sesión.</p></div></div>
+                        <div class="sqa-wiki-card__old-account">
+                            <h4>¿Ya tenías una cuenta anterior?</h4>
+                            <p>Vincúlala <strong>antes</strong> de acceder para conservar tus libros, comentarios y permisos.</p>
+                            <button type="button" class="btn btn-outline sqa-wiki-card__secondary" data-wiki-open-form aria-expanded="false" aria-controls="sqa-wiki-form-wrapper">Vincular mi cuenta anterior</button>
+                            <div id="sqa-wiki-form-wrapper" data-wiki-form-wrapper hidden>
+                                <form method="POST" action="{{ route('profile.accounts.wiki.link') }}" autocomplete="off" class="sqa-wiki-card__form">
+                                    @csrf
+                                    <div class="sqa-wiki-card__fields">
+                                        <label class="sqa-wiki-card__field" for="sqa-wiki-sqa-password"><span>Contraseña de Squad ALPHA</span><input id="sqa-wiki-sqa-password" type="password" name="sqa_password" required autocomplete="current-password" placeholder="Tu contraseña actual"></label>
+                                        <label class="sqa-wiki-card__field" for="sqa-wiki-old-password"><span>Contraseña anterior de la Wiki</span><input id="sqa-wiki-old-password" type="password" name="bookstack_password" required autocomplete="off" placeholder="Contraseña de tu antigua cuenta"></label>
+                                    </div>
+                                    <button type="submit" class="btn sqa-wiki-card__submit">Vincular cuenta de la Wiki</button>
+                                </form>
+                            </div>
                         </div>
-                        <button type="submit" class="btn sqa-wiki-card__submit">Vincular cuenta de la Wiki</button>
-                    </form>
+                    </div>
+                    <div data-wiki-error hidden class="sqa-wiki-card__state-panel">
+                        <div class="sqa-wiki-card__link-heading"><span class="sqa-wiki-card__link-symbol" aria-hidden="true">!</span><div><h4>No se pudo comprobar la cuenta</h4><p>Inténtalo de nuevo. Si ya tenías una cuenta antigua, no entres en la Wiki sin vincularla primero.</p></div></div>
+                    </div>
                 </div>
             @endif
         </article>
@@ -231,4 +232,53 @@
 .linked-accounts .sqa-wiki-card__alert--success{background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.35)}
 @media(max-width:920px){.linked-accounts .sqa-wiki-card{grid-template-columns:1fr}.linked-accounts .sqa-wiki-card__link{border-left:0;border-top:1px solid rgba(255,255,255,.1)}}
 @media(max-width:560px){.linked-accounts .sqa-wiki-card__main,.linked-accounts .sqa-wiki-card__link{padding:18px}.linked-accounts .sqa-wiki-card__actions{flex-direction:column}.linked-accounts .sqa-wiki-card__actions .btn,.linked-accounts .sqa-wiki-card__submit{width:100%}}
+</style>
+
+@if($wikiCanLink)
+<script>
+(function () {
+    const card = document.getElementById('sqa-wiki-card');
+    if (!card || !card.dataset.statusUrl) return;
+    const panels = {loading: card.querySelector('[data-wiki-loading]'), linked: card.querySelector('[data-wiki-linked]'), unlinked: card.querySelector('[data-wiki-unlinked]'), error: card.querySelector('[data-wiki-error]')};
+    const check = card.querySelector('[data-wiki-check]');
+    const open = card.querySelector('[data-wiki-open-form]');
+    const wrapper = card.querySelector('[data-wiki-form-wrapper]');
+    const guidance = card.querySelector('[data-wiki-guidance]');
+    function show(name) {
+        Object.entries(panels).forEach(([key, panel]) => { if (panel) panel.hidden = key !== name; });
+        if (check) check.disabled = name === 'loading';
+        if (guidance && name === 'linked') guidance.textContent = 'Tu cuenta de Wiki ya está vinculada. Entra directamente; tus grupos se actualizan cuando inicias sesión.';
+    }
+    async function refresh() {
+        show('loading');
+        if (wrapper) wrapper.hidden = true;
+        if (open) open.setAttribute('aria-expanded', 'false');
+        try {
+            const response = await fetch(card.dataset.statusUrl, {credentials: 'same-origin', headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}, cache: 'no-store'});
+            if (!response.ok) throw new Error('status unavailable');
+            const data = await response.json();
+            if (!['linked', 'unlinked', 'pending_link'].includes(data.status)) throw new Error('invalid status');
+            show(data.status === 'pending_link' ? 'unlinked' : data.status);
+            if (guidance && data.status === 'pending_link') guidance.textContent = 'Tienes una cuenta anterior de la Wiki pendiente de vincular. Vincúlala antes de acceder para conservar tu historial y tus permisos.';
+        } catch (_) { show('error'); }
+    }
+    if (check) check.addEventListener('click', refresh);
+    if (open && wrapper) open.addEventListener('click', function () {
+        const shouldOpen = wrapper.hidden;
+        wrapper.hidden = !shouldOpen;
+        open.setAttribute('aria-expanded', String(shouldOpen));
+    });
+    refresh();
+})();
+</script>
+@endif
+
+<style>
+.linked-accounts .sqa-wiki-card [hidden]{display:none!important}
+.linked-accounts .sqa-wiki-card__state-panel{min-width:0}
+.linked-accounts .sqa-wiki-card__old-account{padding:16px;border:1px solid rgba(231,171,55,.25);border-radius:12px;background:rgba(231,171,55,.04)}
+.linked-accounts .sqa-wiki-card__old-account>p{margin:6px 0 14px;font-size:.85rem;line-height:1.6;opacity:.85}
+.linked-accounts .sqa-wiki-card__old-account .sqa-wiki-card__form{margin-top:18px}
+.linked-accounts .sqa-wiki-card__state-panel>.sqa-wiki-card__alert{margin:0}
+.linked-accounts .sqa-wiki-card__secondary:disabled{opacity:.55;cursor:wait}
 </style>

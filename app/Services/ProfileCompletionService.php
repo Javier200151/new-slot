@@ -3,6 +3,10 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\Wiki\WikiAccessPolicy;
+use App\Services\Wiki\WikiLinkClient;
+use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 class ProfileCompletionService
 {
@@ -43,6 +47,18 @@ class ProfileCompletionService
             ],
         ];
 
+        // Only historical Wiki accounts awaiting linking are pending.
+        // New users without a Wiki account should access via OIDC normally.
+        if ($this->hasPendingLegacyWikiAccount($user)) {
+            $steps[] = [
+                'key' => 'wiki_link',
+                'label' => 'Vincular cuenta anterior de la Wiki',
+                'description' => 'Vincula tu cuenta antigua de la Wiki para conservar libros, comentarios y permisos.',
+                'anchor' => 'profile-linked-accounts',
+                'complete' => false,
+            ];
+        }
+
         $completed = count(array_filter(
             $steps,
             static fn (array $step): bool => $step['complete'],
@@ -65,6 +81,33 @@ class ProfileCompletionService
         ];
     }
 
+
+    private function hasPendingLegacyWikiAccount(User $user): bool
+    {
+        if (! $user->exists || ! $user->getKey() || ! config('wiki_link.enabled', false)) {
+            return false;
+        }
+
+        try {
+            $policy = app(WikiAccessPolicy::class);
+            if (! $policy->canAuthenticate($user) || $policy->isSuperAdmin($user)) {
+                return false;
+            }
+
+            return Cache::remember('wiki_link:pending_profile:'.$user->getKey(), now()->addMinutes(2),
+                function () use ($user): bool {
+                    $response = app(WikiLinkClient::class)->call(
+                        'status', 'sqa-user-'.$user->getKey(), (string) $user->email
+                    );
+
+                    return ($response['status'] ?? null) === 'pending_link';
+                });
+        } catch (Throwable $exception) {
+            // An unavailable Wiki must not make the home page fail or falsely flag new recruits.
+            report($exception);
+            return false;
+        }
+    }
 
     private function hasConfirmedBirthdayVisibility(User $user): bool
     {
