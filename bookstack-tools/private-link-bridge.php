@@ -86,7 +86,20 @@ if ($data['action']==='sync') {
 }
 if ($data['action']==='status') {
     $linked=DB::table('users')->where('external_auth_id',$sub)->whereRaw('LOWER(TRIM(email)) = ?',[$email])->exists();
-    reply(200,$linked?'linked':'not_linked');
+    if ($linked) reply(200, 'linked');
+    // Show a pending step only for a real historical Wiki account without an OIDC identity.
+    // Exclude protected/system accounts and ambiguous email matches.
+    $legacy=DB::table('users')->whereRaw('LOWER(TRIM(email)) = ?',[$email])
+        ->get(['id','name','external_auth_id']);
+    if ($legacy->count() === 1) {
+        $entry = $legacy->first();
+        if (!in_array((int)$entry->id, [1,2,40,41], true)
+            && !in_array(mb_strtolower((string)$entry->name), ['admin','guest','api','miembro sqa'], true)
+            && trim((string)$entry->external_auth_id) === '') {
+            reply(200, 'pending_link');
+        }
+    }
+    reply(200, 'not_linked');
 }
 if (count($matches)!==1) reply(200,'not_eligible');
 $user=$matches->first();
