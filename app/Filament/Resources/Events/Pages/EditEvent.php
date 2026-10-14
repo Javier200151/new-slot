@@ -17,6 +17,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Enums\VerticalAlignment;
 use App\Services\CommunityNotificationService;
@@ -182,7 +183,7 @@ class EditEvent extends EditRecord
                 ])
                 ->modalHeading('Editor de ORBAT del evento')
                 ->modalSubmitActionLabel('Guardar visibilidad')
-                ->modalWidth('3xl')
+                ->modalWidth('6xl')
                 ->fillForm(fn (): array => static::prepareOrbatVisibilityForm($this->record->orbat ?? []))
                 ->form(fn (): array => $this->orbatVisibilitySchema())
                 ->action(function (array $data): void {
@@ -199,6 +200,39 @@ class EditEvent extends EditRecord
                                 $data[static::orbatSlotVisibilityField($groupIndex, $slotIndex)]
                                 ?? ($slot['visible'] ?? true)
                             );
+                        }
+                    }
+
+                    // El slot obligatorio debe permanecer accesible en el ORBAT del evento.
+                    // Un slot dentro de un grupo oculto NO cuenta como visible.
+                    $activityType = $this->record->activity?->activityType;
+                    $requiredSlotTypeId = OrbatGlobalCommand::requiredSlotTypeId($activityType);
+
+                    if ($requiredSlotTypeId !== null) {
+                        $visibleRequiredSlots = 0;
+                        foreach ($orbat['groups'] ?? [] as $group) {
+                            if (! is_array($group) || ! ($group['visible'] ?? true)) {
+                                continue;
+                            }
+                            foreach ($group['slots'] ?? [] as $slot) {
+                                if (is_array($slot)
+                                    && ($slot['visible'] ?? true)
+                                    && (int) ($slot['slot_type_id'] ?? 0) === $requiredSlotTypeId) {
+                                    $visibleRequiredSlots++;
+                                }
+                            }
+                        }
+
+                        if ($visibleRequiredSlots === 0) {
+                            Notification::make()
+                                ->title('Falta un slot obligatorio visible')
+                                ->body('Debes mantener visible al menos un slot de tipo "'
+                                    . OrbatGlobalCommand::requiredSlotName($activityType)
+                                    . '" y su grupo. No se ha guardado la visibilidad.')
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                            return;
                         }
                     }
 
@@ -618,6 +652,7 @@ class EditEvent extends EditRecord
                 ]),
         ];
 
+        $groupCards = [];
         foreach ($groups as $groupIndex => $group) {
             $groupIndex = (int) $groupIndex;
             $groupName = trim((string) ($group['name'] ?? '')) ?: 'Grupo sin nombre';
@@ -676,7 +711,7 @@ class EditEvent extends EditRecord
                     ]);
             }
 
-            $sections[] = \Filament\Schemas\Components\Section::make()
+            $groupCards[] = \Filament\Schemas\Components\Section::make()
                 ->schema([
                     Flex::make([
                         Placeholder::make("group_label_{$groupIndex}")
@@ -737,6 +772,12 @@ class EditEvent extends EditRecord
                     'class' => 'event-orbat-visibility-section',
                 ]);
         }
+
+        // Tarjetas responsivas: dos columnas para ORBAT amplios, una en móvil.
+        // Se mantienen los nombres de estado y los data-attributes del JS existente.
+        $sections[] = Grid::make(['default' => 1, 'lg' => 2])
+            ->schema($groupCards)
+            ->extraAttributes(['class' => 'event-orbat-visibility-cards']);
 
         if ($profile) {
             $metrics = OrbatEditorProfiler::analyze($orbat);

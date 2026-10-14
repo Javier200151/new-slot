@@ -11,6 +11,7 @@ use App\Support\BriefingMarkup;
 use App\Support\BriefingSectionImages;
 use App\Support\RadioNetworkOrder;
 use App\Support\BbcodeMarkup;
+use App\Support\OrbatGlobalCommand;
 
 /**
  * Modelo canónico de las actividades de NewSlot.
@@ -66,6 +67,9 @@ class Activity extends Model
     protected static function booted(): void
     {
         static::creating(function ($activity) {
+            $activity->orbat = OrbatGlobalCommand::ensureRequiredSlot(
+                $activity->orbat, $activity->activityType()->first()
+            );
             if (Auth::check()) {
                 $activity->created_by = Auth::id();
                 $activity->updated_by = Auth::id();
@@ -73,6 +77,9 @@ class Activity extends Model
         });
 
         static::updating(function ($activity) {
+            $activity->orbat = OrbatGlobalCommand::ensureRequiredSlot(
+                $activity->orbat, $activity->activityType()->first()
+            );
             if (Auth::check()) {
                 $activity->updated_by = Auth::id();
             }
