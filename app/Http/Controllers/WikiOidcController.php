@@ -61,9 +61,19 @@ class WikiOidcController extends Controller
         abort_unless($request->query('code_challenge_method') === 'S256', 400);
         $challenge = (string) $request->query('code_challenge');
         abort_unless((bool) preg_match('/^[A-Za-z0-9_-]{43}$/D', $challenge), 400);
-        $state = (string) $request->query('state');
-        $nonce = (string) $request->query('nonce');
-        abort_unless(strlen($state) >= 16 && strlen($state) <= 512 && strlen($nonce) >= 16 && strlen($nonce) <= 512, 400);
+		$state = (string) $request->query('state');
+		$nonce = $request->query('nonce');
+
+		abort_unless(
+			strlen($state) >= 16 && strlen($state) <= 512,
+			400
+		);
+
+		abort_unless(
+			$nonce === null ||
+			(is_string($nonce) && strlen($nonce) >= 16 && strlen($nonce) <= 512),
+			400
+		);
 
         if (! auth()->check()) {
             // Preserve validated authorization query through normal local login.
@@ -111,11 +121,19 @@ class WikiOidcController extends Controller
         $user = User::find($data['user_id']);
         if (! $user || ! $policy->canAuthenticate($user)) return $this->error('access_denied', 403);
         $now = time();
-        $claims = $this->claims($user, $policy);
-        $idToken = $jwt->encode(array_merge($claims, [
-            'iss' => config('wiki_oidc.issuer'), 'aud' => $clientId, 'iat' => $now, 'exp' => $now + 300,
-            'auth_time' => min($now, (int) ($data['auth_time'] ?? $now)), 'nonce' => $data['nonce'],
-        ]));
+        $claims = array_merge($this->claims($user, $policy), [
+			'iss' => config('wiki_oidc.issuer'),
+			'aud' => $clientId,
+			'iat' => $now,
+			'exp' => $now + 300,
+			'auth_time' => min($now, (int) ($data['auth_time'] ?? $now)),
+		]);
+
+		if (isset($data['nonce']) && $data['nonce'] !== '') {
+			$claims['nonce'] = $data['nonce'];
+		}
+
+		$idToken = $jwt->encode($claims);
         $accessToken = WikiOidcJwt::b64(random_bytes(32));
         Cache::put('wiki_oidc:access:'.hash('sha256', $accessToken), $user->getKey(), now()->addMinutes(5));
         return response()->json(['access_token' => $accessToken, 'token_type' => 'Bearer', 'expires_in' => 300, 'id_token' => $idToken, 'scope' => 'openid profile email'])->header('Cache-Control', 'no-store')->header('Pragma', 'no-cache');
