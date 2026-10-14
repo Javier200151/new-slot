@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\InfrastructureSettings\Schemas;
 
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -32,10 +33,22 @@ class InfrastructureSettingForm
                                 ->label('Puerto de juego')
                                 ->numeric()
                                 ->minValue(1)
-                                ->maxValue(65534)
-                                ->helperText('El puerto de consulta se calculará automáticamente sumando 1 al puerto de juego.'),
+                                ->maxValue(65534),
+
+                            Hidden::make('password_ciphertext'),
+
+                            TextInput::make('access_password')
+                                ->label('Contraseña de acceso')
+                                ->password()
+                                ->revealable()
+                                ->dehydrated(fn ($state): bool => filled($state)),
+
+                            Toggle::make('clear_password')
+                                ->label('Eliminar contraseña guardada')
+                                ->default(false)
+                                ->columnSpanFull(),
                         ])
-                        ->columns(3)
+                        ->columns(2)
                         ->defaultItems(0)
                         ->reorderable()
                         ->collapsible()

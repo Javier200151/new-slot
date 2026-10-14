@@ -885,6 +885,11 @@ Route::get(
     ->middleware('throttle:30,1')
     ->name('infrastructure.status');
 
+Route::get('/infraestructura/credencial/{index}', [PublicInfrastructureController::class, 'credential'])
+    ->whereNumber('index')
+    ->middleware(['auth', 'throttle:15,1'])
+    ->name('infrastructure.credential');
+
 /*
 |--------------------------------------------------------------------------
 | Páginas públicas
