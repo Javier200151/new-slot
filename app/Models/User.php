@@ -238,6 +238,11 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     {
         return $this->belongsToMany(Metopa::class, 'metopa_user')
             ->withPivot('assigned_at')
+            // Las metopas retiradas se conservan en el histórico mediante
+            // deleted_at, pero no deben aparecer en el perfil público,
+            // la firma ni la API. Filament ya aplica este filtro a través
+            // de la relación UserMetopa con SoftDeletes.
+            ->wherePivotNull('deleted_at')
             ->withTimestamps()
             ->orderByPivot('assigned_at', 'asc');
     }
