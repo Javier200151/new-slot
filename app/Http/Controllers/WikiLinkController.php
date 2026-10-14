@@ -19,7 +19,7 @@ class WikiLinkController extends Controller
             $result = $client->call('status', 'sqa-user-'.$user->getKey(), (string) $user->email);
             return back()->with('wiki_link_notice', ($result['status'] ?? '') === 'linked'
                 ? 'Tu cuenta de Wiki ya está vinculada.'
-                : 'Esta identidad aún no tiene una cuenta histórica vinculada en BookStack.')
+                : 'Tu cuenta anterior de la Wiki todavía no está vinculada.')
                 ->withFragment('profile-linked-accounts');
         } catch (RuntimeException $e) {
             report($e);
