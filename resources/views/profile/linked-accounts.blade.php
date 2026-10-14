@@ -124,22 +124,40 @@
             </div>
         </article>
 
-        {{-- Wiki: launch-only while OIDC and self-service linking are not enabled.
-             Do not infer linked status from matching email or show an editable password form. --}}
+        {{-- BookStack SSO is active. This page cannot infer whether an existing
+             BookStack account has external_auth_id: never claim linked status. --}}
+        @php
+            $wikiAuthorized = app(\App\Services\Wiki\WikiAccessPolicy::class)->canAuthenticate($user);
+        @endphp
         <article class="linked-account">
             <div class="linked-account__identity">
                 <div class="linked-account__icon" aria-hidden="true"><span>W</span></div>
                 <div>
                     <h3>Wiki Squad ALPHA</h3>
-                    <p class="linked-account__state linked-account__state--manual">
-                        Acceso a la documentación
-                    </p>
-                    <small>La vinculación de cuentas existentes y el acceso único están en preparación. Por ahora, inicia sesión en la wiki con tus credenciales anteriores.</small>
+                    @if($wikiAuthorized)
+                        <p class="linked-account__state linked-account__state--ok">Inicio de sesión con Squad ALPHA disponible</p>
+                        <small>Accede sin otra contraseña. Si ya tenías una cuenta antigua en la wiki y aún no la has vinculado, contacta con administración antes del primer acceso para conservar tu historial y permisos.</small>
+                    @else
+                        <p class="linked-account__state linked-account__state--manual">Acceso privado no autorizado</p>
+                        <small>Para iniciar sesión en la wiki necesitas tener el correo verificado y estado RECLUTA, ACTIVO o RESERVA, salvo la cuenta administrativa protegida. La documentación pública sigue disponible.</small>
+                    @endif
                 </div>
             </div>
+            @if($wikiAuthorized && ! app(\App\Services\Wiki\WikiAccessPolicy::class)->isSuperAdmin($user) && config('wiki_link.enabled'))
+                <a class="btn btn-outline" href="{{ route('profile.accounts.wiki.status') }}">Comprobar vinculación de Wiki</a>
+                @error('wiki')<p role="alert">{{ $message }}</p>@enderror
+                @if(session('wiki_link_notice'))<p role="status">{{ session('wiki_link_notice') }}</p>@endif
+                <form method="POST" action="{{ route('profile.accounts.wiki.link') }}" autocomplete="off" style="margin-top:1rem">
+                    @csrf
+                    <p><strong>¿Ya tenías cuenta en la Wiki?</strong> Verifica las contraseñas de ambas cuentas para conservar tus libros, comentarios y permisos.</p>
+                    <label>Contraseña de Squad ALPHA <input type="password" name="sqa_password" required autocomplete="current-password"></label>
+                    <label>Contraseña antigua de BookStack <input type="password" name="bookstack_password" required autocomplete="off"></label>
+                    <button type="submit" class="btn btn-outline">Vincular Wiki</button>
+                </form>
+            @endif
             <div class="linked-account__actions">
                 <a href="https://wiki.squadalpha.es" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
-                    Abrir Wiki ↗
+                    {{ $wikiAuthorized ? 'Acceder a la Wiki ↗' : 'Ver Wiki pública ↗' }}
                 </a>
             </div>
         </article>

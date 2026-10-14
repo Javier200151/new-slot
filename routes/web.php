@@ -890,6 +890,13 @@ Route::get('/infraestructura/credencial/{index}', [PublicInfrastructureControlle
     ->middleware(['auth', 'throttle:15,1'])
     ->name('infrastructure.credential');
 
+// Wiki self-service: disabled unless WIKI_LINK_ENABLED=true and private bridge is ready.
+Route::post('/perfil/cuentas/wiki/vincular', [\App\Http\Controllers\WikiLinkController::class, 'link'])
+    ->middleware(['auth', 'throttle:3,1'])->name('profile.accounts.wiki.link');
+Route::get('/perfil/cuentas/wiki/estado', [\App\Http\Controllers\WikiLinkController::class, 'status'])
+    ->middleware(['auth', 'throttle:10,1'])->name('profile.accounts.wiki.status');
+
+
 /*
 |--------------------------------------------------------------------------
 | Páginas públicas
