@@ -20,7 +20,7 @@ if (!ctype_digit($ts) || abs(time() - (int)$ts) > 60 || !preg_match('/^[a-f0-9]{
 $expected = hash_hmac('sha256',$ts."\n".$nonce."\n".hash('sha256',$body),$secret);
 if (!hash_equals($expected,$sig)) reply(401,'unauthorized');
 $data = json_decode($body,true);
-if (!is_array($data) || !in_array($data['action'] ?? '', ['link','status'],true) || !preg_match('/^sqa-user-[1-9][0-9]*$/D',(string)($data['sub']??'')) || !filter_var($data['email']??null,FILTER_VALIDATE_EMAIL)) reply(400,'invalid_request');
+if (!is_array($data) || !in_array($data['action'] ?? '', ['link','status','sync'],true) || !preg_match('/^sqa-user-[1-9][0-9]*$/D',(string)($data['sub']??'')) || !filter_var($data['email']??null,FILTER_VALIDATE_EMAIL)) reply(400,'invalid_request');
 chdir('/app/www');
 require '/app/www/vendor/autoload.php';
 $app=require '/app/www/bootstrap/app.php';
@@ -32,6 +32,46 @@ if (!Cache::add('sqa_link_nonce:'.$nonce,1,now()->addMinutes(2))) reply(409,'rep
 $sub=$data['sub']; $email=mb_strtolower(trim($data['email']));
 if ($sub === 'sqa-user-1') reply(403,'protected');
 $matches=DB::table('users')->whereRaw('LOWER(TRIM(email)) = ?',[$email])->get(['id','name','password','external_auth_id']);
+if ($data['action']==='sync') {
+    // The whitelist is explicit: adding other BookStack roles must never make them SQA-managed.
+    // In particular Admin, API, Editor and Public are intentionally excluded.
+    $managedNames = [
+        'Miembro', 'GET', 'GIA', 'GOP', 'GPM', 'GRA', 'GRET', 'GRS', 'GTA', 'GTO',
+        'Coordinador de GET', 'Coordinador de GIA', 'Coordinador de GOP',
+        'Coordinador de GRA', 'Coordinador de GRET',
+        'Coordinador de GRS', 'Coordinador de GTO',
+    ];
+    $groups = $data['groups'] ?? null;
+    if (!is_array($groups) || !array_is_list($groups) || count($groups) > 50) reply(400, 'invalid_groups');
+    foreach ($groups as $group) {
+        if (!is_string($group) || strlen($group) > 100) reply(400, 'invalid_groups');
+    }
+    $wantedNames = array_values(array_intersect($managedNames, array_unique($groups)));
+    $linkedUsers = DB::table('users')->where('external_auth_id', $sub)
+        ->whereRaw('LOWER(TRIM(email)) = ?', [$email])->pluck('id');
+    if ($linkedUsers->count() !== 1) reply(200, 'not_linked');
+    $userId = (int) $linkedUsers->first();
+    $roles = DB::table('roles')->whereIn('display_name', $managedNames)->get(['id', 'display_name']);
+    // Refuse ambiguous role names instead of assigning an unintended ID.
+    if ($roles->pluck('display_name')->unique()->count() !== $roles->count()) reply(409, 'ambiguous_roles');
+    $managedIds = $roles->pluck('id')->map(fn($id)=>(int)$id)->all();
+    $wantedIds = $roles->whereIn('display_name', $wantedNames)->pluck('id')->map(fn($id)=>(int)$id)->all();
+    DB::transaction(function () use ($userId, $managedIds, $wantedIds): void {
+        // Serializes concurrent sync for the same account.
+        DB::table('users')->where('id', $userId)->lockForUpdate()->first(['id']);
+        if ($managedIds !== []) {
+            $obsolete = array_values(array_diff($managedIds, $wantedIds));
+            if ($obsolete !== []) DB::table('role_user')->where('user_id', $userId)
+                ->whereIn('role_id', $obsolete)->delete();
+        }
+        $existing = DB::table('role_user')->where('user_id', $userId)
+            ->whereIn('role_id', $wantedIds)->pluck('role_id')->map(fn($id)=>(int)$id)->all();
+        foreach (array_diff($wantedIds, $existing) as $roleId) {
+            DB::table('role_user')->insertOrIgnore(['user_id'=>$userId, 'role_id'=>$roleId]);
+        }
+    });
+    reply(200, 'synced');
+}
 if ($data['action']==='status') {
     $linked=DB::table('users')->where('external_auth_id',$sub)->whereRaw('LOWER(TRIM(email)) = ?',[$email])->exists();
     reply(200,$linked?'linked':'not_linked');
