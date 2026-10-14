@@ -38,3 +38,6 @@ Schedule::command('treasury:sync-monthly-control')
     ->monthlyOn(15, '00:15')
     ->timezone('Europe/Madrid')
     ->withoutOverlapping();
+
+// Requires an operational Laravel scheduler (php artisan schedule:run every minute).
+Schedule::command('wiki:revoke-pending')->everyMinute()->withoutOverlapping();

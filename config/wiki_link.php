@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'session_revoke_enabled' => (bool) env('WIKI_SESSION_REVOKE_ENABLED', false),
     'enabled' => (bool) env('WIKI_LINK_ENABLED', false),
     'group_sync_enabled' => (bool) env('WIKI_GROUP_SYNC_ENABLED', false),
 

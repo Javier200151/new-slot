@@ -20,7 +20,7 @@ if (!ctype_digit($ts) || abs(time() - (int)$ts) > 60 || !preg_match('/^[a-f0-9]{
 $expected = hash_hmac('sha256',$ts."\n".$nonce."\n".hash('sha256',$body),$secret);
 if (!hash_equals($expected,$sig)) reply(401,'unauthorized');
 $data = json_decode($body,true);
-if (!is_array($data) || !in_array($data['action'] ?? '', ['link','status','sync'],true) || !preg_match('/^sqa-user-[1-9][0-9]*$/D',(string)($data['sub']??'')) || !filter_var($data['email']??null,FILTER_VALIDATE_EMAIL)) reply(400,'invalid_request');
+if (!is_array($data) || !in_array($data['action'] ?? '', ['link','status','sync','revoke'],true) || !preg_match('/^sqa-user-[1-9][0-9]*$/D',(string)($data['sub']??'')) || !filter_var($data['email']??null,FILTER_VALIDATE_EMAIL)) reply(400,'invalid_request');
 chdir('/app/www');
 require '/app/www/vendor/autoload.php';
 $app=require '/app/www/bootstrap/app.php';
@@ -31,6 +31,18 @@ use Illuminate\Support\Facades\DB;
 if (!Cache::add('sqa_link_nonce:'.$nonce,1,now()->addMinutes(2))) reply(409,'replayed');
 $sub=$data['sub']; $email=mb_strtolower(trim($data['email']));
 if ($sub === 'sqa-user-1') reply(403,'protected');
+if ($data['action']==='revoke') {
+    // Only revoke an exactly linked account. Never match by email alone.
+    if (config('session.driver') !== 'database') reply(503, 'session_driver_not_database');
+    $ids = DB::table('users')->where('external_auth_id', $sub)
+        ->whereRaw('LOWER(TRIM(email)) = ?', [$email])->pluck('id');
+    if ($ids->count() > 1) reply(409, 'ambiguous_identity');
+    if ($ids->count() === 0) reply(200, 'not_linked');
+    DB::table(config('session.table', 'sessions'))
+        ->where('user_id', (int)$ids->first())->delete();
+    reply(200, 'revoked');
+}
+
 $matches=DB::table('users')->whereRaw('LOWER(TRIM(email)) = ?',[$email])->get(['id','name','password','external_auth_id']);
 if ($data['action']==='sync') {
     // The whitelist is explicit: adding other BookStack roles must never make them SQA-managed.
