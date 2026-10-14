@@ -902,3 +902,6 @@ Route::get('/infraestructura/credencial/{index}', [PublicInfrastructureControlle
 
 Route::get('/{page:slug}', [PageController::class, 'show'])
     ->name('pages.show');
+
+// Wiki OIDC endpoints. Feature disabled unless explicitly configured.
+require __DIR__.'/wiki_oidc.php';

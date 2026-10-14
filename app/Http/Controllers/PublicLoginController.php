@@ -54,7 +54,7 @@ class PublicLoginController extends Controller
             ]);
         }
 
-        return redirect('/');
+        return redirect()->intended('/');
     }
 
     public function logout(Request $request)

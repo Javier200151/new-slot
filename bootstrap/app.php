@@ -41,6 +41,8 @@ return Application::configure(
             $middleware->append(
                 AuditRequestContext::class
             );
+            // Server-to-server token exchange is not a CSRF browser form.
+            $middleware->validateCsrfTokens(except: ['oauth/token']);
         }
     )
 
