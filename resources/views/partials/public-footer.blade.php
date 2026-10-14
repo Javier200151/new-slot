@@ -179,6 +179,8 @@
             .footer-infrastructure__ts-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; color:#f2f2f2; font-size:12px; }
             .footer-infrastructure__ts-header button { border:0; background:transparent; color:#b8bec9; cursor:pointer; font-size:22px; }
             .footer-infrastructure__ts-floating .footer-infrastructure__users { max-height:280px; overflow:auto; padding:2px 6px; }
+            .footer-infrastructure__row--with-key { grid-template-columns:10px minmax(0, 1fr) auto 24px; }
+            .footer-infrastructure__row--with-key .footer-infrastructure__key { grid-column:4; grid-row:1; }
             .footer-infrastructure__key { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; background:transparent; border:0; color:#f59e0b; cursor:pointer; flex:none; }
             .footer-infrastructure__key svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; }
             .footer-infrastructure__credential { position:absolute; right:0; top:100%; z-index:100; min-width:230px; max-width:calc(100vw - 32px); background:#11151b; border:1px solid #343944; border-radius:10px; padding:11px; color:#e5e7eb; box-shadow:0 12px 28px #0009; font-size:12px; }
