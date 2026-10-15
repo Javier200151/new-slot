@@ -7,6 +7,7 @@ use App\Models\CampaignAar;
 use App\Models\Event;
 use App\Services\CampaignAarService;
 use App\Services\CommunityNotificationService;
+use App\Support\CampaignAarOrbatPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -109,6 +110,7 @@ class CampaignAarController extends Controller
         $canEdit = $request->user()?->can('update', $aar) ?? false;
         $editing = $canEdit && $request->boolean('editar');
         $sequence = $this->aarService->sequenceNumber($event);
+        $orbatGroups = app(CampaignAarOrbatPresenter::class)->present($aar->orbat_snapshot);
 
         return view('campaigns.aars.show', compact(
             'campaign',
@@ -117,6 +119,7 @@ class CampaignAarController extends Controller
             'canEdit',
             'editing',
             'sequence',
+            'orbatGroups',
         ));
     }
 

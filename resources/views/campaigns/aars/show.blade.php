@@ -131,8 +131,6 @@
                 </summary>
 
                 <div class="aar-orbat__content">
-                    @php($orbatGroups = $aar->orbat_snapshot['groups'] ?? [])
-
                     @if(empty($orbatGroups))
                         <p class="aar-muted">No hay ORBAT disponible para este operativo.</p>
                     @else
@@ -153,7 +151,15 @@
                                                     <b>{{ $slot['slot_name'] ?? 'Slot' }}</b>
                                                     <small>{{ $slot['slot_type'] ?? 'Sin tipo' }}</small>
                                                 </span>
-                                                <strong @class(['is-vacant' => ($slot['assignee'] ?? 'VACANTE') === 'VACANTE'])>
+                                                <strong
+                                                    @class([
+                                                        'is-vacant' => $slot['is_vacant'] ?? false,
+                                                        'is-member' => filled($slot['display_status_color'] ?? null),
+                                                    ])
+                                                    @style([
+                                                        '--aar-occupant-color: ' . ($slot['display_status_color'] ?? '') => filled($slot['display_status_color'] ?? null),
+                                                    ])
+                                                >
                                                     {{ $slot['assignee'] ?? 'VACANTE' }}
                                                 </strong>
                                             </div>

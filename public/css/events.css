@@ -1049,6 +1049,8 @@ html:has(.event-detail) {
 
 .event-detail__options {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 9px;
     margin-top: 18px;
 }
@@ -1069,7 +1071,8 @@ html:has(.event-detail) {
     background: rgba(34, 197, 94, 0.08);
 }
 
-.event-detail__ocap-link {
+.event-detail__ocap-link,
+.event-detail__aar-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1099,7 +1102,8 @@ html:has(.event-detail) {
         transform 160ms ease;
 }
 
-.event-detail__ocap-link:hover {
+.event-detail__ocap-link:hover,
+.event-detail__aar-link:hover {
     color: #fff;
 
     border-color: rgba(245, 158, 11, 0.7);
@@ -1110,6 +1114,19 @@ html:has(.event-detail) {
         0 0 18px rgba(245, 158, 11, 0.12);
 
     transform: translateY(-1px);
+}
+
+/* Enlace directo al AAR publicado, también para campañas históricas. */
+.event-detail__aar-link {
+    border-color: rgba(34, 197, 94, .45);
+    color: #86efac;
+    background: rgba(34, 197, 94, .09);
+}
+
+.event-detail__aar-link:hover {
+    border-color: rgba(34, 197, 94, .76);
+    background: rgba(34, 197, 94, .18);
+    color: #dcfce7;
 }
 
 .event-detail__section {

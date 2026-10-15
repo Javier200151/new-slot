@@ -279,7 +279,7 @@ class CampaignAarService
 
         $assignments = EventSlot::query()
             ->where('event_id', $event->id)
-            ->with(['user', 'ally'])
+            ->with(['user.status', 'ally'])
             ->get()
             ->keyBy(fn (EventSlot $slot): string => (string) $slot->slot_key);
 
@@ -304,6 +304,9 @@ class CampaignAarService
                                     'assignee' => $assignment?->user?->nick
                                         ?? $assignment?->ally?->name
                                         ?? 'VACANTE',
+                                    'user_id' => $assignment?->user?->id,
+                                    // El color se congela al cerrar el evento, igual que el ORBAT.
+                                    'status_color' => $assignment?->user?->getStatusColor(),
                                     'is_ally' => $assignment?->ally_id !== null,
                                 ];
                             })
