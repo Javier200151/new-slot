@@ -94,14 +94,28 @@ class ProfileCompletionService
                 return false;
             }
 
-            return Cache::remember('wiki_link:pending_profile:'.$user->getKey(), now()->addMinutes(2),
-                function () use ($user): bool {
-                    $response = app(WikiLinkClient::class)->call(
-                        'status', 'sqa-user-'.$user->getKey(), (string) $user->email
-                    );
+            $cacheKey = 'wiki_link:pending_profile:'.$user->getKey();
+            $cached = Cache::get($cacheKey);
+            if (is_bool($cached)) {
+                return $cached;
+            }
 
-                    return ($response['status'] ?? null) === 'pending_link';
-                });
+            try {
+                // The home page should not wait for the Wiki's full management timeout.
+                $response = app(WikiLinkClient::class)->call(
+                    'status', 'sqa-user-'.$user->getKey(), (string) $user->email,
+                    timeoutSeconds: 2,
+                );
+                $pending = ($response['status'] ?? null) === 'pending_link';
+                Cache::put($cacheKey, $pending, now()->addMinutes(2));
+                return $pending;
+            } catch (Throwable $exception) {
+                // Cache an unavailable result briefly to avoid repeated delays on refresh.
+                // Explicit account linking remains independent and invalidates this cache.
+                report($exception);
+                Cache::put($cacheKey, false, now()->addSeconds(30));
+                return false;
+            }
         } catch (Throwable $exception) {
             // An unavailable Wiki must not make the home page fail or falsely flag new recruits.
             report($exception);

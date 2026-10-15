@@ -91,6 +91,7 @@ trait CreatesEventRegressionSchema
             $table->string('slot_key')->nullable();
             $table->foreignId('user_id')->nullable();
             $table->foreignId('ally_id')->nullable();
+            $table->string('status_color_snapshot', 32)->nullable();
             $table->string('name')->nullable();
             $table->foreignId('slot_type_id')->nullable();
             $table->string('slot_group')->nullable();

@@ -70,9 +70,11 @@ class PublicUserController extends Controller
             // Cualquier usuario promocionado permanece visible aunque su estado
             // actual sea BAJA, CESADO, RESERVA, etc. Los no promocionados no se listan.
             ->whereNotNull('promo_id')
+            // El directorio solo necesita estos campos: no cargar correos, tokens,
+            // datos de perfil u otras columnas ajenas a las tarjetas públicas.
+            ->select(['id', 'nick', 'image', 'promo_id', 'status_id'])
             ->with([
                 'status:id,name,color',
-                'promo:id',
                 'mainSqaGroup',
             ])
             ->when(

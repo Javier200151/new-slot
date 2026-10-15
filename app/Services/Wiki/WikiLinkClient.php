@@ -11,7 +11,7 @@ class WikiLinkClient
         return config('wiki_link.enabled') && strlen((string) config('wiki_link.shared_secret')) >= 32;
     }
 
-    public function call(string $action, string $subject, string $email, ?string $password = null, ?array $groups = null): array
+    public function call(string $action, string $subject, string $email, ?string $password = null, ?array $groups = null, ?int $timeoutSeconds = null): array
     {
         if (! $this->enabled()) throw new RuntimeException('La vinculación de Wiki todavía no está disponible.');
         $url = (string) config('wiki_link.endpoint');
@@ -29,7 +29,7 @@ class WikiLinkClient
 			throw new RuntimeException('No se encuentra el certificado CA de Wiki Link.');
 		}
 
-		$response = Http::timeout(8)
+		$response = Http::timeout($timeoutSeconds ?? 8)
 			->withOptions([
 				'verify' => $caCertificate,
 			])

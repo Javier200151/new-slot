@@ -1396,6 +1396,8 @@ class CommunityRouletteService
                 'army_id' => $targetArmyId,
             ];
 
+            $movingColor = $currentSlot?->occupantStatusColor();
+
             if ($targetSlot) {
                 if ($currentSlot) {
                     $currentSlot->forceFill([
@@ -1404,6 +1406,7 @@ class CommunityRouletteService
                     ])->save();
                 }
 
+                $targetSlot->retainExplicitStatusColor = true;
                 $targetSlot->forceFill([
                     'name' => $to['name'],
                     'slot_type_id' => $to['slot_type_id'],
@@ -1411,6 +1414,7 @@ class CommunityRouletteService
                     'faction_id' => $to['faction_id'],
                     'user_id' => $winner->id,
                     'ally_id' => null,
+                    'status_color_snapshot' => $movingColor ?: $winner->getStatusColor(),
                 ])->save();
 
                 $eventSlot = $targetSlot;

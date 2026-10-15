@@ -47,24 +47,21 @@ class AdminPanelProvider extends PanelProvider
                     $styles = [];
 
                     foreach ([
-                        'newslot-filament-custom' => public_path('css/filament-custom.css'),
-                        'newslot-personal-dashboard' => public_path('css/personal-dashboard.css'),
-                    ] as $id => $path) {
+                        'filament-custom.css',
+                        'personal-dashboard.css',
+                    ] as $filename) {
+                        $path = public_path('css/' . $filename);
+
                         if (! is_file($path)) {
                             continue;
                         }
 
-                        $css = file_get_contents($path);
-
-                        if ($css === false) {
-                            continue;
-                        }
-
-                        // Estos estilos son críticos para el layout del panel. Se inyectan
-                        // inline para no depender de la caché de Caddy/navegador ni del
-                        // registro de assets de Filament después de un despliegue.
-                        $css = str_replace('</style>', '<\/style>', $css);
-                        $styles[] = "<style id=\"{$id}\">{$css}</style>";
+                        // La URL cambia solo cuando cambia el contenido del fichero.
+                        // El navegador puede cachear el CSS en lugar de recibirlo inline
+                        // en cada respuesta de Filament.
+                        $version = substr(hash_file('sha256', $path), 0, 16);
+                        $url = e(asset('css/' . $filename) . '?v=' . $version);
+                        $styles[] = '<link rel="stylesheet" href="' . $url . '">';
                     }
 
                     return new HtmlString(implode("\n", $styles));
@@ -79,18 +76,12 @@ class AdminPanelProvider extends PanelProvider
                         return new HtmlString('');
                     }
 
-                    $javascript = file_get_contents($path);
+                    // Mantener la ejecución en BODY_END, como el script inline anterior:
+                    // evita introducir cambios de orden con Livewire o Alpine.
+                    $version = substr(hash_file('sha256', $path), 0, 16);
+                    $url = e(asset('js/filament-orbat-layout.js') . '?v=' . $version);
 
-                    if ($javascript === false) {
-                        return new HtmlString('');
-                    }
-
-                    // El editor de ORBAT debe funcionar incluso cuando el proxy/CDN
-                    // conserva una versión antigua del asset JS. Lo inyectamos inline
-                    // igual que los estilos críticos del panel.
-                    $javascript = str_replace('</script>', '<\/script>', $javascript);
-
-                    return new HtmlString('<script id="squadalpha-filament-orbat-layout">' . $javascript . '</script>');
+                    return new HtmlString('<script src="' . $url . '"></script>');
                 },
             )
             ->assets([

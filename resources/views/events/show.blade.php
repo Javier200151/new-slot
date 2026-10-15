@@ -1481,7 +1481,7 @@
                                                                 <x-user-link
                                                                     :user="$assignment->user"
                                                                     class="event-orbat__occupant-user"
-                                                                    style="--member-group-color: {{ $assignment->user->getStatusColor() }};"
+                                                                    style="--member-group-color: {{ $assignment->occupantStatusColor() }};"
                                                                 />
 
                                                                 @if($slot['is_owned_by_user'])
@@ -1532,7 +1532,7 @@
 
                                                             <strong
                                                                 class="event-orbat__occupant-user"
-                                                                style="--member-group-color: {{ $assignment->user->getStatusColor() }};"
+                                                                style="--member-group-color: {{ $assignment->occupantStatusColor() }};"
                                                             >
                                                                 {{ $assignment->user->nick }}
                                                             </strong>
