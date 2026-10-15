@@ -132,4 +132,45 @@ class ProtectedAdminSecurityTest extends TestCase
         $this->assertFalse($guard->canModify($protected, $normal));
         $this->assertTrue($guard->canModify($protected, $protected));
     }
+    public function test_protected_admin_group_membership_cannot_be_updated_or_deleted_by_another_user(): void
+    {
+        DB::table('sqa_group_users')->insert([
+            'sqa_group_id' => 10,
+            'user_id' => 1,
+            'main' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs(User::query()->findOrFail(2));
+        $membership = SqaGroupUser::query()->firstOrFail();
+
+        try {
+            $membership->update(['main' => false]);
+            $this->fail('Un tercero no debería poder modificar la relación protegida.');
+        } catch (AuthorizationException) {
+            $this->assertDatabaseHas('sqa_group_users', ['id' => $membership->id, 'main' => true]);
+        }
+
+        $this->expectException(AuthorizationException::class);
+        $membership->delete();
+    }
+
+    public function test_protected_admin_cannot_be_added_to_a_group_by_reassigning_another_membership(): void
+    {
+        DB::table('sqa_group_users')->insert([
+            'sqa_group_id' => 10,
+            'user_id' => 2,
+            'main' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs(User::query()->findOrFail(2));
+        $membership = SqaGroupUser::query()->firstOrFail();
+
+        $this->expectException(AuthorizationException::class);
+        $membership->update(['user_id' => 1]);
+    }
+
 }

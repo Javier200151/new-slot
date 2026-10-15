@@ -1088,6 +1088,7 @@ class PublicEventController extends Controller
                 'slot_group' => $orbatSlot['group']['name'] ?? 'Grupo sin nombre',
                 'faction_id' => $factionId,
             ];
+            $movingColor = $currentSlot?->occupantStatusColor();
             $targetArmyId = Faction::query()->whereKey($factionId)->value('army_id');
             $fromSnapshot = $currentSlot ? [
                 'slot_key' => $currentSlot->slot_key,
@@ -1106,10 +1107,12 @@ class PublicEventController extends Controller
                 }
 
                 $eventSlot = $targetSlot;
+                $eventSlot->retainExplicitStatusColor = true;
                 $eventSlot->forceFill([
                     ...$targetSnapshot,
                     'user_id' => $user->id,
                     'ally_id' => null,
+                    'status_color_snapshot' => $movingColor ?: $user->getStatusColor(),
                 ])->save();
             } elseif ($currentSlot) {
                 $eventSlot = $currentSlot;
@@ -1923,12 +1926,19 @@ class PublicEventController extends Controller
              * Los registros EventSlot permanecen vinculados
              * a sus respectivos slots.
              */
+            $sourceColor = $sourceSlot->occupantStatusColor();
+            $targetColor = $targetSlot->occupantStatusColor();
+
+            $sourceSlot->retainExplicitStatusColor = true;
+            $targetSlot->retainExplicitStatusColor = true;
             $sourceSlot->forceFill([
+                'status_color_snapshot' => $targetColor,
                 'user_id' => $targetUserId,
                 'ally_id' => null,
             ])->save();
 
             $targetSlot->forceFill([
+                'status_color_snapshot' => $sourceColor,
                 'user_id' => $userId,
                 'ally_id' => null,
             ])->save();
@@ -2049,6 +2059,7 @@ class PublicEventController extends Controller
             ])->save();
 
             $targetSlot->forceFill([
+                'status_color_snapshot' => $sourceColor,
                 'user_id' => $userId,
                 'ally_id' => null,
             ])->save();

@@ -65,7 +65,7 @@ Route::get('/register', function () {
 Route::post(
     '/register',
     [PublicRegisterController::class, 'store'],
-)->name('public.register.store');
+)->middleware('throttle:10,1')->name('public.register.store');
 
 /*
 |--------------------------------------------------------------------------
@@ -119,7 +119,9 @@ Route::middleware('guest')->group(function (): void {
     Route::post(
         '/reset-password',
         [PasswordResetController::class, 'reset'],
-    )->name('password.update');
+    )
+        ->middleware('throttle:5,1')
+        ->name('password.update');
 });
 
 /*

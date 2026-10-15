@@ -211,17 +211,6 @@ class EventOrbatController extends Controller
             )
             ->count();
 
-        activity('audit')
-            ->event('api_event_orbat_read')
-            ->performedOn($eventModel)
-            ->withProperties([
-                'client' => 'external_api',
-                'event_id' => (int) $eventModel->id,
-                'assigned' => $assignedTotal,
-                'reservations' => count($reservations),
-            ])
-            ->log('api_event_orbat_read');
-
         return response()
             ->json([
                 'data' => [
@@ -275,7 +264,7 @@ class EventOrbatController extends Controller
         if ($slot->user) {
             return [
                 'type' => 'user',
-                'user' => $this->userPayload($slot->user),
+                'user' => $this->userPayload($slot->user, $slot->occupantStatusColor()),
             ];
         }
 
@@ -292,7 +281,7 @@ class EventOrbatController extends Controller
         return null;
     }
 
-    private function userPayload($user): array
+    private function userPayload($user, ?string $color = null): array
     {
         return [
             'id' => (int) $user->id,
@@ -300,7 +289,7 @@ class EventOrbatController extends Controller
             'status' => [
                 'id' => $user->status?->id ? (int) $user->status->id : null,
                 'name' => $user->status?->name,
-                'color' => $user->getStatusColor(),
+                'color' => $color ?: $user->getStatusColor(),
             ],
         ];
     }

@@ -9,10 +9,13 @@ use App\Models\Concerns\Auditable;
 class EventSlot extends Model
 {
     use Auditable;
+
+    public bool $retainExplicitStatusColor = false;
     protected $fillable = [
         'event_id',
         'slot_key',
         'user_id',
+        'status_color_snapshot',
         'ally_id',
         'name',
         'slot_type_id',
@@ -25,6 +28,7 @@ class EventSlot extends Model
     protected static function booted(): void
     {
         static::creating(function (EventSlot $eventSlot): void {
+            $eventSlot->syncOccupantColor();
             if (Auth::check()) {
                 $eventSlot->created_by = Auth::id();
                 $eventSlot->updated_by = Auth::id();
@@ -32,10 +36,31 @@ class EventSlot extends Model
         });
 
         static::updating(function (EventSlot $eventSlot): void {
+            if ($eventSlot->isDirty('user_id') && ! $eventSlot->retainExplicitStatusColor) {
+                $eventSlot->syncOccupantColor();
+            }
             if (Auth::check()) {
                 $eventSlot->updated_by = Auth::id();
             }
         });
+    }
+
+    /** El color pertenece a la inscripción, no al estado actual del usuario. */
+    public function syncOccupantColor(): void
+    {
+        if (! $this->user_id) {
+            $this->status_color_snapshot = null;
+            return;
+        }
+
+        $this->status_color_snapshot = User::query()
+            ->withTrashed()
+            ->find($this->user_id)?->getStatusColor();
+    }
+
+    public function occupantStatusColor(): ?string
+    {
+        return $this->status_color_snapshot ?: $this->user?->getStatusColor();
     }
 
     public function event()

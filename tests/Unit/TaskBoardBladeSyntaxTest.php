@@ -23,7 +23,7 @@ class TaskBoardBladeSyntaxTest extends TestCase
         $tmp = tempnam(sys_get_temp_dir(), 'task-board-').'.php';
         file_put_contents($tmp, $compiled);
 
-        exec(PHP_BINARY.' -l '.escapeshellarg($tmp).' 2>&1', $output, $exitCode);
+        exec(escapeshellarg(PHP_BINARY).' -l '.escapeshellarg($tmp).' 2>&1', $output, $exitCode);
         @unlink($tmp);
 
         $this->assertSame(0, $exitCode, implode("\n", $output));

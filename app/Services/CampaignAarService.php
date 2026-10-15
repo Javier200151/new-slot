@@ -306,7 +306,7 @@ class CampaignAarService
                                         ?? 'VACANTE',
                                     'user_id' => $assignment?->user?->id,
                                     // El color se congela al cerrar el evento, igual que el ORBAT.
-                                    'status_color' => $assignment?->user?->getStatusColor(),
+                                    'status_color' => $assignment?->occupantStatusColor(),
                                     'is_ally' => $assignment?->ally_id !== null,
                                 ];
                             })

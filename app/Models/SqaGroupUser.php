@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Concerns\Auditable;
 use App\Services\SqaGroupDiscordSyncService;
 use App\Services\SqaGroupLocalRoleSyncService;
+use App\Services\ProtectedAdminGuard;
 
 class SqaGroupUser extends Model
 {
@@ -31,6 +32,27 @@ class SqaGroupUser extends Model
 
     protected static function booted(): void
     {
+        // Evitar que escrituras directas sobre la tabla pivote esquiven la
+        // protección del administrador principal aplicada al modelo User.
+        static::creating(function (self $membership): void {
+            app(ProtectedAdminGuard::class)->authorizeUserId((int) $membership->user_id);
+        });
+
+        static::updating(function (self $membership): void {
+            $guard = app(ProtectedAdminGuard::class);
+            $guard->authorizeUserId((int) $membership->getRawOriginal('user_id'));
+            if ($membership->isDirty('user_id')) {
+                $guard->authorizeUserId((int) $membership->user_id);
+            }
+        });
+
+        static::deleting(function (self $membership): void {
+            app(ProtectedAdminGuard::class)->authorizeUserId((int) $membership->user_id);
+        });
+
+        static::restoring(function (self $membership): void {
+            app(ProtectedAdminGuard::class)->authorizeUserId((int) $membership->user_id);
+        });
         static::creating(function ($sqaGroupUser): void {
             if (Auth::check()) {
                 $sqaGroupUser->updated_by = Auth::id();
