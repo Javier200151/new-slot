@@ -170,6 +170,7 @@ class PublicEventController extends Controller
         $event->load([
             'eventStatus',
             'eventResult',
+            'campaignAar',
             'activity.activityType',
             'activity.activityStatus',
             'activity.campaign',
@@ -210,6 +211,13 @@ class PublicEventController extends Controller
 
         $activity = $event->activity;
         abort_if($activity === null, 404);
+
+        // Relación persistida por event_id: también detecta AAR de campañas antiguas.
+        // Jamás enlazamos borradores ni informes ocultos en la ficha pública.
+        $publishedAar = $eventStatusName === 'FINALIZADO'
+            && $activity->campaign_id !== null
+            && $event->campaignAar?->isPublished()
+            && (bool) $event->campaignAar->is_visible;
 
         /*
         |--------------------------------------------------------------------------
@@ -684,6 +692,7 @@ class PublicEventController extends Controller
             'event',
             'eventComments',
             'activity',
+            'publishedAar',
             'radioNetworks',
             'slotHistory',
             'visibleOrbatGroups',

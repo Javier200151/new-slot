@@ -1365,4 +1365,78 @@ class PublicEventsPageTest extends TestCase
             ]),
         ]);
     }
+
+    public function test_campaign_event_shows_link_to_published_visible_aar_including_historical_entries(): void
+    {
+        DB::table('campaign_aars')->insert([
+            'campaign_id' => 1,
+            'event_id' => 2,
+            'status' => 'published',
+            'sections' => json_encode([]),
+            'is_visible' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get('/eventos/2')
+            ->assertOk()
+            ->assertSee('AAR disponible')
+            ->assertSee(route('campaigns.aars.show', [1, 2]), escape: false);
+
+        DB::table('campaign_aars')->where('event_id', 2)->update(['is_visible' => false]);
+        $this->get('/eventos/2')->assertOk()->assertDontSee('AAR disponible');
+
+        DB::table('campaign_aars')->where('event_id', 2)->update(['is_visible' => true, 'status' => 'pending']);
+        $this->get('/eventos/2')->assertOk()->assertDontSee('AAR disponible');
+    }
+
+    public function test_historical_aar_orbat_uses_current_status_for_legacy_name_and_distinguishes_vacancies(): void
+    {
+        DB::table('status')->insert([
+            'id' => 50,
+            'name' => 'RESERVA',
+            'color' => '#60a5fa',
+        ]);
+        DB::table('users')->insert([
+            'id' => 50,
+            'nick' => 'JugadorHistorico',
+            'status_id' => 50,
+        ]);
+
+        DB::table('campaign_aars')->insert([
+            'campaign_id' => 1,
+            'event_id' => 2,
+            'status' => 'published',
+            'sections' => json_encode([]),
+            'is_visible' => true,
+            'orbat_snapshot' => json_encode([
+                'groups' => [[
+                    'name' => 'ALPHA',
+                    'slots' => [
+                        ['slot_name' => 'Médico', 'slot_type' => 'Sanitario', 'assignee' => 'JugadorHistorico', 'is_ally' => false],
+                        ['slot_name' => 'RTO', 'slot_type' => 'Radio', 'assignee' => 'VACANTE', 'is_ally' => false],
+                    ],
+                ]],
+            ]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get('/campanas/1/aar/2')
+            ->assertOk()
+            ->assertSee('JugadorHistorico')
+            ->assertSee('--aar-occupant-color: #60a5fa', escape: false)
+            ->assertSee('is-vacant', escape: false)
+            ->assertSee('VACANTE');
+
+        // Un snapshot nuevo conserva el color capturado, aunque cambie el estado actual.
+        $snapshot = json_decode(DB::table('campaign_aars')->where('event_id', 2)->value('orbat_snapshot'), true);
+        $snapshot['groups'][0]['slots'][0]['user_id'] = 50;
+        $snapshot['groups'][0]['slots'][0]['status_color'] = '#facc15';
+        DB::table('campaign_aars')->where('event_id', 2)->update(['orbat_snapshot' => json_encode($snapshot)]);
+
+        $this->get('/campanas/1/aar/2')
+            ->assertOk()
+            ->assertSee('--aar-occupant-color: #facc15', escape: false);
+    }
 }

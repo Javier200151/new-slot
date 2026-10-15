@@ -332,6 +332,7 @@
                 || ($activity->activityType?->supportsOcap() ?? false)
                 || ($activity->activityType?->supportsRespawn() ?? false)
                 || ($activity->activityType?->supportsJip() ?? false)
+                || $publishedAar
             )
                 <section class="event-detail__options" aria-label="Opciones de la actividad">
 
@@ -368,6 +369,17 @@
 
                     @if($activity->activityType?->supportsJip())
                         <span @class(['is-enabled' => $activity->jip])>JIP</span>
+                    @endif
+
+                    @if($publishedAar)
+                        <a
+                            href="{{ route('campaigns.aars.show', [$activity->campaign, $event]) }}"
+                            class="event-detail__aar-link"
+                            title="Leer el AAR publicado de este operativo"
+                            aria-label="Ver AAR disponible de {{ $event->name ?: $activity->name }}"
+                        >
+                            AAR disponible ↗
+                        </a>
                     @endif
                 </section>
             @endif
