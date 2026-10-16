@@ -1,12 +1,28 @@
 @if(strtoupper((string) $user->status?->name) === 'ALIADO')
-    @php $ally = $user->ally; @endphp
+    @php
+        $ally = $user->ally;
+        $allyLogo = $ally?->image ? asset('storage/' . $ally->image) : null;
+    @endphp
     <!DOCTYPE html>
-    <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-    <body style="margin:0;background:transparent;text-align:center;">
-        @if($ally?->image)
-            <img src="{{ asset('storage/' . $ally->image) }}" alt="{{ $ally->name }}" style="max-width:100%;max-height:150px;object-fit:contain;">
-        @endif
-    </body></html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Firma de {{ $user->nick }}</title>
+        <style>
+            html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+            .firma-aliada { display: flex; align-items: center; justify-content: center; width: 100%; height: 130px; }
+            .firma-aliada img { display: block; max-width: 100%; max-height: 120px; width: auto; height: auto; object-fit: contain; }
+        </style>
+    </head>
+    <body>
+        <div class="firma-aliada">
+            @if($allyLogo)
+                <img src="{{ $allyLogo }}" alt="Logo {{ $ally->name }}">
+            @endif
+        </div>
+    </body>
+    </html>
 @else
 @php
     $statusName = $user->status?->name;
