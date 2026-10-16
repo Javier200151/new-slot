@@ -145,6 +145,13 @@ return [
                     'label' => 'Estados de eventos',
                 ],
 
+                'orbat' => [
+                    'label' => 'Nicknames de aliados',
+                    'actions' => [
+                        'edit_ally_names' => 'Editar nick de aliados',
+                    ],
+                ],
+
                 'event-orbat' => [
                     'label' => 'ORBAT',
                     'scope' => 'activity_type',

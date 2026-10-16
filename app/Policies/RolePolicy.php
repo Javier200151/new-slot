@@ -24,7 +24,7 @@ class RolePolicy
 
     public function update(User $user, Role $role): bool
     {
-        return $user->can('roles.update');
+        return $role->name !== 'admin' && $user->can('roles.update');
     }
 
     public function delete(User $user, Role $role): bool

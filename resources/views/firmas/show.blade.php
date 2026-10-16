@@ -1,3 +1,13 @@
+@if(strtoupper((string) $user->status?->name) === 'ALIADO')
+    @php $ally = $user->ally; @endphp
+    <!DOCTYPE html>
+    <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+    <body style="margin:0;background:transparent;text-align:center;">
+        @if($ally?->image)
+            <img src="{{ asset('storage/' . $ally->image) }}" alt="{{ $ally->name }}" style="max-width:100%;max-height:150px;object-fit:contain;">
+        @endif
+    </body></html>
+@else
 @php
     $statusName = $user->status?->name;
     $fitFirma = request()->boolean('fit');
@@ -516,3 +526,4 @@
 @endif
 </body>
 </html>
+@endif

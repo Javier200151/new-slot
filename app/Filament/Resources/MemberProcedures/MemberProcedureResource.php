@@ -49,6 +49,15 @@ class MemberProcedureResource extends Resource
         ];
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getEloquentQuery()
+            ->whereIn('status', [MemberProcedure::STATUS_IN_PROGRESS, MemberProcedure::STATUS_ERROR])
+            ->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
     public static function canCreate(): bool
     {
         return false;
