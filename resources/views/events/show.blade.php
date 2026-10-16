@@ -1534,7 +1534,7 @@
                                                                 class="event-orbat__occupant-user"
                                                                 style="--member-group-color: {{ $assignment->occupantStatusColor() }};"
                                                             >
-                                                                {{ $assignment->user->nick }}
+                                                                {{ $assignment->user->orbatDisplayName() }}
                                                             </strong>
 
                                                         @endif
@@ -1544,9 +1544,31 @@
                                                     ======================================================= --}}
                                                     @elseif($assignment?->ally)
 
-                                                        <span class="event-orbat__occupant">
-                                                            {{ $assignment->ally->name }}
-                                                        </span>
+                                                        @if($event->eventStatus?->name === 'ACTIVO' && \App\Support\AllyNicknameAccess::canEdit(auth()->user(), $assignment))
+                                                            <details class="event-orbat__ally-nickname-editor" style="min-width:0;max-width:100%;">
+                                                                <summary style="display:flex;align-items:center;gap:7px;cursor:pointer;list-style:none;" title="Editar nick de aliado">
+                                                                    <span class="event-orbat__occupant">
+                                                                        @if(filled($assignment->ally_nickname))[{{ $assignment->ally->name }}] {{ $assignment->ally_nickname }}@else{{ $assignment->ally->name }}@endif
+                                                                    </span>
+                                                                    <span aria-hidden="true" style="color:#e6a600;display:inline-flex;align-items:center;" title="Editar nick">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L9 17l-4 1 1-4Z"/></svg>
+                                                                    </span>
+                                                                    <span class="sr-only">Editar nick de aliado {{ $assignment->ally->name }}</span>
+                                                                </summary>
+                                                                <form action="{{ route('events.slots.ally-nickname', [$event, $slotKey]) }}" method="POST" class="event-orbat__ally-nickname-form" style="display:flex;align-items:center;gap:5px;margin-top:7px;flex-wrap:wrap;">
+                                                                    @csrf
+                                                                    @method('PATCH')
+                                                                    <label class="sr-only" for="ally-nickname-{{ $assignment->id }}">Nombre del jugador de {{ $assignment->ally->name }}</label>
+                                                                    <input id="ally-nickname-{{ $assignment->id }}" name="ally_nickname" type="text" maxlength="80" value="{{ $assignment->ally_nickname }}" placeholder="Nombre del jugador (opcional)" style="max-width:190px;min-width:0;background:#171b21;color:#fff;border:1px solid #535865;border-radius:4px;padding:5px;">
+                                                                    <button type="submit" style="border:1px solid #e6a600;color:#e6a600;background:transparent;border-radius:4px;padding:5px 8px;cursor:pointer;">Guardar</button>
+                                                                    <button type="button" onclick="this.closest('details').open=false" style="border:0;color:#aeb6c5;background:transparent;padding:5px;cursor:pointer;">Cancelar</button>
+                                                                </form>
+                                                            </details>
+                                                        @else
+                                                            <span class="event-orbat__occupant">
+                                                                @if(filled($assignment->ally_nickname))[{{ $assignment->ally->name }}] {{ $assignment->ally_nickname }}@else{{ $assignment->ally->name }}@endif
+                                                            </span>
+                                                        @endif
 
                                                         @if($isOrbatManager)
                                                             <button
@@ -1744,6 +1766,13 @@
                                     autocomplete="off"
                                     data-orbat-assignee-search
                                 >
+                            </div>
+
+                            <div class="event-orbat-assign-modal__search">
+                                <label for="orbat-ally-nickname">Nombre del jugador aliado (opcional)</label>
+                                <input id="orbat-ally-nickname" type="text" maxlength="80"
+                                       placeholder="Ej.: John_Smith (solo para aliados)"
+                                       autocomplete="off" data-orbat-ally-nickname>
                             </div>
 
                             <div

@@ -265,14 +265,14 @@
 
 
             @if(
-                $user->firma
+                ($user->firma || (strtoupper((string) $user->status?->name) === 'ALIADO' && $user->ally?->image))
                 && $user->status?->name !== 'USUARIO'
             )
                 <section class="public-user-signature">
 
                     <header class="public-user-signature__header">
                         <div>
-                            <span>FIRMA SQA</span>
+                            <span>{{ strtoupper((string) $user->status?->name) === 'ALIADO' ? 'COMUNIDAD ALIADA' : 'FIRMA SQA' }}</span>
 
                             <h2>
                                 Firma

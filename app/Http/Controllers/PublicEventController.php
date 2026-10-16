@@ -1291,6 +1291,11 @@ class PublicEventController extends Controller
             ]),
         ],
 
+        'ally_nickname' => [
+            'nullable',
+            'string',
+            'max:80',
+        ],
         'assignee_id' => [
             Rule::requiredIf(
                 fn (): bool =>
@@ -1656,6 +1661,10 @@ class PublicEventController extends Controller
 
                 'ally_id' =>
                     $assignedAlly?->id,
+
+                'ally_nickname' => $assignedAlly
+                    ? (trim((string) ($validated['ally_nickname'] ?? '')) ?: null)
+                    : null,
             ];
 
 

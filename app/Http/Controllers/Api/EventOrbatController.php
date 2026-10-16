@@ -274,6 +274,8 @@ class EventOrbatController extends Controller
                 'ally' => [
                     'id' => (int) $slot->ally->id,
                     'name' => (string) $slot->ally->name,
+                    'nickname' => $slot->ally_nickname,
+                    'display_name' => trim((string) $slot->ally->name . ' ' . (string) $slot->ally_nickname),
                 ],
             ];
         }

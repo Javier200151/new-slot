@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use App\Filament\Forms\BbcodeTextarea;
+use App\Models\Ally;
 use App\Models\Status;
 use App\Models\User;
 use App\Rules\NotReservedUsername;
@@ -17,6 +18,11 @@ use Illuminate\Validation\Rule;
 
 class UserForm
 {
+    private static function isAllyStatus(mixed $statusId): bool
+    {
+        return $statusId !== null && (int) $statusId === (int) Status::query()->whereRaw('UPPER(name) = ?', ['ALIADO'])->value('id');
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -58,7 +64,8 @@ class UserForm
 
                         return (int) $get('status_id') === (int) $reclutaId;
                     })
-                    ->dehydrated(true),
+                    ->dehydrated(true)
+                    ->hidden(fn ($get): bool => self::isAllyStatus($get('status_id'))),
                 TextInput::make('tagname'),
                 Select::make('status_id')
                     ->label('Estado')
@@ -72,6 +79,16 @@ class UserForm
                             $set('promo_id', null);
                         }
                     }),
+                Select::make('ally_id')
+                    ->label('Comunidad aliada')
+                    ->relationship('ally', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->visible(fn ($get): bool => self::isAllyStatus($get('status_id')))
+                    ->required(fn ($get): bool => self::isAllyStatus($get('status_id')))
+                    ->dehydrated(fn ($get): bool => self::isAllyStatus($get('status_id')))
+                    ->helperText('Comunidad de Configuración de eventos > Aliados asociada a este usuario.'),
                 Select::make('tutor_id')
                     ->label('Tutor asignado')
                     ->options(fn (?User $record): array => User::query()
@@ -82,6 +99,7 @@ class UserForm
                     ->searchable()
                     ->nullable()
                     ->placeholder('Sin tutor asignado')
+                    ->hidden(fn ($get): bool => self::isAllyStatus($get('status_id')))
                     ->helperText('Puedes asignar o cambiar el tutor en cualquier momento. Deja el campo vacío si no tiene tutor. Para reclutas, el cambio se sincroniza con su período de reclutamiento abierto.'),
                 DatePicker::make('birth_at')
                     ->label('Fecha de nacimiento')
@@ -128,6 +146,7 @@ class UserForm
 
                 TextInput::make('discord_id')
                     ->label('Discord ID')
+                    ->hidden(fn ($get): bool => self::isAllyStatus($get('status_id')))
                     ->trim()
                     ->maxLength(20)
                     ->rules(['nullable', 'regex:/^\d{17,20}$/'])
@@ -140,6 +159,7 @@ class UserForm
                     ->helperText('Fallback administrativo. El flujo normal del usuario es Enlazar con Discord desde Mi perfil.'),
                 TextInput::make('steam_id')
                     ->label('Steam ID64')
+                    ->hidden(fn ($get): bool => self::isAllyStatus($get('status_id')))
                     ->trim()
                     ->maxLength(17)
                     ->rules(['nullable', 'regex:/^\d{17}$/'])
@@ -154,6 +174,7 @@ class UserForm
                     ->helperText('Fallback administrativo. El flujo normal del usuario es Enlazar con Steam desde Mi perfil.'),
                 DatePicker::make('member_at')
                     ->label('Miembro desde')
+                    ->hidden(fn ($get): bool => self::isAllyStatus($get('status_id')))
                     ->helperText('Fecha en la que el recluta pasó a ser miembro.'),
 
                 

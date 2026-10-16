@@ -1248,6 +1248,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         assignee_id:
                             assigneeId,
+
+                        ally_nickname: assigneeType === 'ally'
+                            ? (modal.querySelector('[data-orbat-ally-nickname]')?.value || '').trim()
+                            : null,
                     },
                     slotKey
                 );

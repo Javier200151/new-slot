@@ -315,7 +315,7 @@ class RoleResource extends Resource
             ->searchPlaceholder('Buscar roles…')
             ->persistSearchInSession()
             ->actions([
-                EditAction::make(),
+                EditAction::make()->hidden(fn (Role $record): bool => $record->name === 'admin'),
                 self::duplicateAction(),
                 DeleteAction::make(),
             ]);
@@ -553,7 +553,6 @@ class RoleResource extends Resource
             $role->syncPermissions(
                 Permission::query()
                     ->where('guard_name', $guard)
-                    ->whereIn('name', $knownPermissions)
                     ->pluck('name')
                     ->toArray()
             );

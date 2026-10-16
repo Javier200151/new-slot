@@ -17,6 +17,7 @@ class EventSlot extends Model
         'user_id',
         'status_color_snapshot',
         'ally_id',
+        'ally_nickname',
         'name',
         'slot_type_id',
         'slot_group',

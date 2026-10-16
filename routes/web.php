@@ -388,6 +388,11 @@ Route::middleware([
     'verified',
 ])->group(function (): void {
 
+    Route::patch(
+        '/eventos/{event}/slots/{slotKey}/ally-nickname',
+        [\App\Http\Controllers\AllySlotNicknameController::class, 'update']
+    )->name('events.slots.ally-nickname');
+
     Route::post(
         '/eventos/{event}/reservas',
         [PublicEventController::class, 'reserve']

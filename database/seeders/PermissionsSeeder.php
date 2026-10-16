@@ -109,6 +109,9 @@ class PermissionsSeeder extends Seeder
             );
 
             foreach (Role::query()->whereHas('permissions', fn ($q) => $q->whereKey($legacy->id))->get() as $role) {
+                if ($role->name === 'admin') {
+                    continue;
+                }
                 $role->givePermissionTo($newNames);
                 $role->revokePermissionTo($legacy);
             }
@@ -129,7 +132,6 @@ class PermissionsSeeder extends Seeder
         $adminRole->syncPermissions(
             Permission::query()
                 ->where('guard_name', $guard)
-                ->whereIn('name', $knownPermissionNames)
                 ->pluck('name')
                 ->all()
         );
@@ -192,6 +194,9 @@ class PermissionsSeeder extends Seeder
             ->where('guard_name', $guard)
             ->with('permissions')
             ->each(function (Role $role) use ($forumCategoryResources): void {
+                if ($role->name === 'admin') {
+                    return;
+                }
                 $legacyModerate = $role->permissions->contains('name', 'community-forum.moderate');
                 $legacyDelete = $role->permissions->contains('name', 'community-forum.delete');
 
