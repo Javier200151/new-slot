@@ -10,7 +10,6 @@ use App\Notifications\EventSlotChangedNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use App\Support\OrbatGlobalCommand;
 
 class EventOrbatSyncService
 {
@@ -26,7 +25,7 @@ class EventOrbatSyncService
 
         $newOrbat = $event->activity->orbat ?? ['groups' => []];
         $slotMap = $this->slotMap($newOrbat);
-        $this->assertValidSlotKeys($newOrbat, $slotMap, $event->activity?->activityType);
+        $this->assertValidSlotKeys($newOrbat, $slotMap);
 
         $removedAssignments = $event->slots
             ->filter(fn (EventSlot $slot): bool => ! $slotMap->has((string) $slot->slot_key))
@@ -115,7 +114,7 @@ class EventOrbatSyncService
 
             $newOrbat = $lockedEvent->activity->orbat ?? ['groups' => []];
             $slotMap = $this->slotMap($newOrbat);
-            $this->assertValidSlotKeys($newOrbat, $slotMap, $lockedEvent->activity?->activityType);
+            $this->assertValidSlotKeys($newOrbat, $slotMap);
 
             $slots = EventSlot::query()
                 ->where('event_id', $lockedEvent->id)
@@ -232,17 +231,10 @@ class EventOrbatSyncService
             ->keyBy('slot_key');
     }
 
-    private function assertValidSlotKeys(array $orbat, Collection $slotMap, ?\App\Models\ActivityType $activityType): void
+    private function assertValidSlotKeys(array $orbat, Collection $slotMap): void
     {
-        if (
-            OrbatGlobalCommand::hasRequirement($activityType)
-            && OrbatGlobalCommand::count($orbat, $activityType) < 1
-        ) {
-            throw ValidationException::withMessages([
-                'orbat' => OrbatGlobalCommand::validationMessage($activityType),
-            ]);
-        }
-
+        // En eventos solo validamos integridad de claves y metadatos.
+        // La obligación del slot mínimo corresponde al editor de la actividad.
         $slots = collect($orbat['groups'] ?? [])
             ->flatMap(fn (array $group): array => $group['slots'] ?? []);
         $keys = $slots

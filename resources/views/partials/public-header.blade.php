@@ -131,3 +131,5 @@
         </div>
     </div>
 </header>
+
+@include('partials.public-quick-access')

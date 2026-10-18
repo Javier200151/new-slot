@@ -57,105 +57,39 @@
                 </a>
             @endif
         </nav>
-        <nav class="footer-utility-links" aria-label="Enlaces de la comunidad">
-            <a
-                href="{{ route('users.index') }}"
-                @class([
-                    'footer-users-link',
-                    'is-active' => request()->routeIs(
-                        'users.*'
-                    ),
-                ])
-            >
-                <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                >
-                    <path
-                        d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
-                    />
-                    <circle
-                        cx="9"
-                        cy="7"
-                        r="4"
-                    />
-                    <path
-                        d="M22 21v-2a4 4 0 0 0-3-3.87"
-                    />
-                    <path
-                        d="M16 3.13a4 4 0 0 1 0 7.75"
-                    />
-                </svg>
-
-                Usuarios
-            </a>
-            <a
-                href="{{ route('pages.show', 'faqs') }}"
-                @class([
-                    'footer-users-link',
-                    'footer-faq-link',
-                    'is-active' => request()->routeIs('pages.show')
-                        && request()->route('page')?->slug === 'faqs',
-                ])
-            >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M9.8 9a2.35 2.35 0 1 1 3.42 2.1c-.82.4-1.22.9-1.22 1.9" />
-                    <path d="M12 17h.01" />
-                </svg>
-
-                FAQs
-            </a>
-        </nav>
-
         @php
-            $infrastructureStatusName = strtoupper(trim((string) auth()->user()?->status?->name));
-            $canSeeInfrastructureStatus = in_array($infrastructureStatusName, ['ACTIVO', 'RECLUTA'], true);
+            $footerButtons = \App\Support\PublicFooterNavigation::visibleItems();
+            $footerHasStatusWidget = collect($footerButtons)->contains(fn ($item) => $item['type'] === 'server_status');
         @endphp
-
-        @if($canSeeInfrastructureStatus)
-        <details
-            class="footer-infrastructure"
-            data-infrastructure-status
-            data-endpoint="{{ route('infrastructure.status') }}"
-            data-credential-base="{{ url('/infraestructura/credencial') }}"
-        >
-            <summary class="footer-users-link footer-infrastructure__trigger">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="3" y="4" width="18" height="6" rx="2" />
-                    <rect x="3" y="14" width="18" height="6" rx="2" />
-                    <path d="M7 7h.01M7 17h.01" />
-                </svg>
-                Estado
-                <span class="footer-infrastructure__chevron" aria-hidden="true">⌄</span>
-            </summary>
-
-            <div class="footer-infrastructure__panel">
-                <strong class="footer-infrastructure__title">Estado de servidores</strong>
-
-                <div class="footer-infrastructure__services">
-                    <div class="footer-infrastructure__row" data-services-loading>
-                        <span class="footer-status-dot is-loading" data-status-dot aria-hidden="true"></span>
-                        <span class="footer-infrastructure__service-name">Servidores ArmA</span>
-                        <small data-status-detail>Comprobando…</small>
-                    </div>
-                </div>
-
-                <div class="footer-infrastructure__ts3" data-ts3-block hidden>
-                    <div class="footer-infrastructure__separator"></div>
-                    <div class="footer-infrastructure__row" data-ts3-row>
-                        <span class="footer-status-dot is-loading" data-status-dot aria-hidden="true"></span>
-                        <span class="footer-infrastructure__service-name">TeamSpeak 3</span>
-                        <small data-ts3-detail>Comprobando…</small>
-                    </div>
-                    <div class="footer-infrastructure__ts-floating" data-ts3-floating hidden>
-                        <div class="footer-infrastructure__ts-header"><strong>Usuarios en TeamSpeak</strong><button type="button" data-ts3-close aria-label="Cerrar usuarios">×</button></div>
-                        <ul class="footer-infrastructure__users" data-ts3-users></ul>
-                    </div>
-                </div>
-            </div>
-        </details>
-        @endif
+        <nav class="footer-utility-links footer-utility-links--dynamic" aria-label="Enlaces de la comunidad">
+            @foreach($footerButtons as $item)
+                @if($item['type'] === 'server_status')
+        @include('partials.public-server-status-dropdown', ['mode' => 'footer', 'label' => $item['label']])
+                @else
+                    <a
+                        href="{{ \App\Support\PublicNavigation::itemUrl($item) }}"
+                        @class([
+                            'footer-users-link',
+                            'is-active' => \App\Support\PublicNavigation::navigationItemIsActive($item),
+                        ])
+                        @if(\App\Support\PublicNavigation::itemIsExternal($item)) target="_blank" rel="noopener noreferrer" @endif
+                    >
+                        @if(($item['destination'] ?? null) === 'users')
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        @elseif(($item['destination'] ?? null) === 'faqs')
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.35 2.35 0 1 1 3.42 2.1c-.82.4-1.22.9-1.22 1.9"/><path d="M12 17h.01"/></svg>
+                        @else
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3A5 5 0 0 0 13 2.93l-1.72 1.72"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3A5 5 0 0 0 11 21.07l1.72-1.72"/></svg>
+                        @endif
+                        {{ $item['label'] }}
+                    </a>
+                @endif
+            @endforeach
+        </nav>
+        <style>
+            .footer-content { flex-wrap:wrap; }
+            .footer-utility-links--dynamic { flex-wrap:wrap; min-width:0; }
+        </style>
 
         <style>
             .footer-infrastructure__ts-toggle { display:block; margin:8px 0 4px 22px; padding:3px 0; background:none; border:0; color:#f59e0b; font-size:11px; cursor:pointer; text-align:left; }
@@ -207,7 +141,7 @@
 </footer>
 
 
-@if($canSeeInfrastructureStatus)
+@if($footerHasStatusWidget)
     @once
         <script
             src="{{ asset('js/infrastructure-status.js') }}?v={{ filemtime(public_path('js/infrastructure-status.js')) }}"
