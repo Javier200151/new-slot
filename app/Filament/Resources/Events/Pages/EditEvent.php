@@ -31,7 +31,6 @@ use App\Services\EventOrbatSyncService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
-use App\Support\OrbatGlobalCommand;
 
 class EditEvent extends EditRecord
 {
@@ -200,39 +199,6 @@ class EditEvent extends EditRecord
                                 $data[static::orbatSlotVisibilityField($groupIndex, $slotIndex)]
                                 ?? ($slot['visible'] ?? true)
                             );
-                        }
-                    }
-
-                    // El slot obligatorio debe permanecer accesible en el ORBAT del evento.
-                    // Un slot dentro de un grupo oculto NO cuenta como visible.
-                    $activityType = $this->record->activity?->activityType;
-                    $requiredSlotTypeId = OrbatGlobalCommand::requiredSlotTypeId($activityType);
-
-                    if ($requiredSlotTypeId !== null) {
-                        $visibleRequiredSlots = 0;
-                        foreach ($orbat['groups'] ?? [] as $group) {
-                            if (! is_array($group) || ! ($group['visible'] ?? true)) {
-                                continue;
-                            }
-                            foreach ($group['slots'] ?? [] as $slot) {
-                                if (is_array($slot)
-                                    && ($slot['visible'] ?? true)
-                                    && (int) ($slot['slot_type_id'] ?? 0) === $requiredSlotTypeId) {
-                                    $visibleRequiredSlots++;
-                                }
-                            }
-                        }
-
-                        if ($visibleRequiredSlots === 0) {
-                            Notification::make()
-                                ->title('Falta un slot obligatorio visible')
-                                ->body('Debes mantener visible al menos un slot de tipo "'
-                                    . OrbatGlobalCommand::requiredSlotName($activityType)
-                                    . '" y su grupo. No se ha guardado la visibilidad.')
-                                ->danger()
-                                ->persistent()
-                                ->send();
-                            return;
                         }
                     }
 
@@ -405,16 +371,6 @@ class EditEvent extends EditRecord
                     'No puedes publicar este evento porque '
                     . 'el actividad seleccionado todavía está '
                     . 'en BORRADOR.',
-            ]);
-        }
-
-        if (
-            ($activity?->activityType?->usesOrbat() ?? true)
-            && OrbatGlobalCommand::hasRequirement($activity?->activityType)
-            && OrbatGlobalCommand::count($this->record->orbat ?? [], $activity?->activityType) < 1
-        ) {
-            throw ValidationException::withMessages([
-                'data.activity_id' => OrbatGlobalCommand::validationMessage($activity?->activityType),
             ]);
         }
 
@@ -770,6 +726,9 @@ class EditEvent extends EditRecord
                 ->compact()
                 ->extraAttributes([
                     'class' => 'event-orbat-visibility-section',
+                    // Identidad estable para recuperar el plegado tras el morph de Livewire.
+                    'data-orbat-group-index' => (string) $groupIndex,
+                    'data-orbat-event-id' => (string) $this->record->getKey(),
                 ]);
         }
 

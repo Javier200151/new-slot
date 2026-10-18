@@ -194,12 +194,22 @@
         document.querySelectorAll(containerSelector).forEach(trackContainer);
     };
 
-    const documentObserver = new MutationObserver(() => {
+    const documentObserver = new MutationObserver((mutations) => {
         scan();
 
         trackedContainers.forEach((container) => {
             scheduleLayout(container, 80);
         });
+
+        // Fallback para reemplazos de nodos realizados por Filament/Livewire.
+        // Evitamos reconstruir el estado en un cambio ajeno al modal ORBAT.
+        const changedOrbat = mutations.some((mutation) => {
+            if (mutation.target.closest?.('.event-orbat-visibility-section')) return true;
+            return Array.from(mutation.addedNodes).some((node) => node.nodeType === 1
+                && (node.matches?.('.event-orbat-visibility-section')
+                    || node.querySelector?.('.event-orbat-visibility-section')));
+        });
+        if (changedOrbat) queueVisibilityRestore(!livewireHookRegistered);
     });
 
     const relayoutAll = () => {
@@ -222,6 +232,111 @@
 
         document.addEventListener('livewire:navigated', relayoutAll);
     };
+
+    // Livewire vuelve a pintar los toggles del modal al modificar la visibilidad.
+    // El estado plegado es puramente visual: guardarlo fuera del DOM evita
+    // que reaparezcan todas las escuadras abiertas tras cada actualización.
+    const visibilityCollapsed = new Map();
+    let visibilityViewport = null;
+    let visibilityRestoreQueued = false;
+    let visibilityRestoreViewportRequested = false;
+    let livewireHookRegistered = false;
+
+    const visibilityGroupKey = (section) => {
+        const eventId = section?.dataset.orbatEventId;
+        const groupId = section?.dataset.orbatGroupIndex;
+        return eventId !== undefined && groupId !== undefined ? `${eventId}:${groupId}` : null;
+    };
+
+    const preserveVisibilityViewport = (element) => {
+        const modal = element.closest('.fi-modal-window');
+        if (!modal) return;
+
+        const scrollAreas = [];
+        for (let node = element; node && node !== document.body; node = node.parentElement) {
+            const overflow = window.getComputedStyle(node).overflowY;
+            if (/auto|scroll/.test(overflow) && node.scrollHeight > node.clientHeight) {
+                scrollAreas.push({ node, top: node.scrollTop, left: node.scrollLeft });
+            }
+        }
+
+        visibilityViewport = {
+            modal,
+            scrollAreas,
+            windowX: window.scrollX,
+            windowY: window.scrollY,
+        };
+    };
+
+    const restoreVisibilityViewport = () => {
+        if (!visibilityViewport) return;
+        const snapshot = visibilityViewport;
+        visibilityViewport = null;
+
+        for (const { node, top, left } of snapshot.scrollAreas) {
+            if (node.isConnected) {
+                node.scrollTop = top;
+                node.scrollLeft = left;
+            }
+        }
+
+        if (window.scrollY !== snapshot.windowY || window.scrollX !== snapshot.windowX) {
+            window.scrollTo(snapshot.windowX, snapshot.windowY);
+        }
+    };
+
+    const restoreVisibilitySections = () => {
+        document.querySelectorAll('.fi-modal-window .event-orbat-visibility-section').forEach((section) => {
+            const key = visibilityGroupKey(section);
+            if (key === null || !visibilityCollapsed.has(key)) return;
+            setOrbatSectionExpanded(section, !visibilityCollapsed.get(key));
+        });
+    };
+
+    const queueVisibilityRestore = (restoreViewport = false) => {
+        visibilityRestoreViewportRequested ||= restoreViewport;
+        if (visibilityRestoreQueued) return;
+        visibilityRestoreQueued = true;
+        window.requestAnimationFrame(() => {
+            visibilityRestoreQueued = false;
+            const shouldRestoreViewport = visibilityRestoreViewportRequested;
+            visibilityRestoreViewportRequested = false;
+            restoreVisibilitySections();
+            if (shouldRestoreViewport) restoreVisibilityViewport();
+        });
+    };
+
+    // Capturamos antes de que Livewire procese el cambio de un toggle.
+    const captureVisibilityChange = (event) => {
+        const control = event.target.closest?.('.event-orbat-visibility-control');
+        if (!control?.closest('.event-orbat-visibility-section')) return;
+        preserveVisibilityViewport(control);
+    };
+
+    document.addEventListener('pointerdown', captureVisibilityChange, true);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === ' ' || event.key === 'Enter') captureVisibilityChange(event);
+    }, true);
+
+    const registerVisibilityLivewireHook = () => {
+        if (livewireHookRegistered || typeof window.Livewire?.hook !== 'function') return;
+        livewireHookRegistered = true;
+        const isOrbatMorph = ({ el }) => el?.querySelector?.('.event-orbat-visibility-section')
+            || el?.closest?.('.event-orbat-visibility-section')
+            || el?.matches?.('.event-orbat-visibility-section');
+
+        // `morph.updated` puede suceder muchas veces durante la actualización:
+        // recupera el plegado, pero esperamos a `morphed` para restaurar el scroll.
+        window.Livewire.hook('morph.updated', (context) => {
+            if (isOrbatMorph(context)) queueVisibilityRestore(false);
+        });
+        window.Livewire.hook('morphed', (context) => {
+            if (isOrbatMorph(context)) queueVisibilityRestore(true);
+        });
+    };
+
+    document.addEventListener('livewire:init', registerVisibilityLivewireHook);
+    registerVisibilityLivewireHook();
 
     const orbatModalScope = (element) =>
         element.closest('.fi-modal-window') || document;
@@ -259,6 +374,8 @@
                 'event-orbat-visibility-section--collapsed',
             );
 
+            const key = visibilityGroupKey(section);
+            if (key !== null) visibilityCollapsed.set(key, !shouldExpand);
             setOrbatSectionExpanded(section, shouldExpand);
             return;
         }
@@ -273,6 +390,8 @@
         const scope = orbatModalScope(bulkToggle);
 
         scope.querySelectorAll('.event-orbat-visibility-section').forEach((section) => {
+            const key = visibilityGroupKey(section);
+            if (key !== null) visibilityCollapsed.set(key, !expanded);
             setOrbatSectionExpanded(section, expanded);
         });
     };

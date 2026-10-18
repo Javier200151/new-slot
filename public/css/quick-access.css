@@ -1,0 +1,51 @@
+/* Squad ALPHA: independent icon-only quick-access bar. */
+.sqa-quick-access{position:fixed;z-index:85;top:50%;transform:translateY(-50%);padding:7px;display:flex;flex-direction:column;align-items:center;gap:6px;max-height:min(80vh,610px);overflow:visible;background:rgba(9,12,17,.96);border:1px solid rgba(224,147,0,.48);border-radius:13px;box-shadow:0 15px 38px rgba(0,0,0,.46);backdrop-filter:blur(12px)}
+.sqa-quick-access--right{right:12px;border-right:3px solid #e38b09}.sqa-quick-access--left{left:12px;border-left:3px solid #e38b09}
+.sqa-quick-access__links{display:flex;flex-direction:column;gap:6px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#916009 transparent;max-height:calc(80vh - 16px)}
+.sqa-quick-access__button,.sqa-quick-access__toggle{box-sizing:border-box;width:43px;height:43px;flex:none;border:1px solid #3f414a;background:#171a20;color:#f6f7fa;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:10px;text-decoration:none;cursor:pointer;transition:border-color .18s,background .18s,color .18s,transform .18s}
+.sqa-quick-access__button:hover,.sqa-quick-access__button:focus-visible,.sqa-quick-access__toggle:hover,.sqa-quick-access__toggle:focus-visible{color:#ffa724;background:#242018;border-color:#e49200;transform:translateX(0);outline:2px solid transparent}
+.sqa-quick-access__button:focus-visible,.sqa-quick-access__toggle:focus-visible{outline:2px solid #ffb52b;outline-offset:2px}
+.sqa-quick-access svg{display:block;width:21px;height:21px;stroke:currentColor;fill:none}
+.sqa-quick-access__toggle{display:none}
+@media (max-width:767px){
+ .sqa-quick-access{top:auto;bottom:calc(15px + env(safe-area-inset-bottom));right:12px;left:auto;transform:none;padding:6px;max-width:calc(100vw - 24px);max-height:68vh;border:1px solid rgba(224,147,0,.65);border-right:3px solid #e38b09;border-radius:13px}
+ .sqa-quick-access__toggle{display:flex}
+ .sqa-quick-access__links{display:none;max-height:calc(68vh - 58px)}
+ .sqa-quick-access.is-open .sqa-quick-access__links{display:flex}
+ .sqa-quick-access__button{width:43px;height:43px}
+}
+@media(prefers-reduced-motion:reduce){.sqa-quick-access__button,.sqa-quick-access__toggle{transition:none}}
+
+/* Estado de servidores usa exactamente el <details> nativo del footer.
+   El summary es el icono; el panel se posiciona respecto a la barra, fuera del
+   contenedor de iconos con scroll (para evitar que quede recortado). */
+.sqa-quick-access__server{position:static;display:block;margin:0;padding:0;border:0;flex:none;background:transparent}
+.sqa-quick-access__server>summary{display:flex;list-style:none;cursor:pointer;user-select:none}
+.sqa-quick-access__server>summary::-webkit-details-marker{display:none}
+.sqa-quick-access__server>summary::marker{content:''}
+.sqa-quick-access__server[open]>summary{color:#ffa724;border-color:#e49200;background:#242018}
+.sqa-quick-access.has-open-server{z-index:105}
+.sqa-quick-access .sqa-quick-access__server-panel{box-sizing:border-box;position:absolute;top:50%;bottom:auto;right:calc(100% + 13px);left:auto;transform:translateY(-50%);width:min(345px,calc(100vw - 90px));max-height:min(65vh,530px);overflow:visible;z-index:110;background:#0b0d11;border:1px solid #3f414a;border-radius:12px;color:#e5e7eb;padding:14px;box-shadow:0 15px 45px #000a;text-align:left}
+.sqa-quick-access--left .sqa-quick-access__server-panel{left:calc(100% + 13px);right:auto}
+.sqa-quick-access .footer-infrastructure__services{display:grid;gap:7px}
+.sqa-quick-access .footer-infrastructure__row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:26px}
+.sqa-quick-access .footer-infrastructure__row--with-key{grid-template-columns:10px minmax(0,1fr) auto 24px}
+.sqa-quick-access .footer-infrastructure__row--with-key .footer-infrastructure__key{grid-column:4;grid-row:1}
+.sqa-quick-access .footer-infrastructure__key{display:inline-flex;justify-content:center;align-items:center;width:24px;height:24px;border:0;background:transparent;color:#f59e0b;cursor:pointer}
+.sqa-quick-access .footer-infrastructure__key svg{width:15px;height:15px;stroke:currentColor;fill:none}
+.sqa-quick-access .footer-infrastructure__credential{position:absolute;right:0;top:100%;z-index:120;min-width:230px;max-width:calc(100vw - 32px);background:#11151b;border:1px solid #343944;border-radius:10px;padding:11px;color:#e5e7eb;box-shadow:0 12px 28px #0009;font-size:12px}
+.sqa-quick-access .footer-infrastructure__credential[hidden]{display:none}
+.sqa-quick-access .footer-infrastructure__credential-header{display:flex;justify-content:space-between;gap:12px;margin-bottom:9px}
+.sqa-quick-access .footer-infrastructure__credential button{cursor:pointer;color:#f59e0b;background:#252525;border:1px solid #444;border-radius:6px;padding:4px 7px}
+.sqa-quick-access .footer-infrastructure__credential-code{overflow-wrap:anywhere;display:block;margin-bottom:9px}
+.sqa-quick-access .footer-infrastructure__ts-floating{position:absolute;right:calc(100% + 12px);top:0;width:290px;max-width:calc(100vw - 28px);max-height:340px;z-index:120;padding:12px;border:1px solid #343944;border-radius:12px;background:#101318;box-shadow:0 14px 32px #0009}
+.sqa-quick-access--left .footer-infrastructure__ts-floating{left:calc(100% + 12px);right:auto}
+.sqa-quick-access .footer-infrastructure__ts-floating[hidden],.sqa-quick-access .footer-infrastructure__credential[hidden]{display:none}
+.sqa-quick-access .footer-infrastructure__ts-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12px}
+.sqa-quick-access .footer-infrastructure__ts-header button{border:0;background:transparent;color:#ccc;cursor:pointer}
+.sqa-quick-access .footer-infrastructure__users{padding:8px 8px 8px 22px;margin:0;list-style:none;max-height:240px;overflow-y:auto}
+.sqa-quick-access .footer-infrastructure__ts-toggle{display:block;margin:8px 0 4px 22px;padding:3px 0;background:none;border:0;color:#f59e0b;font-size:11px;cursor:pointer}
+@media(max-width:767px){
+ .sqa-quick-access .sqa-quick-access__server-panel{position:absolute;transform:none;top:auto;bottom:calc(100% + 12px);left:auto;right:0;width:min(345px,calc(100vw - 24px));max-height:calc(65vh - 30px)}
+ .sqa-quick-access .footer-infrastructure__ts-floating{right:0;top:auto;bottom:calc(100% + 8px)}
+}
