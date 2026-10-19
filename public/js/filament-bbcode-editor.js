@@ -57,6 +57,8 @@
     const init = (textarea) => {
         if (!(textarea instanceof HTMLTextAreaElement) || textarea.dataset.newslotBbcodeReady === '1') return;
         if (textarea.disabled || textarea.readOnly) return;
+        // Filament server-rendered toolbars already bind via Alpine; never double-insert.
+        if (textarea.closest('[data-field-wrapper], .fi-fo-field-wrp')?.querySelector('[data-sqa-bbcode-toolbar]')) return;
         textarea.dataset.newslotBbcodeReady = '1';
 
         const toolbar = document.createElement('div');
@@ -69,11 +71,16 @@
         addWrap('I', 'Cursiva', 'i');
         addWrap('U', 'Subrayado', 'u');
         addWrap('S', 'Tachado', 's');
+        addWrap('H1', 'Encabezado 1', 'h1');
         addWrap('H2', 'Título', 'h2');
         addWrap('H3', 'Subtítulo', 'h3');
+        addWrap('H4', 'Encabezado 4', 'h4');
+        addWrap('H5', 'Encabezado 5', 'h5');
+        addWrap('H6', 'Encabezado 6', 'h6');
         addWrap('↤', 'Alinear izquierda', 'left');
         addWrap('↔', 'Centrar', 'center');
         addWrap('↦', 'Alinear derecha', 'right');
+        addWrap('≡', 'Justificar texto', 'justify');
         toolbar.append(button('❝', 'Cita', () => {
             const author = (window.prompt('Autor de la cita (opcional):', '') || '').replace(/[\[\]]/g, '').slice(0, 80);
             wrapSelection(textarea, 'quote', author || null, 'texto citado');

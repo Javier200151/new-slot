@@ -42,9 +42,13 @@ return Application::configure(
             Exceptions $exceptions
         ): void {
 
+            // The BBCode preview lives under web routes but returns JSON to the editor.
+            // Keep ordinary web error handling unchanged, while preserving JSON errors
+            // for unauthenticated requests (401) and invalid drafts (422).
             $exceptions->shouldRenderJsonWhen(
                 fn (Request $request): bool =>
                     $request->is('api/*')
+                    || $request->is('area/bbcode/vista-previa')
             );
 
             $exceptions->report(

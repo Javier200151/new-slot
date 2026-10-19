@@ -68,4 +68,34 @@ class BbcodeMarkupTest extends TestCase
         $this->assertStringContainsString('[*]Dos', $text);
         $this->assertStringContainsString('[/list]', $text);
     }
+    public function test_it_renders_all_six_headings_and_four_alignments_without_unsafe_attributes(): void
+    {
+        $source = implode("\n", [
+            '[h1]Principal[/h1]', '[h2]Dos[/h2]', '[h3]Tres[/h3]',
+            '[h4]Cuatro[/h4]', '[h5]Cinco[/h5]', '[h6]Seis[/h6]',
+            '[left]Izquierda[/left]', '[center]Centro[/center]',
+            '[right]Derecha[/right]', '[justify]Justificado[/justify]', '[align=justify]También justificado[/align]',
+            '[h1]<script>alert(1)</script>[/h1]',
+        ]);
+
+        $html = BbcodeMarkup::render($source)->toHtml();
+
+        foreach (range(1, 6) as $level) {
+            $this->assertStringContainsString('<h' . $level . ' class="forum-rich__h' . $level, $html);
+        }
+        foreach (['left', 'center', 'right', 'justify'] as $alignment) {
+            $this->assertStringContainsString('bbcode-rich__align--' . $alignment, $html);
+        }
+        $this->assertStringNotContainsString('<script>', $html);
+        $this->assertStringContainsString('&lt;script&gt;', $html);
+    }
+
+    public function test_legacy_headings_retain_their_individual_levels(): void
+    {
+        $source = BbcodeMarkup::toEditor('<h1>Uno</h1><h4>Cuatro</h4><h6>Seis</h6>');
+        $this->assertStringContainsString('[h1]Uno[/h1]', $source);
+        $this->assertStringContainsString('[h4]Cuatro[/h4]', $source);
+        $this->assertStringContainsString('[h6]Seis[/h6]', $source);
+    }
+
 }

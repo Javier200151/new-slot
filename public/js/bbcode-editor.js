@@ -109,6 +109,56 @@
             });
         });
 
+        // Preview uses exactly the same safe server renderer as published messages.
+        // Does not submit the form; does not modify the textarea or create a draft.
+        const previewButton = editor.querySelector('[data-bbcode-preview-toggle]');
+        const previewPanel = editor.querySelector('[data-bbcode-preview-panel]');
+        if (previewButton && previewPanel) {
+            let activeRequest = null;
+            const content = previewPanel.querySelector('[data-bbcode-preview-content]');
+            const status = previewPanel.querySelector('[data-bbcode-preview-status]');
+            previewButton.addEventListener('click', async () => {
+                if (!previewPanel.hidden) {
+                    activeRequest?.abort();
+                    previewPanel.hidden = true;
+                    previewButton.setAttribute('aria-expanded', 'false');
+                    previewButton.textContent = 'Vista previa';
+                    return;
+                }
+                previewPanel.hidden = false;
+                previewButton.setAttribute('aria-expanded', 'true');
+                previewButton.textContent = 'Ocultar vista previa';
+                content.replaceChildren();
+                status.textContent = 'Generando vista previa…';
+                const token = editor.closest('form')?.querySelector('input[name="_token"]')?.value;
+                if (!token) {
+                    status.textContent = 'No se ha encontrado el token del formulario. Recarga la página.';
+                    return;
+                }
+                activeRequest?.abort();
+                activeRequest = new AbortController();
+                try {
+                    const response = await fetch(previewButton.dataset.previewUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+                        body: JSON.stringify({ body: textarea.value }),
+                        signal: activeRequest.signal,
+                    });
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    const result = await response.json();
+                    // Returned HTML is rendered by the same escaped/allowlisted PHP BBCode engine.
+                    content.innerHTML = result.html || '';
+                    status.textContent = textarea.value.trim() ? 'Vista previa generada. No se ha publicado.' : 'El mensaje está vacío.';
+                } catch (error) {
+                    if (error.name !== 'AbortError') status.textContent = 'No se pudo generar la vista previa. Inténtalo de nuevo.';
+                }
+            });
+            textarea.addEventListener('input', () => {
+                if (!previewPanel.hidden) status.textContent = 'Has cambiado el texto. Pulsa Ocultar y después Vista previa para actualizarlo.';
+            });
+        }
+
         textarea.addEventListener('keydown', (event) => {
             if (!(event.ctrlKey || event.metaKey)) return;
             const tag = { b: 'b', i: 'i', u: 'u' }[event.key.toLowerCase()];

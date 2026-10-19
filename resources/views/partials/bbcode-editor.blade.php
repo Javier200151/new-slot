@@ -9,6 +9,7 @@
     $editorPlaceholder = $placeholder ?? null;
     $editorHelp = $help ?? 'Puedes usar BBCode para dar formato, crear listas, citas, enlaces e insertar imágenes o GIF por URL.';
     $editorClass = trim('forum-editor__textarea ' . ($textareaClass ?? ''));
+    $editorPreview = $preview ?? false;
 @endphp
 
 <div class="forum-editor bbcode-editor" data-forum-editor>
@@ -22,11 +23,16 @@
         <button type="button" title="Subrayado" data-forum-wrap="u"><u>U</u></button>
         <button type="button" title="Tachado" data-forum-wrap="s"><s>S</s></button>
         <span class="forum-editor__sep"></span>
+        <button type="button" title="Título principal" data-forum-wrap="h1">H1</button>
         <button type="button" title="Título" data-forum-wrap="h2">H2</button>
         <button type="button" title="Subtítulo" data-forum-wrap="h3">H3</button>
+        <button type="button" title="Encabezado 4" data-forum-wrap="h4">H4</button>
+        <button type="button" title="Encabezado 5" data-forum-wrap="h5">H5</button>
+        <button type="button" title="Encabezado 6" data-forum-wrap="h6">H6</button>
         <button type="button" title="Alinear a la izquierda" data-forum-wrap="left">↤</button>
         <button type="button" title="Centrar" data-forum-wrap="center">↔</button>
         <button type="button" title="Alinear a la derecha" data-forum-wrap="right">↦</button>
+        <button type="button" title="Justificar texto" data-forum-wrap="justify">☷</button>
         <span class="forum-editor__sep"></span>
         <button type="button" title="Cita" data-forum-action="quote">❝</button>
         <button type="button" title="Spoiler" data-forum-action="spoiler">Spoiler</button>
@@ -74,6 +80,16 @@
         @if($editorPlaceholder) placeholder="{{ $editorPlaceholder }}" @endif
     >{{ $editorValue }}</textarea>
 
+    @if($editorPreview)
+        <div class="bbcode-preview-actions">
+            <button type="button" class="bbcode-preview-toggle" data-bbcode-preview-toggle data-preview-url="{{ route('bbcode.preview') }}" aria-controls="{{ $editorId }}-preview" aria-expanded="false">Vista previa</button>
+        </div>
+        <section class="bbcode-preview-panel" id="{{ $editorId }}-preview" data-bbcode-preview-panel aria-live="polite" hidden>
+            <div class="bbcode-preview-panel__title">Vista previa (sin publicar)</div>
+            <div class="bbcode-preview-panel__content bbcode-rich forum-rich" data-bbcode-preview-content></div>
+            <small class="bbcode-preview-panel__status" data-bbcode-preview-status></small>
+        </section>
+    @endif
     @if($editorHelp)
         <small class="forum-editor__help">{{ $editorHelp }}</small>
     @endif
