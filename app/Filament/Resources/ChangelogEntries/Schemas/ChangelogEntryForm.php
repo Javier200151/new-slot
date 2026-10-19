@@ -14,6 +14,30 @@ use Filament\Schemas\Schema;
 
 class ChangelogEntryForm
 {
+    /**
+     * Las filas iniciales solo se aplican al crear una entrada nueva.
+     * Los cambios guardados de un changelog existente no se modifican.
+     *
+     * @return array<int, array{area: string, type: string, description: string, url: string}>
+     */
+    public static function defaultChanges(): array
+    {
+        $changes = [];
+
+        foreach (['frontend', 'filament'] as $area) {
+            foreach (['new', 'improvement', 'fix'] as $type) {
+                $changes[] = [
+                    'area' => $area,
+                    'type' => $type,
+                    'description' => '',
+                    'url' => '',
+                ];
+            }
+        }
+
+        return $changes;
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -68,8 +92,7 @@ class ChangelogEntryForm
                         ->columnSpanFull(),
                 ])
                 ->columns(2)
-                ->defaultItems(1)
-                ->minItems(1)
+                ->default(self::defaultChanges())
                 ->reorderable()
                 ->collapsible()
                 ->itemLabel(function (array $state): ?string {

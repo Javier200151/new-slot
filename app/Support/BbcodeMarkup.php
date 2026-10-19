@@ -112,9 +112,14 @@ class BbcodeMarkup
             $html = preg_replace('~\[sub\](.*?)\[/sub\]~is', '<sub>$1</sub>', $html);
         }
 
-        $html = preg_replace('~\[h1\](.*?)\[/h1\]~is', '<h2 class="forum-rich__h2 bbcode-rich__h2">$1</h2>', $html);
-        $html = preg_replace('~\[h2\](.*?)\[/h2\]~is', '<h2 class="forum-rich__h2 bbcode-rich__h2">$1</h2>', $html);
-        $html = preg_replace('~\[h3\](.*?)\[/h3\]~is', '<h3 class="forum-rich__h3 bbcode-rich__h3">$1</h3>', $html);
+        // All six semantic heading levels. No untrusted attributes are copied into the output.
+        foreach (range(1, 6) as $level) {
+            $html = preg_replace(
+                '~\[h' . $level . '\](.*?)\[/h' . $level . '\]~is',
+                '<h' . $level . ' class="forum-rich__h' . $level . ' bbcode-rich__h' . $level . '">$1</h' . $level . '>',
+                $html,
+            );
+        }
         $html = str_ireplace('[hr]', '<hr class="forum-rich__hr bbcode-rich__hr">', $html);
 
         foreach (['left', 'center', 'right', 'justify'] as $alignment) {
@@ -124,6 +129,14 @@ class BbcodeMarkup
                 $html,
             );
         }
+
+        // Accept conventional [align=center] too, using a fixed allowlist.
+        $html = preg_replace_callback(
+            '~\[align=(left|center|right|justify)\](.*?)\[/align\]~is',
+            static fn (array $match): string => '<div class="bbcode-rich__align bbcode-rich__align--'
+                . strtolower($match[1]) . '">' . $match[2] . '</div>',
+            $html,
+        );
 
         $html = preg_replace_callback(
             '~\[color=([^\]]+)\](.*?)\[/color\]~is',
@@ -205,8 +218,8 @@ class BbcodeMarkup
         $html = nl2br($html, false);
 
         // Remove automatic <br> around block-level BBCode output.
-        $html = preg_replace('~(?:<br>\s*)+(<(?:h2|h3|hr|blockquote|details|ul|ol|pre|div)\b)~i', '$1', $html);
-        $html = preg_replace('~(</(?:h2|h3|blockquote|details|ul|ol|pre|div)>)(?:\s*<br>)+~i', '$1', $html);
+        $html = preg_replace('~(?:<br>\s*)+(<(?:h[1-6]|hr|blockquote|details|ul|ol|pre|div)\b)~i', '$1', $html);
+        $html = preg_replace('~(</(?:h[1-6]|blockquote|details|ul|ol|pre|div)>)(?:\s*<br>)+~i', '$1', $html);
 
         if ($placeholders !== []) {
             $html = strtr($html, $placeholders);
@@ -296,10 +309,18 @@ class BbcodeMarkup
             '~<\s*/\s*u\s*>~i' => '[/u]',
             '~<\s*(?:s|strike)\b[^>]*>~i' => '[s]',
             '~<\s*/\s*(?:s|strike)\s*>~i' => '[/s]',
-            '~<\s*h[12]\b[^>]*>~i' => '[h2]',
-            '~<\s*/\s*h[12]\s*>~i' => '[/h2]',
-            '~<\s*h[3-6]\b[^>]*>~i' => '[h3]',
-            '~<\s*/\s*h[3-6]\s*>~i' => '[/h3]',
+            '~<\s*h1\b[^>]*>~i' => '[h1]',
+            '~<\s*/\s*h1\s*>~i' => '[/h1]',
+            '~<\s*h2\b[^>]*>~i' => '[h2]',
+            '~<\s*/\s*h2\s*>~i' => '[/h2]',
+            '~<\s*h3\b[^>]*>~i' => '[h3]',
+            '~<\s*/\s*h3\s*>~i' => '[/h3]',
+            '~<\s*h4\b[^>]*>~i' => '[h4]',
+            '~<\s*/\s*h4\s*>~i' => '[/h4]',
+            '~<\s*h5\b[^>]*>~i' => '[h5]',
+            '~<\s*/\s*h5\s*>~i' => '[/h5]',
+            '~<\s*h6\b[^>]*>~i' => '[h6]',
+            '~<\s*/\s*h6\s*>~i' => '[/h6]',
             '~<\s*blockquote\b[^>]*>~i' => '[quote]',
             '~<\s*/\s*blockquote\s*>~i' => '[/quote]',
             '~<\s*pre\b[^>]*>~i' => '[code]',

@@ -4,6 +4,7 @@
     'label' => $label ?? 'Mensaje',
     'value' => $value ?? old($name ?? 'body', ''),
     'rows' => $rows ?? 9,
+    'preview' => true,
     'required' => $required ?? true,
     'maxlength' => $maxlength ?? null,
     'placeholder' => $placeholder ?? null,

@@ -32,6 +32,7 @@ use App\Http\Controllers\PublicStreamerController;
 use App\Http\Controllers\StreamerBroadcastController;
 use App\Http\Controllers\MemberProcedureEmailPreviewController;
 use App\Http\Controllers\BriefingImageController;
+use App\Http\Controllers\BbcodePreviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -555,6 +556,11 @@ Route::get(
 )->name('community.organization');
 
 Route::middleware('auth')->group(function (): void {
+    // Render the draft without saving or publishing a forum message.
+    Route::post('/area/bbcode/vista-previa', BbcodePreviewController::class)
+        ->middleware('throttle:30,1')
+        ->name('bbcode.preview');
+
     Route::get(
         '/area/foro',
         [CommunityForumController::class, 'forum']

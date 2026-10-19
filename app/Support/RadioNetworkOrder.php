@@ -39,6 +39,49 @@ class RadioNetworkOrder
     }
 
     /**
+     * Ordena las filas del repeater conservando sus claves y su contenido.
+     *
+     * La acción nativa de Filament usa array_flip() y array unpacking: cuando
+     * las claves de los ítems son numéricas, el unpacking puede insertar
+     * índices (int) como si fueran filas. Entonces Filament falla al tratar
+     * esos enteros como estados de un esquema.
+     *
+     * Sólo movemos claves que ya existen; los identificadores obsoletos de
+     * un DOM anterior se ignoran, y las filas restantes mantienen su orden.
+     * No persiste nada: el modal sigue guardando únicamente al confirmarlo.
+     *
+     * @param array<int|string, mixed> $items
+     * @param array<int, mixed> $requestedKeys
+     * @return array<int|string, array<string, mixed>>
+     */
+    public static function reorderRepeaterItems(array $items, array $requestedKeys): array
+    {
+        $ordered = [];
+
+        foreach ($requestedKeys as $key) {
+            if (! is_int($key) && ! is_string($key)) {
+                continue;
+            }
+
+            if (! array_key_exists($key, $items) || ! is_array($items[$key])) {
+                continue;
+            }
+
+            $ordered[$key] = $items[$key];
+        }
+
+        foreach ($items as $key => $item) {
+            if (! is_array($item) || array_key_exists($key, $ordered)) {
+                continue;
+            }
+
+            $ordered[$key] = $item;
+        }
+
+        return $ordered;
+    }
+
+    /**
      * Guarda explícitamente el orden visual del repeater dentro de cada red.
      */
     public static function forStorage(array $networks): array

@@ -11,6 +11,7 @@ final class BbcodeTextarea
     {
         return Textarea::make($name)
             ->rows(6)
+            ->aboveContent(BbcodeToolbar::make())
             ->formatStateUsing(
                 fn (mixed $state): string => BbcodeMarkup::toEditor(
                     is_array($state) ? $state : (string) ($state ?? '')
@@ -19,6 +20,6 @@ final class BbcodeTextarea
             ->extraInputAttributes([
                 'data-newslot-bbcode' => '1',
             ])
-            ->helperText('BBCode disponible: formato, listas, citas, enlaces, imágenes/GIF por URL y alineación.');
+            ->helperText('BBCode: H1–H6, alineación izquierda/centro/derecha/justificada, listas, citas, colores, enlaces e imágenes.');
     }
 }

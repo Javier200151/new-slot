@@ -34,9 +34,14 @@
 /* Render BBCode común. Se mantienen las clases forum-rich por compatibilidad. */
 .bbcode-rich,
 .forum-rich { min-width:0; overflow-wrap:anywhere; line-height:1.75; }
-.forum-rich__h2,.forum-rich__h3,.bbcode-rich__h2,.bbcode-rich__h3 { line-height:1.2; }
+.forum-rich__h1,.forum-rich__h2,.forum-rich__h3,.forum-rich__h4,.forum-rich__h5,.forum-rich__h6,
+.bbcode-rich__h1,.bbcode-rich__h2,.bbcode-rich__h3,.bbcode-rich__h4,.bbcode-rich__h5,.bbcode-rich__h6 { line-height:1.25; }
+.forum-rich__h1,.bbcode-rich__h1 { margin:20px 0 10px; font-size:1.75rem; }
 .forum-rich__h2,.bbcode-rich__h2 { margin:18px 0 8px; font-size:1.45rem; }
 .forum-rich__h3,.bbcode-rich__h3 { margin:16px 0 7px; font-size:1.12rem; }
+.forum-rich__h4,.bbcode-rich__h4 { margin:14px 0 6px; font-size:1rem; }
+.forum-rich__h5,.bbcode-rich__h5 { margin:12px 0 5px; font-size:.91rem; }
+.forum-rich__h6,.bbcode-rich__h6 { margin:10px 0 5px; font-size:.83rem; }
 .forum-rich__hr,.bbcode-rich__hr { border:0; border-top:1px solid rgba(148,163,184,.22); margin:18px 0; }
 .forum-rich__link,.bbcode-rich__link { color:#fbbf24; text-decoration:underline; text-underline-offset:2px; }
 .forum-rich__image-link,.bbcode-rich__image-link { display:block; width:fit-content; max-width:100%; margin:14px 0; }
@@ -57,3 +62,13 @@
 @media (max-width:700px) {
     .forum-editor__colors { width:100%; margin:4px 0 0; }
 }
+
+/* Vista previa local del foro: nunca se envía una publicación al abrirla. */
+.bbcode-preview-actions { display:flex; justify-content:flex-start; gap:8px; margin:4px 0; }
+.bbcode-preview-toggle { padding:7px 12px; border:1px solid rgba(245,158,11,.48); border-radius:7px; color:#fbbf24; background:rgba(245,158,11,.065); cursor:pointer; font:inherit; font-size:.78rem; font-weight:750; }
+.bbcode-preview-toggle:hover, .bbcode-preview-toggle:focus-visible { background:rgba(245,158,11,.14); }
+.bbcode-preview-panel { margin:7px 0 10px; padding:12px 14px; border:1px solid rgba(245,158,11,.27); border-radius:9px; background:#0d1219; }
+.bbcode-preview-panel[hidden] { display:none; }
+.bbcode-preview-panel__title { margin:0 0 10px; font-size:.78rem; font-weight:850; color:#fbbf24; }
+.bbcode-preview-panel__content { min-height:36px; color:#dce4ef; }
+.bbcode-preview-panel__status { font-size:.74rem; color:#94a3b8; }
