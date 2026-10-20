@@ -37,6 +37,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'promo_id',
         'tagname',
         'status_id',
+        'ally_id',
         'firma',
         'quote',
         'image',
@@ -224,6 +225,23 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         } catch (\Throwable $exception) {
             report($exception);
         }
+    }
+
+    /**
+     * Nombre visible en los ORBAT: los usuarios de comunidad aliada incluyen su clan.
+     */
+    public function orbatDisplayName(): string
+    {
+        if (strtoupper(trim((string) $this->status?->name)) === 'ALIADO' && $this->ally) {
+            return '[' . $this->ally->name . '] ' . $this->nick;
+        }
+
+        return (string) $this->nick;
+    }
+
+    public function ally()
+    {
+        return $this->belongsTo(Ally::class);
     }
 
     public function status()

@@ -443,6 +443,7 @@
                                                     @case('automatic') Cambio de estado @break
                                                     @case('historical_import') Importación histórica @break
                                                     @case('documented_recruitment') Ingreso documentado @break
+                                                    @case('documented_membership') Promoción documentada @break
                                                     @default {{ $change->source }}
                                                 @endswitch
                                             </td>

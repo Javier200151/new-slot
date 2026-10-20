@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\RecruitmentApplicationService;
 use App\Services\RecruitmentPeriodService;
 use App\Services\FirstRecruitmentHistoryService;
+use App\Services\FirstMembershipHistoryService;
 use App\Services\VeterancyStatusHistoryService;
 use App\Models\Status;
 use App\Services\Wiki\WikiSessionRevoker;
@@ -26,6 +27,7 @@ class UserRecruitmentObserver
         $this->recruitmentApplications->markRecruitmentStarted($user);
         // Fecha inicial documentada (no altera las transiciones ni la veteranía).
         app(FirstRecruitmentHistoryService::class)->syncUser($user);
+        app(FirstMembershipHistoryService::class)->syncUser($user);
     }
 
     public function updated(User $user): void
@@ -61,10 +63,15 @@ class UserRecruitmentObserver
             $this->recruitmentPeriods->syncLegacyTutorChange($user);
         }
 
-        // Primero registrar cualquier cambio real de estado; así evitamos
-        // duplicar una transición USUARIO -> RECLUTA del mismo día.
-        if ($user->wasChanged('recruited_at')) {
+        // Registrar primero el cambio real (arriba). Las fechas históricas
+        // solo generan anotaciones documentadas si ese cambio no existe.
+        // Se sincronizan además cuando Filament edita «Miembro desde».
+        if ($user->wasChanged('recruited_at') || $user->wasChanged('member_at')) {
             app(FirstRecruitmentHistoryService::class)->syncUser($user);
+        }
+
+        if ($user->wasChanged('status_id') || $user->wasChanged('member_at') || $user->wasChanged('recruited_at')) {
+            app(FirstMembershipHistoryService::class)->syncUser($user);
         }
     }
 }
