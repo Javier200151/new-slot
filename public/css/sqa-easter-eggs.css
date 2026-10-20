@@ -1,0 +1,21 @@
+[data-sqa-nvg-trigger]{cursor:pointer;transition:color .16s}
+[data-sqa-nvg-trigger]:hover,[data-sqa-nvg-trigger]:focus-visible{color:#6fec76!important;text-shadow:0 0 9px #77ff73;outline:none}
+html.sqa-nvg{filter:grayscale(.8) sepia(.9) hue-rotate(65deg) saturate(1.7) brightness(.88)}
+html.sqa-nvg::after{content:"NVG ●";z-index:2147483638;position:fixed;bottom:1.1rem;right:1.1rem;color:#baffb2;border:1px solid #4fdb52;padding:.2rem .6rem;border-radius:3px;background:#102a10;font:700 11px monospace;pointer-events:none}
+.sqa-egg-grenade{position:fixed;z-index:2147483639;left:50%;bottom:8%;transform:translate(-50%,0);display:flex;gap:18px;align-items:center;background:#181b17;color:#fff;border:1px solid #dc9c40;padding:18px 24px;border-radius:13px;box-shadow:0 18px 55px #000a;pointer-events:none;min-width:300px;max-width:90vw;animation:sqa-grenade-in .35s ease both}
+.sqa-egg-grenade[hidden],.sqa-egg-zeus[hidden],.sqa-egg-konami[hidden]{display:none!important}
+.sqa-egg-grenade__icon{display:grid;place-items:center;border:2px solid #d7a444;border-radius:50%;width:35px;height:35px;flex-shrink:0;color:#f6bb61;animation:sqa-grenade-bounce .6s ease}
+.sqa-egg-grenade__content{display:flex;flex-direction:column;gap:4px;font-family:system-ui,Arial,sans-serif}.sqa-egg-grenade__content strong{color:#ffd18c;letter-spacing:.04em;font-size:18px}.sqa-egg-grenade__content small{font-size:11px;color:#b7bcae}
+.sqa-egg-zeus{position:fixed;inset:0;z-index:2147483640;display:grid;place-items:center;pointer-events:none;isolation:isolate}
+.sqa-egg-zeus::before{content:"";position:absolute;width:min(210px,55vw);height:min(210px,55vw);border-radius:50%;background:radial-gradient(circle,#ffffff36 0%,#bec9f729 34%,#aebbe814 51%,transparent 72%);animation:none;opacity:0;z-index:-1}
+.sqa-egg-zeus img{width:min(135px,21vw);max-height:21vh;object-fit:contain;animation:none;opacity:0;filter:drop-shadow(0 0 7px #ffffff66)}
+.sqa-egg-zeus.sqa-egg-zeus--playing::before{animation:sqa-zeus-glow 2.2s ease-out both}
+.sqa-egg-zeus.sqa-egg-zeus--playing img{animation:sqa-zeus-appears 2.2s ease-out both}
+.sqa-egg-konami{position:fixed;inset:0;z-index:2147483641;display:grid;place-items:center;padding:16px;background:#030b05db;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.sqa-egg-konami__window{position:relative;max-width:560px;width:100%;border:1px solid #79b86d;border-radius:10px;padding:25px;background:#121b14;color:#d8ead0;box-shadow:0 25px 90px #000}
+.sqa-egg-konami__window small{color:#9ad68c}.sqa-egg-konami__window h2{font-size:22px;line-height:1.2;margin:10px 0;color:#f3fff0}.sqa-egg-konami__perks{display:grid;gap:9px;border:1px solid #466a43;border-radius:7px;padding:15px;color:#a4de99}.sqa-egg-konami__denied{color:#eabd6a;font-weight:bold;margin:18px 0 8px}.sqa-egg-konami__small{font-size:11px;color:#91a28a}.sqa-egg-konami__close{position:absolute;top:8px;right:12px;border:0;background:transparent;color:#fff;font-size:30px;cursor:pointer}
+@keyframes sqa-grenade-in{from{transform:translate(-50%,36px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@keyframes sqa-grenade-bounce{0%{transform:translateX(-30px) rotate(-90deg)}65%{transform:translateX(9px) rotate(20deg)}100%{transform:translateX(0) rotate(0)}}
+@keyframes sqa-zeus-appears{0%{opacity:0;transform:scale(.90)}11%{opacity:1;transform:scale(1.045)}24%{opacity:1;transform:scale(1)}43%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sqa-zeus-glow{0%{opacity:0;transform:scale(.90)}11%{opacity:1;transform:scale(1.045)}24%{opacity:1;transform:scale(1)}43%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.sqa-egg-grenade,.sqa-egg-grenade__icon,.sqa-egg-zeus img,.sqa-egg-zeus::before{animation:none!important}.sqa-egg-zeus img,.sqa-egg-zeus::before{opacity:1}}

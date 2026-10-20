@@ -133,3 +133,9 @@
 </header>
 
 @include('partials.public-quick-access')
+
+{{-- Conmemoración de la operación Fallujah: visible solo el 27 de abril o por activación administrativa. --}}
+@include('partials.fallujah-easter-egg')
+
+{{-- Easter eggs de la comunidad; sin modificación de controles ni datos reales. --}}
+@include('partials.sqa-easter-eggs')
