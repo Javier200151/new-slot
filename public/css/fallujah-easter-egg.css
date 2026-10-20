@@ -1,0 +1,74 @@
+/* Todo prefijado: no interfiere con landing.css, profile.css o Filament. */
+.sqa-fallujah, .sqa-fallujah * { box-sizing:border-box; }
+.sqa-fallujah__beacon { position:fixed; left:0; top:54%; z-index:998; width:45px; height:54px; display:grid; place-items:center; border:1px solid #6b8452; border-left:0; border-radius:0 12px 12px 0; background:#172219; color:#afd28e; box-shadow:0 8px 22px #0008; cursor:pointer; transition:transform .2s,background .2s; }
+.sqa-fallujah__beacon:hover,.sqa-fallujah__beacon:focus-visible { transform:translateX(3px); background:#253726; }
+.sqa-fallujah__beacon svg { width:25px; height:25px; }
+.sqa-fallujah__beacon-dot,.sqa-fallujah__live { width:6px; height:6px; border-radius:50%; background:#a3e27f; box-shadow:0 0 12px #a3e27f; }
+.sqa-fallujah__beacon-dot { position:absolute; right:7px; top:7px; animation:sqa-fallujah-blink 2.3s infinite; }
+.sqa-fallujah__overlay[hidden],.sqa-fallujah__stage[hidden],.sqa-fallujah__photo[hidden] { display:none !important; }
+.sqa-fallujah__overlay { position:fixed; inset:0; display:grid; place-items:center; z-index:30000; padding:22px; color:#e3ecd9; font-family:ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',monospace; }
+.sqa-fallujah__scrim { position:absolute; inset:0; background:#020703e8; backdrop-filter:blur(7px); }
+.sqa-fallujah__terminal { isolation:isolate; position:relative; width:min(850px,100%); max-height:min(91dvh,920px); overflow:hidden; display:flex; flex-direction:column; border:1px solid #61734e; border-radius:11px; background:#111b14; box-shadow:0 0 0 1px #253e25,0 28px 90px #000d; }
+.sqa-fallujah__terminal::before { pointer-events:none; content:''; position:absolute; inset:0; z-index:1; opacity:.15; background:repeating-linear-gradient(0deg,transparent 0 3px,#839c6b25 3px 4px); }
+.sqa-fallujah__topbar { z-index:2; display:flex; justify-content:space-between; align-items:center; gap:12px; background:#203023; border-bottom:1px solid #465f43; padding:13px 19px; font-size:10px; letter-spacing:.12em; color:#c2d0ba; }
+.sqa-fallujah__brand,.sqa-fallujah__topbar-right { display:flex; align-items:center; gap:11px; }
+.sqa-fallujah__close { border:1px solid #617354; background:transparent; color:#e1ecd7; width:29px; height:29px; border-radius:6px; font:24px/1 sans-serif; cursor:pointer; }
+.sqa-fallujah__close:hover,.sqa-fallujah__close:focus-visible { background:#3b4f36; }
+.sqa-fallujah__body { position:relative; z-index:2; padding:25px clamp(18px,5vw,45px) 33px; overflow:auto; overscroll-behavior:contain; }
+.sqa-fallujah__steps { display:flex; justify-content:space-between; gap:5px; padding:0 0 20px; margin:0 0 29px; border-bottom:1px solid #40533b; }
+.sqa-fallujah__steps span { font-size:10px; color:#8a9b80; letter-spacing:.1em; }
+.sqa-fallujah__steps span.is-active { color:#c2ea9c; font-weight:700; }
+.sqa-fallujah__eyebrow { margin-bottom:15px; font-size:11px; font-weight:700; color:#a6d58b; letter-spacing:.14em; }
+.sqa-fallujah__heading { margin:0 0 13px; font:700 clamp(28px,5vw,52px)/1.1 ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing:.03em; color:#f1f7e9; }
+.sqa-fallujah__heading em { font-style:normal; color:#bedf8f; }
+.sqa-fallujah__heading--medium { font-size:clamp(26px,4vw,39px); }
+.sqa-fallujah__heading--center { text-align:center; }
+.sqa-fallujah__lede { margin:0 0 27px; font:14px/1.65 system-ui,sans-serif; color:#b8c6b3; }
+.sqa-fallujah__lede--center { text-align:center; max-width:580px; margin-left:auto; margin-right:auto; }
+.sqa-fallujah__data-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; background:#3e5639; border:1px solid #3e5639; border-radius:5px; overflow:hidden; margin-bottom:23px; }
+.sqa-fallujah__data-grid div { display:flex; flex-direction:column; gap:8px; background:#1a281b; padding:15px; }
+.sqa-fallujah__data-grid small { font-size:10px; color:#a5b69b; }
+.sqa-fallujah__data-grid strong { font-size:13px; color:#e1e9d7; }
+.sqa-fallujah__intercept { padding:18px; border-left:3px solid #a2c57f; background:#1b2c1d; }
+.sqa-fallujah__intercept small { color:#acd28c; font-size:10px; letter-spacing:.08em; }
+.sqa-fallujah__intercept p { margin:11px 0 0; line-height:1.7; font-size:14px; color:#e6edde; }
+.sqa-fallujah__actions { display:flex; gap:17px; align-items:center; flex-wrap:wrap; margin-top:27px; }
+.sqa-fallujah__actions--center { justify-content:center; }
+.sqa-fallujah__action { display:inline-flex; align-items:center; justify-content:center; gap:17px; min-height:44px; padding:12px 18px; border:1px solid #bddb9d; background:#b9d993; color:#182516; font:700 11px/1.2 ui-monospace,Consolas,monospace; text-decoration:none; cursor:pointer; letter-spacing:.07em; border-radius:4px; text-align:center; }
+.sqa-fallujah__action:hover,.sqa-fallujah__action:focus-visible { background:#d6edb8; color:#182516; }
+.sqa-fallujah__subtle { border:0; padding:9px 0; color:#b9ceaf; background:none; font:12px/1.2 ui-monospace,Consolas,monospace; text-decoration:underline; text-underline-offset:4px; cursor:pointer; }
+.sqa-fallujah__subtle:hover,.sqa-fallujah__subtle:focus-visible { color:#f4ffea; }
+.sqa-fallujah__subtle:disabled { opacity:.5; cursor:default; }
+.sqa-fallujah__photo-gallery { border:1px solid #526c45; border-radius:6px; overflow:hidden; background:#0c130e; }
+.sqa-fallujah__photo { margin:0; }
+.sqa-fallujah__photo img { width:100%; height:clamp(170px,33vh,330px); object-fit:contain; display:block; background:#080c09; }
+.sqa-fallujah__photo figcaption { display:flex; gap:20px; align-items:baseline; min-height:54px; padding:14px; font:12px/1.4 system-ui,sans-serif; color:#d5e0ca; }
+.sqa-fallujah__photo figcaption span { flex:none; color:#aacf91; font:10px/1.4 ui-monospace,monospace; }
+.sqa-fallujah__photo-controls { display:flex; align-items:center; justify-content:center; gap:25px; padding:9px; border-top:1px solid #3b5637; color:#abc697; font-size:12px; }
+.sqa-fallujah__photo-controls button { border:1px solid #48633f; background:#203023; color:#dcead1; width:36px; height:29px; border-radius:4px; cursor:pointer; }
+.sqa-fallujah__photo-controls button:hover { background:#355131; }
+.sqa-fallujah__detail { font-size:10px; color:#8da480; letter-spacing:.08em; line-height:1.7; margin:17px 0 0; }
+.sqa-fallujah__completed { margin:8px auto 17px; display:grid; place-items:center; width:67px; height:67px; border:2px solid #aedb86; border-radius:50%; color:#aedb86; font-size:36px; }
+.sqa-fallujah__closing-quote { margin:20px auto; max-width:550px; padding:18px 20px; border-left:3px solid #b6d995; color:#ebf4e3; background:#203222; font-size:15px; line-height:1.6; }
+.sqa-fallujah__closing-quote span { display:block; color:#a4be95; margin-top:8px; font-size:12px; }
+.sqa-fallujah__anniversary { margin:24px auto; max-width:520px; padding:20px 12px; display:flex; flex-direction:column; gap:9px; align-items:center; border-top:1px solid #465e3d; border-bottom:1px solid #465e3d; }
+.sqa-fallujah__anniversary strong { font-size:clamp(25px,4vw,35px); color:#e8efd9; }
+.sqa-fallujah__anniversary span { text-align:center; font-size:12px; color:#badb9f; letter-spacing:.08em; }
+.sqa-fallujah__footnote { position:relative; z-index:2; padding:12px 19px; border-top:1px solid #40543a; color:#889e7c; font-size:10px; letter-spacing:.08em; text-align:center; background:#142117; }
+@keyframes sqa-fallujah-blink { 0%,45%,100%{opacity:1} 52%,65%{opacity:.18} }
+@media(max-width:580px) {
+ .sqa-fallujah__overlay { padding:8px; }
+ .sqa-fallujah__terminal { max-height:96dvh; }
+ .sqa-fallujah__topbar { padding:10px; letter-spacing:0; font-size:9px; }
+ .sqa-fallujah__topbar-right > span { display:none; }
+ .sqa-fallujah__body { padding:19px 15px 24px; }
+ .sqa-fallujah__data-grid { grid-template-columns:1fr 1fr; }
+ .sqa-fallujah__data-grid div { padding:11px; }
+ .sqa-fallujah__data-grid strong { font-size:11px; overflow-wrap:anywhere; }
+ .sqa-fallujah__beacon { left:0; width:40px; height:48px; }
+ .sqa-fallujah__steps span { font-size:8px; }
+ .sqa-fallujah__actions { flex-direction:column; align-items:stretch; }
+ .sqa-fallujah__photo figcaption { display:block; }
+ .sqa-fallujah__photo figcaption span { display:block; margin-bottom:6px; }
+}
+@media(prefers-reduced-motion:reduce) { .sqa-fallujah__beacon-dot { animation:none; } .sqa-fallujah__beacon { transition:none; } }
