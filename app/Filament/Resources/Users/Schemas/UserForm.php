@@ -157,7 +157,7 @@ class UserForm
                     ->native(false)
                     ->displayFormat('d/m/Y')
                     ->maxDate(today())
-                    ->helperText('Fecha histórica del primer ingreso como recluta. Puede completarse manualmente a partir del Excel. Es independiente de «Miembro desde» y de los periodos de reclutamiento posteriores.'),
+                    ->helperText('Fecha del primer ingreso como recluta.'),
                 DatePicker::make('member_at')
                     ->label('Miembro desde')
                     ->helperText('Fecha en la que el recluta pasó a ser miembro.'),

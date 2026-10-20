@@ -1352,3 +1352,61 @@ body.avatar-editor-open {
     border-color: #e7bd57;
     box-shadow: 0 0 0 1px rgba(231, 189, 87, 0.16), 0 20px 55px rgba(0, 0, 0, 0.22);
 }
+
+/* Historial de estados privado, con desplazamiento horizontal en pantallas estrechas. */
+.profile-status-history__scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.profile-status-history__table {
+    width: 100%;
+    min-width: 660px;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.82rem;
+}
+
+.profile-status-history__table th,
+.profile-status-history__table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.profile-status-history__table th {
+    font-weight: 750;
+    color: var(--text-soft);
+    white-space: nowrap;
+}
+
+.profile-status-history__table td {
+    color: #e5e7eb;
+}
+
+.profile-status-history__table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.profile-status-history__date {
+    white-space: nowrap;
+}
+
+.profile-status-history__badge {
+    display: inline-block;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.07);
+    color: #fbbf24;
+    border-radius: 5px;
+    padding: 2px 6px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.profile-status-history__empty {
+    text-align: center;
+    color: var(--text-soft) !important;
+    padding: 20px 10px !important;
+}

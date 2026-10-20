@@ -33,6 +33,14 @@ class ProfileController extends Controller
             'mainSqaGroup',
         ]);
 
+        $statusHistory = $user->statusHistory()
+            ->with(['fromStatus', 'toStatus', 'changedBy'])
+            ->where('source', '!=', 'baseline')
+            ->reorder()
+            ->orderByDesc('changed_at')
+            ->orderByDesc('id')
+            ->get();
+
         $profileCompletion = $profileCompletionService->forUser($user);
         $veterancyService = app(VeterancyService::class);
         $veterancy = $veterancyService->summary($user);
@@ -56,6 +64,7 @@ class ProfileController extends Controller
             'profileCompletion',
             'veterancy',
             'veterancyLevel',
+            'statusHistory',
             'linkedAccountSettings',
             'treasuryPrivateVisible',
             'treasuryMember',

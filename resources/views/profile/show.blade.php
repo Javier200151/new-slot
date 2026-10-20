@@ -273,7 +273,16 @@
                             </div>
 
                             <div>
-                                <dt>Fecha de ingreso</dt>
+                                <dt>Primer ingreso como RECLUTA</dt>
+                                <dd>
+                                    {{ $user->recruited_at?->format('d/m/Y')
+                                        ?? 'No indicado'
+                                    }}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Miembro desde</dt>
                                 <dd>
                                     {{ $user->member_at?->format('d/m/Y')
                                         ?? 'No indicada'
@@ -402,6 +411,50 @@
                 </aside>
 
                 <div class="profile-content">
+
+                    <section class="profile-card profile-status-history">
+                        <header class="profile-card__header">
+                            <span>Trayectoria SQA</span>
+                            <h2>Historial de estados</h2>
+                            <p>Tu ingreso como recluta y los cambios de estado registrados.</p>
+                        </header>
+
+                        <div class="profile-status-history__scroll">
+                            <table class="profile-status-history__table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Fecha</th>
+                                        <th scope="col">Estado anterior</th>
+                                        <th scope="col">Estado nuevo</th>
+                                        <th scope="col">Realizado por</th>
+                                        <th scope="col">Origen</th>
+                                        <th scope="col">RE-TUTO POR</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($statusHistory as $change)
+                                        <tr>
+                                            <td class="profile-status-history__date">{{ $change->changed_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                            <td><span class="profile-status-history__badge">{{ $change->fromStatus?->name ?? '—' }}</span></td>
+                                            <td><span class="profile-status-history__badge">{{ $change->toStatus?->name ?? '—' }}</span></td>
+                                            <td>{{ $change->changedBy?->nick ?? ($change->source === 'automatic' ? 'Sistema' : '—') }}</td>
+                                            <td>
+                                                @switch($change->source)
+                                                    @case('automatic') Cambio de estado @break
+                                                    @case('historical_import') Importación histórica @break
+                                                    @case('documented_recruitment') Ingreso documentado @break
+                                                    @default {{ $change->source }}
+                                                @endswitch
+                                            </td>
+                                            <td>{{ $change->retutored_by ?: '—' }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="6" class="profile-status-history__empty">Todavía no hay cambios de estado registrados.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
 
                     <section class="profile-card">
                         <header class="profile-card__header">
