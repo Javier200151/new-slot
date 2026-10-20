@@ -39,12 +39,13 @@ class StatusHistoryRelationManager extends RelationManager
                     ->badge(),
                 TextColumn::make('changedBy.nick')
                     ->label('Realizado por')
-                    ->default('Sistema'),
+                    ->default(fn (UserStatusHistory $record): string => $record->source === 'documented_recruitment' ? '—' : 'Sistema'),
                 TextColumn::make('source')
                     ->label('Origen')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'automatic' => 'Cambio de estado',
                         'historical_import' => 'Importación histórica',
+                        'documented_recruitment' => 'Ingreso documentado',
                         'baseline' => 'Estado inicial del sistema',
                         default => $state,
                     })

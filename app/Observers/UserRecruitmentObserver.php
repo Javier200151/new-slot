@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\User;
 use App\Services\RecruitmentApplicationService;
 use App\Services\RecruitmentPeriodService;
+use App\Services\FirstRecruitmentHistoryService;
 use App\Services\VeterancyStatusHistoryService;
 use App\Models\Status;
 use App\Services\Wiki\WikiSessionRevoker;
@@ -23,6 +24,8 @@ class UserRecruitmentObserver
         $this->recruitmentPeriods->handleCreatedUser($user);
         $this->recruitmentApplications->syncUser($user);
         $this->recruitmentApplications->markRecruitmentStarted($user);
+        // Fecha inicial documentada (no altera las transiciones ni la veteranía).
+        app(FirstRecruitmentHistoryService::class)->syncUser($user);
     }
 
     public function updated(User $user): void
@@ -56,6 +59,12 @@ class UserRecruitmentObserver
          */
         if ($user->wasChanged('tutor_id')) {
             $this->recruitmentPeriods->syncLegacyTutorChange($user);
+        }
+
+        // Primero registrar cualquier cambio real de estado; así evitamos
+        // duplicar una transición USUARIO -> RECLUTA del mismo día.
+        if ($user->wasChanged('recruited_at')) {
+            app(FirstRecruitmentHistoryService::class)->syncUser($user);
         }
     }
 }
