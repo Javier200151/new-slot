@@ -37,7 +37,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'promo_id',
         'tagname',
         'status_id',
-        'ally_id',
         'firma',
         'quote',
         'image',
@@ -48,6 +47,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'birthday_visibility_confirmed_at',
         'tutor_id',
         'member_at',
+        'recruited_at',
         'created_by',
         'updated_by',
     ];
@@ -61,6 +61,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             'birthday_public' => 'boolean',
             'birthday_visibility_confirmed_at' => 'datetime',
             'member_at' => 'date',
+            'recruited_at' => 'date',
             'is_protected_admin' => 'boolean',
             'forum_unread_baseline_at' => 'datetime',
             'diary_unread_baseline_at' => 'datetime',
@@ -192,12 +193,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         $statusName = Status::withTrashed()->whereKey($this->status_id)->value('name');
         $this->unsetRelation('status');
 
-        if ($statusName === 'ALIADO') {
-            // Una cuenta aliada utiliza el logotipo de su comunidad; no genera una firma SQA.
-            $this->forceFill(['firma' => null])->saveQuietly();
-            return;
-        }
-
         if ($statusName === 'USUARIO') {
             $this->forceFill([
                 'firma' => null,
@@ -229,20 +224,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         } catch (\Throwable $exception) {
             report($exception);
         }
-    }
-
-    public function orbatDisplayName(): string
-    {
-        if (strtoupper(trim((string) $this->status?->name)) === 'ALIADO' && $this->ally) {
-            return '[' . $this->ally->name . '] ' . $this->nick;
-        }
-
-        return (string) $this->nick;
-    }
-
-    public function ally()
-    {
-        return $this->belongsTo(Ally::class);
     }
 
     public function status()

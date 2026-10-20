@@ -6,6 +6,7 @@ use App\Models\HomepageSetting;
 use App\Rules\NotReservedUsername;
 use App\Services\ProfileCompletionService;
 use App\Services\Treasury\TreasuryService;
+use App\Services\VeterancyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -33,6 +34,9 @@ class ProfileController extends Controller
         ]);
 
         $profileCompletion = $profileCompletionService->forUser($user);
+        $veterancyService = app(VeterancyService::class);
+        $veterancy = $veterancyService->summary($user);
+        $veterancyLevel = $veterancyService->recognizedLevel($user);
         $linkedAccountSettings = HomepageSetting::current();
         $treasuryPrivateVisible = $treasuryService->canViewPrivateBalance($user);
         $treasuryMember = null;
@@ -50,6 +54,8 @@ class ProfileController extends Controller
         return view('profile.show', compact(
             'user',
             'profileCompletion',
+            'veterancy',
+            'veterancyLevel',
             'linkedAccountSettings',
             'treasuryPrivateVisible',
             'treasuryMember',

@@ -15,7 +15,7 @@
 @push('styles')
     <link
         rel="stylesheet"
-        href="{{ asset('css/users.css') }}"
+        href="{{ asset('css/users.css') }}?v={{ filemtime(public_path('css/users.css')) }}"
     >
 @endpush
 
@@ -140,7 +140,7 @@
 
             <div class="public-user-grid">
 
-                <section class="public-user-card">
+                <section class="public-user-card {{ $veterancyLevel ? 'veterancy-border--' . $veterancyLevel : '' }}">
                     <header>
                         <span>INFORMACIÓN SQA</span>
                         <h2>Datos del miembro</h2>
@@ -192,15 +192,7 @@
                             </dd>
                         </div>
 
-                        <div>
-                            <dt>Tiempo efectivo como ACTIVO</dt>
-                            <dd>{{ number_format((int) ($veterancy['effective_days'] ?? 0), 0, ',', '.') }} días</dd>
-                        </div>
-
-                        <div>
-                            <dt>Tiempo acumulado en RESERVA</dt>
-                            <dd>{{ number_format((int) ($veterancy['reserve_days'] ?? 0), 0, ',', '.') }} días</dd>
-                        </div>
+                        @include('partials.veterancy-duration-rows')
                     </dl>
                 </section>
 
@@ -265,14 +257,14 @@
 
 
             @if(
-                ($user->firma || (strtoupper((string) $user->status?->name) === 'ALIADO' && $user->ally?->image))
+                $user->firma
                 && $user->status?->name !== 'USUARIO'
             )
                 <section class="public-user-signature">
 
                     <header class="public-user-signature__header">
                         <div>
-                            <span>{{ strtoupper((string) $user->status?->name) === 'ALIADO' ? 'COMUNIDAD ALIADA' : 'FIRMA SQA' }}</span>
+                            <span>FIRMA SQA</span>
 
                             <h2>
                                 Firma
