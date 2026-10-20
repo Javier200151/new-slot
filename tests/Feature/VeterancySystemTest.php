@@ -95,6 +95,35 @@ class VeterancySystemTest extends TestCase
         $this->assertSame('2021-01-31', app(VeterancyService::class)->reachedAt($user, VeterancyService::BRONZE, Carbon::parse('2021-02-10'))?->toDateString());
     }
 
+    public function test_recognized_level_requires_an_award_and_uses_highest_rank(): void
+    {
+        Schema::create('veterancy_awards', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->string('level');
+            $table->timestamps();
+        });
+
+        $this->insertUser(14, 'VeteranoNiveles', 2, '2020-01-01');
+        $user = User::query()->findOrFail(14);
+        $service = app(VeterancyService::class);
+
+        $this->assertNull($service->recognizedLevel($user));
+
+        DB::table('veterancy_awards')->insert([
+            ['user_id' => 14, 'level' => 'bronze', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        $service->clearRuntimeCache();
+        $this->assertSame('bronze', $service->recognizedLevel($user));
+
+        DB::table('veterancy_awards')->insert([
+            ['user_id' => 14, 'level' => 'gold', 'created_at' => now(), 'updated_at' => now()],
+            ['user_id' => 14, 'level' => 'silver', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        $service->clearRuntimeCache();
+        $this->assertSame('gold', $service->recognizedLevel($user));
+    }
+
     public function test_historical_import_is_chronological_and_idempotent(): void
     {
         $this->insertUser(12, 'Gilfor', 2, '2014-01-01');

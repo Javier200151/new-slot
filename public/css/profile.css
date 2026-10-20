@@ -1336,3 +1336,19 @@ body.avatar-editor-open {
 .profile-checkbox span {
     font-weight: 650;
 }
+
+/* Borde según veteranía reconocida. Sin veteranía mantiene el borde neutro. */
+.profile-card.veterancy-border--bronze {
+    border-color: #cd7f32;
+    box-shadow: 0 0 0 1px rgba(205, 127, 50, 0.16), 0 20px 55px rgba(0, 0, 0, 0.22);
+}
+
+.profile-card.veterancy-border--silver {
+    border-color: #bfc8d2;
+    box-shadow: 0 0 0 1px rgba(191, 200, 210, 0.16), 0 20px 55px rgba(0, 0, 0, 0.22);
+}
+
+.profile-card.veterancy-border--gold {
+    border-color: #e7bd57;
+    box-shadow: 0 0 0 1px rgba(231, 189, 87, 0.16), 0 20px 55px rgba(0, 0, 0, 0.22);
+}

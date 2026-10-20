@@ -135,11 +135,13 @@ class PublicUserController extends Controller
             'metopas.sqaGroup',
         ]);
 
-        $veterancy = app(VeterancyService::class)->summary($user);
+        $veterancyService = app(VeterancyService::class);
+        $veterancy = $veterancyService->summary($user);
+        $veterancyLevel = $veterancyService->recognizedLevel($user);
 
         return view(
             'users.show',
-            compact('user', 'veterancy')
+            compact('user', 'veterancy', 'veterancyLevel')
         );
     }
 }

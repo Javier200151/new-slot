@@ -6,6 +6,7 @@ use App\Models\UserStatusHistory;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class StatusHistoryRelationManager extends RelationManager
 {
@@ -21,6 +22,9 @@ class StatusHistoryRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            // Los baselines son fotografías técnicas para la veterania:
+            // deben seguir en BD, pero no representan transiciones reales.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('source', '!=', 'baseline'))
             ->columns([
                 TextColumn::make('changed_at')
                     ->label('Fecha')

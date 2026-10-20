@@ -353,7 +353,7 @@ class RecruitmentPeriodService
             default => now(),
         };
 
-        return RecruitmentPeriod::query()->create([
+        $period = RecruitmentPeriod::query()->create([
             'user_id' => $user->id,
             'open_user_id' => $user->id,
             'period_number' => ((int) ($lastPeriod?->period_number ?? 0)) + 1,
@@ -372,6 +372,23 @@ class RecruitmentPeriodService
             'started_at' => $startedAt,
             'started_at_source' => $startedAtSource,
         ]);
+
+        // Se conserva la fecha del PRIMER ingreso, no la de una eventual
+        // reincorporación posterior. No inferir fechas para reclutas legados
+        // con periodos previos o migrados sin started_at fiable.
+        if ($lastPeriod === null && $period->started_at !== null) {
+            $firstRecruitmentDate = $period->started_at->toDateString();
+            DB::table('users')
+                ->where('id', $user->id)
+                ->whereNull('recruited_at')
+                ->update(['recruited_at' => $firstRecruitmentDate]);
+
+            if ($user->recruited_at === null) {
+                $user->setAttribute('recruited_at', $firstRecruitmentDate);
+            }
+        }
+
+        return $period;
     }
 
     private function leaveRecruitment(User $user, string $finalStatusName): void

@@ -27,6 +27,38 @@ class VeterancyService
     private array $summaryCache = [];
     private array $processedRankCache = [];
 
+    /**
+     * Present accumulated days as years, months and days.
+     *
+     * These are non-contiguous periods of service, so calendar months cannot
+     * be determined uniquely. Use a stable display convention: 365d/y, 30d/m.
+     * The actual veteranía thresholds continue to use calendar years.
+     */
+    public static function formatAccumulatedDays(int $days): string
+    {
+        $days = max(0, $days);
+        $years = intdiv($days, 365);
+        $days %= 365;
+        $months = intdiv($days, 30);
+        $days %= 30;
+
+        return "{$years}a {$months}m {$days}d";
+    }
+
+    /** Highest veteranía actually recognised (award or currently assigned metopa). */
+    public function recognizedLevel(User $user): ?string
+    {
+        $rank = $this->processedRank($user);
+
+        foreach (array_reverse(self::LEVELS, true) as $level => $definition) {
+            if ($rank >= $definition['rank']) {
+                return $level;
+            }
+        }
+
+        return null;
+    }
+
     public function summary(User $user, ?CarbonInterface $asOf = null): array
     {
         $asOf = CarbonImmutable::instance($asOf ?? now())->startOfDay();

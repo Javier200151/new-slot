@@ -44,7 +44,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ asset('css/profile.css') }}"
+        href="{{ asset('css/profile.css') }}?v={{ filemtime(public_path('css/profile.css')) }}"
     >
     <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
 </head>
@@ -248,7 +248,7 @@
 
                         </section>
                     @endif
-                    <section class="profile-card">
+                    <section class="profile-card {{ $veterancyLevel ? 'veterancy-border--' . $veterancyLevel : '' }}">
                         <header class="profile-card__header">
                             <span>Información SQA</span>
                             <h2>Datos internos</h2>
@@ -299,6 +299,8 @@
                                     }}
                                 </dd>
                             </div>
+
+                            @include('partials.veterancy-duration-rows')
                         </dl>
                     </section>
 

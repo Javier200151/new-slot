@@ -1018,3 +1018,19 @@
         height: 155px;
     }
 }
+
+/* Tarjeta de datos del miembro: borde del nivel reconocido de veteranía. */
+.public-user-card.veterancy-border--bronze {
+    border-color: #cd7f32;
+    box-shadow: 0 0 0 1px rgba(205, 127, 50, 0.16);
+}
+
+.public-user-card.veterancy-border--silver {
+    border-color: #bfc8d2;
+    box-shadow: 0 0 0 1px rgba(191, 200, 210, 0.16);
+}
+
+.public-user-card.veterancy-border--gold {
+    border-color: #e7bd57;
+    box-shadow: 0 0 0 1px rgba(231, 189, 87, 0.16);
+}
