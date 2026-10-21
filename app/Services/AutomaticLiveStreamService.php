@@ -47,7 +47,8 @@ class AutomaticLiveStreamService
             JSON_UNESCAPED_SLASHES,
         ));
 
-        $cacheKey = 'streams.automatic-live.v1.' . $fingerprint;
+        $allowedCategoryFingerprint = app(TwitchArmaCategoryService::class)->fingerprint();
+        $cacheKey = 'streams.automatic-live.categories-v3.' . $allowedCategoryFingerprint . '.' . $fingerprint;
 
         if ($force) {
             Cache::forget($cacheKey);
@@ -100,6 +101,7 @@ class AutomaticLiveStreamService
             $live->push($stream);
         }
 
+        // YouTube conserva su funcionamiento anterior, sin filtro de categorías.
         foreach ($streamers as $streamer) {
             $youtube = $this->youtubeLiveStream($streamer);
 
@@ -182,7 +184,10 @@ class AutomaticLiveStreamService
                 return [];
             }
 
+            $categoryFilter = app(TwitchArmaCategoryService::class);
+
             return collect($response->json('data', []))
+                ->filter(fn ($item): bool => is_array($item) && $categoryFilter->allowsLive($item))
                 ->map(function (array $item) use ($byUserId): ?array {
                     $userId = (string) ($item['user_id'] ?? '');
                     $streamer = $byUserId[$userId] ?? null;

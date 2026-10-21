@@ -17,7 +17,8 @@ class HomepageVodService
         // Laravel 12 no permite deserializar clases PHP desde la caché por
         // defecto (config/cache.php => serializable_classes = false). Por eso
         // aquí guardamos únicamente arrays y strings, nunca Collection/Carbon.
-        $cacheKey = 'homepage.latest-vods.v2.' . max(1, $limit);
+        $allowedCategoryFingerprint = app(TwitchArmaCategoryService::class)->fingerprint();
+        $cacheKey = 'homepage.latest-vods.categories-v4.' . $allowedCategoryFingerprint . '.' . max(1, $limit);
 
         $cached = Cache::remember($cacheKey, now()->addMinutes(15), function () use ($limit): array {
             $items = collect();
@@ -28,19 +29,19 @@ class HomepageVodService
                 ->orderBy('id')
                 ->get()
                 ->each(function (Streamer $streamer) use ($items): void {
+                    // Los vídeos de YouTube no se filtran por categoría.
                     foreach ($this->youtubeVods($streamer) as $vod) {
                         $items->push($vod);
                     }
 
+                    // Sólo los VODs de Twitch requieren categoría permitida.
                     foreach ($this->twitchVods($streamer) as $vod) {
                         $items->push($vod);
                     }
                 });
 
-            // También conservamos como respaldo los vídeos de YouTube que los
-            // streamers hayan enlazado directamente desde NewSlot. En Twitch
-            // no usamos el histórico local como VOD porque normalmente guarda
-            // la URL del canal, no la URL concreta del vídeo archivado.
+            // Se conserva el respaldo existente de vídeos de YouTube publicados
+            // manualmente. No se utilizan como respaldo los enlaces a canales Twitch.
             foreach ($this->fallbackYoutubeStreams() as $vod) {
                 $items->push($vod);
             }
@@ -165,6 +166,12 @@ class HomepageVodService
             return [];
         }
 
+        $approved = app(TwitchArmaCategoryService::class)->approvedRecentVodIds();
+
+        if ($approved === []) {
+            return [];
+        }
+
         $login = $this->extractTwitchLogin($streamer->twitch_channel);
 
         if (! $streamer->twitch_user_id && ! $login) {
@@ -192,7 +199,7 @@ class HomepageVodService
                 ])
                 ->get('https://api.twitch.tv/helix/videos', [
                     'user_id' => $userId,
-                    'first' => 3,
+                    'first' => 40,
                     'type' => 'archive',
                 ]);
 
@@ -200,7 +207,10 @@ class HomepageVodService
                 return [];
             }
 
-            return collect($response->json('data', []))->map(function (array $video) use ($streamer): array {
+            return collect($response->json('data', []))
+                ->filter(fn ($video): bool => is_array($video) && in_array((string) ($video['id'] ?? ''), $approved, true))
+                ->take(5)
+                ->map(function (array $video) use ($streamer): array {
                 $thumbnail = str_replace(['%{width}', '%{height}'], ['640', '360'], $video['thumbnail_url'] ?? '');
 
                 return [
