@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Streams\Schemas;
 
 use App\Models\Event;
 use App\Models\Streamer;
+use App\Models\Stream;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -38,7 +39,8 @@ class StreamForm
                     )
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required(fn (?Stream $record): bool => ! ($record?->auto_detected ?? false))
+                    ->helperText('Las emisiones detectadas automáticamente pueden no tener evento asociado.'),
 
                 Select::make('streamer_id')
                     ->label('Streamer')

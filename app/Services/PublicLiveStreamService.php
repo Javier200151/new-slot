@@ -87,21 +87,18 @@ class PublicLiveStreamService
             ->filter()
             ->values();
 
-        // El respaldo manual se conserva en YouTube, pero no puede servir para
-        // publicar directos de Twitch sin verificar su categoría oficial.
-        $automaticKeys = $automaticRecords
-            ->map(fn (array $record): string => (int) ($record['streamer_id'] ?? 0)
-                . ':' . strtolower((string) ($record['platform'] ?? '')))
-            ->flip();
+        // Los directos añadidos manualmente no se filtran por categoría,
+        // palabras clave ni horario. Si coinciden con uno automático,
+        // prevalece el manual para no mostrar la misma emisión dos veces.
+        $manualKeys = $manual->map(fn (Stream $stream): string =>
+            (int) $stream->streamer_id . ':' . strtolower((string) $stream->platform))->flip();
 
-        $manualYoutube = $manual
-            ->filter(fn (Stream $stream): bool => strtolower((string) $stream->platform) === 'youtube')
-            ->reject(fn (Stream $stream): bool => $automaticKeys->has(
-                (int) $stream->streamer_id . ':' . strtolower((string) $stream->platform),
-            ));
+        $automatic = $automatic->reject(fn (Stream $stream): bool => $manualKeys->has(
+            (int) $stream->streamer_id . ':' . strtolower((string) $stream->platform),
+        ));
 
-        return $automatic
-            ->concat($manualYoutube)
+        return $manual
+            ->concat($automatic)
             ->map(fn (Stream $stream): Stream => $this->enrich($stream))
             ->sortByDesc(fn (Stream $stream): int => $stream->started_at?->timestamp ?? 0)
             ->values();

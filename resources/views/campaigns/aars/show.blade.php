@@ -6,6 +6,10 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/campaign-aar.css') }}?v={{ filemtime(public_path('css/campaign-aar.css')) }}">
+    <style>
+        .aar-sequence-navigation { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin:24px 0 36px; }
+        .aar-sequence-navigation .aar-button--disabled { opacity:.35; cursor:not-allowed; pointer-events:none; }
+    </style>
 @endpush
 
 @if($editing)
@@ -347,6 +351,23 @@
                     @endif
                 </section>
             @endif
+            <nav class="aar-sequence-navigation" aria-label="Navegación entre informes de campaña">
+                @if($previousAarEvent)
+                    <a class="aar-button aar-button--ghost" href="{{ route('campaigns.aars.show', [$campaign, $previousAarEvent]) }}" rel="prev">
+                        ← Anterior
+                    </a>
+                @else
+                    <span class="aar-button aar-button--ghost aar-button--disabled" aria-disabled="true">← Anterior</span>
+                @endif
+
+                @if($nextAarEvent)
+                    <a class="aar-button aar-button--ghost" href="{{ route('campaigns.aars.show', [$campaign, $nextAarEvent]) }}" rel="next">
+                        Siguiente →
+                    </a>
+                @else
+                    <span class="aar-button aar-button--ghost aar-button--disabled" aria-disabled="true">Siguiente →</span>
+                @endif
+            </nav>
         </div>
     </main>
 @endsection

@@ -48,7 +48,7 @@ class AutomaticLiveStreamService
         ));
 
         $allowedCategoryFingerprint = app(TwitchArmaCategoryService::class)->fingerprint();
-        $cacheKey = 'streams.automatic-live.categories-v3.' . $allowedCategoryFingerprint . '.' . $fingerprint;
+        $cacheKey = 'streams.automatic-live.filters-v4.' . $allowedCategoryFingerprint . '.' . $fingerprint;
 
         if ($force) {
             Cache::forget($cacheKey);
@@ -185,16 +185,20 @@ class AutomaticLiveStreamService
             }
 
             $categoryFilter = app(TwitchArmaCategoryService::class);
+            $library = app(TwitchVodLibraryService::class);
 
             return collect($response->json('data', []))
                 ->filter(fn ($item): bool => is_array($item) && $categoryFilter->allowsLive($item))
-                ->map(function (array $item) use ($byUserId): ?array {
+                ->map(function (array $item) use ($byUserId, $library): ?array {
                     $userId = (string) ($item['user_id'] ?? '');
                     $streamer = $byUserId[$userId] ?? null;
 
                     if (! $streamer) {
                         return null;
                     }
+
+                    // Guardamos el directo aprobado para reconocer su VOD después.
+                    $library->rememberLive($streamer, $item);
 
                     $login = (string) ($item['user_login'] ?? '');
                     $url = trim((string) $streamer->twitch_channel);

@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Models\TwitchCategorySetting;
+use App\Models\Event;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -21,26 +24,154 @@ class TwitchArmaCategoryService
 
     public function fingerprint(): string
     {
-        return sha1(json_encode($this->allowedNames(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return sha1(json_encode([
+            $this->allowedNames(), $this->titleKeywords(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
+    /** @return list<string> */
+    public function titleKeywords(): array
+    {
+        return TwitchCategorySetting::current()->title_keywords ?? [];
+    }
+
+    /** @return list<string> */
+    public function excludedVodIds(): array
+    {
+        return TwitchCategorySetting::current()->excluded_vod_ids ?? [];
+    }
+
+    /** Una sola coincidencia autoriza el directo automático. */
     public function allowsLive(array $stream): bool
     {
-        $gameName = mb_strtolower(trim((string) ($stream['game_name'] ?? '')), 'UTF-8');
-        if ($gameName === '') {
+        if ($this->categoryMatches($stream) || $this->titleMatches((string) ($stream['title'] ?? ''))) {
+            return true;
+        }
+
+        try {
+            // El directo puede comenzar antes del evento y continuar durante él.
+            $started = filled($stream['started_at'] ?? null)
+                ? Carbon::parse($stream['started_at'])
+                : now();
+            return $this->overlapsCalendarEvent($started, now());
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /** VOD: categoría verificada, título o cruce de horario; basta una condición. */
+    public function allowsVod(array $video, array $approvedCategoryVodIds): bool
+    {
+        if (in_array((string) ($video['id'] ?? ''), $approvedCategoryVodIds, true)) {
+            return true;
+        }
+        if ($this->titleMatches((string) ($video['title'] ?? ''))) {
+            return true;
+        }
+        try {
+            if (empty($video['created_at']) && empty($video['published_at'])) {
+                return false;
+            }
+            $start = Carbon::parse($video['created_at'] ?? $video['published_at']);
+            $durationSeconds = $this->vodDurationSeconds((string) ($video['duration'] ?? ''));
+            // Si Twitch no proporciona duración, sólo se comprueba su inicio.
+            return $this->overlapsCalendarEvent($start, $start->copy()->addSeconds($durationSeconds));
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function titleMatches(string $title): bool
+    {
+        $title = mb_strtolower($title, 'UTF-8');
+        foreach ($this->titleKeywords() as $word) {
+            $word = mb_strtolower(trim((string) $word), 'UTF-8');
+            if ($word !== '' && mb_strpos($title, $word, 0, 'UTF-8') !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function categoryMatches(array $stream): bool
+    {
+        $name = mb_strtolower(trim((string) ($stream['game_name'] ?? '')), 'UTF-8');
+        if ($name === '') {
+            return false;
+        }
+        foreach ($this->allowedNames() as $allowed) {
+            if (mb_strtolower(trim((string) $allowed), 'UTF-8') === $name) {
+                // Twitch facilita game_name y game_id en el propio directo.
+                $id = trim((string) ($stream['game_id'] ?? ''));
+                $ids = $this->allowedGameIds();
+                return $id === '' || $ids === [] || in_array($id, $ids, true);
+            }
+        }
+        return false;
+    }
+
+    private function overlapsCalendarEvent(CarbonInterface $started, CarbonInterface $ended): bool
+    {
+        if ($ended->lessThan($started)) {
             return false;
         }
 
-        foreach ($this->allowedNames() as $name) {
-            if (mb_strtolower(trim($name), 'UTF-8') === $gameName) {
-                // game_name llega de la API oficial de Twitch, no del título.
-                $actualId = trim((string) ($stream['game_id'] ?? ''));
-                $knownIds = $this->allowedGameIds();
-                return $actualId === '' || $knownIds === [] || in_array($actualId, $knownIds, true);
+        return $this->matchingCalendarEvent($started, $ended) !== null;
+    }
+
+    /**
+     * Devuelve un evento con una ventana que se solapa con la emisión.
+     * La ventana es [inicio - 30 minutos, fin + 30 minutos].
+     * No exige que el directo se haya iniciado en ella: basta con que
+     * cualquier parte del directo coincida con el intervalo.
+     */
+    public function matchingCalendarEvent(CarbonInterface $started, CarbonInterface $ended): ?Event
+    {
+        if ($ended->lessThan($started)) {
+            return null;
+        }
+
+        // Compartimos las ventanas del calendario durante 60 segundos.
+        // Solo se cachean arrays, nunca modelos Eloquent.
+        $windows = Cache::remember('sqa.twitch.calendar-windows.v1', now()->addMinute(), function (): array {
+            return Event::query()
+                ->whereHas('eventStatus', fn ($query) => $query->where('name', '!=', 'CANCELADO'))
+                ->get(['id', 'date', 'end_date', 'duration', 'event_status_id'])
+                ->map(fn (Event $event): array => [
+                    'id' => $event->id,
+                    'start' => $event->date?->toIso8601String(),
+                    'end' => $event->end_date?->toIso8601String(),
+                    'duration' => (int) ($event->duration ?? 0),
+                ])->all();
+        });
+
+        foreach ($windows as $window) {
+            if (empty($window['start'])) {
+                continue;
+            }
+            $begin = Carbon::parse($window['start']);
+            if ($begin->gt($ended->copy()->addMinutes(30))) {
+                continue;
+            }
+            $end = ! empty($window['end'])
+                ? Carbon::parse($window['end'])
+                : $begin->copy()->addMinutes(max(0, (int) ($window['duration'] ?? 0)));
+
+            if ($begin->copy()->subMinutes(30)->lessThanOrEqualTo($ended)
+                && $end->copy()->addMinutes(30)->greaterThanOrEqualTo($started)) {
+                return Event::query()->find($window['id']);
             }
         }
 
-        return false;
+        return null;
+    }
+
+    private function vodDurationSeconds(string $duration): int
+    {
+        if (! preg_match('/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/i', $duration, $parts)) {
+            return 0;
+        }
+        return (int) ($parts[1] ?? 0) * 3600 + (int) ($parts[2] ?? 0) * 60 + (int) ($parts[3] ?? 0);
     }
 
     /**
