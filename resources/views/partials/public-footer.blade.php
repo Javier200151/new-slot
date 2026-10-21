@@ -94,13 +94,13 @@
         <style>
             .footer-infrastructure__ts-toggle { display:block; margin:8px 0 4px 22px; padding:3px 0; background:none; border:0; color:#f59e0b; font-size:11px; cursor:pointer; text-align:left; }
             .footer-infrastructure__ts-toggle:hover { text-decoration:underline; }
-            .footer-infrastructure__users { padding:8px 8px 8px 22px; margin:0; list-style:none; max-height:240px; overflow-y:auto; }
+            .footer-infrastructure__users { padding:6px 4px 4px; margin:0; list-style:none; max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
             .footer-infrastructure__users[hidden] { display:none; }
-            .footer-infrastructure__channel { margin-bottom:9px; font-size:11px; color:#d8dee9; overflow-wrap:anywhere; }
-            .footer-infrastructure__channel strong { display:block; margin-bottom:4px; color:#f59e0b; font-weight:600; }
-            .footer-infrastructure__channel ul { list-style:none; margin:0 0 0 8px; padding:0; }
-            .footer-infrastructure__channel li { padding:2px 0; color:#aeb9cc; }
-            .footer-infrastructure__channel li::before { content:'●'; font-size:7px; color:#22c55e; margin-right:7px; }
+            .footer-infrastructure__users > .footer-infrastructure__channel { margin:0; padding:8px 10px; border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; background:rgba(255, 255, 255, 0.03); font-size:11px; color:#d8dee9; overflow-wrap:anywhere; }
+            .footer-infrastructure__users > .footer-infrastructure__channel strong { display:block; margin:0 0 6px; color:#f59e0b; font-weight:600; line-height:1.35; }
+            .footer-infrastructure__users > .footer-infrastructure__channel > ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+            .footer-infrastructure__users > .footer-infrastructure__channel > ul > li { position:relative; margin:0; padding:0 0 0 14px; border:0; border-radius:0; background:transparent; color:#aeb9cc; font-size:11px; line-height:1.35; }
+            .footer-infrastructure__users > .footer-infrastructure__channel > ul > li::before { content:'●'; position:absolute; left:0; top:0.18rem; font-size:7px; color:#22c55e; }
             /* El panel principal debe quedar fuera del flujo del footer.
                En v33 un position:relative anulaba el position:absolute de landing.css. */
             .footer-infrastructure__panel { position:absolute; }
