@@ -42,13 +42,6 @@ class PublicLiveStreamService
             });
 
         $automaticRecords = $this->automatic->discover($streamers, $forceAutomatic);
-        $automaticKeys = $automaticRecords
-            ->map(fn (array $record): string => $this->platformKey(
-                (int) ($record['streamer_id'] ?? 0),
-                (string) ($record['platform'] ?? ''),
-            ))
-            ->flip();
-
         $automatic = $automaticRecords
             ->map(function (array $record) use ($streamersById, $manual): ?Stream {
                 $streamerId = (int) ($record['streamer_id'] ?? 0);
@@ -94,14 +87,21 @@ class PublicLiveStreamService
             ->filter()
             ->values();
 
-        $manualFallback = $manual->reject(
-            fn (Stream $stream): bool => $automaticKeys->has(
-                $this->platformKey((int) $stream->streamer_id, (string) $stream->platform),
-            ),
-        );
+        // El respaldo manual se conserva en YouTube, pero no puede servir para
+        // publicar directos de Twitch sin verificar su categoría oficial.
+        $automaticKeys = $automaticRecords
+            ->map(fn (array $record): string => (int) ($record['streamer_id'] ?? 0)
+                . ':' . strtolower((string) ($record['platform'] ?? '')))
+            ->flip();
+
+        $manualYoutube = $manual
+            ->filter(fn (Stream $stream): bool => strtolower((string) $stream->platform) === 'youtube')
+            ->reject(fn (Stream $stream): bool => $automaticKeys->has(
+                (int) $stream->streamer_id . ':' . strtolower((string) $stream->platform),
+            ));
 
         return $automatic
-            ->concat($manualFallback)
+            ->concat($manualYoutube)
             ->map(fn (Stream $stream): Stream => $this->enrich($stream))
             ->sortByDesc(fn (Stream $stream): int => $stream->started_at?->timestamp ?? 0)
             ->values();
@@ -205,8 +205,4 @@ class PublicLiveStreamService
         return $stream;
     }
 
-    private function platformKey(int $streamerId, string $platform): string
-    {
-        return $streamerId . ':' . strtolower($platform);
-    }
 }
