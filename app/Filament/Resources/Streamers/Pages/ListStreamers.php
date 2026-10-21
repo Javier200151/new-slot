@@ -58,10 +58,15 @@ class ListStreamers extends ListRecords
                         ->values()
                         ->all();
 
-                    if (count($names) > 25 || ! app(TwitchArmaCategoryService::class)->verifyNames($names)) {
+                    // Las categorías seleccionadas proceden del buscador oficial de Twitch.
+                    // No volver a verificarlas en cada guardado: un fallo temporal de
+                    // Twitch no debe bloquear cambios independientes (p. ej. palabras clave)
+                    // ni hacer que las categorías ya guardadas parezcan inválidas.
+                    if (count($names) > 25 || collect($names)->contains(
+                        fn (string $name): bool => mb_strlen($name, 'UTF-8') > 100
+                    )) {
                         Notification::make()
-                            ->title('No se pudieron comprobar las categorías en Twitch')
-                            ->body('Comprueba los nombres o inténtalo de nuevo. No se ha cambiado la configuración.')
+                            ->title('Puedes seleccionar hasta 25 categorías')
                             ->danger()
                             ->send();
                         return;
