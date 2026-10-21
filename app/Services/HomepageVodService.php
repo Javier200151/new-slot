@@ -18,7 +18,7 @@ class HomepageVodService
         // defecto (config/cache.php => serializable_classes = false). Por eso
         // aquí guardamos únicamente arrays y strings, nunca Collection/Carbon.
         $allowedCategoryFingerprint = app(TwitchArmaCategoryService::class)->fingerprint();
-        $cacheKey = 'homepage.latest-vods.categories-v4.' . $allowedCategoryFingerprint . '.' . max(1, $limit);
+        $cacheKey = 'homepage.latest-vods.library-v6.' . $allowedCategoryFingerprint . '.' . max(1, $limit);
 
         $cached = Cache::remember($cacheKey, now()->addMinutes(15), function () use ($limit): array {
             $items = collect();
@@ -46,7 +46,17 @@ class HomepageVodService
                 $items->push($vod);
             }
 
+            // Ocultar en Emisiones también funciona si YouTube aparece por RSS.
+            $hiddenKeys = Stream::query()
+                ->where('visible_on_home', false)
+                ->pluck('stream_url')
+                ->map(fn (string $url): string => $this->normaliseUrl($url))
+                ->all();
+
             return $items
+                ->reject(fn (array $vod): bool => in_array(
+                    $this->normaliseUrl((string) ($vod['url'] ?? '')), $hiddenKeys, true
+                ))
                 ->filter(fn (array $vod): bool => filled($vod['url'] ?? null))
                 ->unique(fn (array $vod): string => $this->normaliseUrl((string) $vod['url']))
                 ->sortByDesc(function (array $vod): int {
@@ -127,7 +137,7 @@ class HomepageVodService
             preg_match_all('~<entry>(.*?)</entry>~s', $response->body(), $entries);
             $vods = [];
 
-            foreach (array_slice($entries[1] ?? [], 0, 3) as $entry) {
+            foreach (array_slice($entries[1] ?? [], 0, 15) as $entry) {
                 if (! preg_match('~<yt:videoId>([^<]+)</yt:videoId>~', $entry, $videoMatch)) {
                     continue;
                 }
@@ -159,39 +169,46 @@ class HomepageVodService
      */
     private function twitchVods(Streamer $streamer): array
     {
+        // Sin conexión con Twitch se conservan los VODs ya registrados.
+        $persisted = fn (): array => Stream::query()
+            ->where('streamer_id', $streamer->id)
+            ->where('platform', 'twitch')
+            ->where(function ($query): void {
+                $query->where('is_vod', true)
+                    ->orWhere('stream_url', 'like', '%twitch.tv/videos/%');
+            })
+            ->where('visible_on_home', true)
+            ->orderByDesc('published_at')
+            ->get()
+            ->map(function (Stream $record) use ($streamer): array {
+                $thumb = (string) ($record->thumbnail_url ?? '');
+                return [
+                    'platform' => 'twitch',
+                    'url' => $record->stream_url,
+                    'title' => $record->title ?: 'VOD de Squad ALPHA',
+                    'thumbnail' => str_replace(['%{width}', '%{height}'], ['640', '360'], $thumb) ?: null,
+                    'published_at' => $record->published_at ?? $record->started_at ?? $record->ended_at ?? $record->created_at,
+                    'streamer' => $streamer->user?->nick ?? 'Squad ALPHA',
+                ];
+            })->all();
+
         $clientId = config('services.twitch.client_id');
         $clientSecret = config('services.twitch.client_secret');
-
-        if (! $clientId || ! $clientSecret) {
-            return [];
-        }
-
-        $approved = app(TwitchArmaCategoryService::class)->approvedRecentVodIds();
-
-        if ($approved === []) {
-            return [];
-        }
-
         $login = $this->extractTwitchLogin($streamer->twitch_channel);
-
-        if (! $streamer->twitch_user_id && ! $login) {
-            return [];
+        if (! $clientId || ! $clientSecret || (! $streamer->twitch_user_id && ! $login)) {
+            return $persisted();
         }
 
         try {
             $token = $this->twitchToken($clientId, $clientSecret);
-
             if (! $token) {
-                return [];
+                return $persisted();
             }
-
             $userId = $streamer->twitch_user_id
                 ?: $this->resolveTwitchUserId($streamer, $login, $clientId, $token);
-
             if (! $userId) {
-                return [];
+                return $persisted();
             }
-
             $response = Http::timeout(5)
                 ->withHeaders([
                     'Client-Id' => $clientId,
@@ -199,31 +216,38 @@ class HomepageVodService
                 ])
                 ->get('https://api.twitch.tv/helix/videos', [
                     'user_id' => $userId,
-                    'first' => 40,
+                    'first' => 100,
                     'type' => 'archive',
                 ]);
-
-            if (! $response->successful()) {
-                return [];
+            if ($response->successful()) {
+                $filter = app(TwitchArmaCategoryService::class);
+                $library = app(TwitchVodLibraryService::class);
+                $approved = $filter->approvedRecentVodIds();
+                foreach ($response->json('data', []) as $video) {
+                    if (! is_array($video) || empty($video['id'])) {
+                        continue;
+                    }
+                    // Cualquiera de las tres condiciones O un directo que ya
+                    // estuviera autorizado permite guardar esta grabación.
+                    if ($filter->allowsVod($video, $approved)
+                        || $library->wasApprovedLive($streamer, $video)
+                        || $library->wasManuallyPublished($streamer, $video)) {
+                        $library->saveVod($streamer, $video);
+                    }
+                }
             }
+        } catch (Throwable $e) {
+            // Un fallo externo de Twitch no hace desaparecer los VODs guardados.
+        }
 
-            return collect($response->json('data', []))
-                ->filter(fn ($video): bool => is_array($video) && in_array((string) ($video['id'] ?? ''), $approved, true))
-                ->take(5)
-                ->map(function (array $video) use ($streamer): array {
-                $thumbnail = str_replace(['%{width}', '%{height}'], ['640', '360'], $video['thumbnail_url'] ?? '');
+        return $persisted();
+    }
 
-                return [
-                    'platform' => 'twitch',
-                    'url' => $video['url'] ?? ('https://www.twitch.tv/videos/' . ($video['id'] ?? '')),
-                    'title' => $video['title'] ?? 'VOD de Squad ALPHA',
-                    'thumbnail' => $thumbnail ?: null,
-                    'published_at' => ! empty($video['published_at']) ? Carbon::parse($video['published_at']) : null,
-                    'streamer' => $streamer->user?->nick ?? ($video['user_name'] ?? 'Squad ALPHA'),
-                ];
-            })->all();
-        } catch (Throwable) {
-            return [];
+    public function invalidateCache(): void
+    {
+        $fingerprint = app(TwitchArmaCategoryService::class)->fingerprint();
+        for ($limit = 1; $limit <= 24; $limit++) {
+            Cache::forget('homepage.latest-vods.library-v6.' . $fingerprint . '.' . $limit);
         }
     }
 
@@ -362,10 +386,11 @@ class HomepageVodService
         return Stream::query()
             ->with('streamer.user')
             ->where('platform', 'youtube')
+            ->where('visible_on_home', true)
             ->whereNotNull('ended_at')
             ->whereHas('streamer', fn ($query) => $query->where('enable', true))
             ->latest('ended_at')
-            ->limit(12)
+            ->limit(40)
             ->get()
             ->map(fn (Stream $stream): array => [
                 'platform' => 'youtube',
@@ -393,6 +418,13 @@ class HomepageVodService
 
     private function normaliseUrl(string $url): string
     {
-        return rtrim(strtolower(trim($url)), '/');
+        $url = rtrim(strtolower(trim($url)), '/');
+        if (preg_match('~(?:youtube\.com/(?:watch\?v=|live/|shorts/)|youtu\.be/)([a-z0-9_-]+)~i', $url, $match)) {
+            return 'youtube:' . $match[1];
+        }
+        if (preg_match('~twitch\.tv/videos/(\d+)~i', $url, $match)) {
+            return 'twitch:' . $match[1];
+        }
+        return $url;
     }
 }

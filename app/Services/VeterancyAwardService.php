@@ -93,18 +93,25 @@ class VeterancyAwardService
                 return ['awarded' => 0, 'post_id' => null];
             }
 
+            // El anuncio es institucional: no se atribuye al administrador
+            // que aprueba, para evitar que se suscriba y reciba respuestas.
+            $planaMayor = User::query()->whereIn('nick', ['PlanaMayor', 'Plana Mayor'])->first();
+            if (! $planaMayor) {
+                throw new LogicException('No se encontró la cuenta Plana Mayor para publicar las veteranías.');
+            }
+
             $post = CommunityPost::create([
                 'channel' => $setting->forumCategory->channel ?: 'personal',
                 'forum_category_id' => $setting->forumCategory->id,
-                'user_id' => $actorId,
+                'user_id' => $planaMayor->id,
                 'title' => $this->buildPostTitle($plans),
                 'body' => $this->buildPostBody($setting, $plans),
             ]);
 
-            // Igual que un hilo creado desde el foro, el autor queda suscrito
-            // a las respuestas posteriores de la publicación automática.
+            // No suscribimos al gestor que ejecuta el procedimiento.
+            // El autor institucional puede seguir el hilo si lo desea.
             $post->subscriptions()->firstOrCreate([
-                'user_id' => $actorId,
+                'user_id' => $planaMayor->id,
             ]);
 
             foreach ($plans as $plan) {

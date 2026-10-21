@@ -18,6 +18,14 @@ class Stream extends Model
         'title',
         'started_at',
         'ended_at',
+        'is_vod',
+        'visible_on_home',
+        'auto_detected',
+        'twitch_stream_id',
+        'twitch_video_id',
+        'thumbnail_url',
+        'published_at',
+        'twitch_last_seen_at',
     ];
 
     protected function casts(): array
@@ -26,7 +34,24 @@ class Stream extends Model
             'enabled' => 'boolean',
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
+            'is_vod' => 'boolean',
+            'visible_on_home' => 'boolean',
+            'auto_detected' => 'boolean',
+            'published_at' => 'datetime',
+            'twitch_last_seen_at' => 'datetime',
         ];
+    }
+
+    public function isVodForHome(): bool
+    {
+        if ($this->is_vod) {
+            return true;
+        }
+        if ($this->platform === 'youtube' && $this->ended_at !== null) {
+            return true;
+        }
+        return $this->platform === 'twitch'
+            && (bool) preg_match('~twitch\.tv/videos/\d+~i', (string) $this->stream_url);
     }
 
     public function event()

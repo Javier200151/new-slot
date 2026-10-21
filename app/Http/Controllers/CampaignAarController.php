@@ -112,6 +112,35 @@ class CampaignAarController extends Controller
         $sequence = $this->aarService->sequenceNumber($event);
         $orbatGroups = app(CampaignAarOrbatPresenter::class)->present($aar->orbat_snapshot);
 
+        // Orden cronológico de AAR publicados de esta campaña. Los expedientes
+        // ocultos sólo se incluyen cuando el usuario puede consultarlos.
+        $otherAars = CampaignAar::query()
+            ->where('campaign_id', $campaign->id)
+            ->where('status', 'published')
+            ->with(['event', 'campaign', 'event.activity'])
+            ->get()
+            ->filter(fn (CampaignAar $item): bool => $item->event !== null
+                && ($request->user()?->can('view', $item) ?? $item->is_visible))
+            ->sort(function (CampaignAar $a, CampaignAar $b): int {
+                $dateComparison = ($a->event?->date?->timestamp ?? 0) <=> ($b->event?->date?->timestamp ?? 0);
+                return $dateComparison ?: ((int) $a->event_id <=> (int) $b->event_id);
+            })
+            ->values();
+
+        $previousAarEvent = null;
+        $nextAarEvent = null;
+        foreach ($otherAars as $item) {
+            $itemDate = $item->event?->date?->timestamp ?? 0;
+            $currentDate = $event->date?->timestamp ?? 0;
+            $order = ($itemDate <=> $currentDate) ?: ((int) $item->event_id <=> (int) $event->id);
+            if ($order < 0) {
+                $previousAarEvent = $item->event;
+            } elseif ($order > 0) {
+                $nextAarEvent = $item->event;
+                break;
+            }
+        }
+
         return view('campaigns.aars.show', compact(
             'campaign',
             'event',
@@ -120,6 +149,8 @@ class CampaignAarController extends Controller
             'editing',
             'sequence',
             'orbatGroups',
+            'previousAarEvent',
+            'nextAarEvent',
         ));
     }
 
