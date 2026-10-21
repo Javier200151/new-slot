@@ -233,7 +233,7 @@ class TwitchArmaCategoryService
         if ($names === []) {
             return [];
         }
-        $key = 'sqa.twitch.allowed-ids.v3.' . $this->fingerprint();
+        $key = 'sqa.twitch.allowed-ids.v4.' . $this->fingerprint();
         $ids = Cache::remember($key, now()->addHours(6), function () use ($names): array {
             $games = $this->gamesByNames($names);
             return $games === null ? [] : array_values($games);
@@ -254,7 +254,7 @@ class TwitchArmaCategoryService
             return [];
         }
 
-        $key = 'sqa.twitch.approved-vods.v3.' . $this->fingerprint();
+        $key = 'sqa.twitch.approved-vods.v4.' . $this->fingerprint();
         $ids = Cache::remember($key, now()->addMinutes(10), function () use ($gameIds): array {
             $result = [];
             foreach ($gameIds as $gameId) {
@@ -342,7 +342,12 @@ class TwitchArmaCategoryService
                 'Client-Id' => $clientId,
                 'Authorization' => 'Bearer ' . $token,
             ]);
-            $response = $http->get($url, $query);
+            // No incluir `query` si está vacío: en Laravel/Guzzle, pasar []
+            // sobreescribe el query string del URL. gamesByNames() incluye
+            // varios `name=...` en la URL tal como exige Twitch Helix.
+            $response = $query === []
+                ? $http->get($url)
+                : $http->get($url, $query);
             return $response->successful() && is_array($response->json())
                 ? $response->json()
                 : null;
