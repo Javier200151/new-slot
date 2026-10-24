@@ -8,6 +8,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use App\Models\MemberProcedureSetting;
 use App\Services\MemberProcedures\ArmaSquadsService;
+use App\Services\SignatureBannerGenerator;
+use Illuminate\Support\Facades\Gate;
 use Throwable;
 use Filament\Resources\Pages\EditRecord;
 
@@ -18,6 +20,43 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('regenerateSignature')
+                ->label('Regenerar firma')
+                ->icon('heroicon-o-arrow-path')
+                ->color('gray')
+                ->visible(fn (): bool => ! in_array(
+                    strtoupper(trim((string) $this->record->status?->name)),
+                    ['USUARIO', 'RECLUTA', 'ALIADO'],
+                    true,
+                ))
+                ->requiresConfirmation()
+                ->modalHeading('Regenerar firma')
+                ->modalDescription('Se volverá a crear la imagen de la firma de este miembro.')
+                ->action(function (SignatureBannerGenerator $generator): void {
+                    $user = $this->record->fresh(['status']);
+                    Gate::authorize('update', $user);
+
+                    if (in_array(strtoupper(trim((string) $user->status?->name)), ['USUARIO', 'RECLUTA', 'ALIADO'], true)) {
+                        Notification::make()->title('Este usuario no tiene una firma individual')->warning()->send();
+                        return;
+                    }
+
+                    try {
+                        $generator->generate($user);
+                        if ($generator->needsRepair($user)) {
+                            throw new \RuntimeException('La firma generada no es una imagen válida.');
+                        }
+                        Notification::make()->title('Firma regenerada correctamente')->success()->send();
+                    } catch (Throwable $exception) {
+                        report($exception);
+                        Notification::make()
+                            ->title('No se pudo regenerar la firma')
+                            ->body('Comprueba los registros de la web e inténtalo de nuevo.')
+                            ->danger()
+                            ->persistent()
+                            ->send();
+                    }
+                }),
             Action::make('verifyArmaSquads')
                 ->label('Verificar / sincronizar ArmaSquads')
                 ->icon('heroicon-o-arrow-path')

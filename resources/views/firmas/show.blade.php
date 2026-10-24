@@ -31,6 +31,12 @@
         ? asset('storage/firmas/recluta.png')
         : asset('storage/firmas/' . $user->nick . '.png');
 
+    // Evitar que el navegador conserve una firma antigua tras regenerarla.
+    $bannerPath = storage_path('app/public/firmas/' . ($statusName === 'RECLUTA' ? 'recluta' : $user->nick) . '.png');
+    if (is_file($bannerPath)) {
+        $bannerSrc .= '?v=' . filemtime($bannerPath);
+    }
+
     $promoSrc = $statusName === 'RECLUTA'
         ? asset('storage/promos/recluta.png')
         : ($user->promo ? asset('storage/' . $user->promo->image) : null);
