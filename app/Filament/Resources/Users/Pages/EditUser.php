@@ -9,6 +9,8 @@ use Filament\Notifications\Notification;
 use App\Models\MemberProcedureSetting;
 use App\Services\MemberProcedures\ArmaSquadsService;
 use App\Services\SignatureBannerGenerator;
+use App\Services\RecruitmentParticipationService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Throwable;
 use Filament\Resources\Pages\EditRecord;
@@ -20,6 +22,25 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('memberPlayedEvents')
+                ->label('Eventos jugados')
+                ->icon('heroicon-o-calendar-days')
+                ->color('gray')
+                ->modalHeading(fn (): string => 'Eventos jugados · ' . $this->record->nick)
+                ->modalWidth('4xl')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Cerrar')
+                ->modalContent(function () {
+                    $user = $this->record->fresh();
+                    Gate::authorize('update', $user);
+
+                    return view('filament.recruitment.member-events-list', [
+                        'events' => app(RecruitmentParticipationService::class)->playedEventDetails(
+                            (int) $user->getKey(),
+                            Carbon::create(1900, 1, 1, 0, 0, 0),
+                        ),
+                    ]);
+                }),
             Action::make('regenerateSignature')
                 ->label('Regenerar firma')
                 ->icon('heroicon-o-arrow-path')

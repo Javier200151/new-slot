@@ -1322,3 +1322,17 @@
     color: rgb(245 158 11);
     outline: none;
 }
+
+/* Filament > Miembros: banner individual y consulta de participaciones. */
+.sqa-member-banner-preview { display:block; max-width:500px; line-height:0; }
+.sqa-member-banner-preview img { display:block; width:100%; max-width:500px; height:auto; object-fit:contain; border-radius:5px; }
+.sqa-member-banner-missing { font-size:.83rem; color:#9ca3af; }
+.member-events-modal [x-cloak] { display:none !important; }
+.member-events-modal__filters { display:flex; flex-wrap:wrap; align-items:end; gap:.7rem; }
+.member-events-modal__filters label { display:flex; flex:1 1 155px; flex-direction:column; gap:.35rem; min-width:0; color:inherit; font-size:.79rem; font-weight:600; }
+.member-events-modal__filters label:last-child { flex:1.5 1 190px; }
+.member-events-modal__filters select { width:100%; min-width:0; padding:.52rem 2rem .52rem .7rem; border:1px solid #d1d5db; border-radius:.6rem; background:#fff; color:#111827; font-size:.84rem; }
+.dark .member-events-modal__filters select { border-color:#374151; background:#18181b; color:#f3f4f6; }
+.member-events-modal__filters select:focus-visible { outline:2px solid #f59e0b; outline-offset:2px; }
+.member-events-modal__list { max-height:min(56vh,630px); overflow-y:auto; }
+@media(max-width:640px) { .member-events-modal__filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; } .member-events-modal__filters label { min-width:0; } .member-events-modal__filters label:last-child { grid-column:1/-1; } .member-events-modal__list { max-height:55vh; } }

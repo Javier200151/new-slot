@@ -8,12 +8,14 @@ use App\Models\User;
 use App\Rules\NotReservedUsername;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\HtmlString;
 
 class UserForm
 {
@@ -99,10 +101,6 @@ class UserForm
                     ->multiple()
                     ->preload()
                     ->required(),
-                TextInput::make('firma')
-                    ->disabled()
-                    ->default(fn ($record) => $record?->getSignatureUrl()),
-
                 BbcodeTextarea::make('quote')
                     ->label('Cita')
                     ->rows(3)
@@ -162,11 +160,45 @@ class UserForm
                     ->label('Miembro desde')
                     ->helperText('Fecha en la que el recluta pasó a ser miembro.'),
 
+                TextInput::make('firma')
+                    ->label('Firma')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->columnSpanFull()
+                    ->default(fn (?User $record): ?string => $record?->getSignatureUrl()),
+                Placeholder::make('banner_del_miembro')
+                    ->label('Banner del miembro')
+                    ->columnSpanFull()
+                    ->visible(fn (?User $record): bool => $record !== null
+                        && ! in_array(strtoupper(trim((string) $record->status?->name)), ['USUARIO', 'RECLUTA', 'ALIADO'], true))
+                    ->content(fn (?User $record): HtmlString => self::bannerPreview($record)),
+
                 
                 //TextInput::make('created_by')
                 //    ->numeric(),
                 //TextInput::make('updated_by')
                 //    ->numeric(),
             ]);
+    }
+
+    private static function bannerPreview(?User $record): HtmlString
+    {
+        if (! $record) {
+            return new HtmlString('');
+        }
+
+        $path = storage_path('app/public/firmas/' . $record->nick . '.png');
+
+        if (! is_file($path) || ! is_readable($path)) {
+            return new HtmlString('<span class="sqa-member-banner-missing">Todavía no hay un banner generado para este miembro.</span>');
+        }
+
+        $src = asset('storage/firmas/' . rawurlencode($record->nick) . '.png') . '?v=' . filemtime($path);
+
+        return new HtmlString(
+            '<div class="sqa-member-banner-preview">'
+            . '<img src="' . e($src) . '" alt="Banner de ' . e($record->nick) . '" width="500" height="100">'
+            . '</div>'
+        );
     }
 }
