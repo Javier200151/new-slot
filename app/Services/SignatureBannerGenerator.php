@@ -4,9 +4,48 @@ namespace App\Services;
 
 use App\Models\User;
 use Exception;
+use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 class SignatureBannerGenerator
 {
+    public function needsRepair(User $user): bool
+    {
+        $path = storage_path('app/public/firmas/' . $user->nick . '.png');
+
+        if (! is_file($path) || ! is_readable($path)) {
+            return true;
+        }
+
+        // Las firmas normales son PNG de 500 x 100. También detectamos archivos
+        // vacíos o incompletos que el navegador no puede mostrar.
+        $dimensions = @getimagesize($path);
+
+        return $dimensions === false
+            || $dimensions[0] !== 500
+            || $dimensions[1] !== 100
+            || $dimensions[2] !== IMAGETYPE_PNG;
+    }
+
+    public function repairIfMissing(User $user): void
+    {
+        if (! $this->needsRepair($user)) {
+            return;
+        }
+
+        // La vista es pública: si hay un problema de permisos, no debemos intentar
+        // generar la misma firma en cada visita y saturar el servidor.
+        try {
+            if (! Cache::add('signature:repair:' . $user->getKey(), true, now()->addMinutes(15))) {
+                return;
+            }
+
+            $this->generate($user);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+
     public function generate(User $user): string
     {
         $basePath = resource_path('images/signatures/base_banner.png');
@@ -144,13 +183,27 @@ class SignatureBannerGenerator
             throw new Exception("No se pudo crear el directorio de firmas: {$outputDirectory}");
         }
 
-        if (! @imagepng($image, $outputPath)) {
-            throw new Exception("No se pudo guardar la firma generada: {$outputPath}");
+        // Escribimos primero en un archivo temporal. Así, una regeneración
+        // interrumpida no deja la firma anterior corrupta ni a medio escribir.
+        $temporaryPath = tempnam($outputDirectory, '.firma-');
+        if ($temporaryPath === false) {
+            throw new Exception("No se pudo preparar el archivo de firma en: {$outputDirectory}");
         }
 
-        //imagedestroy($image);
-        //imagedestroy($textLayer);
-        //imagedestroy($texture);
+        try {
+            if (! @imagepng($image, $temporaryPath)
+                || ! @chmod($temporaryPath, 0644)
+                || ! @rename($temporaryPath, $outputPath)) {
+                throw new Exception("No se pudo guardar la firma generada: {$outputPath}");
+            }
+        } finally {
+            if (is_file($temporaryPath)) {
+                @unlink($temporaryPath);
+            }
+            imagedestroy($image);
+            imagedestroy($textLayer);
+            imagedestroy($texture);
+        }
 
         $user->forceFill([
             'firma' => $user->getSignatureUrl(),

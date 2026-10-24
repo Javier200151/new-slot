@@ -23,6 +23,7 @@ use App\Http\Controllers\PublicRegisterController;
 use App\Http\Controllers\PublicActivityController;
 use App\Http\Controllers\PublicInfrastructureController;
 use App\Models\User;
+use App\Services\SignatureBannerGenerator;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
@@ -489,8 +490,15 @@ Route::get('/firmas/{nick}.html', function ($nick) {
         ->with([
             'promo',
             'metopas',
+            'status',
         ])
         ->firstOrFail();
+
+    // Si el banner de este miembro se perdió o está dañado, se vuelve a crear.
+    // RECLUTA usa un banner común; ALIADO muestra el logo de su comunidad.
+    if (! in_array(strtoupper(trim((string) $user->status?->name)), ['USUARIO', 'RECLUTA', 'ALIADO'], true)) {
+        app(SignatureBannerGenerator::class)->repairIfMissing($user);
+    }
 
     return view('firmas.show', compact('user'));
 })
