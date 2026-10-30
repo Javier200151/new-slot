@@ -300,7 +300,7 @@ class MemberProcedureSettingForm
                                         ->disabled(fn (Get $get): bool => blank($get('discord_guild_id')))
                                         ->helperText('Rol que se asigna a miembros en RESERVA.'),
                                     Select::make('discord_invite_channel_id')
-                                        ->label('Canal · invitación pública')
+                                        ->label('Canal de bienvenida (opcional)')
                                         ->options(fn (Get $get): array => self::discordChannelOptions(
                                             $get('discord_guild_id'),
                                             $get('discord_invite_channel_id'),
@@ -308,7 +308,7 @@ class MemberProcedureSettingForm
                                         ->searchable()
                                         ->preload()
                                         ->disabled(fn (Get $get): bool => blank($get('discord_guild_id')))
-                                        ->helperText('Canal al que apuntará la invitación pública. Se muestran automáticamente los canales compatibles con invitaciones.'),
+                                        ->helperText('Si el servidor no tiene enlace propio, el bot creará una invitación para entrar al servidor desde un canal de texto.'),
                                     TextInput::make('discord_bot_nickname')
                                         ->label('Apodo del bot en el servidor')
                                         ->maxLength(32)

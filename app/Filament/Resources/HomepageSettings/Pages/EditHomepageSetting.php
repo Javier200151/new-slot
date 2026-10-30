@@ -70,13 +70,13 @@ class EditHomepageSetting extends EditRecord
                 }),
 
             Action::make('refreshDiscordInvite')
-                ->label('Regenerar invitación Discord')
+                ->label('Actualizar invitación Discord')
                 ->icon('heroicon-o-arrow-path-rounded-square')
                 ->color('info')
                 ->requiresConfirmation()
-                ->modalHeading('Regenerar invitación pública de Discord')
-                ->modalDescription('Se creará una invitación nueva de 7 días en el canal configurado y se sustituirá inmediatamente el enlace del pie de página.')
-                ->modalSubmitActionLabel('Generar nueva invitación')
+                ->modalHeading('Actualizar invitación al servidor de Discord')
+                ->modalDescription('Se obtendrá el enlace del servidor o se creará una invitación para entrar en él. El enlace actual se sustituirá.')
+                ->modalSubmitActionLabel('Actualizar enlace')
                 ->action(function (DiscordService $discord): void {
                     try {
                         $result = $discord->refreshPublicInvite(
@@ -89,8 +89,8 @@ class EditHomepageSetting extends EditRecord
 
                         Notification::make()
                             ->success()
-                            ->title('Invitación de Discord renovada')
-                            ->body(($result['url'] ?? 'Invitación creada') . ' · caduca en 7 días.')
+                            ->title('Invitación al servidor actualizada')
+                            ->body(($result['url'] ?? 'Invitación creada') . ($result['expires_at'] ? ' · se renovará antes de caducar.' : ' · sin caducidad conocida.'))
                             ->persistent()
                             ->send();
                     } catch (Throwable $exception) {
@@ -106,4 +106,55 @@ class EditHomepageSetting extends EditRecord
                 }),
         ];
     }
+
+    /** Si se escribe otro enlace, respetarlo sin reemplazarlo al día siguiente. */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $incoming = trim((string) ($data['discord_invite_url'] ?? ''));
+        $current = trim((string) $this->record->discord_invite_url);
+        if ($incoming !== $current) {
+            $data['discord_invite_url'] = $incoming !== '' ? $incoming : null;
+            if ($incoming !== '') {
+                $data['discord_invite_auto_refresh'] = false;
+            }
+            $data['discord_invite_refreshed_at'] = null;
+            $data['discord_invite_expires_at'] = null;
+        }
+
+        return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $homepage = $this->record->fresh();
+        $discord = app(DiscordService::class);
+        if (! $discord->publicInviteNeedsRefresh($homepage)) {
+            if ($this->record->wasChanged('discord_invite_url')) {
+                $this->fillForm();
+            }
+
+            return;
+        }
+
+        try {
+            $discord->refreshPublicInvite(MemberProcedureSetting::current(), $homepage);
+            $this->record->refresh();
+            $this->fillForm();
+
+            Notification::make()
+                ->success()
+                ->title('Invitación al servidor actualizada')
+                ->send();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            Notification::make()
+                ->warning()
+                ->title('No se pudo crear la invitación')
+                ->body($exception->getMessage())
+                ->persistent()
+                ->send();
+        }
+    }
+
 }
