@@ -73,6 +73,13 @@
             button.addEventListener('click', () => {
                 const action = button.dataset.forumAction;
 
+                if (action === 'pdf') {
+                    const url = safeUrl(window.prompt('URL del documento PDF:', 'https://'));
+                    if (url && (new URL(url).pathname.toLowerCase().endsWith('.pdf') || (new URL(url).hostname === 'drive.google.com' && /^\/file\/d\/[a-zA-Z0-9_-]+\/(view|preview)\/?$/.test(new URL(url).pathname)))) {
+                        insertText(textarea, `[pdf]${url}[/pdf]`);
+                    }
+                    return;
+                }
                 if (action === 'image') {
                     const url = safeUrl(window.prompt('URL de la imagen (http/https):', 'https://'));
                     if (!url) return;

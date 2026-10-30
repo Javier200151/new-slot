@@ -6257,3 +6257,7 @@ a.event-comment__author:hover {
         width: 100%;
     }
 }
+
+/* Novedades desde la última visita, solo en eventos activos. */
+.events-calendar__new-activity{flex:none;margin-left:auto;color:#fbbf24;font-size:15px;font-weight:900;line-height:1;text-shadow:0 0 10px rgba(245,158,11,.3)}
+.event-card__new-activity{flex:none;border-radius:6px;background:rgba(245,158,11,.12);padding:4px 7px;color:#fbbf24;font-size:.65rem;font-weight:800;white-space:nowrap}

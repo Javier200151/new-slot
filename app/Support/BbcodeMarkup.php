@@ -49,6 +49,38 @@ class BbcodeMarkup
         );
 
         $html = preg_replace_callback(
+            '~\[pdf\](.*?)\[/pdf\]~is',
+            static function (array $match) use ($stash): string {
+                $url = self::decoded($match[1]);
+                if (! self::isSafeHttpUrl($url)) {
+                    return $match[0];
+                }
+
+                $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+                $path = (string) parse_url($url, PHP_URL_PATH);
+                $embedUrl = $url;
+                $sandbox = 'allow-scripts allow-downloads';
+
+                // Google Drive public PDF shares need their preview URL, not /view.
+                if ($host === 'drive.google.com' && preg_match('~^/file/d/([a-zA-Z0-9_-]+)/(?:view|preview)?/?$~', $path, $drive)) {
+                    $embedUrl = 'https://drive.google.com/file/d/' . $drive[1] . '/preview';
+                    $sandbox = 'allow-scripts allow-same-origin allow-downloads';
+                } elseif (! preg_match('~\.pdf$~i', $path)) {
+                    // Reject arbitrary external HTML pages inside iframes.
+                    return $match[0];
+                }
+
+                return $stash(
+                    '<div class="bbcode-rich__pdf">'
+                    . '<iframe src="' . e($embedUrl) . '" title="Documento PDF" loading="lazy" referrerpolicy="no-referrer" sandbox="' . $sandbox . '"></iframe>'
+                    . '<a href="' . e($url) . '" target="_blank" rel="noopener noreferrer">Abrir PDF en otra pestaña</a>'
+                    . '</div>'
+                );
+            },
+            $html,
+        );
+
+        $html = preg_replace_callback(
             '~\[img\](.*?)\[/img\]~is',
             static function (array $match) use ($stash): string {
                 $url = self::decoded($match[1]);

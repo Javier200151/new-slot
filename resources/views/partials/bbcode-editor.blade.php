@@ -42,6 +42,7 @@
         <span class="forum-editor__sep"></span>
         <button type="button" title="Enlace" data-forum-action="link">🔗</button>
         <button type="button" title="Imagen o GIF por URL" data-forum-action="image">🖼</button>
+        <button type="button" title="Insertar PDF" data-forum-action="pdf">PDF</button>
         <button type="button" title="Separador" data-forum-action="hr">―</button>
 
         <div class="forum-editor__colors" title="Color de texto">

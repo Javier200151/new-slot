@@ -38,6 +38,7 @@ use App\Support\OrbatAssignmentAccess;
 use App\Support\BriefingMarkup;
 use App\Support\BriefingSectionImages;
 use App\Support\RadioNetworkOrder;
+use App\Support\EventUnreadActivity;
 
 class PublicEventController extends Controller
 {
@@ -148,7 +149,14 @@ class PublicEventController extends Controller
             12 => 'Diciembre',
         ];
 
+        $unreadEventActivity = $request->user()
+            ? EventUnreadActivity::forEvents(
+                $calendarEvents->concat($listedEvents), (int) $request->user()->id,
+            )
+            : [];
+
         return view('events.index', [
+            'unreadEventActivity' => $unreadEventActivity,
             'calendarDays' => $calendarDays,
             'listedEvents' => $listedEvents,
             'activityTypes' => $activityTypes,
@@ -684,6 +692,16 @@ class PublicEventController extends Controller
             ->latest('id')
             ->get();
 
+        if ($eventStatusName === 'ACTIVO' && auth()->check()) {
+            DB::table('event_view_receipts')->updateOrInsert(
+                ['user_id' => auth()->id(), 'event_id' => $event->id],
+                ['last_viewed_at' => now(),
+                    'visible_slot_count' => $event->getOrbatSlotsCount(),
+                    'occupied_slot_count' => $event->slots->filter(fn ($slot): bool => $slot->user_id !== null || $slot->ally_id !== null)->count(),
+                ],
+            );
+        }
+
         return view('events.show', compact(
             'addons',
             'canManageOrbat',
@@ -1167,7 +1185,9 @@ class PublicEventController extends Controller
 
         $user = $request->user();
         $validated = $request->validate([
-            'reason' => ['nullable', 'string', 'max:1000'],
+            'reason' => ['required', 'string', 'max:1000', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (trim((string) $value) === '') $fail('Debes indicar un motivo para desapuntarte.');
+            }],
         ]);
         $reason = trim((string) ($validated['reason'] ?? ''));
 

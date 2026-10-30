@@ -149,6 +149,9 @@
                 @endif
             </h3>
 
+            @if($unreadEventActivity[$event->id] ?? false)
+                <span class="event-card__new-activity" title="Nuevos comentarios o inscripciones desde tu última visita" aria-label="Novedades desde tu última visita">✱ Novedades</span>
+            @endif
             <time datetime="{{ $event->date->toIso8601String() }}">
                 {{ $formattedEventDate }}
             </time>
