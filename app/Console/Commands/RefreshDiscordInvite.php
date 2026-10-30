@@ -18,16 +18,8 @@ class RefreshDiscordInvite extends Command
     {
         $homepage = HomepageSetting::current();
 
-        if (! $this->option('force') && ! $homepage->discord_invite_auto_refresh) {
-            $this->info('Renovación automática de Discord desactivada.');
-
-            return self::SUCCESS;
-        }
-
-        if (! $this->option('force')
-            && $homepage->discord_invite_expires_at
-            && $homepage->discord_invite_expires_at->gt(now()->addDay())) {
-            $this->info('La invitación de Discord todavía no necesita renovación.');
+        if (! $this->option('force') && ! $discord->publicInviteNeedsRefresh($homepage)) {
+            $this->info('La invitación de Discord no necesita actualización.');
 
             return self::SUCCESS;
         }

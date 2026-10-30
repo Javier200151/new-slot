@@ -456,49 +456,150 @@ class DiscordService
         ];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Las invitaciones normales de Discord se generan desde un canal, pero incorporan
+     * al usuario a TODO el servidor. Si el servidor dispone de enlace propio,
+     * preferimos ese enlace, que no está ligado a un canal.
+     */
     public function refreshPublicInvite(MemberProcedureSetting $setting, HomepageSetting $homepage): array
     {
         $this->assertBaseConfigured($setting);
 
-        $channelId = trim((string) $setting->discord_invite_channel_id);
-        if (! preg_match('/^\d{17,20}$/', $channelId)) {
-            throw new RuntimeException('Configura un Canal ID numérico válido para la invitación pública de Discord.');
+        $guildId = $this->validateSnowflake($setting->discord_guild_id, 'Servidor de Discord');
+        $guild = $this->expectJson(
+            $this->client()->get('/guilds/' . rawurlencode($guildId)),
+            'No se pudo consultar el servidor de Discord',
+        );
+        if ((string) ($guild['id'] ?? '') !== $guildId) {
+            throw new RuntimeException('El bot no está consultando el servidor de Discord configurado.');
         }
 
-        $response = $this->client('Renovación de la invitación pública de Squad ALPHA')
-            ->post('/channels/' . rawurlencode($channelId) . '/invites', [
-                'max_age' => 604800,
-                'max_uses' => 0,
-                'temporary' => false,
-                'unique' => true,
-            ]);
+        $vanityCode = trim((string) ($guild['vanity_url_code'] ?? ''));
+        $now = now();
+        if ($vanityCode !== '') {
+            // Enlace permanente propio del servidor, cuando Discord lo ofrece.
+            $url = 'https://discord.gg/' . $vanityCode;
+            $homepage->forceFill([
+                'discord_invite_url' => $url,
+                'discord_invite_auto_refresh' => true,
+                'discord_invite_refreshed_at' => $now,
+                'discord_invite_expires_at' => null,
+            ])->save();
 
-        $invite = $this->expectJson($response, 'Discord rechazó la creación de la invitación pública');
-        $code = trim((string) ($invite['code'] ?? ''));
-        if ($code === '') {
-            throw new RuntimeException('Discord creó la invitación pero no devolvió su código.');
+            return ['url' => $url, 'expires_at' => null, 'type' => 'vanity'];
         }
 
-        $url = 'https://discord.gg/' . $code;
-        $refreshedAt = now();
-        $expiresAt = filled($invite['expires_at'] ?? null)
-            ? \Illuminate\Support\Carbon::parse((string) $invite['expires_at'])
-            : $refreshedAt->copy()->addDays(7);
+        $candidates = [];
+        // Prioridad a la puerta de entrada del servidor y después al canal
+        // opcional configurado por el administrador.
+        foreach ([$guild['system_channel_id'] ?? null, $setting->discord_invite_channel_id] as $channelId) {
+            if (preg_match('/^\d{17,20}$/', trim((string) $channelId))) {
+                $candidates[] = (string) $channelId;
+            }
+        }
 
-        $homepage->forceFill([
-            'discord_invite_url' => $url,
-            'discord_invite_refreshed_at' => $refreshedAt,
-            'discord_invite_expires_at' => $expiresAt,
-        ])->save();
+        $channelsResponse = $this->client()->get('/guilds/' . rawurlencode($guildId) . '/channels');
+        if ($channelsResponse->successful() && is_array($channelsResponse->json())) {
+            $channels = array_values(array_filter($channelsResponse->json(), static fn (mixed $channel): bool => is_array($channel)));
+            usort($channels, static fn (array $a, array $b): int =>
+                ((int) ($a['position'] ?? 0)) <=> ((int) ($b['position'] ?? 0))
+            );
 
-        return [
-            'url' => $url,
-            'code' => $code,
-            'refreshed_at' => $refreshedAt,
-            'expires_at' => $expiresAt,
-            'http_status' => $response->status(),
-        ];
+            foreach ($channels as $channel) {
+                // Canales de texto y anuncios: no generar enlaces que lleven a voz.
+                if (in_array((int) ($channel['type'] ?? -1), [0, 5], true)) {
+                    $candidates[] = (string) ($channel['id'] ?? '');
+                }
+            }
+        }
+
+        $lastError = null;
+        foreach (array_unique($candidates) as $channelId) {
+            if (! preg_match('/^\d{17,20}$/', $channelId)) {
+                continue;
+            }
+
+            // No basta un ID existente: debe pertenecer al servidor configurado.
+            $channelResponse = $this->client()->get('/channels/' . rawurlencode($channelId));
+            if (! $channelResponse->successful() || ! is_array($channelResponse->json())) {
+                continue;
+            }
+            $channel = $channelResponse->json();
+            if ((string) ($channel['guild_id'] ?? '') !== $guildId ||
+                ! in_array((int) ($channel['type'] ?? -1), [0, 5], true)) {
+                continue;
+            }
+
+            // Preferimos una invitación sin caducidad. Algunos servidores
+            // restringen su creación: en ese caso usamos 7 días y la renovamos.
+            foreach ([0, 604800] as $maxAge) {
+                $response = $this->client('Invitación al servidor de Discord de Squad ALPHA')
+                    ->post('/channels/' . rawurlencode($channelId) . '/invites', [
+                        'max_age' => $maxAge,
+                        'max_uses' => 0,
+                        'temporary' => false,
+                        'unique' => true,
+                    ]);
+                if ($response->successful() && is_array($response->json())) {
+                    $invite = $response->json();
+                    $code = trim((string) ($invite['code'] ?? ''));
+                    if ($code === '') {
+                        throw new RuntimeException('Discord no devolvió el código de la invitación.');
+                    }
+                    if (filled(data_get($invite, 'guild.id')) &&
+                        (string) data_get($invite, 'guild.id') !== $guildId) {
+                        throw new RuntimeException('La invitación no pertenece al servidor de Discord configurado.');
+                    }
+
+                    $expiresAt = filled($invite['expires_at'] ?? null)
+                        ? \Illuminate\Support\Carbon::parse((string) $invite['expires_at'])
+                        : ($maxAge === 0 ? null : $now->copy()->addSeconds($maxAge));
+                    $url = 'https://discord.gg/' . $code;
+                    $homepage->forceFill([
+                        'discord_invite_url' => $url,
+                        'discord_invite_auto_refresh' => true,
+                        'discord_invite_refreshed_at' => $now,
+                        'discord_invite_expires_at' => $expiresAt,
+                    ])->save();
+
+                    return [
+                        'url' => $url,
+                        'code' => $code,
+                        'refreshed_at' => $now,
+                        'expires_at' => $expiresAt,
+                        'type' => 'guild_invite',
+                    ];
+                }
+
+                $lastError = $this->errorMessage($response, 'Discord rechazó la invitación al servidor');
+                // Solo probamos otra duración cuando la opción permanente no
+                // es aceptada. Para permisos insuficientes pasamos a otro canal.
+                if ($response->status() !== 400) {
+                    break;
+                }
+            }
+        }
+
+        throw new RuntimeException($lastError
+            ?? 'No se pudo crear la invitación. Comprueba que el bot pueda ver un canal de texto y crear invitaciones.');
+    }
+
+    public function publicInviteNeedsRefresh(HomepageSetting $homepage): bool
+    {
+        if (! $homepage->discord_invite_auto_refresh) {
+            return false;
+        }
+
+        if (blank($homepage->discord_invite_url) || ! $homepage->discord_invite_refreshed_at) {
+            return true;
+        }
+
+        // Las invitaciones propias del servidor y las permanentes no caducan.
+        if (! $homepage->discord_invite_expires_at) {
+            return false;
+        }
+
+        return $homepage->discord_invite_expires_at->lte(now()->addDay());
     }
 
     /**

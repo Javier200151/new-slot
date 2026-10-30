@@ -69,13 +69,16 @@ class HomepageSettingForm
                                         ->url()
                                         ->maxLength(255),
                                     TextInput::make('discord_invite_url')
-                                        ->label('Discord · invitación pública')
+                                        ->label('Invitación al servidor de Discord')
+                                        ->placeholder('https://discord.gg/...')
                                         ->url()
                                         ->maxLength(2048)
-                                        ->helperText('Puede editarse manualmente. El botón «Regenerar invitación Discord» sustituye este valor usando el bot.'),
+                                        ->copyable(copyMessage: 'Enlace copiado')
+                                        ->helperText('Puedes copiar el enlace o escribir otro. Al guardar uno manualmente, se desactiva la renovación automática.')
+                                        ->columnSpanFull(),
                                     Toggle::make('discord_invite_auto_refresh')
-                                        ->label('Renovar automáticamente la invitación de Discord')
-                                        ->helperText('El sistema comprueba a diario la invitación y crea una nueva cuando queda menos de 24 h para caducar. Requiere un Canal ID configurado en Procedimientos → Config. procedimientos → Discord.')
+                                        ->label('Mantener la invitación actualizada automáticamente')
+                                        ->helperText('Al activarlo y guardar, el bot crea una invitación si hace falta. Si caduca, se renovará automáticamente cada día.')
                                         ->columnSpanFull(),
                                 ])
                                 ->columns(2),
