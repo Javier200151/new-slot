@@ -72,3 +72,9 @@
 .bbcode-preview-panel__title { margin:0 0 10px; font-size:.78rem; font-weight:850; color:#fbbf24; }
 .bbcode-preview-panel__content { min-height:36px; color:#dce4ef; }
 .bbcode-preview-panel__status { font-size:.74rem; color:#94a3b8; }
+
+/* PDF embebido en foro, comentarios, AAR y briefings. */
+.bbcode-rich__pdf{display:block;width:100%;max-width:920px;margin:14px 0;overflow:hidden;border:1px solid rgba(148,163,184,.24);border-radius:10px;background:#101318}
+.bbcode-rich__pdf iframe{display:block;width:100%;height:min(68vh,700px);min-height:280px;border:0;background:#fff}
+.bbcode-rich__pdf>a{display:block;padding:9px 12px;color:#fbbf24;font-size:.78rem;text-decoration:underline}
+@media(max-width:640px){.bbcode-rich__pdf iframe{height:440px;min-height:250px}}

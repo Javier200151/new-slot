@@ -2529,7 +2529,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /*
 |--------------------------------------------------------------------------
-| DESAPUNTARSE DEL ORBAT CON MOTIVO OPCIONAL
+| DESAPUNTARSE DEL ORBAT CON MOTIVO OBLIGATORIO
 |--------------------------------------------------------------------------
 */
 
@@ -2564,10 +2564,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 slotLabel.textContent = form.dataset.slotName || '';
             }
 
+            textarea?.setCustomValidity('');
             dialog.showModal();
             window.requestAnimationFrame(() => textarea?.focus());
         });
     });
+
+    textarea?.addEventListener('input', () => textarea.setCustomValidity(''));
 
     cancelButtons.forEach((button) => {
         button.addEventListener('click', () => {
@@ -2585,10 +2588,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const reason = textarea?.value?.trim() || '';
+        if (!reason) {
+            textarea?.setCustomValidity('Indica el motivo para desapuntarte.');
+            textarea?.reportValidity();
+            textarea?.focus();
+            return;
+        }
+
         const reasonInput = activeForm.querySelector('[data-event-unregister-reason]');
 
         if (reasonInput) {
-            reasonInput.value = textarea?.value?.trim() || '';
+            reasonInput.value = reason;
         }
 
         confirmButton.disabled = true;

@@ -25,6 +25,7 @@ use App\Policies\RecruitmentReinforcementAreaPolicy;
 use App\Services\AuditLogger;
 use App\Support\AuditContext;
 use Filament\Forms\Components\RichEditor;
+use Filament\Tables\Columns\Column;
 use App\Support\OrbatEditorProfiler;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
@@ -84,6 +85,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Tables keep their current default visibility, but users can hide or
+        // show any rendered column. Individual Filament tables remain independent.
+        Column::configureUsing(fn (Column $column): Column => $column->toggleable());
+
         RichEditor::configureUsing(
             fn (
                 RichEditor $editor

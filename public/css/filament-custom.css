@@ -1336,3 +1336,8 @@
 .member-events-modal__filters select:focus-visible { outline:2px solid #f59e0b; outline-offset:2px; }
 .member-events-modal__list { max-height:min(56vh,630px); overflow-y:auto; }
 @media(max-width:640px) { .member-events-modal__filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; } .member-events-modal__filters label { min-width:0; } .member-events-modal__filters label:last-child { grid-column:1/-1; } .member-events-modal__list { max-height:55vh; } }
+
+/* Vista previa de PDF en contenidos BBCode dentro de Filament. */
+.fi-main .bbcode-rich__pdf{display:block;width:100%;max-width:920px;margin:14px 0;overflow:hidden;border:1px solid rgba(148,163,184,.24);border-radius:10px;background:#101318}
+.fi-main .bbcode-rich__pdf iframe{display:block;width:100%;height:min(68vh,700px);min-height:280px;border:0;background:#fff}
+.fi-main .bbcode-rich__pdf>a{display:block;padding:9px 12px;color:#fbbf24;text-decoration:underline}

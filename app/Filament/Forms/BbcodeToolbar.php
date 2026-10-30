@@ -63,6 +63,15 @@ final class BbcodeToolbar
         if (image) this.replace(source, `[img]${url}[/img]`);
         else this.wrap(source, 'url', url);
     },
+    pdf(source) {
+        const value = window.prompt('URL del documento PDF:', 'https://');
+        if (!value) return;
+        try {
+            const parsed = new URL(value.trim());
+            if (!['http:', 'https:'].includes(parsed.protocol) || !(parsed.pathname.toLowerCase().endsWith('.pdf') || (parsed.hostname === 'drive.google.com' && /^\/file\/d\/[a-zA-Z0-9_-]+\/(view|preview)\/?$/.test(parsed.pathname)))) return;
+            this.replace(source, `[pdf]${parsed.toString()}[/pdf]`);
+        } catch (_) { return; }
+    },
     list(source, numbered = false) {
         const input = this.field(source);
         if (!input) return;
@@ -95,6 +104,7 @@ JS;
             ['1.', 'Lista numerada', 'list($el, true)'],
             ['🔗', 'Enlace', 'url($el)'],
             ['🖼', 'Imagen o GIF', 'url($el, true)'],
+            ['PDF', 'Insertar PDF', 'pdf($el)'],
             ['―', 'Separador', "replace(\$el, '[hr]')"],
         ];
         $html = '<div class="ns-bbcode-toolbar" data-sqa-bbcode-toolbar role="toolbar" aria-label="Formato BBCode" x-data="' . e($alpine) . '">';

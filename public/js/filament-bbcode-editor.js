@@ -100,6 +100,10 @@
             const url = safeUrl(window.prompt('URL de la imagen o GIF (http/https):', 'https://'));
             if (url) insertText(textarea, `[img]${url}[/img]`);
         }));
+        toolbar.append(button('PDF', 'Insertar PDF', () => {
+            const url = safeUrl(window.prompt('URL del documento PDF:', 'https://'));
+            if (url && (new URL(url).pathname.toLowerCase().endsWith('.pdf') || (new URL(url).hostname === 'drive.google.com' && /^\/file\/d\/[a-zA-Z0-9_-]+\/(view|preview)\/?$/.test(new URL(url).pathname)))) insertText(textarea, `[pdf]${url}[/pdf]`);
+        }));
         toolbar.append(button('―', 'Separador', () => insertText(textarea, '\n[hr]\n')));
 
         const colors = document.createElement('span');

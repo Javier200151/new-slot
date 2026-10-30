@@ -134,6 +134,16 @@
                 if (!url) return;
                 replaceSelection(field, `[img]${url.trim()}[/img]`);
             }),
+            makeButton('PDF', 'Insertar PDF', () => {
+                const url = window.prompt('URL del documento PDF:', 'https://');
+                if (!url) return;
+                try {
+                    const parsed = new URL(url.trim());
+                    if (['http:', 'https:'].includes(parsed.protocol) && (parsed.pathname.toLowerCase().endsWith('.pdf') || (parsed.hostname === 'drive.google.com' && /^\/file\/d\/[a-zA-Z0-9_-]+\/(view|preview)\/?$/.test(parsed.pathname)))) {
+                        replaceSelection(field, `[pdf]${parsed.toString()}[/pdf]`);
+                    }
+                } catch (_) { /* URL inválida */ }
+            }),
             makeButton('―', 'Separador', () => replaceSelection(field, '[hr]')),
         );
 

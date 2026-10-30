@@ -282,7 +282,8 @@ class ActivitiesTable
                 SelectFilter::make('editor_id')
                     ->label('Editor')
                     ->multiple()
-                    ->relationship('editor', 'nick'),
+                    ->relationship('editor', 'nick')
+                    ->searchable(),
 
                 //TrashedFilter::make(),
             ])

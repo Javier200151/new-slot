@@ -182,6 +182,9 @@
                                                 <span class="events-calendar__event-name">
                                                     {{ $event->name ?: $event->activity?->name }}
                                                 </span>
+                                                @if($unreadEventActivity[$event->id] ?? false)
+                                                    <span class="events-calendar__new-activity" title="Nuevos comentarios o inscripciones desde tu última visita" aria-label="Novedades desde tu última visita">✱</span>
+                                                @endif
 
                                             @if($isCancelled)
                                                 </div>

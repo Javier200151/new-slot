@@ -25,7 +25,7 @@
 @endpush
 
 @push('scripts')
-    <script src="{{ asset('js/events.js') }}" defer></script>
+    <script src="{{ asset('js/events.js') }}?v={{ filemtime(public_path('js/events.js')) }}" defer></script>
 @endpush
 
 @section('content')
@@ -2185,10 +2185,11 @@
                         id="event-unregister-reason-text"
                         rows="4"
                         maxlength="1000"
-                        placeholder="Puedes indicar por qué te desapuntas."
+                        placeholder="Indica por qué te desapuntas (obligatorio)."
+                        required
                         data-event-unregister-text
                     ></textarea>
-                    <p>Si escribes un motivo, quedará publicado en los comentarios del evento junto al desapunte.</p>
+                    <p>El motivo es obligatorio y se publicará en los comentarios del evento.</p>
 
                     <footer>
                         <button type="button" class="btn btn-outline" data-event-unregister-cancel>Cancelar</button>
