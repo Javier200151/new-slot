@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\HomepageSettings\Schemas;
 
 use App\Filament\Forms\BbcodeTextarea;
+use App\Models\Status;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
@@ -122,9 +124,27 @@ class HomepageSettingForm
                                 ])
                                 ->columns(3),
 
-                            Section::make('Bloque de actualidad')->schema([
+                            Section::make('Tablón de anuncios')->schema([
                                 TextInput::make('news_title')->label('Título')->required()->maxLength(255),
                                 BbcodeTextarea::make('news_intro')->label('Introducción')->rows(3)->columnSpanFull(),
+                                Select::make('news_home_limit')
+                                    ->label('Anuncios en la portada')
+                                    ->options(array_combine(range(1, 6), array_map('strval', range(1, 6))))
+                                    ->default(6)
+                                    ->required()
+                                    ->native(false),
+                                Select::make('news_visible_status_ids')
+                                    ->label('Estados que pueden ver el tablón')
+                                    ->options(fn (): array => Status::query()->orderBy('name')->pluck('name', 'id')->all())
+                                    ->multiple()
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->default(fn (): array => Status::query()
+                                        ->whereIn('name', ['ACTIVO', 'RESERVA', 'RECLUTA'])
+                                        ->pluck('id')->all())
+                                    ->helperText('Solo estos estados podrán consultar los anuncios y su historial.')
+                                    ->columnSpanFull(),
                             ]),
                         ])
                         ->columnSpan(1),

@@ -3,6 +3,9 @@
 namespace App\Filament\Resources\MemberProcedures\Pages;
 
 use App\Filament\Resources\MemberProcedures\MemberProcedureResource;
+use App\Filament\Resources\MemberProcedures\Support\ProcedureForumThreadFields;
+use App\Models\CommunityPost;
+use App\Services\HomepageBulletinService;
 use App\Models\MemberProcedure;
 use App\Services\MemberProcedures\MemberProcedureEngine;
 use Filament\Actions\Action;
@@ -18,6 +21,37 @@ class EditMemberProcedure extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('editForumThread')
+                ->label('Hilo del foro')
+                ->icon('heroicon-o-chat-bubble-left-right')
+                ->color('gray')
+                ->visible(fn (): bool => (bool) auth()->user()?->can('member-procedures.update')
+                    && $this->record->status !== MemberProcedure::STATUS_CANCELLED
+                    && $this->record->type !== MemberProcedure::TYPE_NOT_PROMOTED)
+                ->modalHeading('Hilo del anuncio')
+                ->form(ProcedureForumThreadFields::fields())
+                ->fillForm(function (): array {
+                    $postId = (int) ($this->record->input['forum_post_id'] ?? 0);
+                    $post = $postId ? CommunityPost::query()->find($postId) : null;
+
+                    return [
+                        'forum_category_id' => $post?->forum_category_id,
+                        'forum_post_id' => $post?->id,
+                    ];
+                })
+                ->action(function (array $data, HomepageBulletinService $bulletin): void {
+                    $postId = ProcedureForumThreadFields::validatedPostId($data);
+                    $input = (array) ($this->record->input ?? []);
+                    if ($postId === null) {
+                        unset($input['forum_post_id']);
+                    } else {
+                        $input['forum_post_id'] = $postId;
+                    }
+                    $this->record->update(['input' => $input]);
+                    $bulletin->synchronizeProcedureThread($this->record);
+                    $this->record->refresh();
+                    Notification::make()->success()->title('Hilo del anuncio actualizado')->send();
+                }),
             Action::make('refreshSteps')
                 ->label('Revisar pasos automáticos')
                 ->icon('heroicon-o-arrow-path')

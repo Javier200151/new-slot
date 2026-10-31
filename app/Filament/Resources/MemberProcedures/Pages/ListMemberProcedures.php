@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\MemberProcedures\Pages;
 
 use App\Filament\Resources\MemberProcedures\MemberProcedureResource;
+use App\Filament\Resources\MemberProcedures\Support\ProcedureForumThreadFields;
 use App\Models\MemberProcedure;
 use App\Models\Promo;
 use App\Models\User;
@@ -37,6 +38,7 @@ class ListMemberProcedures extends ListRecords
                 ->modalDescription('Solo aparecen usuarios en estado USUARIO con una solicitud de alistamiento aprobada y vinculada, y sin otro procedimiento abierto.')
                 ->form([
                     $this->userSelect(MemberProcedure::TYPE_RECRUITMENT_START, 'Usuario que inicia el reclutamiento'),
+                    ...ProcedureForumThreadFields::fields(),
                 ])
                 ->action(fn (array $data, MemberProcedureEngine $engine) => $this->startProcedure($engine, MemberProcedure::TYPE_RECRUITMENT_START, $data)),
 
@@ -48,6 +50,7 @@ class ListMemberProcedures extends ListRecords
                 ->modalDescription('Solo aparecen usuarios que actualmente están en RECLUTA y no tienen otro procedimiento abierto.')
                 ->form([
                     $this->userSelect(MemberProcedure::TYPE_RECRUITMENT_COMPLETE, 'Recluta que pasa a ACTIVO'),
+                    ...ProcedureForumThreadFields::fields(),
                     Select::make('promo_id')
                         ->label('Promoción')
                         ->options(fn (): array => Promo::query()->orderBy('id')->pluck('id', 'id')->map(fn ($id): string => 'Promoción ' . $id)->all())
@@ -108,6 +111,7 @@ class ListMemberProcedures extends ListRecords
                 ->modalDescription('Solo aparecen miembros en estado ACTIVO y sin otro procedimiento abierto.')
                 ->form([
                     $this->userSelect(MemberProcedure::TYPE_RESERVE, 'Miembro ACTIVO'),
+                    ...ProcedureForumThreadFields::fields(),
                 ])
                 ->action(fn (array $data, MemberProcedureEngine $engine) => $this->startProcedure($engine, MemberProcedure::TYPE_RESERVE, $data)),
 
@@ -119,6 +123,7 @@ class ListMemberProcedures extends ListRecords
                 ->modalDescription('Solo aparecen miembros en estado RESERVA y sin otro procedimiento abierto.')
                 ->form([
                     $this->userSelect(MemberProcedure::TYPE_REACTIVATION, 'Miembro en RESERVA'),
+                    ...ProcedureForumThreadFields::fields(),
                 ])
                 ->action(fn (array $data, MemberProcedureEngine $engine) => $this->startProcedure($engine, MemberProcedure::TYPE_REACTIVATION, $data)),
 
@@ -130,6 +135,7 @@ class ListMemberProcedures extends ListRecords
                 ->modalDescription('Solo aparecen miembros en estado ACTIVO o RESERVA y sin otro procedimiento abierto.')
                 ->form([
                     $this->userSelect(MemberProcedure::TYPE_DEPARTURE, 'Usuario'),
+                    ...ProcedureForumThreadFields::fields(),
                     Textarea::make('reason')
                         ->label('Motivo / nota administrativa')
                         ->required()
@@ -147,6 +153,7 @@ class ListMemberProcedures extends ListRecords
                 ->modalDescription('Solo aparecen miembros en estado ACTIVO o RESERVA y sin otro procedimiento abierto.')
                 ->form([
                     $this->userSelect(MemberProcedure::TYPE_DISMISSAL, 'Usuario'),
+                    ...ProcedureForumThreadFields::fields(),
                     Textarea::make('reason')
                         ->label('Motivo / nota administrativa')
                         ->required()
@@ -180,6 +187,10 @@ class ListMemberProcedures extends ListRecords
     ): void {
         try {
             $user = User::query()->findOrFail((int) $data['user_id']);
+            $postId = ProcedureForumThreadFields::validatedPostId($data);
+            if ($postId !== null) {
+                $input['forum_post_id'] = $postId;
+            }
             $procedure = $engine->start($user, $type, $input, auth()->id());
 
             Notification::make()

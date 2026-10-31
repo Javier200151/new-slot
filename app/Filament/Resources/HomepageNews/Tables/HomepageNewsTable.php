@@ -16,11 +16,13 @@ class HomepageNewsTable
         return $table
             ->columns([
                 TextColumn::make('title')->label('Título')->searchable()->wrap(),
+                TextColumn::make('category')->label('Categoría')->formatStateUsing(fn ($state) => \App\Models\HomepageNews::CATEGORIES[$state] ?? 'Comunicado'),
+                TextColumn::make('source_type')->label('Origen')->formatStateUsing(fn ($state) => $state === 'automatic' ? 'Automático' : 'Manual'),
                 IconColumn::make('is_published')->label('Publicada')->boolean(),
                 TextColumn::make('published_at')->label('Publicación')->dateTime('d/m/Y H:i')->sortable(),
                 TextColumn::make('sort_order')->label('Orden')->sortable(),
             ])
-            ->defaultSort('sort_order')
+            ->defaultSort('published_at', 'desc')
             ->recordActions([EditAction::make()])
             ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

@@ -44,6 +44,11 @@ class MemberProcedureForm
                                     $parts[] = 'Motivo: ' . $value;
                                 } elseif ($key === 'ban_required') {
                                     $parts[] = 'Bloqueo/ban indicado: ' . ($value ? 'Sí' : 'No');
+                                } elseif ($key === 'forum_post_id') {
+                                    $thread = \App\Models\CommunityPost::query()->whereKey((int) $value)->value('title');
+                                    if ($thread) {
+                                        $parts[] = 'Hilo del foro: ' . $thread;
+                                    }
                                 }
                             }
 

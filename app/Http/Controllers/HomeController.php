@@ -12,6 +12,21 @@ use Illuminate\View\View;
 
 class HomeController extends Controller
 {
+    public function announcements(): View
+    {
+        $settings = HomepageSetting::current();
+        abort_unless($settings->canViewNews(auth()->user()), 403);
+        $news = HomepageNews::query()
+            ->where('is_published', true)
+            ->where(fn ($q) => $q->whereNull('published_at')->orWhere('published_at', '<=', now()))
+            ->orderByRaw('COALESCE(published_at, created_at) DESC')
+            ->orderBy('sort_order')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('news.index', compact('news', 'settings'));
+    }
+
     public function index(
         HomepageVodService $vodService,
         HomepageInstagramService $instagramService,
@@ -20,6 +35,7 @@ class HomeController extends Controller
     ): View
     {
         $settings = HomepageSetting::current();
+        $canViewNews = $settings->canViewNews(auth()->user());
 
         $news = HomepageNews::query()
             ->where('is_published', true)
@@ -27,10 +43,11 @@ class HomeController extends Controller
                 $query->whereNull('published_at')
                     ->orWhere('published_at', '<=', now());
             })
+            ->orderByRaw('COALESCE(published_at, created_at) DESC')
             ->orderBy('sort_order')
-            ->orderByDesc('published_at')
             ->orderByDesc('id')
-            ->limit(6)
+            ->limit($settings->newsHomeLimit())
+            ->when(! $canViewNews, fn ($query) => $query->whereRaw('1 = 0'))
             ->get();
 
         $vods = $vodService->latest(6);
@@ -43,6 +60,7 @@ class HomeController extends Controller
 
         return view('home', compact(
             'settings',
+            'canViewNews',
             'news',
             'vods',
             'instagramPosts',
