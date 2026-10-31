@@ -3395,3 +3395,37 @@ input:focus-visible {
         padding-top: 4px;
     }
 }
+
+/* Tablón de anuncios: conserva la identidad visual de Actualidad. */
+.home-news-hero-notice{display:inline-flex;align-items:center;gap:10px;margin:22px 0 0;padding:11px 16px;border:1px solid rgba(245,158,11,.5);border-radius:9px;background:rgba(245,158,11,.1);color:#ffb743;font-weight:700;font-size:.85rem;text-decoration:none}
+.home-news-hero-notice[hidden],.home-news-new[hidden],.home-news-section-indicator[hidden]{display:none!important}
+.home-news-hero-notice:hover{background:rgba(245,158,11,.2);color:#fff}
+.home-news-hero-notice__dot{width:8px;height:8px;flex:none;border-radius:50%;background:#f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,.16)}
+.home-news-section-indicator{display:inline-block;margin-top:16px;padding:6px 11px;border-radius:7px;border:1px solid rgba(245,158,11,.34);color:#ffb743;font-size:.77rem;font-weight:700}
+.home-news-new{padding:3px 7px;border:1px solid rgba(245,158,11,.45);border-radius:5px;background:rgba(245,158,11,.13);color:#ffb743!important;font-size:.65rem}
+.home-news-card__meta{flex-wrap:wrap;justify-content:flex-start}
+.home-news-card__meta time{margin-left:auto}
+.home-news-card{min-width:0}
+.home-news-more{display:flex;justify-content:flex-end;margin-top:23px}
+.home-news-archive{padding-top:85px;padding-bottom:95px}
+.home-news-archive .home-section-heading__copy h1{font-size:clamp(2.25rem,4vw,4.8rem);letter-spacing:-.055em;line-height:1.05;margin:0}
+.home-news-archive .home-news-card{min-height:195px}
+.home-news-pagination{margin-top:30px;color:#e5e7eb}
+@media(max-width:680px){.home-news-archive{padding-top:50px;padding-bottom:65px}.home-news-hero-notice{max-width:100%;font-size:.76rem}}
+
+/* Tablón: reconocimiento de veteranías, agrupadas por nivel. */
+.home-veterancy-groups{display:grid;gap:11px;margin-top:20px}
+.home-veterancy-group{--medal:#d3a06c;--medal-bg:rgba(205,132,64,.095);padding:15px 17px;border:1px solid color-mix(in srgb,var(--medal) 42%,transparent);border-left:4px solid var(--medal);border-radius:9px;background:var(--medal-bg);min-width:0}
+.home-veterancy-group--gold{--medal:#f3c351;--medal-bg:linear-gradient(112deg,rgba(185,125,9,.22),rgba(243,195,81,.045))}
+.home-veterancy-group--silver{--medal:#c9d2df;--medal-bg:linear-gradient(112deg,rgba(129,147,171,.20),rgba(201,210,223,.035))}
+.home-veterancy-group--bronze{--medal:#d49a6a;--medal-bg:linear-gradient(112deg,rgba(154,83,38,.23),rgba(212,154,106,.035))}
+.home-veterancy-group__heading{display:flex;align-items:center;gap:9px;color:var(--medal);font-size:.84rem;letter-spacing:.035em}
+.home-veterancy-group__medal{display:grid;place-items:center;width:29px;height:29px;flex:none;border-radius:50%;color:#121212;background:var(--medal);font-size:16px;box-shadow:0 0 0 3px color-mix(in srgb,var(--medal) 17%,transparent)}
+.home-veterancy-group__count{margin-left:auto;padding:2px 9px;border-radius:99px;border:1px solid color-mix(in srgb,var(--medal) 32%,transparent);color:var(--medal);font-size:.73rem}
+.home-veterancy-group__members{display:flex;flex-wrap:wrap;gap:6px 8px;margin:11px 0 0;padding:0;list-style:none}
+.home-veterancy-group__members li{padding:5px 10px;border-radius:6px;background:rgba(0,0,0,.23);color:#f1f3f6;font-size:.83rem;overflow-wrap:anywhere}
+@media(max-width:680px){.home-veterancy-group{padding:12px 13px}.home-veterancy-group__members li{font-size:.77rem}}
+
+/* Tablón: las veteranías ocupan una fila propia y no estiran otros anuncios. */
+.home-news-grid > .home-news-card--veterancy{grid-column:1 / -1}
+.home-news-card--veterancy .home-veterancy-groups{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));align-items:start}

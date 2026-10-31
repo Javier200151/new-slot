@@ -28,6 +28,9 @@ class UserRecruitmentObserver
         // Fecha inicial documentada (no altera las transiciones ni la veteranía).
         app(FirstRecruitmentHistoryService::class)->syncUser($user);
         app(FirstMembershipHistoryService::class)->syncUser($user);
+        if (mb_strtoupper(trim((string) Status::withTrashed()->whereKey($user->status_id)->value('name'))) === 'RECLUTA') {
+            app(\App\Services\HomepageBulletinService::class)->initialRecruit($user);
+        }
     }
 
     public function updated(User $user): void

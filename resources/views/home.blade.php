@@ -113,6 +113,13 @@
                     @endguest
                 </div>
 
+                @if($news->isNotEmpty())
+                    <a href="#actualidad" class="home-news-hero-notice" data-sqa-news-hero hidden>
+                        <span class="home-news-hero-notice__dot" aria-hidden="true"></span>
+                        Nuevos anuncios de Squad ALPHA <span aria-hidden="true">↗</span>
+                    </a>
+                @endif
+
                 <a href="#actualidad" class="scroll-indicator">
                     <span>Conoce Squad ALPHA</span>
                     <span class="scroll-indicator__line"></span>
@@ -122,8 +129,9 @@
         </section>
 
         {{-- ACTUALIDAD / NEWSLETTER --}}
-        <section id="actualidad" class="home-news-section">
+        <section id="actualidad" class="home-news-section" data-sqa-news-section data-sqa-account="{{ auth()->id() ?? 'guest' }}" data-sqa-latest="{{ $news->max(fn ($item) => ($item->published_at ?? $item->created_at)?->timestamp ?? 0) ?? 0 }}">
             <div class="container">
+                @if($canViewNews)
                 <header class="home-section-heading">
                     <div>
                         <span class="section-index">01</span>
@@ -132,6 +140,9 @@
 
                     <div class="home-section-heading__copy">
                         <h2>{{ $settings->news_title }}</h2>
+                        @if($news->isNotEmpty())
+                            <span class="home-news-section-indicator" data-sqa-section-new hidden>Hay anuncios nuevos</span>
+                        @endif
                         @if($settings->news_intro)
                             <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($settings->news_intro) !!}</div>
                         @endif
@@ -140,51 +151,15 @@
                 </header>
 
                 @if($news->isNotEmpty())
-                    <div class="home-news-grid">
-                        @foreach($news as $item)
-                            <article class="home-news-card {{ $loop->first ? 'home-news-card--featured' : '' }}">
-                                @if($item->image)
-                                    <div class="home-news-card__media">
-                                        <img src="{{ asset('storage/' . $item->image) }}" alt="{{ $item->title }}">
-                                    </div>
-                                @endif
-
-                                <div class="home-news-card__body">
-                                    <div class="home-news-card__meta">
-                                        <span>{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
-                                        @if($item->published_at)
-                                            <time datetime="{{ $item->published_at->toDateString() }}">
-                                                {{ $item->published_at->format('d · m · Y') }}
-                                            </time>
-                                        @endif
-                                    </div>
-
-                                    <h3>{{ $item->title }}</h3>
-
-                                    @if($item->excerpt)
-                                        <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($item->excerpt) !!}</div>
-                                    @endif
-
-                                    @if($item->body)
-                                        <div class="home-news-card__content">
-                                            {!! \App\Support\BbcodeMarkup::render($item->body) !!}
-                                        </div>
-                                    @endif
-
-                                    @if($item->external_url)
-                                        <a href="{{ $item->external_url }}" target="_blank" rel="noopener noreferrer" class="home-text-link">
-                                            Ver publicación <span aria-hidden="true">↗</span>
-                                        </a>
-                                    @endif
-                                </div>
-                            </article>
-                        @endforeach
-                    </div>
+                    @include('news.partials.cards', ['news' => $news])
+                    <div class="home-news-more"><a href="{{ route('news.index') }}" class="home-text-link">Ver historial completo <span aria-hidden="true">→</span></a></div>
                 @else
                     <div class="home-empty-state">
                         <span>ALPHA / NEWS</span>
                         <p>La próxima novedad de la comunidad aparecerá aquí.</p>
                     </div>
+                @endif
+
                 @endif
 
                 <div class="instagram-feed">
@@ -682,6 +657,7 @@
         defer
     ></script>
     <script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
+    <script src="{{ asset('js/home-bulletin.js') }}?v={{ filemtime(public_path('js/home-bulletin.js')) }}" defer></script>
 
 </body>
 </html>

@@ -42,6 +42,7 @@ use App\Http\Controllers\BbcodePreviewController;
 */
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/actualidad', [HomeController::class, 'announcements'])->name('news.index');
 
 
 Route::get('/media/briefings/{filename}', [BriefingImageController::class, 'show'])

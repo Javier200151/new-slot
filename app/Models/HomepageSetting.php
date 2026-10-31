@@ -23,6 +23,8 @@ class HomepageSetting extends Model
         'google_photos_url',
         'news_title',
         'news_intro',
+        'news_home_limit',
+        'news_visible_status_ids',
         'streams_title',
         'streams_intro',
     ];
@@ -34,7 +36,26 @@ class HomepageSetting extends Model
             'discord_invite_auto_refresh' => 'boolean',
             'discord_invite_refreshed_at' => 'datetime',
             'discord_invite_expires_at' => 'datetime',
+            'news_home_limit' => 'integer',
+            'news_visible_status_ids' => 'array',
         ];
+    }
+
+    /** Solo los estados seleccionados pueden consultar el tablón y su historial. */
+    public function canViewNews(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $statuses = array_map('intval', (array) ($this->news_visible_status_ids ?? []));
+
+        return in_array((int) $user->status_id, $statuses, true);
+    }
+
+    public function newsHomeLimit(): int
+    {
+        return max(1, min(6, (int) ($this->news_home_limit ?? 6)));
     }
 
     public static function current(): self
@@ -43,6 +64,10 @@ class HomepageSetting extends Model
             'recruitment_open' => false,
             'contact_email' => config('mail.from.address'),
             'news_title' => 'Actualidad de Squad ALPHA',
+            'news_home_limit' => 6,
+            'news_visible_status_ids' => Schema::hasTable('status')
+                ? Status::query()->whereIn('name', ['ACTIVO', 'RESERVA', 'RECLUTA'])->pluck('id')->all()
+                : [],
             'streams_title' => 'Últimos VODs de la comunidad',
         ];
 

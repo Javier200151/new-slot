@@ -21,6 +21,13 @@ class UserStatusHistory extends Model
         'note',
     ];
 
+    protected static function booted(): void
+    {
+        static::created(function (self $history): void {
+            app(\App\Services\HomepageBulletinService::class)->statusChanged($history);
+        });
+    }
+
     protected function casts(): array
     {
         return [

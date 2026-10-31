@@ -21,9 +21,9 @@ class HomepageNewsResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = 'Sistema';
     protected static ?int $navigationSort = 1;
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedNewspaper;
-    protected static ?string $navigationLabel = 'Noticias de portada';
-    protected static ?string $modelLabel = 'Noticia de portada';
-    protected static ?string $pluralModelLabel = 'Noticias de portada';
+    protected static ?string $navigationLabel = 'Tablón de anuncios';
+    protected static ?string $modelLabel = 'Anuncio';
+    protected static ?string $pluralModelLabel = 'Anuncios';
     protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Schema $schema): Schema { return HomepageNewsForm::configure($schema); }

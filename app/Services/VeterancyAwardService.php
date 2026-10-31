@@ -152,6 +152,14 @@ class VeterancyAwardService
             ];
         });
 
+        if (($result['awarded'] ?? 0) > 0 && ! empty($result['post_id'])) {
+            try {
+                app(HomepageBulletinService::class)->veteranciesAwarded((int) $result['post_id']);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
+
         if (($result['awarded'] ?? 0) > 0 && ! empty($result['post_id']) && $this->telegramNotifications->isConfigured()) {
             try {
                 $post = CommunityPost::query()->with('forumCategory')->findOrFail((int) $result['post_id']);

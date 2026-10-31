@@ -66,12 +66,19 @@ class SqaGroupUser extends Model
         });
 
         static::created(function (self $sqaGroupUser): void {
+            app(\App\Services\HomepageBulletinService::class)->groupJoined($sqaGroupUser);
+            if ($sqaGroupUser->coordinator) {
+                app(\App\Services\HomepageBulletinService::class)->groupCoordinatorAssigned($sqaGroupUser);
+            }
             app(SqaGroupDiscordSyncService::class)->membershipAdded($sqaGroupUser);
             app(SqaGroupLocalRoleSyncService::class)->membershipAdded($sqaGroupUser);
         });
 
         static::updated(function (self $sqaGroupUser): void {
             if ($sqaGroupUser->wasChanged('coordinator')) {
+                if ($sqaGroupUser->coordinator) {
+                    app(\App\Services\HomepageBulletinService::class)->groupCoordinatorAssigned($sqaGroupUser);
+                }
                 app(SqaGroupLocalRoleSyncService::class)->syncGroupNow($sqaGroupUser->sqaGroup);
             }
             if ($sqaGroupUser->wasChanged(['user_id', 'sqa_group_id'])) {
@@ -81,11 +88,16 @@ class SqaGroupUser extends Model
         });
 
         static::deleted(function (self $sqaGroupUser): void {
+            app(\App\Services\HomepageBulletinService::class)->groupLeft($sqaGroupUser);
             app(SqaGroupDiscordSyncService::class)->membershipRemoved($sqaGroupUser);
             app(SqaGroupLocalRoleSyncService::class)->membershipRemoved($sqaGroupUser);
         });
 
         static::restored(function (self $sqaGroupUser): void {
+            app(\App\Services\HomepageBulletinService::class)->groupJoined($sqaGroupUser, true);
+            if ($sqaGroupUser->coordinator) {
+                app(\App\Services\HomepageBulletinService::class)->groupCoordinatorAssigned($sqaGroupUser);
+            }
             app(SqaGroupDiscordSyncService::class)->membershipAdded($sqaGroupUser);
             app(SqaGroupLocalRoleSyncService::class)->membershipAdded($sqaGroupUser);
         });
