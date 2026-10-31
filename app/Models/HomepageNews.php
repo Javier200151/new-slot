@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class HomepageNews extends Model
 {
     use Auditable;
+    use SoftDeletes;
 
     protected $table = 'homepage_news';
 

@@ -305,7 +305,7 @@ class HomepageBulletinService
             if ($veterancyGroups !== null && Schema::hasColumn('homepage_news', 'veterancy_groups')) {
                 $attributes['veterancy_groups'] = $veterancyGroups;
             }
-            HomepageNews::firstOrCreate(['source_key' => $key], $attributes);
+            HomepageNews::withTrashed()->firstOrCreate(['source_key' => $key], $attributes);
         } catch (\Throwable $exception) {
             report($exception); // Un error del tablón nunca debe impedir la gestión del miembro.
         }
