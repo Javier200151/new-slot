@@ -5,16 +5,95 @@
   let clips;
   try { clips = JSON.parse(dataNode.textContent); } catch { return; }
   if (!Array.isArray(clips)) return;
+  // El visor no debe quedar atrapado en el contexto de apilamiento de <main>.
+  // Así se superpone al footer, la cabecera y cualquier otro elemento flotante.
+  if (modal.parentElement !== document.body) {
+    document.body.appendChild(modal);
+  }
   const frame = modal.querySelector('[data-clip-frame]');
+  const stage = modal.querySelector('[data-clip-stage]');
+  const preview = modal.querySelector('[data-clip-preview]');
+  const previewImage = modal.querySelector('[data-clip-preview-image]');
+  const previewTitle = modal.querySelector('[data-clip-preview-title]');
   const title = modal.querySelector('[data-clip-title]');
   const member = modal.querySelector('[data-clip-member]');
   const link = modal.querySelector('[data-clip-original]');
   const context = modal.querySelector('[data-clip-context]');
   const help = modal.querySelector('[data-clip-tutorial]');
   const voteForm = modal.querySelector('[data-clip-vote-form]');
-  const voteDataNode = document.getElementById('sqa-clip-vote-data');
-  let voteUrls = {};
-  try { if (voteDataNode) voteUrls = JSON.parse(voteDataNode.textContent); } catch {}
+  const voteButton = modal.querySelector('[data-clip-vote-open]');
+  const voteLabel = modal.querySelector('[data-clip-vote-label]');
+  const voteClose = modal.querySelector('[data-clip-vote-close]');
+  const voteHeading = modal.querySelector('[data-clip-vote-heading]');
+  const voteInfo = modal.querySelector('[data-clip-vote-info]');
+  const voteList = modal.querySelector('[data-clip-skull-list]');
+  const voteSubmit = modal.querySelector('[data-clip-vote-submit]');
+  const voteSaved = modal.querySelector('[data-clip-vote-saved]');
+  const voteRadios = [...modal.querySelectorAll('[data-clip-vote-form] input[name="skulls"]')];
+  const closeVote = () => {
+    if (!voteForm) return;
+    voteForm.hidden = true;
+    voteButton?.setAttribute('aria-expanded', 'false');
+  };
+  const renderSkulls = () => {
+    const selected = Number(voteRadios.find(radio => radio.checked)?.value || 0);
+    voteRadios.forEach(radio => {
+      radio.parentElement.classList.toggle('is-active', Number(radio.value) <= selected);
+    });
+  };
+  const showVote = () => {
+    const candidate = clips[index]?.candidate;
+    if (!candidate || !voteForm) return;
+    if (!voteForm.hidden) { closeVote(); return; }
+    hideComments();
+    voteForm.hidden = false;
+    voteButton.setAttribute('aria-expanded', 'true');
+    voteHeading.textContent = `Clip del año ${candidate.year}`;
+    voteList.hidden = !candidate.can_vote;
+    voteSubmit.hidden = !candidate.can_vote;
+    voteSaved.hidden = true;
+    if (candidate.phase === 'nominations') {
+      voteInfo.textContent = `Las votaciones comienzan el ${candidate.vote_starts}. Durante esa fase podrás valorar este clip de 1 a 5 calaveras.`;
+    } else if (candidate.phase !== 'voting') {
+      voteInfo.textContent = 'La votación de esta edición ya ha finalizado.';
+    } else if (!canInteract) {
+      voteInfo.textContent = 'Inicia sesión para participar en la votación.';
+    } else if (candidate.own) {
+      voteInfo.textContent = 'No puedes votar tu propio candidato.';
+    } else if (!candidate.eligible) {
+      voteInfo.textContent = 'Tu estado no está habilitado para votar en esta edición.';
+    } else {
+      voteInfo.textContent = candidate.previous_vote
+        ? `Tu valoración actual es ${candidate.previous_vote} de 5 calaveras. Puedes cambiarla hasta el cierre.`
+        : 'Elige de 1 a 5 calaveras. Cinco es la máxima valoración.';
+    }
+    const selected = voteRadios.find(radio => radio.checked);
+    (selected || voteClose)?.focus();
+  };
+  voteButton?.addEventListener('click', showVote);
+  voteClose?.addEventListener('click', closeVote);
+  voteRadios.forEach(radio => radio.addEventListener('change', renderSkulls));
+  voteForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const clip = clips[index];
+    if (!clip.candidate?.can_vote) return;
+    const value = Number(voteRadios.find(radio => radio.checked)?.value);
+    if (value < 1 || value > 5) return;
+    voteSubmit.disabled = true;
+    try {
+      const result = await request(clip.candidate.vote_url, 'POST', {skulls: value});
+      clip.candidate.previous_vote = Number(result.skulls);
+      if (clip === clips[index]) {
+        voteLabel.textContent = `${result.skulls}/5`;
+        voteSaved.hidden = false;
+        voteSaved.textContent = 'Valoración guardada. Puedes cambiarla hasta el cierre.';
+        voteInfo.textContent = `Has dado ${result.skulls} de 5 calaveras a este clip.`;
+        announce('Valoración guardada.');
+        closeVote();
+      }
+    } catch (error) { announce(error.message); }
+    finally { voteSubmit.disabled = false; }
+  });
   // Reacciones y comentarios del propio clip (la reproducción sigue alojada fuera).
   const likeButton = modal.querySelector('[data-clip-like]');
   const likesNumber = modal.querySelector('[data-clip-likes]');
@@ -90,6 +169,7 @@
   const hideComments = () => { commentPanel.hidden = true; };
   commentPanel.querySelector('[data-clip-comments-close]').addEventListener('click', hideComments);
   commentsButton.addEventListener('click', () => {
+    closeVote();
     commentPanel.hidden = !commentPanel.hidden;
     if (!commentPanel.hidden) {
       commentList.textContent = 'Cargando comentarios…';
@@ -148,22 +228,58 @@
   let touchStart = null;
   let lastActive = null;
   let lastWheel = 0;
+  let sliding = false;
+  let slideTimer = null;
+  const mobile = () => window.matchMedia('(max-width:767px)').matches;
+  const reducedMotion = () => window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const resetSlide = () => { clearTimeout(slideTimer); sliding = false; touchStart = null; stage.style.transition = ''; stage.style.transform = ''; stage.style.opacity = ''; };
+  const paintPreview = offset => {
+    if (!preview || clips.length < 2) return;
+    const target = clips[(index + offset + clips.length) % clips.length];
+    previewTitle.textContent = target.title || 'Siguiente clip';
+    if (target.thumbnail) { previewImage.src = target.thumbnail; previewImage.hidden = false; }
+    else { previewImage.removeAttribute('src'); previewImage.hidden = true; }
+  };
+  const slideTo = offset => {
+    if (sliding || clips.length < 2) return;
+    if (!mobile() || reducedMotion()) { move(offset); return; }
+    sliding = true; touchStart = null; paintPreview(offset);
+    const amount = Math.max(stage.clientHeight, window.innerHeight);
+    stage.style.transition = 'transform 175ms cubic-bezier(.22,.7,.26,1)';
+    stage.style.transform = `translate3d(0, ${offset > 0 ? amount : -amount}px, 0)`;
+    slideTimer = setTimeout(() => {
+      index = (index + offset + clips.length) % clips.length;
+      paint();
+      stage.style.transition = 'none';
+      stage.style.transform = `translate3d(0, ${offset > 0 ? -amount : amount}px, 0)`;
+      void stage.offsetHeight;
+      stage.style.transition = 'transform 225ms cubic-bezier(.2,.75,.2,1)';
+      stage.style.transform = 'translate3d(0,0,0)';
+      slideTimer = setTimeout(resetSlide, 240);
+    }, 185);
+  };
   const paint = () => {
     const clip = clips[index];
     hideComments();
     likesNumber.textContent = clip.likes || 0;
     commentsNumber.textContent = clip.comments || 0;
     likeButton.setAttribute('aria-pressed', String(Boolean(clip.liked)));
+    const candidate = clip.candidate;
+    likeButton.hidden = Boolean(candidate);
+    voteButton.hidden = !candidate;
+    closeVote();
+    if (candidate) {
+      voteLabel.textContent = candidate.previous_vote && candidate.phase === 'voting'
+        ? `${candidate.previous_vote}/5` : (candidate.phase === 'voting' ? 'Votar' : 'Calaveras');
+      voteForm.action = candidate.vote_url;
+      voteRadios.forEach(radio => { radio.checked = Number(radio.value) === Number(candidate.previous_vote); });
+      renderSkulls();
+    }
     feedback.hidden = true;
     frame.removeAttribute('src'); // Stop the previous clip before opening the next.
     title.textContent = clip.title || 'Clip';
     member.textContent = clip.member || 'Squad ALPHA';
     link.href = clip.url;
-    if (voteForm) {
-      const voteUrl = voteUrls[String(clip.id)];
-      voteForm.hidden = !voteUrl;
-      if (voteUrl) { voteForm.action = voteUrl; voteForm.querySelectorAll('input[name="skulls"]').forEach(el => {el.checked = false;}); }
-    }
     if (context) context.textContent = [clip.event, clip.protagonists?.length ? `Protagonistas: ${clip.protagonists.join(', ')}` : null].filter(Boolean).join(' · ');
     frame.title = clip.title || 'Clip de la comunidad';
     frame.src = clip.embed;
@@ -171,11 +287,12 @@
     modal.querySelector('[data-clip-next]').disabled = clips.length < 2;
   };
   const move = offset => { if (clips.length < 2) return; index = (index + offset + clips.length) % clips.length; paint(); };
-  const close = () => { hideComments(); clearTimeout(helpTimeout); modal.hidden = true; frame.removeAttribute('src'); document.body.classList.remove('sqa-clip-lock'); lastActive?.focus?.(); };
+  const close = () => { hideComments(); closeVote(); clearTimeout(helpTimeout); resetSlide(); modal.hidden = true; frame.removeAttribute('src'); document.body.classList.remove('sqa-clip-lock'); lastActive?.focus?.(); };
   const openClip = (clipId, trigger) => {
     const next = clips.findIndex(clip => String(clip.id) === String(clipId));
     if (next < 0) return;
     lastActive = trigger || document.activeElement;
+    resetSlide();
     index = next;
     modal.hidden = false;
     document.body.classList.add('sqa-clip-lock');
@@ -199,8 +316,8 @@
   modal.addEventListener('click', event => { if (event.target === modal) close(); });
   document.addEventListener('keydown', event => {
     if (modal.hidden) return;
-    if (event.key === 'Escape') close();
-    if (event.target.closest('textarea, input, [data-clip-comments-panel]')) return;
+    if (event.key === 'Escape') { if (!voteForm.hidden) { closeVote(); voteButton.focus(); } else close(); return; }
+    if (event.target.closest('textarea, input, button, [data-clip-comments-panel], [data-clip-vote-form]')) return;
     if (['ArrowRight', 'ArrowDown'].includes(event.key)) { event.preventDefault(); move(1); }
     if (['ArrowLeft', 'ArrowUp'].includes(event.key)) { event.preventDefault(); move(-1); }
     if (event.key === 'Tab') {
@@ -210,24 +327,58 @@
       if (!event.shiftKey && current === nodes.length - 1) { event.preventDefault(); nodes[0]?.focus(); }
     }
   });
+  // Los iframes externos interceptan gestos sobre sus controles. Las bandas
+  // laterales y las zonas libres permiten deslizar sin bloquear la reproducción.
+  const canSwipe = target => mobile() && !sliding && commentPanel.hidden && voteForm.hidden
+    && !target.closest('button, a, input, textarea, label, [data-clip-vote-form]');
   modal.addEventListener('touchstart', event => {
-    if (event.target.closest('[data-clip-comments-panel]')) return;
-    if (event.touches.length === 1) touchStart = {y:event.touches[0].clientY, x:event.touches[0].clientX};
-  }, {passive:true});
-  modal.addEventListener('touchend', event => {
-    if (event.target.closest('[data-clip-comments-panel]')) return;
-    if (!touchStart || !event.changedTouches.length) return;
-    const delta = event.changedTouches[0].clientY - touchStart.y;
-    const sideways = Math.abs(event.changedTouches[0].clientX - touchStart.x);
+    if (modal.hidden || event.touches.length !== 1 || !canSwipe(event.target)) { touchStart = null; return; }
+    const touch = event.touches[0];
+    touchStart = { y:touch.clientY, x:touch.clientX, at:performance.now(), delta:0 };
+    stage.style.transition = 'none';
+  }, { passive:true });
+  modal.addEventListener('touchmove', event => {
+    if (!touchStart || event.touches.length !== 1 || clips.length < 2) return;
+    const touch = event.touches[0];
+    const dy = touch.clientY - touchStart.y;
+    const dx = touch.clientX - touchStart.x;
+    if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
+    if (Math.abs(dy) > 9) {
+      event.preventDefault();
+      const limit = stage.clientHeight * .85;
+      const dragged = Math.max(-limit, Math.min(limit, dy));
+      touchStart.delta = dragged;
+      paintPreview(dragged >= 0 ? 1 : -1);
+      stage.style.transform = `translate3d(0, ${dragged}px, 0)`;
+    }
+  }, { passive:false });
+  const finishSwipe = (event, cancelled = false) => {
+    if (!touchStart) return;
+    const start = touchStart;
     touchStart = null;
-    if (Math.abs(delta) > 65 && Math.abs(delta) > sideways * 1.3) move(delta < 0 ? 1 : -1);
-  }, {passive:true});
+    const finalTouch = event.changedTouches?.[0];
+    const delta = start.delta || (finalTouch ? finalTouch.clientY - start.y : 0);
+    const elapsed = Math.max(50, performance.now() - start.at);
+    const verticalEnough = Math.abs(delta) > Math.max(56, stage.clientHeight * .11);
+    const flick = Math.abs(delta) > 28 && Math.abs(delta / elapsed) > .48;
+    if (!cancelled && clips.length > 1 && (verticalEnough || flick)) {
+      // Arrastrar hacia abajo: siguiente. Hacia arriba: anterior.
+      slideTo(delta > 0 ? 1 : -1);
+    } else {
+      stage.style.transition = reducedMotion() ? 'none' : 'transform 180ms ease-out';
+      stage.style.transform = 'translate3d(0,0,0)';
+      clearTimeout(slideTimer);
+      slideTimer = setTimeout(resetSlide, 195);
+    }
+  };
+  modal.addEventListener('touchend', event => finishSwipe(event), { passive:true });
+  modal.addEventListener('touchcancel', event => finishSwipe(event, true), { passive:true });
   modal.addEventListener('wheel', event => {
-    if (event.target.closest('[data-clip-comments-panel]') || window.innerWidth > 767 || Math.abs(event.deltaY) < 30) return;
+    if (modal.hidden || !commentPanel.hidden || !voteForm.hidden || !mobile() || Math.abs(event.deltaY) < 30) return;
     event.preventDefault();
-    if (Date.now() - lastWheel < 650) return;
+    if (Date.now() - lastWheel < 650 || sliding) return;
     lastWheel = Date.now();
-    move(event.deltaY > 0 ? 1 : -1);
+    slideTo(event.deltaY > 0 ? 1 : -1);
   }, {passive:false});
   document.querySelectorAll('[data-clip-lookup]').forEach(root => {
     const input = root.querySelector('input[type="text"]');

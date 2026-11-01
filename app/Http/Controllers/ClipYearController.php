@@ -9,6 +9,7 @@ use App\Models\CommunityClip;
 use App\Services\CommunityClipService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
 
@@ -71,7 +72,7 @@ class ClipYearController extends Controller
         ]);
         return back()->with('success','Tu candidato se ha presentado.');
     }
-    public function vote(Request $request, ClipYearNomination $nomination): RedirectResponse
+    public function vote(Request $request, ClipYearNomination $nomination): RedirectResponse|JsonResponse
     {
         $contest = ClipYearContest::current();
         abort_unless($contest && $contest->allowsUser($request->user()) && $contest->phase() === 'voting'
@@ -84,6 +85,13 @@ class ClipYearController extends Controller
             ['nomination_id'=>$nomination->id,'user_id'=>$request->user()->id],
             ['skulls'=>$data['skulls']]
         );
+        if ($request->expectsJson()) {
+            return response()->json([
+                'skulls' => (int) $data['skulls'],
+                'message' => 'Tu valoración se ha guardado.',
+            ]);
+        }
+
         return back()->with('success','Tu valoración se ha guardado.');
     }
 }

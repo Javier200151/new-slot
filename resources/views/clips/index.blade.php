@@ -1,6 +1,6 @@
 @extends('layouts.metopas')
 @section('title', 'Clips de la comunidad')
-@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=7">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=15">@endpush
 @section('content')
 <section class="sqa-clips-page container">
   <header class="sqa-clips-intro">
@@ -60,5 +60,5 @@
   <div class="sqa-clips-pages">{{ $clips->links() }}</div>
 </section>
 @include('clips.partials.viewer', ['viewerClips' => $clips->items(), 'autoOpenClipId' => $autoOpenClipId ?? null])
-@push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=7" defer></script>@endpush
+@push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=14" defer></script>@endpush
 @endsection
