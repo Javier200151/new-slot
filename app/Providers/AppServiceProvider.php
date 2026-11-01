@@ -34,6 +34,9 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -85,6 +88,19 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Solo se limita la publicación comunitaria. El concurso ya permite
+        // un único candidato por usuario y edición desde su controlador.
+        RateLimiter::for('community-clips-publish', fn (Request $request) => Limit::perMinute(12)
+            ->by('community-clips-publish:' . ($request->user()?->getAuthIdentifier() ?? $request->ip()))
+            ->response(function (Request $request, array $headers) {
+                $response = back()
+                    ->withInput()
+                    ->withErrors(['url' => 'Demasiados intentos seguidos. Espera un minuto antes de volver a enviarlo.']);
+                $response->headers->add($headers);
+
+                return $response;
+            }));
+
         // Tables keep their current default visibility, but users can hide or
         // show any rendered column. Individual Filament tables remain independent.
         Column::configureUsing(fn (Column $column): Column => $column->toggleable());

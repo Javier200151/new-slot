@@ -14,12 +14,14 @@ class CommunityClipService
     {
         $parts = parse_url(trim($url));
         if (! is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https') {
-            throw ValidationException::withMessages(['url' => 'Introduce un enlace HTTPS de Twitch Clips o YouTube Shorts.']);
+            throw ValidationException::withMessages(['url' => 'Introduce un enlace HTTPS válido de Twitch o YouTube.']);
         }
+
         $host = strtolower((string) ($parts['host'] ?? ''));
         $path = trim((string) ($parts['path'] ?? ''), '/');
-        $slug = null;
         $platform = null;
+        $slug = null;
+        $youtubeShort = false;
 
         if ($host === 'clips.twitch.tv' && preg_match('/^([A-Za-z0-9_-]{5,150})$/', $path, $matches)) {
             $slug = $matches[1];
@@ -28,14 +30,29 @@ class CommunityClipService
             && preg_match('~^[A-Za-z0-9_]+/clip/([A-Za-z0-9_-]{5,150})$~', $path, $matches)) {
             $slug = $matches[1];
             $platform = 'twitch';
-        } elseif (in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com'], true)
-            && preg_match('~^shorts/([A-Za-z0-9_-]{11})$~', $path, $matches)) {
+        } elseif (in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'], true)) {
+            if ($path === 'watch') {
+                parse_str((string) ($parts['query'] ?? ''), $query);
+                $videoId = $query['v'] ?? null;
+                $slug = is_string($videoId) ? $videoId : null;
+            } elseif (preg_match('~^(shorts|live|embed)/([A-Za-z0-9_-]{11})$~', $path, $matches)) {
+                $youtubeShort = $matches[1] === 'shorts';
+                $slug = $matches[2];
+            }
+
+            if (is_string($slug) && preg_match('/^[A-Za-z0-9_-]{11}$/', $slug)) {
+                $platform = 'youtube';
+            }
+        } elseif (in_array($host, ['youtu.be', 'www.youtu.be'], true)
+            && preg_match('/^([A-Za-z0-9_-]{11})$/', $path, $matches)) {
             $slug = $matches[1];
             $platform = 'youtube';
         }
 
         if (! $platform) {
-            throw ValidationException::withMessages(['url' => 'El enlace debe ser de un clip de Twitch o un Short de YouTube.']);
+            throw ValidationException::withMessages([
+                'url' => 'Introduce un clip de Twitch o un enlace de YouTube (vídeo normal o Short).',
+            ]);
         }
 
         return [
@@ -43,7 +60,9 @@ class CommunityClipService
             'external_id' => $slug,
             'url' => $platform === 'twitch'
                 ? 'https://clips.twitch.tv/' . $slug
-                : 'https://www.youtube.com/shorts/' . $slug,
+                : ($youtubeShort
+                    ? 'https://www.youtube.com/shorts/' . $slug
+                    : 'https://www.youtube.com/watch?v=' . $slug),
         ];
     }
 
@@ -56,7 +75,9 @@ class CommunityClipService
         }
 
         $protagonistIds = array_values(array_unique(array_map('intval', $protagonistIds)));
-        $meta = $data['platform'] === 'twitch'  ? $this->twitchClip($data['external_id']) : null;
+        $meta = $data['platform'] === 'twitch'
+            ? $this->twitchClip($data['external_id'])
+            : $this->youtubeVideo($data['external_id']);
         $clip = new CommunityClip(array_merge($data, [
             'user_id' => $user->id,
             'event_id' => $eventId,
@@ -122,6 +143,44 @@ class CommunityClipService
         }
         if ($clip->isDirty()) {
             $clip->save();
+        }
+    }
+
+    /**
+     * Consulta opcional de la fecha y título originales. No bloquea una
+     * publicación manual si el servicio externo o la clave no están disponibles.
+     */
+    public function youtubeVideo(string $id): ?array
+    {
+        $key = trim((string) config('services.youtube.api_key', ''));
+        if ($key === '') {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(7)->get('https://www.googleapis.com/youtube/v3/videos', [
+                'part' => 'snippet',
+                'id' => $id,
+                'key' => $key,
+            ]);
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $snippet = $response->json('items.0.snippet');
+            if (! is_array($snippet)) {
+                return null;
+            }
+
+            return [
+                'title' => $snippet['title'] ?? null,
+                'thumbnail_url' => data_get($snippet, 'thumbnails.high.url')
+                    ?: data_get($snippet, 'thumbnails.medium.url'),
+                'broadcaster_name' => $snippet['channelTitle'] ?? null,
+                'created_at' => $snippet['publishedAt'] ?? null,
+            ];
+        } catch (\Throwable) {
+            return null;
         }
     }
 

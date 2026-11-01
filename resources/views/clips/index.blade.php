@@ -16,7 +16,7 @@
       <form action="{{ route('clips.store') }}" method="POST" class="sqa-clips-submit">
         @csrf
         <h2>Compartir un clip</h2>
-        <label for="clip-url">Enlace de Twitch Clips o YouTube Shorts</label>
+        <label for="clip-url">Enlace de Twitch Clips o YouTube (vídeo o Short)</label>
         <input id="clip-url" type="url" name="url" placeholder="https://clips.twitch.tv/..." maxlength="600" required value="{{ old('url') }}">
         <label for="clip-title">Título (opcional)</label>
         <input id="clip-title" type="text" name="title" maxlength="255" value="{{ old('title') }}">
