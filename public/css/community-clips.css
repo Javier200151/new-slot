@@ -77,3 +77,6 @@
  .sqa-clip-viewer__caption{padding-right:83px}
  .sqa-clip-feedback{top:12%}
 }
+
+.sqa-clip-selected-users{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.sqa-clip-user-chip{border:1px solid #795819;border-radius:8px;color:#f1c06c;background:#211b10;padding:5px 10px;font-size:12px;cursor:pointer}

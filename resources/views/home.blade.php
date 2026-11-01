@@ -26,7 +26,7 @@
         href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}"
     >
     <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
-    <link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=7">
 </head>
 
 <body
@@ -360,12 +360,12 @@
         </section>
 
         {{-- CLIPS DE LA COMUNIDAD --}}
-        @if($clipYearContest && $clipYearContest->phase() === 'results' && $clipYearWinners->isNotEmpty())
+        @if($clipYearContest && $clipYearWinners->isNotEmpty())
             <section class="home-vods-section sqa-year-winners">
                 <div class="container"><h2>Clip del año {{ $clipYearContest->year }}</h2>
                     <div class="sqa-year-winners__items">
                         @foreach($clipYearWinners as $winner)
-                            <a href="{{ route('clips.year') }}"><strong>{{ $loop->iteration }}.º puesto</strong> · {{ $winner->clip?->title }}</a>
+                            <a href="{{ route('clips.year', ['year' => $clipYearContest->year]) }}"><strong>{{ $loop->iteration }}.º puesto</strong> · {{ $winner->clip?->title }}</a>
                         @endforeach
                     </div>
                 </div>
@@ -697,7 +697,7 @@
     <script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
     <script src="{{ asset('js/home-bulletin.js') }}?v={{ filemtime(public_path('js/home-bulletin.js')) }}" defer></script>
 
-    <script src="{{ asset('js/community-clips.js') }}?v=5" defer></script>
+    <script src="{{ asset('js/community-clips.js') }}?v=7" defer></script>
 </body>
 </html>
 

@@ -6,7 +6,7 @@
         'id' => $clip->id,
         'title' => $clip->title,
         'member' => $clip->user?->nick ?? $clip->broadcaster_name ?? 'Squad ALPHA',
-        'protagonist' => $clip->protagonist?->nick,
+        'protagonists' => $clip->protagonistNames(),
         'event' => $clip->event?->name,
         'embed' => $clip->embedUrl(),
         'url' => $clip->url,

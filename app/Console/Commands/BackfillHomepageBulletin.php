@@ -60,6 +60,13 @@ class BackfillHomepageBulletin extends Command
 
         $this->table(['Origen', $this->preview ? 'Pendientes' : 'Creados'], collect($this->counts)->map(fn ($n, $key) => [$key, $n])->values()->all());
         $this->line('Existentes (no modificados): '.$this->already.'. Registros sin datos suficientes: '.$this->missing.'.');
+        if (! $this->preview && array_sum($this->counts) > 0) {
+            app(\App\Services\AuditLogger::class)->automatic(
+                'importacion_historica_tablon',
+                ['created' => $this->counts, 'already_exists' => $this->already, 'missing' => $this->missing],
+                process: 'sqa:backfill-bulletin',
+            );
+        }
         $this->info($this->preview ? 'Para importar, repite el comando sin --preview.' : 'Importación terminada. Puedes repetir este comando sin duplicar los anuncios.');
 
         return self::SUCCESS;
@@ -308,21 +315,22 @@ class BackfillHomepageBulletin extends Command
             $this->counts[$origin]++;
             return;
         }
-        // INSERT IGNORE sobre la clave única source_key evita duplicados ante ejecuciones concurrentes.
-        $created = DB::table('homepage_news')->insertOrIgnore([
-            'source_key' => $key,
-            'source_type' => 'automatic',
-            'category' => $category,
-            'title' => mb_substr($title, 0, 180),
-            'excerpt' => $description,
-            'external_url' => $url,
-            'is_published' => true,
-            'published_at' => CarbonImmutable::parse($date)->toDateTimeString(),
-            'sort_order' => 100,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        if ($created) $this->counts[$origin]++;
+        // firstOrCreate conserva la idempotencia y dispara el registro de auditoría.
+        // El actor queda como Sistema y se conserva la fecha histórica en published_at.
+        $record = app(\App\Support\AuditContext::class)->asSystem(
+            'historic-bulletin-import',
+            fn () => HomepageNews::withTrashed()->firstOrCreate(['source_key' => $key], [
+                'source_type' => 'automatic',
+                'category' => $category,
+                'title' => mb_substr($title, 0, 180),
+                'excerpt' => $description,
+                'external_url' => $url,
+                'is_published' => true,
+                'published_at' => CarbonImmutable::parse($date)->toDateTimeString(),
+                'sort_order' => 100,
+            ]),
+        );
+        if ($record->wasRecentlyCreated) $this->counts[$origin]++;
         else $this->already++;
     }
 }

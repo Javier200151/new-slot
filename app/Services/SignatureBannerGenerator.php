@@ -208,7 +208,20 @@ class SignatureBannerGenerator
         $user->forceFill([
             'firma' => $user->getSignatureUrl(),
         ])->saveQuietly();
-        
+
+        // La imagen está fuera de la BD: registrar su escritura explícitamente.
+        // Un error en auditoría no debe invalidar la firma ya generada.
+        try {
+            app(\App\Services\AuditLogger::class)->automatic(
+                'banner_firma_generado',
+                ['user_id' => (int) $user->id, 'type' => 'banner'],
+                $user,
+                'signature-generator',
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
         return $fileName;
     }
 }

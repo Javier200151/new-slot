@@ -22,12 +22,19 @@ class YoutubeClipImportService
      *
      * @return array{streamers:int,created:int,skipped:int,errors:int}
      */
-    public function run(): array
+    public function runFor(Streamer $streamer): array
+    {
+        // El botón siempre hace una búsqueda completa dentro del período configurado.
+        return $this->run($streamer, true);
+    }
+
+    public function run(?Streamer $onlyStreamer = null, bool $forceFullScan = false): array
     {
         $result = ['streamers' => 0, 'created' => 0, 'skipped' => 0, 'errors' => 0];
         $streamers = Streamer::query()
             ->where('enable', true)
             ->where('auto_import_youtube_clips', true)
+            ->when($onlyStreamer, fn ($query) => $query->whereKey($onlyStreamer->id))
             ->where(fn ($query) => $query->whereNotNull('youtube_channel')->orWhereNotNull('youtube_channel_id'))
             ->get();
 
@@ -43,7 +50,7 @@ class YoutubeClipImportService
         foreach ($streamers as $streamer) {
             $result['streamers']++;
             try {
-                $this->importStreamer($streamer, $key, $result);
+                $this->importStreamer($streamer, $key, $result, $forceFullScan);
             } catch (Throwable $exception) {
                 $result['errors']++;
                 Log::warning('No se pudieron importar clips de YouTube', [
@@ -56,7 +63,7 @@ class YoutubeClipImportService
         return $result;
     }
 
-    private function importStreamer(Streamer $streamer, string $key, array &$result): void
+    private function importStreamer(Streamer $streamer, string $key, array &$result, bool $forceFullScan = false): void
     {
         $channelId = $this->channelId($streamer);
         if ($channelId === null) throw new RuntimeException('No se ha podido identificar el canal de YouTube.');
@@ -73,7 +80,7 @@ class YoutubeClipImportService
         // The first run examines up to 1,000 uploads. Subsequent hourly runs
         // examine the 100 newest; repeat a full scan every two days.
         $cacheKey = 'clips.youtube.full-scan.' . $streamer->id . '.' . $streamer->clip_import_window;
-        $fullScan = ! Cache::has($cacheKey);
+        $fullScan = $forceFullScan || ! Cache::has($cacheKey);
         $maxPages = $fullScan ? 20 : 2;
         for ($page = 0; $page < $maxPages; $page++) {
             $params = ['part' => 'contentDetails', 'playlistId' => $uploads, 'maxResults' => 50];

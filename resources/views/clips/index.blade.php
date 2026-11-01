@@ -1,6 +1,6 @@
 @extends('layouts.metopas')
 @section('title', 'Clips de la comunidad')
-@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=5">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=7">@endpush
 @section('content')
 <section class="sqa-clips-page container">
   <header class="sqa-clips-intro">
@@ -27,11 +27,12 @@
             <input type="hidden" name="event_id" value="{{ old('event_id') }}">
             <div class="sqa-clip-lookup__results" role="listbox" hidden></div>
           </div>
-          <div class="sqa-clip-lookup" data-clip-lookup="users" data-url="{{ route('clips.lookup') }}">
-            <label for="clip-protagonist-query">Protagonista (opcional)</label>
+          <div class="sqa-clip-lookup" data-clip-multi-lookup="users" data-url="{{ route('clips.lookup') }}">
+            <label for="clip-protagonist-query">Protagonistas (opcional)</label>
             <input id="clip-protagonist-query" type="text" autocomplete="off" placeholder="Buscar miembro por nick" aria-autocomplete="list" aria-expanded="false">
-            <input type="hidden" name="protagonist_user_id" value="{{ old('protagonist_user_id') }}">
+            <input type="hidden" name="protagonist_user_ids" value="{{ old('protagonist_user_ids') }}">
             <div class="sqa-clip-lookup__results" role="listbox" hidden></div>
+            <div class="sqa-clip-selected-users" data-clip-selected-users></div>
           </div>
         </div>
         <button type="submit">Añadir clip</button>
@@ -45,7 +46,7 @@
           @if($clip->thumbnail_url)<img src="{{ $clip->thumbnail_url }}" alt="" loading="lazy">@else<div class="sqa-clip-card__placeholder">{{ strtoupper($clip->platform) }}</div>@endif
           <span class="sqa-clip-card__play">▶</span>
         </button>
-        <div class="sqa-clip-card__info"><strong>{{ $clip->title }}</strong><small>{{ $clip->user?->nick ?? $clip->broadcaster_name ?? 'Squad ALPHA' }}@if($clip->protagonist) · Protagonista: {{ $clip->protagonist->nick }}@endif · {{ $clip->clip_created_at?->format('d/m/Y') }}</small></div>
+        <div class="sqa-clip-card__info"><strong>{{ $clip->title }}</strong><small>{{ $clip->user?->nick ?? $clip->broadcaster_name ?? 'Squad ALPHA' }}@if($clip->protagonistNames()) · Protagonistas: {{ implode(', ', $clip->protagonistNames()) }}@endif · {{ $clip->clip_created_at?->format('d/m/Y') }}</small></div>
         @auth
           @if((int) $clip->user_id === (int) auth()->id() || auth()->user()->can('community-clips.delete') || auth()->user()->hasRole('admin'))
             <form method="POST" action="{{ route('clips.destroy', $clip) }}" onsubmit="return confirm('¿Retirar este clip?')">@csrf @method('DELETE')<button class="sqa-clip-remove" type="submit">Retirar</button></form>
@@ -59,5 +60,5 @@
   <div class="sqa-clips-pages">{{ $clips->links() }}</div>
 </section>
 @include('clips.partials.viewer', ['viewerClips' => $clips->items(), 'autoOpenClipId' => $autoOpenClipId ?? null])
-@push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=5" defer></script>@endpush
+@push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=7" defer></script>@endpush
 @endsection

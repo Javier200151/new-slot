@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Model;
 
 class PersonalDashboardWidget extends Model
 {
+    use Auditable;
+
     // Se conservan los nombres por compatibilidad con código previo del bloque M.
     public const SIZE_SQUARE = '1x1';
     public const SIZE_WIDE = '2x2';

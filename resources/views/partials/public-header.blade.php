@@ -135,9 +135,8 @@
 @include('partials.public-quick-access')
 
 @auth
-    @if(auth()->user()->status?->name === 'ACTIVO' || auth()->user()->hasRole('admin'))
-        @php($clipYearShortcut = \App\Models\ClipYearContest::current())
-        @if($clipYearShortcut && in_array($clipYearShortcut->phase(), ['nominations', 'voting'], true))
+    @if($clipYearShortcut = \App\Models\ClipYearContest::current())
+        @if($clipYearShortcut->allowsUser(auth()->user()) && in_array($clipYearShortcut->phase(), ['nominations', 'voting'], true))
             <a class="sqa-year-shortcut" href="{{ route('clips.year') }}">
                 ☠ {{ $clipYearShortcut->phase() === 'nominations' ? 'Presenta tu clip del año' : 'Vota el clip del año' }}
             </a>

@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Model;
 
 class RecruitmentApplicationTierRating extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'contact_submission_id',
         'user_id',

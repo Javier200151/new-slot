@@ -98,37 +98,56 @@ class AuditLogger
             );
     }
 
+    /** Registro positivo de una tarea automática, sin simular un usuario real. */
+    public function automatic(
+        string $event,
+        array $properties = [],
+        ?Model $subject = null,
+        string $process = 'automatic',
+    ): void {
+        app(AuditContext::class)->asSystem($process, function () use ($event, $properties, $subject): void {
+            $logger = activity('system')
+                ->event($event)
+                ->causedByAnonymous()
+                ->withProperties($properties);
+
+            if ($subject !== null) {
+                $logger->performedOn($subject);
+            }
+
+            $logger->log($event);
+        });
+
+        Log::info('Automatización: ' . $event, [
+            'correlation_id' => app(AuditContext::class)->id(),
+            'process' => $process,
+            ...$properties,
+        ]);
+    }
+
     public function system(
         string $event,
         array $properties = [],
         ?Model $subject = null,
     ): void {
-        $logger = activity('system')
-            ->event($event)
-            ->withProperties($properties);
+        app(AuditContext::class)->asSystem('system-event', function () use ($event, $properties, $subject): void {
+            $logger = activity('system')
+                ->event($event)
+                ->withProperties($properties)
+                ->causedByAnonymous();
 
-        if ($subject !== null) {
-            $logger->performedOn($subject);
-        }
+            if ($subject !== null) {
+                $logger->performedOn($subject);
+            }
 
-        $causer = Auth::user();
+            $logger->log($event);
+        });
 
-        if ($causer instanceof Model) {
-            $logger->causedBy($causer);
-        } else {
-            $logger->causedByAnonymous();
-        }
-
-        $logger->log($event);
-
-        Log::error(
-            $event,
-            [
-                'correlation_id' =>
-                    app(AuditContext::class)->id(),
-
-                ...$properties,
-            ]
-        );
+        // Los errores reales siguen registrándose como errores en el fichero.
+        Log::error($event, [
+            'correlation_id' => app(AuditContext::class)->id(),
+            ...$properties,
+        ]);
     }
+
 }

@@ -44,3 +44,5 @@ Schedule::command('wiki:revoke-pending')->everyMinute()->withoutOverlapping();
 
 Schedule::command('clips:import-twitch')->everyThirtyMinutes()->withoutOverlapping();
 Schedule::command('clips:import-youtube')->hourly()->withoutOverlapping();
+
+Schedule::command('clips:notify-year-phase')->hourly()->withoutOverlapping();

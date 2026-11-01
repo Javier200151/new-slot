@@ -27,7 +27,13 @@ class RefreshDiscordInvite extends Command
         try {
             $result = $discord->refreshPublicInvite(MemberProcedureSetting::current(), $homepage);
 
-            $this->info('Invitación de Discord renovada: ' . ($result['url'] ?? 'OK'));
+            app(\App\Services\AuditLogger::class)->automatic(
+                'invitacion_discord_renovada',
+                ['automatic_refresh' => ! (bool) $this->option('force')],
+                $homepage,
+                'discord:refresh-invite',
+            );
+            $this->info('Invitación de Discord renovada correctamente.');
 
             return self::SUCCESS;
         } catch (Throwable $exception) {

@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Model;
 
 class SqaGroupRoleOwnership extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'user_id',
         'role_id',

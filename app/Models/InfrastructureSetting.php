@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+use Spatie\Activitylog\Support\LogOptions;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -9,6 +12,23 @@ use Illuminate\Contracts\Encryption\DecryptException;
 
 class InfrastructureSetting extends Model
 {
+    use Auditable;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('audit')
+            ->logOnly([
+                'arma3_academy_host', 'arma3_academy_query_port',
+                'arma3_operations_host', 'arma3_operations_query_port',
+                'reforger_academy_host', 'reforger_academy_query_port',
+                'reforger_operations_host', 'reforger_operations_query_port',
+                'ts3_enabled', 'tsviewer_server_id',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
     protected $fillable = [
         'arma3_academy_host',
         'arma3_academy_query_port',

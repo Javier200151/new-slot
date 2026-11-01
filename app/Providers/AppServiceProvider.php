@@ -189,6 +189,19 @@ class AppServiceProvider extends ServiceProvider
                         ?->toArray()
                     ?? [];
 
+                $systemProcess = $context->systemProcess();
+                $consoleCommand = app()->runningInConsole()
+                    ? (string) ($_SERVER['argv'][1] ?? '')
+                    : '';
+                $scheduledCommands = [
+                    'clips:import-twitch',
+                    'clips:import-youtube',
+                    'clips:notify-year-phase',
+                    'discord:refresh-invite',
+                    'sqa:backfill-bulletin',
+                ];
+                $automaticCommand = in_array($consoleCommand, $scheduledCommands, true);
+
                 /*
                  |--------------------------------------------------------------------------
                  | Artisan / consola
@@ -197,7 +210,9 @@ class AppServiceProvider extends ServiceProvider
 
                 if (app()->runningInConsole()) {
                     $activity->source =
-                        'console';
+                        ($systemProcess !== null || $automaticCommand)
+                            ? 'system'
+                            : 'console';
 
                     $activity->request_method =
                         null;
@@ -307,8 +322,24 @@ class AppServiceProvider extends ServiceProvider
                  |--------------------------------------------------------------------------
                  */
 
-                $actor =
-                    $activity->causer;
+                // Generaciones automáticas ejecutadas durante una petición web:
+                // no apropiarse del actor humano que disparó el cambio principal.
+                if ($systemProcess !== null) {
+                    $activity->causer_type = null;
+                    $activity->causer_id = null;
+                    $activity->unsetRelation('causer');
+                    $activity->source = 'system';
+                    $properties['automation'] = [
+                        'process' => $systemProcess,
+                        // El autor del anuncio sigue siendo Sistema; la sesión
+                        // que desencadenó el proceso queda trazable por separado.
+                        'initiated_by_user_id' => auth()->id(),
+                    ];
+                } elseif ($automaticCommand) {
+                    $properties['automation'] = ['process' => $consoleCommand];
+                }
+
+                $actor = $systemProcess === null ? $activity->causer : null;
 
                 if ($actor instanceof Model) {
                     $activity->actor_nick =
@@ -337,6 +368,18 @@ class AppServiceProvider extends ServiceProvider
                  | Copia histórica del objeto afectado
                  |--------------------------------------------------------------------------
                  */
+
+                if (! $actor instanceof Model) {
+                    $anonymousLabel = ($systemProcess !== null || app()->runningInConsole())
+                        ? 'Sistema'
+                        : 'Invitado';
+                    $activity->actor_nick = $anonymousLabel;
+                    $properties['actor_snapshot'] = [
+                        'type' => $anonymousLabel === 'Sistema' ? 'system' : 'guest',
+                        'id' => null,
+                        'label' => $anonymousLabel,
+                    ];
+                }
 
                 $subject =
                     $activity->subject;
