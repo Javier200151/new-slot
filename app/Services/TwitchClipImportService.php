@@ -14,10 +14,17 @@ use Throwable;
 class TwitchClipImportService
 {
     /** @return array{streamers:int,created:int,skipped:int,errors:int} */
-    public function run(): array
+    public function runFor(Streamer $streamer): array
+    {
+        return $this->run($streamer);
+    }
+
+    public function run(?Streamer $onlyStreamer = null): array
     {
         $result = ['streamers' => 0, 'created' => 0, 'skipped' => 0, 'errors' => 0];
-        $streamers = Streamer::query()->where('enable', true)->where('auto_import_clips', true)->with('user')->get();
+        $streamers = Streamer::query()->where('enable', true)->where('auto_import_clips', true)
+            ->when($onlyStreamer, fn ($query) => $query->whereKey($onlyStreamer->id))
+            ->with('user')->get();
         if ($streamers->isEmpty()) return $result;
         $clips = app(CommunityClipService::class);
         $headers = $clips->twitchClient();

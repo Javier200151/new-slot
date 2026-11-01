@@ -53,9 +53,9 @@ class HomeController extends Controller
             ->get();
 
         $vods = $vodService->latest(6);
-        $clips = CommunityClip::visible()->recent()->with(['user','event','protagonist'])->withCount(['likes','comments'])->inRandomOrder()->limit(4)->get();
-        $clipYearContest = ClipYearContest::current();
-        $clipYearWinners = ($clipYearContest && $clipYearContest->phase() === 'results')
+        $clips = CommunityClip::visible()->recent()->with(['user','event','protagonist','protagonists'])->withCount(['likes','comments'])->inRandomOrder()->limit(4)->get();
+        $clipYearContest = ClipYearContest::latestWithResults();
+        $clipYearWinners = $clipYearContest
             ? $clipYearContest->nominations()->where('is_approved',true)->with('clip')
                 ->whereHas('votes')->withCount('votes')->withAvg('votes','skulls')->orderByDesc('votes_avg_skulls')->orderByDesc('votes_count')->limit(3)->get()
             : collect();

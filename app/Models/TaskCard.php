@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Model;
 
 class TaskCard extends Model
 {
+    use Auditable;
+
     public const STATUS_PENDING = 'pending';
     public const STATUS_WORKING = 'working';
     public const STATUS_COMPLETED = 'completed';

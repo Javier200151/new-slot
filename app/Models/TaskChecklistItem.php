@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Model;
 
 class TaskChecklistItem extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'task_card_id',
         'label',

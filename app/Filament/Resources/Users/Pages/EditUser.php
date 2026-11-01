@@ -67,6 +67,13 @@ class EditUser extends EditRecord
                         if ($generator->needsRepair($user)) {
                             throw new \RuntimeException('La firma generada no es una imagen válida.');
                         }
+                        app(\App\Services\AuditLogger::class)->change(
+                            $user,
+                            'firma_regenerada',
+                            [],
+                            ['banner_regenerado' => true],
+                            ['origin' => 'filament'],
+                        );
                         Notification::make()->title('Firma regenerada correctamente')->success()->send();
                     } catch (Throwable $exception) {
                         report($exception);
@@ -100,6 +107,13 @@ class EditUser extends EditRecord
                             'already_synced' => 'Miembro verificado: ya estaba sincronizado',
                             default => 'Verificación completada',
                         };
+                        app(\App\Services\AuditLogger::class)->change(
+                            $user,
+                            'armasquads_verificado',
+                            [],
+                            ['result' => $result['action'] ?? 'verified'],
+                            ['origin' => 'filament'],
+                        );
                         Notification::make()->title($label)->success()->send();
                     } catch (Throwable $exception) {
                         report($exception);

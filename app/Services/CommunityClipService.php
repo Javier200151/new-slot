@@ -48,18 +48,19 @@ class CommunityClipService
     }
 
     /** Crear solo si no existía: una retirada nunca vuelve a publicar el mismo clip. */
-    public function addManual(User $user, string $url, ?string $title, ?int $eventId = null, ?int $protagonistId = null): CommunityClip
+    public function addManual(User $user, string $url, ?string $title, ?int $eventId = null, array $protagonistIds = []): CommunityClip
     {
         $data = $this->parse($url);
         if (CommunityClip::withTrashed()->where('platform', $data['platform'])->where('external_id', $data['external_id'])->exists()) {
             throw ValidationException::withMessages(['url' => 'Este clip ya se ha compartido en Squad ALPHA.']);
         }
 
-        $meta = $data['platform'] === 'twitch' ? $this->twitchClip($data['external_id']) : null;
+        $protagonistIds = array_values(array_unique(array_map('intval', $protagonistIds)));
+        $meta = $data['platform'] === 'twitch'  ? $this->twitchClip($data['external_id']) : null;
         $clip = new CommunityClip(array_merge($data, [
             'user_id' => $user->id,
             'event_id' => $eventId,
-            'protagonist_user_id' => $protagonistId,
+            'protagonist_user_id' => $protagonistIds[0] ?? null,
             'source' => 'manual',
             'title' => trim((string) $title) ?: (string) ($meta['title'] ?? 'Clip de la comunidad'),
             'thumbnail_url' => $meta['thumbnail_url'] ?? ($data['platform'] === 'youtube' ? 'https://i.ytimg.com/vi/' . $data['external_id'] . '/hqdefault.jpg' : null),
@@ -70,7 +71,58 @@ class CommunityClipService
             'is_visible' => true,
         ]));
         $clip->save();
+        $clip->protagonists()->sync($protagonistIds);
+        if ($protagonistIds !== []) {
+            app(\App\Services\AuditLogger::class)->change(
+                $clip,
+                'protagonistas_asignados',
+                [],
+                ['protagonist_user_ids' => $protagonistIds],
+                ['relation' => 'community_clip_protagonists'],
+            );
+        }
         return $clip;
+
+    }
+
+    public function parseProtagonistIds(?string $raw): array
+    {
+        $ids = collect(explode(',', (string) $raw))->map(fn ($id) => (int) trim($id))
+            ->filter(fn ($id) => $id > 0)->unique()->values()->all();
+        if (count($ids) > 12) {
+            throw ValidationException::withMessages(['protagonist_user_ids' => 'Selecciona un máximo de 12 protagonistas.']);
+        }
+        if ($ids && User::query()->whereIn('id', $ids)->count() !== count($ids)) {
+            throw ValidationException::withMessages(['protagonist_user_ids' => 'Hay protagonistas que no existen.']);
+        }
+        return $ids;
+    }
+
+    public function supplementContext(CommunityClip $clip, ?int $eventId, array $protagonistIds): void
+    {
+        if ($eventId && ! $clip->event_id) {
+            $clip->event_id = $eventId;
+        }
+        if ($protagonistIds !== []) {
+            $existing = $clip->protagonists()->pluck('users.id')->map(fn ($id) => (int) $id)->all();
+            $newIds = array_values(array_unique(array_merge($existing, array_map('intval', $protagonistIds))));
+            $clip->protagonists()->sync($newIds);
+            if ($newIds !== $existing) {
+                app(\App\Services\AuditLogger::class)->change(
+                    $clip,
+                    'protagonistas_modificados',
+                    ['protagonist_user_ids' => $existing],
+                    ['protagonist_user_ids' => $newIds],
+                    ['relation' => 'community_clip_protagonists'],
+                );
+            }
+            if (! $clip->protagonist_user_id) {
+                $clip->protagonist_user_id = $newIds[0] ?? null;
+            }
+        }
+        if ($clip->isDirty()) {
+            $clip->save();
+        }
     }
 
     public function twitchClient(): ?array

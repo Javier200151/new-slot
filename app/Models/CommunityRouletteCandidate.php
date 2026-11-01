@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Model;
 
 class CommunityRouletteCandidate extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'room_id',
         'user_id',

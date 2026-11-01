@@ -1,6 +1,6 @@
 @extends('layouts.metopas')
 @section('title', 'Clip del año · Squad ALPHA')
-@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=5">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=7">@endpush
 @section('content')
 <section class="sqa-clips-page container sqa-year-page">
     <header class="sqa-clips-intro"><span class="section-label">SQUAD ALPHA · CONCURSO ANUAL</span>
@@ -12,7 +12,7 @@
     </header>
     @if(session('success'))<p class="sqa-clips-success">{{ session('success') }}</p>@endif
     @if($errors->any())<div class="sqa-clips-error">{{ $errors->first() }}</div>@endif
-    @if($phase === 'nominations' && (auth()->user()?->status?->name === 'ACTIVO' || auth()->user()?->hasRole('admin')))
+    @if($phase === 'nominations' && $contest->allowsUser(auth()->user()))
         @if(! $contest->nominations()->where('user_id', auth()->id())->exists())
             <form action="{{ route('clips.year.nominate') }}" method="POST" class="sqa-clips-submit">
                 @csrf <h2>Presentar candidato</h2>
@@ -20,6 +20,21 @@
                 <input id="nomination-url" type="url" name="url" maxlength="600" required placeholder="https://clips.twitch.tv/..." value="{{ old('url') }}">
                 <label for="nomination-description">Descripción del momento (opcional)</label>
                 <textarea id="nomination-description" name="description" maxlength="900" rows="3">{{ old('description') }}</textarea>
+                <div class="sqa-clip-extra-fields">
+                    <div class="sqa-clip-lookup" data-clip-lookup="events" data-url="{{ route('clips.lookup') }}">
+                        <label for="clip-year-event">Evento (opcional)</label>
+                        <input id="clip-year-event" type="text" placeholder="Buscar evento" autocomplete="off">
+                        <input type="hidden" name="event_id" value="{{ old('event_id') }}">
+                        <div class="sqa-clip-lookup__results" role="listbox" hidden></div>
+                    </div>
+                    <div class="sqa-clip-lookup" data-clip-multi-lookup="users" data-url="{{ route('clips.lookup') }}">
+                        <label for="clip-year-protagonists">Protagonistas (opcional)</label>
+                        <input id="clip-year-protagonists" type="text" placeholder="Buscar miembros por nick" autocomplete="off">
+                        <input type="hidden" name="protagonist_user_ids" value="{{ old('protagonist_user_ids') }}">
+                        <div class="sqa-clip-lookup__results" role="listbox" hidden></div>
+                        <div class="sqa-clip-selected-users" data-clip-selected-users></div>
+                    </div>
+                </div>
                 <button type="submit">Presentar clip</button>
             </form>
         @else<p>Ya has presentado tu candidato para esta edición.</p>@endif
@@ -33,10 +48,10 @@
             </button>
             <div class="sqa-clip-card__info">
                 <strong>{{ $entry->clip->title }}</strong>
-                <small>Presentado por {{ $entry->user?->nick }}</small>
+                <small>Presentado por {{ $entry->user?->nick }}@if($entry->clip->protagonistNames()) · Protagonistas: {{ implode(', ', $entry->clip->protagonistNames()) }}@endif</small>
                 @if($entry->description)<p>{{ $entry->description }}</p>@endif
                 @if($phase === 'results')<strong>{{ $loop->iteration }}.º · {{ $entry->votes_count }} votos · {{ $entry->votes_count ? number_format((float)$entry->votes_avg_skulls, 2) : 'Sin votos' }} calaveras</strong>@endif
-                @if($phase === 'voting' && (auth()->user()?->status?->name === 'ACTIVO' || auth()->user()?->hasRole('admin')) && $entry->user_id !== auth()->id())
+                @if($phase === 'voting' && $contest->allowsUser(auth()->user()) && $entry->user_id !== auth()->id())
                     <form method="POST" action="{{ route('clips.year.vote', $entry) }}" class="sqa-clip-skulls">
                         @csrf
                         <span>¿Cuántas calaveras merece?</span>
@@ -51,6 +66,6 @@
       @empty<p>Aún no hay candidatos.</p>@endforelse
     </div>
 </section>
-@include('clips.partials.viewer', ['viewerClips' => $nominations->map->clip, 'voteNominees' => $phase === 'voting' && (auth()->user()?->status?->name === 'ACTIVO' || auth()->user()?->hasRole('admin')) ? $nominations->filter(fn ($n) => $n->user_id !== auth()->id()) : collect()])
-@push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=5" defer></script>@endpush
+@include('clips.partials.viewer', ['viewerClips' => $nominations->map->clip, 'voteNominees' => $phase === 'voting' && $contest->allowsUser(auth()->user()) ? $nominations->filter(fn ($n) => $n->user_id !== auth()->id()) : collect()])
+@push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=7" defer></script>@endpush
 @endsection

@@ -6,10 +6,12 @@ use App\Filament\Resources\ClipYearContests\Pages\ListClipYearContest;
 use App\Filament\Resources\ClipYearContests\Pages\CreateClipYearContest;
 use App\Filament\Resources\ClipYearContests\Pages\EditClipYearContest;
 use App\Models\ClipYearContest;
+use App\Models\Status;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
@@ -36,6 +38,11 @@ class ClipYearContestResource extends Resource
         return $schema->components([
             TextInput::make('year')->label('Año')->numeric()->minValue(2026)->maxValue(2200)->required()->unique(ignoreRecord:true)->default($year),
             Toggle::make('enabled')->label('Habilitar concurso')->default(false),
+            Select::make('allowed_status_ids')->label('Estados que pueden participar')
+                ->options(fn (): array => Status::query()->orderBy('name')->pluck('name', 'id')->all())
+                ->multiple()->searchable()->required()
+                ->default(fn (): array => Status::query()->where('name', 'ACTIVO')->pluck('id')->all())
+                ->helperText('Solo estos estados pueden presentar candidatos, votar y recibir avisos del concurso.'),
             DateTimePicker::make('nomination_starts_at')->label('Inicio de candidaturas')->required()->seconds(false)->default("$year-11-01 00:00:00"),
             DateTimePicker::make('nomination_ends_at')->label('Fin de candidaturas')->required()->seconds(false)->after('nomination_starts_at')->default("$year-11-30 23:59:59"),
             DateTimePicker::make('voting_starts_at')->label('Inicio de votación')->required()->seconds(false)->after('nomination_ends_at')->default("$year-12-01 00:00:00"),

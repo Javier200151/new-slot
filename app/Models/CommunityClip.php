@@ -39,6 +39,20 @@ class CommunityClip extends Model
         return $this->belongsTo(User::class, 'protagonist_user_id');
     }
 
+    public function protagonists()
+    {
+        return $this->belongsToMany(User::class, 'community_clip_protagonists', 'community_clip_id', 'user_id');
+    }
+
+    public function protagonistNames(): array
+    {
+        $names = $this->protagonists->pluck('nick')->filter()->values()->all();
+        if ($names === [] && $this->protagonist?->nick) {
+            $names = [$this->protagonist->nick];
+        }
+        return array_values(array_unique($names));
+    }
+
     public function streamer()
     {
         return $this->belongsTo(Streamer::class);

@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
 class TwitchCategorySetting extends Model
 {
+    use Auditable;
+
     protected $fillable = ['allowed_categories', 'title_keywords', 'excluded_vod_ids'];
 
     protected function casts(): array

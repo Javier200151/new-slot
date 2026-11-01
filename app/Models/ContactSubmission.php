@@ -2,11 +2,35 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+use Spatie\Activitylog\Support\LogOptions;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class ContactSubmission extends Model
 {
+    use Auditable;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('audit')
+            ->logOnly([
+                'recruitment_review_status',
+                'recruitment_reviewed_at',
+                'recruitment_reviewed_by',
+                'recruitment_interviewer_user_id',
+                'recruitment_matched_user_id',
+                'recruited_at',
+                'recruitment_tier',
+                'recruitment_tier_marked_by',
+                'recruitment_tier_marked_at',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
     public const REVIEW_UNREVIEWED = 'unreviewed';
     public const REVIEW_DISCARDED = 'discarded';
     public const REVIEW_APPROVED = 'approved';

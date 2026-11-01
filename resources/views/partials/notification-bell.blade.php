@@ -217,6 +217,8 @@
                         )
                             📋
 
+                        @elseif($type === 'clip_year_phase')
+                            ☠
                         @elseif(
                             $type
                             === 'event_slot_changed'
@@ -251,6 +253,10 @@
                                 cumple años hoy. ¡Felicidades! 🎉
                             </span>
 
+                        @elseif($type === 'clip_year_phase')
+                            <strong>{{ $data['title'] ?? 'Clip del año' }}</strong>
+                            <span>{{ $data['message'] ?? 'Hay novedades del concurso.' }}</span>
+                            <small>Edición {{ $data['year'] ?? '' }}</small>
                         @elseif(
                             $type
                             === 'event_published'

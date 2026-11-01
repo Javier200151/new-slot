@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 use Illuminate\Database\Eloquent\Model;
 
 class ClipYearNomination extends Model
 {
+    use Auditable;
+
     protected $fillable = ['contest_id','user_id','community_clip_id','description','is_approved'];
     protected function casts(): array { return ['is_approved'=>'boolean']; }
     public function contest() { return $this->belongsTo(ClipYearContest::class,'contest_id'); }

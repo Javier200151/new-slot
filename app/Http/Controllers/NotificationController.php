@@ -90,6 +90,9 @@ class NotificationController extends Controller
             'community_subscription_update' =>
                 $this->redirectToCommunitySubscription($data),
 
+            'clip_year_phase' =>
+                redirect()->route('clips.year'),
+
             default =>
                 redirect()->route('home'),
         };

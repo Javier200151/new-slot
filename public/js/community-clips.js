@@ -164,7 +164,7 @@
       voteForm.hidden = !voteUrl;
       if (voteUrl) { voteForm.action = voteUrl; voteForm.querySelectorAll('input[name="skulls"]').forEach(el => {el.checked = false;}); }
     }
-    if (context) context.textContent = [clip.event, clip.protagonist ? `Protagonista: ${clip.protagonist}` : null].filter(Boolean).join(' · ');
+    if (context) context.textContent = [clip.event, clip.protagonists?.length ? `Protagonistas: ${clip.protagonists.join(', ')}` : null].filter(Boolean).join(' · ');
     frame.title = clip.title || 'Clip de la comunidad';
     frame.src = clip.embed;
     modal.querySelector('[data-clip-prev]').disabled = clips.length < 2;
@@ -265,3 +265,53 @@
     document.addEventListener('click', event => { if (!root.contains(event.target)) { results.hidden=true; input.setAttribute('aria-expanded','false'); } });
   });
 })();
+
+
+// Búsqueda de protagonistas múltiples; la selección se envía como IDs validados en el servidor.
+document.querySelectorAll('[data-clip-multi-lookup]').forEach(root => {
+  const input = root.querySelector('input[type="text"]');
+  const hidden = root.querySelector('input[type="hidden"]');
+  const choices = root.querySelector('[role="listbox"]');
+  const selected = root.querySelector('[data-clip-selected-users]');
+  const ids = new Map();
+  let timer = null;
+  let controller = null;
+  function render() {
+    hidden.value = [...ids.keys()].join(',');
+    selected.replaceChildren();
+    ids.forEach((nick,id) => {
+      const chip = document.createElement('button'); chip.type = 'button';
+      chip.className = 'sqa-clip-user-chip';
+      chip.textContent = `${nick} ×`;
+      chip.setAttribute('aria-label', `Quitar ${nick}`);
+      chip.addEventListener('click', () => { ids.delete(id); render(); });
+      selected.append(chip);
+    });
+  }
+  input.addEventListener('input', () => {
+    clearTimeout(timer); controller?.abort();
+    choices.replaceChildren(); choices.hidden = true;
+    const q = input.value.trim();
+    if (q.length < 2) return;
+    timer = setTimeout(async () => {
+      controller = new AbortController();
+      try {
+        const response = await fetch(root.dataset.url + '?' + new URLSearchParams({kind:'users',q}),
+          {credentials:'same-origin',signal:controller.signal,headers:{Accept:'application/json'}});
+        if (!response.ok || q !== input.value.trim()) return;
+        const items = await response.json();
+        items.forEach(item => {
+          if (ids.has(String(item.id))) return;
+          const option = document.createElement('button'); option.type='button';
+          option.setAttribute('role','option'); option.textContent=item.label;
+          option.addEventListener('click', () => {
+            if (ids.size >= 12) return;
+            ids.set(String(item.id),item.label); render(); input.value=''; choices.hidden=true;
+          });
+          choices.append(option);
+        });
+        choices.hidden = choices.childElementCount === 0;
+      } catch (err) { if (err.name !== 'AbortError') choices.hidden = true; }
+    }, 200);
+  });
+});
