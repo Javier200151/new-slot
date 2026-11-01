@@ -1,6 +1,6 @@
 @extends('layouts.metopas')
 @section('title', 'Clip del año · Squad ALPHA')
-@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=7">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=15">@endpush
 @section('content')
 <section class="sqa-clips-page container sqa-year-page">
     <header class="sqa-clips-intro"><span class="section-label">SQUAD ALPHA · CONCURSO ANUAL</span>
@@ -10,10 +10,25 @@
            @elseif($phase === 'results') Estos son los resultados del concurso.
            @else El concurso todavía no está abierto. @endif</p>
     </header>
+    @php
+        $showYearRules = trim($contest->rulesText()) !== '';
+        $canSubmitYearClip = $phase === 'nominations' && $contest->allowsUser(auth()->user());
+        $hasSubmittedYearClip = $canSubmitYearClip && $contest->nominations()->where('user_id', auth()->id())->exists();
+    @endphp
     @if(session('success'))<p class="sqa-clips-success">{{ session('success') }}</p>@endif
     @if($errors->any())<div class="sqa-clips-error">{{ $errors->first() }}</div>@endif
-    @if($phase === 'nominations' && $contest->allowsUser(auth()->user()))
-        @if(! $contest->nominations()->where('user_id', auth()->id())->exists())
+    @if($showYearRules || $canSubmitYearClip)
+        <div @class(['sqa-year-intro-grid', 'sqa-year-intro-grid--two-col' => $showYearRules && $canSubmitYearClip])>
+            @if($showYearRules)
+                <section class="sqa-year-rules" aria-labelledby="sqa-year-rules-heading">
+                    <details open>
+                        <summary id="sqa-year-rules-heading">Bases y condiciones del concurso</summary>
+                        <div class="sqa-year-rules__body">{{ $contest->rulesText() }}</div>
+                    </details>
+                </section>
+            @endif
+            @if($canSubmitYearClip)
+                @if(! $hasSubmittedYearClip)
             <form action="{{ route('clips.year.nominate') }}" method="POST" class="sqa-clips-submit">
                 @csrf <h2>Presentar candidato</h2>
                 <label for="nomination-url">Enlace de Twitch Clips o YouTube Shorts</label>
@@ -37,7 +52,11 @@
                 </div>
                 <button type="submit">Presentar clip</button>
             </form>
-        @else<p>Ya has presentado tu candidato para esta edición.</p>@endif
+                @else
+                    <p class="sqa-year-already-submitted">Ya has presentado tu candidato para esta edición.</p>
+                @endif
+            @endif
+        </div>
     @endif
     <div class="sqa-clips-list">
       @forelse($nominations as $entry)
@@ -56,7 +75,7 @@
                         @csrf
                         <span>¿Cuántas calaveras merece?</span>
                         <div class="sqa-clip-skulls__options">
-                          @for($n=1;$n<=5;$n++)<label><input type="radio" name="skulls" value="{{ $n }}" required><span title="{{ $n }} calaveras">☠</span></label>@endfor
+                          @for($n=1;$n<=5;$n++)<label><input type="radio" name="skulls" value="{{ $n }}" required><span title="{{ $n }} calaveras">💀</span></label>@endfor
                         </div>
                         <button type="submit">Guardar valoración</button>
                     </form>
@@ -66,6 +85,6 @@
       @empty<p>Aún no hay candidatos.</p>@endforelse
     </div>
 </section>
-@include('clips.partials.viewer', ['viewerClips' => $nominations->map->clip, 'voteNominees' => $phase === 'voting' && $contest->allowsUser(auth()->user()) ? $nominations->filter(fn ($n) => $n->user_id !== auth()->id()) : collect()])
-@push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=7" defer></script>@endpush
+@include('clips.partials.viewer', ['viewerClips' => $nominations->map->clip, 'viewerContest' => $contest])
+@push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=14" defer></script>@endpush
 @endsection

@@ -26,7 +26,7 @@
         href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}"
     >
     <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
-    <link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=7">
+    <link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=15">
 </head>
 
 <body
@@ -697,7 +697,7 @@
     <script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
     <script src="{{ asset('js/home-bulletin.js') }}?v={{ filemtime(public_path('js/home-bulletin.js')) }}" defer></script>
 
-    <script src="{{ asset('js/community-clips.js') }}?v=7" defer></script>
+    <script src="{{ asset('js/community-clips.js') }}?v=14" defer></script>
 </body>
 </html>
 

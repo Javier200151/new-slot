@@ -136,9 +136,9 @@
 
 @auth
     @if($clipYearShortcut = \App\Models\ClipYearContest::current())
-        @if($clipYearShortcut->allowsUser(auth()->user()) && in_array($clipYearShortcut->phase(), ['nominations', 'voting'], true))
-            <a class="sqa-year-shortcut" href="{{ route('clips.year') }}">
-                ☠ {{ $clipYearShortcut->phase() === 'nominations' ? 'Presenta tu clip del año' : 'Vota el clip del año' }}
+        @if(! request()->routeIs('clips.year') && $clipYearShortcut->allowsUser(auth()->user()) && in_array($clipYearShortcut->phase(), ['nominations', 'voting'], true))
+            <a class="sqa-year-shortcut{{ $clipYearShortcut->phase() === 'nominations' ? ' sqa-year-shortcut--nominations' : '' }}" href="{{ route('clips.year') }}">
+                ☠ {{ $clipYearShortcut->tabText() }}
             </a>
         @endif
     @endif
