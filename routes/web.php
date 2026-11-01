@@ -560,10 +560,12 @@ Route::middleware([
 Route::get('/clips', [CommunityClipController::class, 'index'])->name('clips.index');
 Route::get('/clips/{clip}', [CommunityClipController::class, 'show'])->whereNumber('clip')->name('clips.show');
 Route::get('/clips/{clip}/comentarios', [CommunityClipInteractionController::class, 'comments'])->whereNumber('clip')->middleware('throttle:60,1')->name('clips.comments.index');
-Route::get('/clip-del-ano', [ClipYearController::class, 'index'])->name('clips.year');
+Route::get('/clip-awards', [ClipYearController::class, 'index'])->name('clips.year');
+// Mantener los enlaces antiguos, incluidos los que consultan una edicion por ?year=.
+Route::get('/clip-del-ano', fn (\Illuminate\Http\Request $request) => redirect()->route('clips.year', $request->query(), 301));
 Route::middleware('auth')->group(function (): void {
-    Route::post('/clip-del-ano/candidatos', [ClipYearController::class, 'nominate'])->middleware('throttle:4,1')->name('clips.year.nominate');
-    Route::post('/clip-del-ano/valorar/{nomination}', [ClipYearController::class, 'vote'])->middleware('throttle:20,1')->name('clips.year.vote');
+    Route::post('/clip-awards/candidatos', [ClipYearController::class, 'nominate'])->middleware('throttle:4,1')->name('clips.year.nominate');
+    Route::post('/clip-awards/valorar/{nomination}', [ClipYearController::class, 'vote'])->middleware('throttle:20,1')->name('clips.year.vote');
 });
 Route::middleware('auth')->group(function (): void {
     Route::post('/clips/{clip}/me-gusta', [CommunityClipInteractionController::class, 'like'])->middleware('throttle:60,1')->name('clips.likes.toggle');
