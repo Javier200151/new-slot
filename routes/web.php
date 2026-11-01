@@ -31,6 +31,10 @@ use App\Http\Controllers\PublicUserController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PublicStreamerController;
 use App\Http\Controllers\StreamerBroadcastController;
+use App\Http\Controllers\CommunityClipController;
+use App\Http\Controllers\CommunityClipInteractionController;
+use App\Http\Controllers\ClipYearController;
+use App\Http\Controllers\StreamerVodController;
 use App\Http\Controllers\MemberProcedureEmailPreviewController;
 use App\Http\Controllers\BriefingImageController;
 use App\Http\Controllers\BbcodePreviewController;
@@ -551,6 +555,29 @@ Route::middleware([
         '/directos/mi-emision/{event}',
         [StreamerBroadcastController::class, 'destroy']
     )->name('streams.mine.destroy');
+});
+
+Route::get('/clips', [CommunityClipController::class, 'index'])->name('clips.index');
+Route::get('/clips/{clip}', [CommunityClipController::class, 'show'])->whereNumber('clip')->name('clips.show');
+Route::get('/clips/{clip}/comentarios', [CommunityClipInteractionController::class, 'comments'])->whereNumber('clip')->middleware('throttle:60,1')->name('clips.comments.index');
+Route::get('/clip-del-ano', [ClipYearController::class, 'index'])->name('clips.year');
+Route::middleware('auth')->group(function (): void {
+    Route::post('/clip-del-ano/candidatos', [ClipYearController::class, 'nominate'])->middleware('throttle:4,1')->name('clips.year.nominate');
+    Route::post('/clip-del-ano/valorar/{nomination}', [ClipYearController::class, 'vote'])->middleware('throttle:20,1')->name('clips.year.vote');
+});
+Route::middleware('auth')->group(function (): void {
+    Route::post('/clips/{clip}/me-gusta', [CommunityClipInteractionController::class, 'like'])->middleware('throttle:60,1')->name('clips.likes.toggle');
+    Route::post('/clips/{clip}/comentarios', [CommunityClipInteractionController::class, 'storeComment'])->middleware('throttle:12,1')->name('clips.comments.store');
+    Route::delete('/clips/{clip}/comentarios/{comment}', [CommunityClipInteractionController::class, 'destroyComment'])->middleware('throttle:20,1')->name('clips.comments.destroy');
+    // Todos los miembros ACTIVO pueden compartir clips, con o sin correo verificado.
+    Route::get('/clips/buscar', [CommunityClipController::class, 'lookup'])->middleware('throttle:30,1')->name('clips.lookup');
+    Route::post('/clips', [CommunityClipController::class, 'store'])->middleware('throttle:8,1')->name('clips.store');
+    Route::delete('/clips/{clip}', [CommunityClipController::class, 'destroy'])->name('clips.destroy');
+});
+Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('/directos/buscar-eventos-vod', [StreamerVodController::class, 'lookupEvents'])->middleware('throttle:30,1')->name('streams.vods.events');
+    Route::post('/directos/mis-vods', [StreamerVodController::class, 'store'])->middleware('throttle:6,1')->name('streams.vods.store');
+    Route::delete('/directos/mis-vods/{stream}', [StreamerVodController::class, 'destroy'])->name('streams.vods.destroy');
 });
 
 /*

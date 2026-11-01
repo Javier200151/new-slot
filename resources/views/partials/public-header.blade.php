@@ -134,6 +134,18 @@
 
 @include('partials.public-quick-access')
 
+@auth
+    @if(auth()->user()->status?->name === 'ACTIVO' || auth()->user()->hasRole('admin'))
+        @php($clipYearShortcut = \App\Models\ClipYearContest::current())
+        @if($clipYearShortcut && in_array($clipYearShortcut->phase(), ['nominations', 'voting'], true))
+            <a class="sqa-year-shortcut" href="{{ route('clips.year') }}">
+                ☠ {{ $clipYearShortcut->phase() === 'nominations' ? 'Presenta tu clip del año' : 'Vota el clip del año' }}
+            </a>
+        @endif
+    @endif
+@endauth
+
+
 {{-- Conmemoración de la operación Fallujah: visible solo el 27 de abril o por activación administrativa. --}}
 @include('partials.fallujah-easter-egg')
 

@@ -957,3 +957,11 @@
     font-weight: 900;
     letter-spacing: 1px;
 }
+
+/* Búsqueda del evento al compartir un VOD propio */
+.sqa-stream-vod-event{position:relative;display:grid;gap:7px;max-width:600px}
+.sqa-stream-vod-event input[type="search"]{min-width:0;padding:10px;border:1px solid #677080;border-radius:7px;color:#fff;background:#111920}
+.sqa-stream-vod-event__results{position:absolute;top:100%;left:0;right:0;z-index:20;max-height:240px;overflow:auto;border:1px solid #495360;border-radius:8px;background:#161e29;box-shadow:0 14px 27px #0009}
+.sqa-stream-vod-event__results[hidden]{display:none}
+.sqa-stream-vod-event__results button{display:block;width:100%;text-align:left;border:0;background:transparent;color:#e5e7eb;padding:10px;cursor:pointer}
+.sqa-stream-vod-event__results button:hover{background:#293341}

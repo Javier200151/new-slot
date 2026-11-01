@@ -54,6 +54,9 @@ class PublicStreamerController extends Controller
          * Streamer asociado al usuario actual.
          */
         $myStreamer = $request->user()?->streamer;
+        $myVods = $myStreamer && $myStreamer->enable
+            ? Stream::query()->where('streamer_id', $myStreamer->id)->where('is_vod', true)->orderByDesc('published_at')->limit(30)->get()
+            : collect();
 
         /*
          * Eventos disponibles para la publicación manual de respaldo.
@@ -110,6 +113,7 @@ class PublicStreamerController extends Controller
                 'activeStreams',
                 'activeStreamerIds',
                 'myStreamer',
+                'myVods',
                 'myActiveStream',
                 'myAutomaticStreams',
                 'availableEvents',

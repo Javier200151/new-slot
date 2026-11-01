@@ -10,7 +10,7 @@
 @push('styles')
     <link
         rel="stylesheet"
-        href="{{ asset('css/streams.css') }}"
+        href="{{ asset('css/streams.css') }}?v=5"
     >
 @endpush
 
@@ -491,6 +491,36 @@
 
                     </header>
 
+                    @if(auth()->user()->hasVerifiedEmail())
+                      <div class="my-stream" style="margin:24px 0;padding:18px;border:1px solid #484b52;border-radius:12px">
+                        <h3>Mis VODs</h3>
+                        @if($errors->any())<p role="alert">{{ $errors->first() }}</p>@endif
+                        <form method="POST" action="{{ route('streams.vods.store') }}" style="display:grid;gap:10px;max-width:600px;margin:15px 0">
+                          @csrf
+                          <label>Enlace del VOD de Twitch o YouTube</label>
+                          <input name="url" type="url" maxlength="500" required placeholder="https://www.twitch.tv/videos/..." style="padding:10px;background:#111920;border:1px solid #677080;color:white;border-radius:7px">
+                          <label>Título (opcional)</label>
+                          <input name="title" maxlength="255" style="padding:10px;background:#111920;border:1px solid #677080;color:white;border-radius:7px">
+                          <div class="sqa-stream-vod-event" data-vod-event-lookup data-url="{{ route('streams.vods.events') }}">
+                            <label for="vod-event-search">Evento finalizado (opcional)</label>
+                            <input id="vod-event-search" type="search" autocomplete="off" placeholder="Buscar evento por nombre" aria-expanded="false" aria-autocomplete="list">
+                            <input type="hidden" name="event_id" value="">
+                            <div class="sqa-stream-vod-event__results" role="listbox" hidden></div>
+                          </div>
+                          <button type="submit" class="live-refresh-button">Añadir VOD</button>
+                        </form>
+                        @foreach($myVods as $vod)
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-top:1px solid #353d46">
+                            <a href="{{ $vod->stream_url }}" rel="noopener noreferrer" target="_blank">{{ $vod->title ?: 'Vídeo' }}</a>
+                            @if($vod->visible_on_home)
+                              <form method="POST" action="{{ route('streams.vods.destroy', $vod) }}" onsubmit="return confirm('¿Retirar este VOD de Squad ALPHA?')">@csrf @method('DELETE')<button type="submit" class="live-refresh-button">Retirar de portada</button></form>
+                            @else
+                              <small>Oculto</small>
+                            @endif
+                          </div>
+                        @endforeach
+                      </div>
+                    @endif
 
                     @if(
                         ! auth()
@@ -1131,6 +1161,7 @@
 
 @endsection
 @push('scripts')
+    <script src="{{ asset('js/streamer-vod-events.js') }}?v=1" defer></script>
     <script
         src="{{ asset('js/streams.js') }}"
         defer

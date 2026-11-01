@@ -74,7 +74,8 @@ class StreamsTable
                     ->label(fn (Stream $record): string => $record->visible_on_home ? 'Esconder VOD' : 'Mostrar VOD')
                     ->icon(fn (Stream $record): string => $record->visible_on_home ? 'heroicon-o-eye-slash' : 'heroicon-o-eye')
                     ->color(fn (Stream $record): string => $record->visible_on_home ? 'warning' : 'success')
-                    ->visible(fn (Stream $record): bool => $record->isVodForHome())
+                    ->visible(fn (Stream $record): bool => $record->isVodForHome() && (bool) (auth()->user()?->hasRole('admin') || auth()->user()?->can('streamer-vods.manage')))
+                    ->authorize('update')
                     ->requiresConfirmation()
                     ->modalHeading(fn (Stream $record): string => $record->visible_on_home ? '¿Esconder este VOD?' : '¿Mostrar este VOD?')
                     ->modalDescription('Esta acción solo cambia si el vídeo aparece en la portada. No borra la emisión.')
@@ -89,7 +90,7 @@ class StreamsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->after(fn () => app(HomepageVodService::class)->invalidateCache()),
                 ]),
             ]);
     }

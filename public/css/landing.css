@@ -3429,3 +3429,8 @@ input:focus-visible {
 /* Tablón: las veteranías ocupan una fila propia y no estiran otros anuncios. */
 .home-news-grid > .home-news-card--veterancy{grid-column:1 / -1}
 .home-news-card--veterancy .home-veterancy-groups{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));align-items:start}
+
+/* Acceso lateral al Clip del año en las páginas públicas */
+.sqa-year-shortcut{position:fixed;right:84px;top:50%;z-index:95;transform:translateY(-50%);display:block;padding:12px 14px;background:#16130b;color:#ffb52b;border:1px solid #cc850e;border-radius:11px;box-shadow:0 9px 30px #0009;text-decoration:none;font-weight:700;font-size:13px;max-width:185px}
+.sqa-year-shortcut:hover{background:#30230f;color:#ffd078}
+@media(max-width:767px){.sqa-year-shortcut{top:auto;bottom:85px;right:68px;transform:none;max-width:165px;font-size:11px}}

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\HomepageNews;
+use App\Models\CommunityClip;
+use App\Models\ClipYearContest;
 use App\Models\HomepageSetting;
 use App\Services\HomepageGooglePhotosService;
 use App\Services\HomepageInstagramService;
@@ -51,6 +53,12 @@ class HomeController extends Controller
             ->get();
 
         $vods = $vodService->latest(6);
+        $clips = CommunityClip::visible()->recent()->with(['user','event','protagonist'])->withCount(['likes','comments'])->inRandomOrder()->limit(4)->get();
+        $clipYearContest = ClipYearContest::current();
+        $clipYearWinners = ($clipYearContest && $clipYearContest->phase() === 'results')
+            ? $clipYearContest->nominations()->where('is_approved',true)->with('clip')
+                ->whereHas('votes')->withCount('votes')->withAvg('votes','skulls')->orderByDesc('votes_avg_skulls')->orderByDesc('votes_count')->limit(3)->get()
+            : collect();
         $instagramPosts = $instagramService->latest(3);
         $googlePhotosAlbumUrl = trim((string) ($settings->google_photos_url ?: config('services.google_photos.album_url')));
         $googlePhotos = $googlePhotosService->latest(6, $googlePhotosAlbumUrl);
@@ -63,6 +71,9 @@ class HomeController extends Controller
             'canViewNews',
             'news',
             'vods',
+            'clips',
+            'clipYearContest',
+            'clipYearWinners',
             'instagramPosts',
             'googlePhotos',
             'googlePhotosAlbumUrl',

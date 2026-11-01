@@ -41,3 +41,6 @@ Schedule::command('treasury:sync-monthly-control')
 
 // Requires an operational Laravel scheduler (php artisan schedule:run every minute).
 Schedule::command('wiki:revoke-pending')->everyMinute()->withoutOverlapping();
+
+Schedule::command('clips:import-twitch')->everyThirtyMinutes()->withoutOverlapping();
+Schedule::command('clips:import-youtube')->hourly()->withoutOverlapping();
