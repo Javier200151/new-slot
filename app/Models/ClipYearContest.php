@@ -25,7 +25,7 @@ class ClipYearContest extends Model
             'Solo pueden presentar candidaturas y votar los miembros cuyos estados estén autorizados para esta edición. Las fechas y los estados permitidos se configuran desde Squad ALPHA.',
             '',
             '2. CANDIDATURAS',
-            'Cada participante puede presentar un único clip por edición, dentro del plazo establecido. Se aceptan enlaces públicos de clips de Twitch o YouTube Shorts compatibles con la web.',
+            'Cada participante puede presentar un único clip por edición, dentro del plazo establecido. Se aceptan enlaces públicos de clips de Twitch o vídeos de YouTube (incluidos Shorts) compatibles con la web.',
             '',
             '3. INFORMACIÓN DEL CLIP',
             'La descripción, el evento en el que ocurrió y los miembros protagonistas son opcionales. Si se indican, deben corresponder al contenido del clip.',

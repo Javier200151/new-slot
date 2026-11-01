@@ -564,7 +564,7 @@ Route::get('/clip-awards', [ClipYearController::class, 'index'])->name('clips.ye
 // Mantener los enlaces antiguos, incluidos los que consultan una edicion por ?year=.
 Route::get('/clip-del-ano', fn (\Illuminate\Http\Request $request) => redirect()->route('clips.year', $request->query(), 301));
 Route::middleware('auth')->group(function (): void {
-    Route::post('/clip-awards/candidatos', [ClipYearController::class, 'nominate'])->middleware('throttle:4,1')->name('clips.year.nominate');
+    Route::post('/clip-awards/candidatos', [ClipYearController::class, 'nominate'])->name('clips.year.nominate');
     Route::post('/clip-awards/valorar/{nomination}', [ClipYearController::class, 'vote'])->middleware('throttle:20,1')->name('clips.year.vote');
 });
 Route::middleware('auth')->group(function (): void {
@@ -573,7 +573,7 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/clips/{clip}/comentarios/{comment}', [CommunityClipInteractionController::class, 'destroyComment'])->middleware('throttle:20,1')->name('clips.comments.destroy');
     // Todos los miembros ACTIVO pueden compartir clips, con o sin correo verificado.
     Route::get('/clips/buscar', [CommunityClipController::class, 'lookup'])->middleware('throttle:30,1')->name('clips.lookup');
-    Route::post('/clips', [CommunityClipController::class, 'store'])->middleware('throttle:8,1')->name('clips.store');
+    Route::post('/clips', [CommunityClipController::class, 'store'])->middleware('throttle:community-clips-publish')->name('clips.store');
     Route::delete('/clips/{clip}', [CommunityClipController::class, 'destroy'])->name('clips.destroy');
 });
 Route::middleware(['auth', 'verified'])->group(function (): void {

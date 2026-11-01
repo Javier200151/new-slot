@@ -31,7 +31,7 @@
                 @if(! $hasSubmittedYearClip)
             <form action="{{ route('clips.year.nominate') }}" method="POST" class="sqa-clips-submit">
                 @csrf <h2>Presentar candidato</h2>
-                <label for="nomination-url">Enlace de Twitch Clips o YouTube Shorts</label>
+                <label for="nomination-url">Enlace de Twitch Clips o YouTube (vídeo o Short)</label>
                 <input id="nomination-url" type="url" name="url" maxlength="600" required placeholder="https://clips.twitch.tv/..." value="{{ old('url') }}">
                 <label for="nomination-description">Descripción del momento (opcional)</label>
                 <textarea id="nomination-description" name="description" maxlength="900" rows="3">{{ old('description') }}</textarea>
