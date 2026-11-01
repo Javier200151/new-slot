@@ -213,3 +213,15 @@ body > .sqa-clip-viewer:not([hidden]){
 @media(max-width:767px){
   .sqa-clip-viewer__player > .sqa-clip-viewer__nav{display:none!important}
 }
+
+/* Paginación de la galería: tamaño fijo, independiente de estilos Tailwind. */
+.sqa-clips-pages{margin:24px auto 0;text-align:center;max-width:100%;}
+.sqa-clips-pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;max-width:100%;}
+.sqa-clips-page .sqa-clips-pagination__link{box-sizing:border-box;display:inline-flex;flex:0 0 36px;align-items:center;justify-content:center;width:36px;height:36px;padding:0;margin:0;border:1px solid #485160;border-radius:8px;background:#141b25;color:#e2e8f0;font-size:14px;font-weight:650;line-height:1;text-decoration:none;box-shadow:none;vertical-align:middle;}
+.sqa-clips-page a.sqa-clips-pagination__link:hover{color:#ffbd42;border-color:#c7891c;background:#242018;text-decoration:none;}
+.sqa-clips-page a.sqa-clips-pagination__link:focus-visible{outline:2px solid #f6ad32;outline-offset:2px;}
+.sqa-clips-page .sqa-clips-pagination__link.is-current{color:#12171e;border-color:#f0ae35;background:#f0ae35;cursor:default;}
+.sqa-clips-page .sqa-clips-pagination__link.is-disabled{opacity:.4;cursor:default;}
+.sqa-clips-pagination__ellipsis{display:inline-flex;align-items:center;justify-content:center;flex:0 0 15px;width:15px;height:36px;color:#9ca8b8;font-size:14px;}
+.sqa-clips-pagination__count{margin:9px 0 0;color:#9ca8b8;font-size:12px;line-height:1.4;}
+@media(max-width:400px){.sqa-clips-pagination{gap:4px}.sqa-clips-page .sqa-clips-pagination__link{flex-basis:33px;width:33px;height:33px;font-size:13px}}

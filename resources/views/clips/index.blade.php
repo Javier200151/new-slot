@@ -1,6 +1,6 @@
 @extends('layouts.metopas')
 @section('title', 'Clips de la comunidad')
-@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=15">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=19">@endpush
 @section('content')
 <section class="sqa-clips-page container">
   <header class="sqa-clips-intro">
@@ -57,7 +57,50 @@
       <p class="sqa-clips-empty">Todavía no hay clips publicados. ¡Comparte el primero!</p>
     @endforelse
   </div>
-  <div class="sqa-clips-pages">{{ $clips->links() }}</div>
+  @if($clips->hasPages())
+    @php
+      $firstVisiblePage = max(1, $clips->currentPage() - 1);
+      $lastVisiblePage = min($clips->lastPage(), $clips->currentPage() + 1);
+    @endphp
+    <nav class="sqa-clips-pages" aria-label="Paginación de clips">
+      <div class="sqa-clips-pagination">
+        @if($clips->onFirstPage())
+          <span class="sqa-clips-pagination__link is-disabled" aria-disabled="true" aria-label="Página anterior">‹</span>
+        @else
+          <a class="sqa-clips-pagination__link" href="{{ $clips->previousPageUrl() }}" rel="prev" aria-label="Página anterior">‹</a>
+        @endif
+
+        @if($firstVisiblePage > 1)
+          <a class="sqa-clips-pagination__link" href="{{ $clips->url(1) }}" aria-label="Página 1">1</a>
+          @if($firstVisiblePage > 2)
+            <span class="sqa-clips-pagination__ellipsis" aria-hidden="true">…</span>
+          @endif
+        @endif
+
+        @for($page = $firstVisiblePage; $page <= $lastVisiblePage; $page++)
+          @if($page === $clips->currentPage())
+            <span class="sqa-clips-pagination__link is-current" aria-current="page" aria-label="Página {{ $page }}">{{ $page }}</span>
+          @else
+            <a class="sqa-clips-pagination__link" href="{{ $clips->url($page) }}" aria-label="Página {{ $page }}">{{ $page }}</a>
+          @endif
+        @endfor
+
+        @if($lastVisiblePage < $clips->lastPage())
+          @if($lastVisiblePage < $clips->lastPage() - 1)
+            <span class="sqa-clips-pagination__ellipsis" aria-hidden="true">…</span>
+          @endif
+          <a class="sqa-clips-pagination__link" href="{{ $clips->url($clips->lastPage()) }}" aria-label="Última página">{{ $clips->lastPage() }}</a>
+        @endif
+
+        @if($clips->hasMorePages())
+          <a class="sqa-clips-pagination__link" href="{{ $clips->nextPageUrl() }}" rel="next" aria-label="Página siguiente">›</a>
+        @else
+          <span class="sqa-clips-pagination__link is-disabled" aria-disabled="true" aria-label="Página siguiente">›</span>
+        @endif
+      </div>
+      <p class="sqa-clips-pagination__count">Página {{ $clips->currentPage() }} de {{ $clips->lastPage() }}</p>
+    </nav>
+  @endif
 </section>
 @include('clips.partials.viewer', ['viewerClips' => $clips->items(), 'autoOpenClipId' => $autoOpenClipId ?? null])
 @push('scripts')<script src="{{ asset('js/community-clips.js') }}?v=14" defer></script>@endpush
