@@ -776,7 +776,7 @@
                                                 $clip->getEmbedUrl();
 
                                             $canDeleteClip =
-                                                auth()->check()
+                                                $clip->exists && auth()->check()
                                                 && (
                                                     (int) auth()->id()
                                                         === (int) $clip->user_id
@@ -899,6 +899,9 @@
 
                                                 <div class="event-media-card__actions">
 
+                                                    @if($clip->getAttribute('community_clip_id'))
+                                                        <a href="{{ route('clips.show', $clip->getAttribute('community_clip_id')) }}" class="event-media-card__community-link">Ver clip y comentarios</a>
+                                                    @endif
                                                     <a
                                                         href="{{ $clip->url }}"
                                                         target="_blank"
@@ -1054,7 +1057,7 @@
 
                                     @php
                                         $canDeleteVod =
-                                            auth()->check()
+                                            $vod->exists && auth()->check()
                                             && (
                                                 (int) auth()->id()
                                                     === (int) $vod->user_id

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Filament\Pages\EventCalendar;
+use App\Filament\Widgets\ActiveMemberInactivityWidget;
 use App\Filament\Widgets\PendingRecruitmentDismissalsWidget;
 use App\Filament\Widgets\PendingRecruitmentPromotionsWidget;
 use App\Filament\Widgets\PendingVeteranciesWidget;
@@ -21,6 +22,7 @@ class PersonalDashboardWidgetRegistry
     public const QUICK_LINKS = 'quick-links';
     public const QUICK_SEARCH = 'quick-search';
     public const PROCEDURE_NOTIFICATIONS = 'procedure-notifications';
+    public const ACTIVE_INACTIVITY = 'active-inactivity';
 
     public const GRID_COLUMNS = 4;
     public const GRID_ROWS_MAX = 4;
@@ -73,6 +75,15 @@ class PersonalDashboardWidgetRegistry
                 'label' => 'Veteranías pendientes de aprobar',
                 'description' => 'Veteranías alcanzadas que esperan aprobación administrativa.',
                 'component' => PendingVeteranciesWidget::class,
+                'default_size' => '2x2',
+                'min_size' => [2, 2],
+                'max_size' => [4, 4],
+                'configurable' => false,
+            ],
+            self::ACTIVE_INACTIVITY => [
+                'label' => 'Miembros sin jugar',
+                'description' => 'ACTIVOS con más tiempo sin participar. Consulta 1, 2, 3, 6 o 12 meses y el top 5.',
+                'component' => ActiveMemberInactivityWidget::class,
                 'default_size' => '2x2',
                 'min_size' => [2, 2],
                 'max_size' => [4, 4],
@@ -141,6 +152,7 @@ class PersonalDashboardWidgetRegistry
             self::RECRUITMENT_DISMISSALS,
             self::UPCOMING_VETERANCIES,
             self::PENDING_VETERANCIES,
+            self::ACTIVE_INACTIVITY,
         ];
     }
 

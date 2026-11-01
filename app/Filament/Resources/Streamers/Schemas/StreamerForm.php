@@ -47,6 +47,33 @@ class StreamerForm
                     ->maxLength(255)
                     ->nullable(),
 
+                Toggle::make('auto_import_clips')
+                    ->label('Importar clips de Twitch')
+                    ->default(false),
+
+                Toggle::make('auto_import_youtube_clips')
+                    ->label('Importar clips de YouTube')
+                    ->helperText('Importa vídeos cortos públicos de hasta 3 minutos del canal.')
+                    ->default(false),
+
+                Select::make('clip_import_window')
+                    ->label('Buscar clips de')
+                    ->options([
+                        '7d' => 'Últimos 7 días',
+                        '1m' => 'Último mes',
+                        '6m' => 'Últimos 6 meses',
+                        '1y' => 'Último año',
+                    ])
+                    ->default('7d')
+                    ->required(),
+
+                Select::make('clip_import_mode')
+                    ->label('Clips permitidos')
+                    ->helperText('En YouTube, Arma se identifica por el título o la descripción.')
+                    ->options(['all' => 'Todos los clips', 'arma' => 'Solo Arma 3 y Arma Reforger'])
+                    ->default('all')
+                    ->required(),
+
                 TextInput::make('youtube_channel')
                     ->label('Canal de YouTube')
                     ->placeholder('https://www.youtube.com/@usuario')

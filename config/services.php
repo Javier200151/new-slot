@@ -59,6 +59,10 @@ return [
         'client_secret' => env('TWITCH_CLIENT_SECRET'),
     ],
 
+    'youtube' => [
+        'api_key' => env('YOUTUBE_API_KEY'),
+    ],
+
     'instagram' => [
         'access_token' => env('INSTAGRAM_ACCESS_TOKEN'),
         'username' => env('INSTAGRAM_USERNAME', 'squadalpha_es'),

@@ -509,6 +509,12 @@ class PublicEventController extends Controller
                 )
                 ->values();
 
+        // Los clips y VODs vinculados desde sus propios apartados aparecen
+        // junto a la multimedia original, sin crear registros duplicados.
+        $linkedMedia = app(\App\Services\EventCommunityMediaService::class)->forEvent($event, $eventMedia);
+        $eventClips = $linkedMedia['clips'];
+        $eventVods = $linkedMedia['vods'];
+
 
         /*
         |--------------------------------------------------------------------------

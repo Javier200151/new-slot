@@ -29,6 +29,20 @@ class StreamersTable
                     ->boolean()
                     ->sortable(),
 
+                IconColumn::make('auto_import_clips')
+                    ->label('Clips Twitch')
+                    ->boolean(),
+
+                IconColumn::make('auto_import_youtube_clips')
+                    ->label('Clips YouTube')
+                    ->boolean(),
+
+                TextColumn::make('clip_import_window')
+                    ->label('Período')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        '1m' => '1 mes', '6m' => '6 meses', '1y' => '1 año', default => '7 días',
+                    }),
+
                 TextColumn::make('twitch_channel')
                     ->label('Twitch')
                     ->url(fn ($state): ?string => $state)

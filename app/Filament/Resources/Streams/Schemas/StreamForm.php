@@ -10,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Database\Eloquent\Builder;
 
 class StreamForm
@@ -39,7 +40,7 @@ class StreamForm
                     )
                     ->searchable()
                     ->preload()
-                    ->required(fn (?Stream $record): bool => ! ($record?->auto_detected ?? false))
+                    ->required(fn (Get $get, ?Stream $record): bool => ! (bool) $get('is_vod') && ! ($record?->auto_detected ?? false))
                     ->helperText('Las emisiones detectadas automáticamente pueden no tener evento asociado.'),
 
                 Select::make('streamer_id')
@@ -85,6 +86,19 @@ class StreamForm
                     ->required()
                     ->maxLength(500)
                     ->columnSpanFull(),
+
+                Toggle::make('is_vod')
+                    ->label('Es un VOD')
+                    ->default(false)
+                    ->live()
+                    ->visible(fn (): bool => (bool) (auth()->user()?->hasRole('admin') || auth()->user()?->can('streamer-vods.manage'))),
+
+                Toggle::make('visible_on_home')
+                    ->label('Mostrar VOD en portada')
+                    ->default(true)
+                    ->visible(fn (Get $get, ?Stream $record): bool =>
+                        (bool) (auth()->user()?->hasRole('admin') || auth()->user()?->can('streamer-vods.manage'))
+                        && ((bool) $get('is_vod') || (bool) $record?->isVodForHome())),
 
                 Toggle::make('enabled')
                     ->label('Emisión visible')

@@ -862,3 +862,26 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Seguimiento de miembros ACTIVO: filtro y listado compacto en el dashboard personal. */
+.ns-pd-inactivity-card { display:flex; flex-direction:column; min-height:0; }
+.ns-pd-inactivity-header { align-items:flex-start; flex-wrap:wrap; gap:.65rem; }
+.ns-pd-inactivity-filter { display:flex; align-items:center; gap:.45rem; color:#64748b; font-size:.73rem; font-weight:650; }
+.ns-pd-inactivity-filter select { max-width:12rem; min-width:8.5rem; padding:.42rem .65rem; border:1px solid rgba(148,163,184,.42); border-radius:.6rem; background:#fff; color:#1e293b; font:inherit; }
+.dark .ns-pd-inactivity-filter { color:#94a3b8; }
+.dark .ns-pd-inactivity-filter select { background:#0f172a; border-color:rgba(148,163,184,.3); color:#f1f5f9; }
+.ns-pd-inactivity-filter select:focus-visible { outline:2px solid #f59e0b; outline-offset:2px; }
+.ns-pd-inactivity-summary { color:#64748b; font-size:.76rem; line-height:1.5; margin-bottom:.75rem; }
+.dark .ns-pd-inactivity-summary { color:#94a3b8; }
+.ns-pd-inactivity-list { min-height:0; overflow-y:auto; display:grid; align-content:start; gap:.4rem; padding-right:.15rem; }
+.ns-pd-inactivity-row { min-width:0; display:flex; justify-content:space-between; align-items:center; gap:.75rem; padding:.65rem .75rem; border:1px solid rgba(148,163,184,.22); border-radius:.65rem; background:rgba(148,163,184,.045); }
+.dark .ns-pd-inactivity-row { background:rgba(15,23,42,.55); border-color:rgba(148,163,184,.16); }
+.ns-pd-inactivity-person { display:grid; min-width:0; gap:.14rem; }
+.ns-pd-inactivity-name { min-width:0; overflow-wrap:anywhere; font-size:.84rem; font-weight:700; color:#1e293b; text-decoration:none; }
+.dark .ns-pd-inactivity-name { color:#e2e8f0; }
+a.ns-pd-inactivity-name:hover { color:#d97706; text-decoration:underline; }
+.ns-pd-inactivity-person small { font-size:.69rem; color:#64748b; }
+.dark .ns-pd-inactivity-person small { color:#94a3b8; }
+.ns-pd-inactivity-days { flex:none; padding:.3rem .5rem; font-weight:700; font-size:.74rem; white-space:nowrap; color:#b45309; border-radius:.5rem; background:rgba(245,158,11,.1); }
+.dark .ns-pd-inactivity-days { color:#fbbf24; }
+@media (max-width:650px) { .ns-pd-inactivity-filter { width:100%; justify-content:space-between; } .ns-pd-inactivity-filter select { flex:1; } }

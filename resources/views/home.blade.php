@@ -26,6 +26,7 @@
         href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}"
     >
     <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=5">
 </head>
 
 <body
@@ -41,6 +42,7 @@
         </div>
     @endif
     @include('partials.public-header')
+
 
     <main>
 
@@ -357,6 +359,42 @@
             </div>
         </section>
 
+        {{-- CLIPS DE LA COMUNIDAD --}}
+        @if($clipYearContest && $clipYearContest->phase() === 'results' && $clipYearWinners->isNotEmpty())
+            <section class="home-vods-section sqa-year-winners">
+                <div class="container"><h2>Clip del año {{ $clipYearContest->year }}</h2>
+                    <div class="sqa-year-winners__items">
+                        @foreach($clipYearWinners as $winner)
+                            <a href="{{ route('clips.year') }}"><strong>{{ $loop->iteration }}.º puesto</strong> · {{ $winner->clip?->title }}</a>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+        <section class="home-vods-section" id="clips-semana">
+          <div class="container">
+            <div class="sqa-clips-home">
+              <div class="sqa-clips-home__head"><h3>Clips de la semana</h3><a href="{{ route('clips.index') }}">Ver todos los clips →</a></div>
+              @if($clips->isNotEmpty())
+                <div class="sqa-clips-list">
+                  @foreach($clips as $clip)
+                    <article class="sqa-clip-card">
+                      <button class="sqa-clip-card__open" type="button" data-clip-open="{{ $clip->id }}" aria-label="Reproducir {{ $clip->title }}">
+                        @if($clip->thumbnail_url)<img src="{{ $clip->thumbnail_url }}" alt="" loading="lazy">@else<div class="sqa-clip-card__placeholder">{{ strtoupper($clip->platform) }}</div>@endif
+                        <span class="sqa-clip-card__play">▶</span>
+                      </button>
+                      <div class="sqa-clip-card__info"><strong>{{ $clip->title }}</strong><small>{{ $clip->user?->nick ?? $clip->broadcaster_name ?? 'Squad ALPHA' }}</small></div>
+                    </article>
+                  @endforeach
+                </div>
+              @else
+                <div class="home-empty-state home-empty-state--vods"><p>Todavía no hay clips compartidos esta semana.</p><a class="home-text-link" href="{{ route('clips.index') }}">Compartir clip →</a></div>
+              @endif
+            </div>
+          </div>
+        </section>
+        @include('clips.partials.viewer', ['viewerClips' => $clips])
+
         {{-- CONTACTO / ALISTAMIENTO --}}
         <section id="alistamiento" class="home-contact-section">
             <div class="container home-contact-layout">
@@ -659,5 +697,7 @@
     <script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
     <script src="{{ asset('js/home-bulletin.js') }}?v={{ filemtime(public_path('js/home-bulletin.js')) }}" defer></script>
 
+    <script src="{{ asset('js/community-clips.js') }}?v=5" defer></script>
 </body>
 </html>
+
