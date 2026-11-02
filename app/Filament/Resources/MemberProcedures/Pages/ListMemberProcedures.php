@@ -17,6 +17,10 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ListMemberProcedures extends ListRecords
@@ -37,7 +41,28 @@ class ListMemberProcedures extends ListRecords
                 ->modalHeading('Alta de recluta')
                 ->modalDescription('Solo aparecen usuarios en estado USUARIO con una solicitud de alistamiento aprobada y vinculada, y sin otro procedimiento abierto.')
                 ->form([
-                    $this->userSelect(MemberProcedure::TYPE_RECRUITMENT_START, 'Usuario que inicia el reclutamiento'),
+                    $this->userSelect(MemberProcedure::TYPE_RECRUITMENT_START, 'Usuario que inicia el reclutamiento')
+                        ->live()
+                        ->afterStateUpdated(function ($state, Set $set): void {
+                            $set('recruit_nickname', User::query()->whereKey((int) $state)->value('nick') ?? '');
+                        }),
+                    TextInput::make('recruit_nickname')
+                        ->label('Nickname que tendrá el recluta')
+                        ->required()
+                        ->minLength(3)
+                        ->maxLength(30)
+                        ->rules(fn (Get $get): array => [
+                            'regex:/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/',
+                            Rule::unique('users', 'nick')->ignore((int) $get('user_id')),
+                        ])
+                        ->validationMessages([
+                            'required' => 'Indica el nickname definitivo del recluta.',
+                            'min' => 'El nickname debe tener al menos 3 caracteres.',
+                            'max' => 'El nickname no puede tener más de 30 caracteres.',
+                            'regex' => 'Utiliza letras sin tildes, números, guiones, guiones bajos o puntos.',
+                            'unique' => 'Este nickname ya lo utiliza otra cuenta.',
+                        ])
+                        ->helperText('Se rellena con el nick actual del usuario. Puedes cambiarlo antes del alta; será el nombre que se use en Squad ALPHA, Tesorería y las sincronizaciones.'),
                     ...ProcedureForumThreadFields::fields(),
                 ])
                 ->action(fn (array $data, MemberProcedureEngine $engine) => $this->startProcedure($engine, MemberProcedure::TYPE_RECRUITMENT_START, $data)),
@@ -187,11 +212,16 @@ class ListMemberProcedures extends ListRecords
     ): void {
         try {
             $user = User::query()->findOrFail((int) $data['user_id']);
+            if ($type === MemberProcedure::TYPE_RECRUITMENT_START) {
+                $input['recruit_nickname'] = trim((string) ($data['recruit_nickname'] ?? ''));
+            }
             $postId = ProcedureForumThreadFields::validatedPostId($data);
             if ($postId !== null) {
                 $input['forum_post_id'] = $postId;
             }
             $procedure = $engine->start($user, $type, $input, auth()->id());
+            // El alta puede haber cambiado el nick antes de sincronizar los pasos.
+            $user->refresh();
 
             Notification::make()
                 ->success()
@@ -200,6 +230,12 @@ class ListMemberProcedures extends ListRecords
                 ->send();
 
             $this->redirect(MemberProcedureResource::getUrl('edit', ['record' => $procedure]));
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->danger()
+                ->title('Revisa el nickname')
+                ->body($exception->validator->errors()->first())
+                ->send();
         } catch (Throwable $exception) {
             report($exception);
 

@@ -26,6 +26,15 @@
                     Resumen público de las cuentas de Squad ALPHA. Los saldos y pagos individuales
                     permanecen privados y solo los consulta cada miembro desde Mi perfil.
                 </p>
+                <div class="treasury-payment-entry">
+                    <button type="button" class="treasury-payment-trigger" data-treasury-payment-open aria-haspopup="dialog" aria-controls="treasury-payment-dialog">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="2" y="5" width="20" height="14" rx="2" />
+                            <path d="M2 10h20" />
+                        </svg>
+                        Medios de pago
+                    </button>
+                </div>
             </header>
 
             @if(filled((string) $page->content))
@@ -211,4 +220,49 @@
             @endif
         </div>
     </article>
+
+    <dialog id="treasury-payment-dialog" class="treasury-payment-dialog" aria-labelledby="treasury-payment-title" aria-describedby="treasury-payment-description">
+        <div class="treasury-payment-dialog__header">
+            <div>
+                <span>TESORERÍA · SQUAD ALPHA</span>
+                <h2 id="treasury-payment-title">Medios de pago</h2>
+            </div>
+            <button type="button" class="treasury-payment-dialog__close" data-treasury-payment-close aria-label="Cerrar ventana">&times;</button>
+        </div>
+        <p id="treasury-payment-description" class="treasury-payment-dialog__intro">Elige cómo quieres realizar tu aportación a Squad ALPHA.</p>
+
+        @if($treasuryPaymentMethods['iban'])
+            <section class="treasury-payment-method">
+                <div class="treasury-payment-method__label">Transferencia bancaria</div>
+                <p>IBAN</p>
+                <div class="treasury-payment-method__iban">{{ implode(' ', str_split($treasuryPaymentMethods['iban'], 4)) }}</div>
+                <button type="button" class="treasury-payment-method__copy" data-treasury-copy-iban data-iban="{{ $treasuryPaymentMethods['iban'] }}">Copiar IBAN</button>
+                @if(filled($treasuryPaymentMethods['beneficiary'] ?? null))
+                    <div class="treasury-payment-method__beneficiary">
+                        <p>Destinatario de la transferencia</p>
+                        <strong>{{ $treasuryPaymentMethods['beneficiary'] }}</strong>
+                        <small>Escribe este nombre como destinatario al hacer la transferencia.</small>
+                        <button type="button" class="treasury-payment-method__copy treasury-payment-method__copy--beneficiary" data-treasury-copy-beneficiary data-beneficiary="{{ $treasuryPaymentMethods['beneficiary'] }}">Copiar destinatario</button>
+                    </div>
+                @endif
+            </section>
+        @endif
+
+        @if($treasuryPaymentMethods['paypal_url'])
+            <section class="treasury-payment-method">
+                <div class="treasury-payment-method__label">PayPal</div>
+                <p>Puedes realizar el pago desde PayPal.</p>
+                <a class="treasury-payment-method__paypal" href="{{ $treasuryPaymentMethods['paypal_url'] }}" target="_blank" rel="noopener noreferrer">Pagar con PayPal <span aria-hidden="true">↗</span></a>
+            </section>
+        @endif
+
+        @if(! $treasuryPaymentMethods['iban'] && ! $treasuryPaymentMethods['paypal_url'])
+            <p class="treasury-payment-dialog__empty">Los medios de pago todavía no están configurados.</p>
+        @endif
+        <p class="treasury-payment-dialog__feedback" data-treasury-payment-feedback role="status" aria-live="polite"></p>
+    </dialog>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('js/treasury-payments.js') }}?v={{ filemtime(public_path('js/treasury-payments.js')) }}" defer></script>
+@endpush
