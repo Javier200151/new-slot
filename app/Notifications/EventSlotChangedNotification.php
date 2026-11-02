@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Event;
 use App\Models\User;
+use App\Support\EventNotificationEligibility;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -25,9 +26,7 @@ class EventSlotChangedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return [
-            'database',
-        ];
+        return ['database'];
     }
 
     public function toDatabase(object $notifiable): array

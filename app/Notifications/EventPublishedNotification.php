@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Support\EventNotificationEligibility;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -16,9 +17,7 @@ class EventPublishedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return [
-            'database',
-        ];
+        return ['database'];
     }
 
     public function toDatabase(object $notifiable): array

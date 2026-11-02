@@ -10,6 +10,7 @@ use App\Models\Faction;
 use App\Models\SlotType;
 use App\Models\User;
 use App\Notifications\CampaignAarPendingNotification;
+use App\Support\EventNotificationEligibility;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -91,6 +92,7 @@ class CampaignAarService
             $notifyCommander
             && $aar->wasRecentlyCreated
             && $commander
+            && EventNotificationEligibility::allows($event, 'campaign_aar_pending')
         ) {
             Notification::send(
                 $commander,
