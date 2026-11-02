@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CampaignAar;
+use App\Support\EventNotificationEligibility;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 

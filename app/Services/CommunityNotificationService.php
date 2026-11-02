@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Notifications\CampaignAarPublishedNotification;
 use App\Notifications\EventPublishedNotification;
 use App\Notifications\MetopaAwardedNotification;
+use App\Support\EventNotificationEligibility;
+use App\Support\NotificationRulePolicy;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
@@ -19,6 +21,11 @@ class CommunityNotificationService
     public function eventPublished(
         Event $event,
     ): void {
+        // No anunciar como nuevas las partidas históricas migradas.
+        if (! EventNotificationEligibility::allows($event, 'event_published')) {
+            return;
+        }
+
         /*
          * Evita mandar dos veces la misma publicación.
          *
@@ -60,6 +67,11 @@ class CommunityNotificationService
     public function campaignAarPublished(
         CampaignAar $aar,
     ): void {
+        // Publicar un AAR antiguo no reactiva avisos de una partida histórica.
+        if (! EventNotificationEligibility::allows($aar->event, 'campaign_aar_published')) {
+            return;
+        }
+
         $alreadySent = DatabaseNotification::query()
             ->where(
                 'type',
@@ -103,6 +115,10 @@ class CommunityNotificationService
         User $awardedUser,
         Metopa $metopa,
     ): void {
+        if (! NotificationRulePolicy::allows('metopa_awarded')) {
+            return;
+        }
+
         Cache::lock(
             'newslot:metopa-notification:' . $metopa->id,
             10,

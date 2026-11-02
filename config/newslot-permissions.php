@@ -230,27 +230,6 @@ return [
                 'streamers' => [
                     'label' => 'Streamers',
                 ],
-                'community-clips' => [
-                    'label' => 'Clips de la comunidad',
-                    'actions' => [
-                        'view' => 'Ver la gestión de clips',
-                        'create' => 'Añadir clips desde administración',
-                        'update' => 'Editar y ocultar clips',
-                        'delete' => 'Eliminar o recuperar clips',
-                    ],
-                ],
-                'streamer-vods' => [
-                    'label' => 'VODs de streamers',
-                    'actions' => [
-                        'create' => 'Añadir VODs como streamer',
-                        'delete' => 'Retirar VODs propios',
-                        'manage' => 'Gestionar los VODs de cualquier streamer',
-                    ],
-                ],
-                'clip-contest' => [
-                    'label' => 'Clip del año',
-                    'actions' => ['manage' => 'Configurar el concurso y retirar candidatos'],
-                ],
             ],
         ],
 
@@ -328,6 +307,13 @@ return [
                  * El registro de actividad debería ser de solo lectura.
                  * Añade "delete" si realmente quieres permitir eliminar logs.
                  */
+                'notification-rules' => [
+                    'label' => 'Notificaciones',
+                    'actions' => [
+                        'view' => 'Ver configuración de notificaciones',
+                        'update' => 'Cambiar notificaciones y antigüedad',
+                    ],
+                ],
                 'audit-log' => [
                     'label' => 'Registro de auditoría',
                     'actions' => [

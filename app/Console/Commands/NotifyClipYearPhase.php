@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\ClipYearContest;
 use App\Models\User;
 use App\Notifications\ClipYearPhaseNotification;
+use App\Support\NotificationRulePolicy;
 use Illuminate\Console\Command;
 use Illuminate\Notifications\DatabaseNotification;
 
@@ -22,6 +23,12 @@ class NotifyClipYearPhase extends Command
         }
 
         $phase = $contest->phase();
+        $type = $phase === 'nominations' ? 'clip_year_nominations' : 'clip_year_voting';
+        $referenceDate = $phase === 'nominations' ? $contest->nomination_starts_at : $contest->voting_starts_at;
+        if (! NotificationRulePolicy::allows($type, $referenceDate)) {
+            $this->info('El aviso está desactivado o fuera de su antigüedad permitida.');
+            return self::SUCCESS;
+        }
         $total = 0;
         User::query()->whereIn('status_id', $contest->allowedStatusIds())
             ->chunkById(200, function ($users) use ($contest, $phase, &$total): void {

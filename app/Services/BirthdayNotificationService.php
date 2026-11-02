@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Notifications\BirthdayNotification;
+use App\Support\NotificationRulePolicy;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Notification;
 
@@ -11,6 +12,10 @@ class BirthdayNotificationService
 {
     public function notifyToday(): int
     {
+        if (! NotificationRulePolicy::allows('birthday')) {
+            return 0;
+        }
+
         $today = now('Europe/Madrid');
         $dateKey = $today->format('Y-m-d');
         $sent = 0;
