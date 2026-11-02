@@ -11,10 +11,13 @@ use App\Models\RecruitmentPeriod;
 use App\Models\SqaGroupUser;
 use App\Models\Status;
 use App\Models\User;
+use App\Rules\NotReservedUsername;
 use App\Services\Treasury\TreasuryService;
 use App\Services\UserMetopaAssignmentService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use LogicException;
 use Throwable;
 
@@ -53,6 +56,39 @@ class MemberProcedureEngine
 
             if ($active) {
                 throw new LogicException('El usuario ya tiene un procedimiento abierto: ' . $active->typeLabel() . '.');
+            }
+
+            // El nick definitivo debe guardarse antes de crear/ejecutar los pasos
+            // de reclutamiento: Tesorería, Discord y Sheets leen users.nick.
+            // Se realiza dentro de la misma transacción que el alta, de modo
+            // que un error al crear el procedimiento no deje el nick cambiado.
+            if ($type === MemberProcedure::TYPE_RECRUITMENT_START && array_key_exists('recruit_nickname', $input)) {
+                $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+                $this->eligibility->assertEligible($lockedUser, $type);
+                $nickname = trim((string) $input['recruit_nickname']);
+                $rules = [
+                    'required', 'string', 'min:3', 'max:30',
+                    'regex:/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/',
+                    Rule::unique('users', 'nick')->ignore($lockedUser->id),
+                ];
+                if ($nickname !== (string) $lockedUser->nick) {
+                    $rules[] = new NotReservedUsername();
+                }
+
+                Validator::make(['recruit_nickname' => $nickname], [
+                    'recruit_nickname' => $rules,
+                ], [
+                    'recruit_nickname.required' => 'Indica el nickname definitivo del recluta.',
+                    'recruit_nickname.min' => 'El nickname debe tener al menos 3 caracteres.',
+                    'recruit_nickname.max' => 'El nickname no puede superar los 30 caracteres.',
+                    'recruit_nickname.regex' => 'El nickname solo puede contener letras, números, guiones, guiones bajos y puntos.',
+                    'recruit_nickname.unique' => 'Este nickname ya lo utiliza otra cuenta.',
+                ])->validate();
+
+                if ($nickname !== (string) $lockedUser->nick) {
+                    $lockedUser->nick = $nickname;
+                    $lockedUser->save(); // Conserva los eventos de usuario y su auditoría.
+                }
             }
 
             $procedure = MemberProcedure::query()->create([

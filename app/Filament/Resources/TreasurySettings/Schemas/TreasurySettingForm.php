@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\TreasurySettings\Schemas;
 
 use App\Models\MemberProcedureSetting;
+use App\Rules\ValidIban;
+use App\Rules\OfficialPaypalPaymentUrl;
 use App\Models\SqaGroup;
 use App\Models\Status;
 use App\Services\Treasury\TreasuryService;
@@ -109,6 +111,36 @@ class TreasurySettingForm
                         'md' => 2,
                         'xl' => 2,
                     ]),
+
+                Section::make('Medios de pago')
+                    ->description('Datos de pago que los miembros podrán consultar desde el botón «Medios de pago» de /tesoreria.')
+                    ->schema([
+                        TextInput::make('treasury_payment_iban')
+                            ->label('IBAN de Squad ALPHA')
+                            ->placeholder('ES00 0000 0000 0000 0000 0000')
+                            ->helperText('Cuenta a la que deben hacer la transferencia. Deja el campo vacío si no se usa.')
+                            ->maxLength(64)
+                            ->nullable()
+                            ->rules([new ValidIban()]),
+
+                        TextInput::make('treasury_payment_beneficiary')
+                            ->label('Nombre del destinatario de la transferencia')
+                            ->placeholder('Nombre del titular o beneficiario')
+                            ->helperText('Nombre exacto que deben indicar los miembros como destinatario al hacer la transferencia bancaria.')
+                            ->maxLength(160)
+                            ->nullable(),
+
+                        TextInput::make('treasury_payment_paypal_url')
+                            ->label('Enlace para pagar por PayPal')
+                            ->placeholder('https://www.paypal.com/paypalme/...')
+                            ->helperText('Introduce un enlace oficial de PayPal. Se abrirá en una pestaña nueva.')
+                            ->url()
+                            ->maxLength(500)
+                            ->nullable()
+                            ->rules([new OfficialPaypalPaymentUrl()]),
+                    ])
+                    ->columns(['default' => 1, 'md' => 2])
+                    ->columnSpanFull(),
 
                 Section::make('Privacidad · Mi saldo')
                     ->description('Define qué estados pueden consultar su información económica individual. La misma regla se aplica a Mi Perfil y al recuadro privado dentro de /tesoreria.')
