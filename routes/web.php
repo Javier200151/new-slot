@@ -274,6 +274,9 @@ Route::get('/metopas/{metopa}', [MetopaController::class, 'show'])
 Route::get('/eventos', [PublicEventController::class, 'index'])
     ->name('events.index');
 
+Route::get('/eventos/novedades', [PublicEventController::class, 'news'])
+    ->middleware('auth')->name('events.news');
+
 Route::get('/eventos/{event}/ruleta-estado', [PublicEventController::class, 'rouletteLockState'])
     ->name('events.roulette-lock-state');
 

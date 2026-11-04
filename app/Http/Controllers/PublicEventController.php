@@ -173,6 +173,20 @@ class PublicEventController extends Controller
         ]);
     }
 
+    /** Resumen de novedades de los eventos ACTIVO, basado en las estrellas existentes. */
+    public function news(Request $request, \App\Services\EventNewsService $service): View
+    {
+        abort_unless(
+            $request->user()?->status?->name === 'ACTIVO'
+            || $request->user()?->hasRole('admin'),
+            403,
+        );
+
+        $updates = $service->forUser($request->user());
+
+        return view('events.news', compact('updates'));
+    }
+
     public function show(Event $event): View
     {
         $event->load([
@@ -291,6 +305,8 @@ class PublicEventController extends Controller
         $currentUserSlot = auth()->check()
             ? $event->slots->firstWhere('user_id', auth()->id())
             : null;
+
+        $canAcceptReservations = $event->acceptsReservations();
 
         $eventReservations = $event->reservations
             ->filter(fn (EventReservation $reservation): bool => $reservation->user !== null)
@@ -699,11 +715,22 @@ class PublicEventController extends Controller
             ->get();
 
         if ($eventStatusName === 'ACTIVO' && auth()->check()) {
+            $receiptKey = ['user_id' => auth()->id(), 'event_id' => $event->id];
+            $previousReceipt = DB::table('event_view_receipts')
+                ->where($receiptKey)
+                ->first();
+            $rememberedNews = app(\App\Services\EventNewsService::class)
+                ->rememberedStructure($event, $previousReceipt);
+
+            // Se guarda el resumen antes de actualizar la última visita.
+            // Así las novedades vistas siguen disponibles durante 14 días.
             DB::table('event_view_receipts')->updateOrInsert(
-                ['user_id' => auth()->id(), 'event_id' => $event->id],
+                $receiptKey,
                 ['last_viewed_at' => now(),
                     'visible_slot_count' => $event->getOrbatSlotsCount(),
                     'occupied_slot_count' => $event->slots->filter(fn ($slot): bool => $slot->user_id !== null || $slot->ally_id !== null)->count(),
+                    'orbat_slot_snapshot' => json_encode(EventUnreadActivity::slotSnapshot($event), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'event_news_structure' => json_encode($rememberedNews, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 ],
             );
         }
@@ -738,6 +765,7 @@ class PublicEventController extends Controller
             'isReadOnly',
             'rouletteLockRoom',
             'eventReservations',
+            'canAcceptReservations',
             'currentUserReservation',
             'currentUserCanReserve',
             'currentUserSlot',
@@ -963,9 +991,9 @@ class PublicEventController extends Controller
                 ]);
             }
 
-            if (! $lockedEvent->reservations_enabled) {
+            if (! $lockedEvent->acceptsReservations()) {
                 throw ValidationException::withMessages([
-                    'reservation' => 'La cola de reservas no está habilitada para este evento.',
+                    'reservation' => 'Las reservas se abren cuando se complete el ORBAT.',
                 ]);
             }
 

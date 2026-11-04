@@ -113,7 +113,7 @@
     @if($author?->firma && ! $author->trashed())
         <iframe
             class="event-comment__signature"
-            src="{{ $author->firma }}"
+            src="{{ $author->firma }}{{ str_contains($author->firma, '?') ? '&' : '?' }}fit=1"
             title="Firma de {{ $author->nick }}"
             loading="lazy"
             scrolling="no"

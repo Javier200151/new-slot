@@ -225,7 +225,7 @@
                         @if(filled($eventBriefingExtra) || $descriptionSections->isNotEmpty())
                             <a href="#briefing">Briefing</a>
                         @endif
-                        @if(($activity->activityType?->usesReservations() ?? true) && ($event->reservations_enabled || $eventReservations->isNotEmpty()))
+                        @if(($activity->activityType?->usesReservations() ?? true) && ($canAcceptReservations || $eventReservations->isNotEmpty()))
                             <a href="#reservas">Reservas</a>
                         @endif
                         <a href="#orbat">ORBAT</a>
@@ -1230,6 +1230,10 @@
 
                     <div class="event-detail__descriptions">
 
+                        @foreach($descriptionSections as $section)
+                            @include('partials.briefing-section', ['section' => $section])
+                        @endforeach
+
                         @if(filled($eventBriefingExtra))
                             <section class="event-briefing-extra">
                                 <div class="briefing-section__heading" role="heading" aria-level="3">
@@ -1241,15 +1245,11 @@
                             </section>
                         @endif
 
-                        @foreach($descriptionSections as $section)
-                            @include('partials.briefing-section', ['section' => $section])
-                        @endforeach
-
                     </div>
                 </section>
             @endif
 
-            @if($event->reservations_enabled || $eventReservations->isNotEmpty())
+            @if($canAcceptReservations || $eventReservations->isNotEmpty())
                 <section
                     id="reservas"
                     class="event-detail__section event-detail__reservations"
@@ -1283,12 +1283,12 @@
                                                 @method('DELETE')
                                                 <button type="submit" class="event-reservations__button event-reservations__button--outline">Salir de reserva</button>
                                             </form>
-                                        @elseif($event->reservations_enabled && $currentUserCanReserve)
+                                        @elseif($canAcceptReservations && $currentUserCanReserve)
                                             <form method="POST" action="{{ route('events.reservations.store', $event) }}">
                                                 @csrf
                                                 <button type="submit" class="event-reservations__button">Reservar</button>
                                             </form>
-                                        @elseif($event->reservations_enabled)
+                                        @elseif($canAcceptReservations)
                                             <span class="event-reservations__paused">
                                                 {{ $hasPendingReserveRetutoring
                                                     ? 'Reincorporación pendiente de aprobación por Tutores'
@@ -1298,7 +1298,7 @@
                                         @else
                                             <span class="event-reservations__paused">Reservas cerradas</span>
                                         @endif
-                                    @elseif($event->reservations_enabled)
+                                    @elseif($canAcceptReservations)
                                         <a class="event-reservations__button" href="#login-modal">Inicia sesión para reservar</a>
                                     @endif
                                 </div>
