@@ -53,6 +53,11 @@ Route::get('/media/briefings/{filename}', [BriefingImageController::class, 'show
     ->where('filename', '[A-Za-z0-9._-]+')
     ->name('briefing-media.show');
 
+// Contadores del desplegable Novedades en SquadALPHA (solo sesión iniciada).
+Route::get('/accesos/novedades', \App\Http\Controllers\QuickAccessNewsController::class)
+    ->middleware(['auth', 'throttle:30,1'])
+    ->name('quick-access.news');
+
 Route::post('/contacto', [PublicContactController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('public.contact.store');

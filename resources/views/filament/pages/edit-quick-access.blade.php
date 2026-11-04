@@ -16,12 +16,13 @@
                     normativa:'document-text',faqs:'question-mark-circle',forum:'chat-bubble-left-right',
                     activities:'clipboard-document-check',metopas:'trophy',streams:'video-camera',
                     campaigns:'flag',roulette:'arrow-path',organization:'user-group'};
-                return item.type === 'server_status' ? 'server-stack' : (item.type === 'scroll_top' ? 'arrow-up' : (icons[item.destination] || 'link'));
+                return item.type === 'server_status' ? 'server-stack' : (item.type === 'news_summary' ? 'bell-alert' : (item.type === 'scroll_top' ? 'arrow-up' : (icons[item.destination] || 'link')));
             },
             add(item) {
                 if (this.menu.length >= 12) return this.error('Máximo 12 accesos.');
                 if (item.type === 'scroll_top' && this.menu.some(x => x.type === 'scroll_top')) return this.error('Volver arriba ya existe.');
                 if (item.type === 'server_status' && this.menu.some(x => x.type === 'server_status')) return this.error('Estado de servidores ya está colocado.');
+                if (item.type === 'news_summary' && this.menu.some(x => x.type === 'news_summary')) return this.error('Novedades en SquadALPHA ya está colocado.');
                 this.menu.push({ type:item.type, destination:item.destination || null, label:item.label,
                     key:this.nextKey(), icon:this.defaultIcon(item), visible_to:item.type === 'server_status' ? ['ACTIVO','RECLUTA'] : this.keys() });
                 this.change();
@@ -73,12 +74,12 @@
         <div class="sqa-builder__layout">
             <aside class="sqa-builder__panel" aria-label="Catálogo de accesos">
                 <h3 class="sqa-builder__title">Objetos disponibles</h3>
-                <p class="sqa-builder__help">Añade páginas, destinos o URLs externas. Los iconos se eligen después para cada botón. Estado de servidores es el único desplegable permitido y requiere acceso a infraestructura.</p>
+                <p class="sqa-builder__help">Añade páginas, destinos o URLs externas. Los iconos se eligen después para cada botón. También puedes añadir el desplegable de Novedades en SquadALPHA y Estado de servidores.</p>
                 <input x-model="search" type="search" placeholder="Buscar páginas…" aria-label="Buscar destinos">
                 <div class="sqa-builder__catalog">
                     <template x-for="item in matchingCatalog()" :key="item.type+(item.destination||'')">
                         <div class="sqa-builder__entry">
-                            <div class="sqa-builder__entry-text"><strong x-text="item.label"></strong><small x-text="item.type==='server_status'?'Desplegable especial · acceso restringido':(item.type==='scroll_top'?'Acción especial':(item.published?'Destino':'Sin publicar'))"></small></div>
+                            <div class="sqa-builder__entry-text"><strong x-text="item.label"></strong><small x-text="item.type==='server_status'?'Desplegable especial · acceso restringido':(item.type==='news_summary'?'Desplegable de mensajes nuevos':(item.type==='scroll_top'?'Acción especial':(item.published?'Destino':'Sin publicar')))"></small></div>
                             <button type="button" class="sqa-builder__button" @click="add(item)">Añadir</button>
                         </div>
                     </template>
@@ -108,7 +109,7 @@
                         <article class="sqa-builder__card">
                             <div class="sqa-builder__card-head">
                                 <div class="sqa-builder__card-title">
-                                    <span class="sqa-builder__kind" x-text="item.type==='server_status'?'Widget desplegable':(item.type==='scroll_top'?'Acción':(item.type==='external'?'URL externa':'Página'))"></span>
+                                    <span class="sqa-builder__kind" x-text="item.type==='server_status'?'Widget desplegable':(item.type==='news_summary'?'Widget desplegable':(item.type==='scroll_top'?'Acción':(item.type==='external'?'URL externa':'Página')))"></span>
                                     <div class="sqa-builder__preview"><svg class="sqa-builder__icon" aria-hidden="true" viewBox="0 0 24 24"><use :href="iconUrl(item.icon)"></use></svg><span x-text="item.label"></span></div>
                                 </div>
                                 <div class="sqa-builder__actions">

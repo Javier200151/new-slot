@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\EventStatuses\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use App\Models\EventStatus;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -19,6 +19,21 @@ class EventStatusesTable
                     ->searchable()
                     ->sortable(),
 
+                IconColumn::make('is_system')
+                    ->label('Sistema')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-lock-closed')
+                    ->falseIcon('heroicon-o-pencil-square')
+                    ->tooltip(fn (EventStatus $record): string => $record->is_system
+                        ? 'Estado protegido del sistema'
+                        : 'Estado personalizado'),
+
+                TextColumn::make('protection')
+                    ->label('Protección')
+                    ->state(fn (EventStatus $record): string => $record->is_system ? 'Protegido' : 'Personalizado')
+                    ->badge()
+                    ->color(fn (EventStatus $record): string => $record->is_system ? 'warning' : 'gray'),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -30,16 +45,12 @@ class EventStatusesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('name')
-            ->filters([
-                //
-            ])
             ->recordActions([
-                EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                EditAction::make()
+                    ->disabled(fn (EventStatus $record): bool => $record->is_system)
+                    ->tooltip(fn (EventStatus $record): ?string => $record->is_system
+                        ? 'Los estados del sistema no pueden modificarse.'
+                        : null),
             ]);
     }
 }

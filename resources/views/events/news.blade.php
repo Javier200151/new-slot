@@ -1,6 +1,6 @@
 @extends('layouts.metopas')
 
-@section('title', 'Nuevos mensajes de eventos')
+@section('title', 'Novedades en eventos')
 @section('body-class', 'events-body')
 
 @push('styles')
@@ -11,8 +11,8 @@
 <section class="events-news-page container">
     <div class="events-news-heading">
         <a href="{{ route('events.index') }}">← Volver a eventos</a>
-        <h1>Nuevos mensajes</h1>
-        <p>Los cambios de los últimos 14 días. Al abrir esta página, las novedades pendientes se marcan como vistas. Cuando vuelvas, estarán en gris; si hay más actividad en el mismo evento, aparecerá una tarjeta nueva. Cada novedad se conserva durante 14 días.</p>
+        <h1>Novedades en eventos</h1>
+        <p>Últimas novedades de los eventos de Squad ALPHA.</p>
     </div>
 
     <div class="events-news-list">

@@ -13,7 +13,20 @@ class EditEventStatus extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->label('Eliminar estado')
+                ->disabled(fn (): bool => $this->record->deletionBlockReason() !== null)
+                ->tooltip(fn (): ?string => $this->record->deletionBlockReason())
+                ->requiresConfirmation(),
         ];
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if ($this->record->is_system) {
+            unset($data['name']);
+        }
+
+        return $data;
     }
 }
