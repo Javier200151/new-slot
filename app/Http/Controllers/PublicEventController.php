@@ -155,7 +155,13 @@ class PublicEventController extends Controller
             )
             : [];
 
+        $hasUnreadEventNews = $request->user()
+            && ($request->user()->status?->name === 'ACTIVO' || $request->user()->hasRole('admin'))
+            ? app(\App\Services\EventNewsBatchService::class)->hasUnread($request->user())
+            : false;
+
         return view('events.index', [
+            'hasUnreadEventNews' => $hasUnreadEventNews,
             'unreadEventActivity' => $unreadEventActivity,
             'calendarDays' => $calendarDays,
             'listedEvents' => $listedEvents,
@@ -174,7 +180,7 @@ class PublicEventController extends Controller
     }
 
     /** Resumen de novedades de los eventos ACTIVO, basado en las estrellas existentes. */
-    public function news(Request $request, \App\Services\EventNewsService $service): View
+    public function news(Request $request, \App\Services\EventNewsBatchService $service): View
     {
         abort_unless(
             $request->user()?->status?->name === 'ACTIVO'
@@ -182,7 +188,9 @@ class PublicEventController extends Controller
             403,
         );
 
-        $updates = $service->forUser($request->user());
+        // La visita cierra el lote de novedades pendientes. Se muestran en
+        // color en esta primera apertura y quedarán atenuadas al regresar.
+        $updates = $service->open($request->user());
 
         return view('events.news', compact('updates'));
     }
