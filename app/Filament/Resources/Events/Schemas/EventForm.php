@@ -171,18 +171,13 @@ class EventForm
                     ->default(false),
 
 
-                Toggle::make('reservations_enabled')
-                    ->label('Habilitar reservas')
-                    ->helperText(
-                        'Habilítalo para permitir reservas en el evento.'
-                    )
-                    ->inline(false)
+                \Filament\Forms\Components\Placeholder::make('reservations_info')
+                    ->label('Reservas')
+                    ->content('Las reservas se abrirán automáticamente cuando se ocupen todos los puestos visibles del ORBAT.')
                     ->visible(function (Get $get): bool {
                         $typeId = Activity::query()->whereKey($get('activity_id'))->value('activity_type_id');
-
                         return ActivityTypeConfiguration::find($typeId)?->usesReservations() ?? false;
-                    })
-                    ->default(false),
+                    }),
 
                 Select::make('event_status_id')
                     ->label('Estado')

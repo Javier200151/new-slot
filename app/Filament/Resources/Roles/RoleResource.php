@@ -152,7 +152,7 @@ class RoleResource extends Resource
                                     $typeSearchTerms,
                                 )
                             )
-                            ->dehydratedWhenHidden();
+                            ->dehydratedWhenHidden(false);
                     }
 
                     $components[] = Section::make(
@@ -192,7 +192,7 @@ class RoleResource extends Resource
                             $resourceSearchTerms,
                         )
                     )
-                    ->dehydratedWhenHidden();
+                    ->dehydratedWhenHidden(false);
 
                 $groupSearchTerms = array_merge(
                     $groupSearchTerms,
@@ -562,53 +562,54 @@ class RoleResource extends Resource
             return;
         }
 
-        $permissionNames = [];
+        // Partimos de los permisos realmente guardados. Un campo oculto por
+        // la búsqueda o una pestaña sin estado NO significa "revocar".
+        // También conservamos permisos que aún no figuran en el catálogo.
+        $permissionNames = $role->permissions()->get()->pluck('name')->all();
 
-        if ((bool) ($data['can_access_filament'] ?? false)) {
-            $permissionNames[] = 'filament.access';
+        if (array_key_exists('can_access_filament', $data)) {
+            $permissionNames = array_values(array_diff($permissionNames, ['filament.access']));
+            if ((bool) $data['can_access_filament']) {
+                $permissionNames[] = 'filament.access';
+            }
         }
 
-        foreach (
-            PermissionCatalog::resources()
-            as $resource => $definition
-        ) {
+        foreach (PermissionCatalog::resources() as $resource => $definition) {
             if (PermissionCatalog::isActivityTypeScoped($resource)) {
                 foreach (PermissionCatalog::activityTypeIds() as $activityTypeId) {
-                    $field = PermissionCatalog::activityTypeFieldName(
-                        $resource,
-                        $activityTypeId,
+                    $field = PermissionCatalog::activityTypeFieldName($resource, $activityTypeId);
+                    if (! array_key_exists($field, $data)) {
+                        continue;
+                    }
+
+                    $existingNames = array_map(
+                        fn (string $action): string => PermissionCatalog::activityTypePermissionName($resource, $activityTypeId, $action),
+                        $definition['actions'],
                     );
-
-                    foreach ($data[$field] ?? [] as $action) {
-                        if (! in_array($action, $definition['actions'], true)) {
-                            continue;
+                    $permissionNames = array_values(array_diff($permissionNames, $existingNames));
+                    foreach ((array) ($data[$field] ?? []) as $action) {
+                        if (in_array($action, $definition['actions'], true)) {
+                            $permissionNames[] = PermissionCatalog::activityTypePermissionName($resource, $activityTypeId, $action);
                         }
-
-                        $permissionNames[] =
-                            PermissionCatalog::activityTypePermissionName(
-                                $resource,
-                                $activityTypeId,
-                                $action,
-                            );
                     }
                 }
-
                 continue;
             }
 
             $field = PermissionCatalog::fieldName($resource);
-            $selectedActions = $data[$field] ?? [];
+            if (! array_key_exists($field, $data)) {
+                continue;
+            }
 
-            foreach ($selectedActions as $action) {
-                if (! in_array(
-                    $action,
-                    $definition['actions'],
-                    true
-                )) {
-                    continue;
+            $knownNames = array_map(
+                fn (string $action): string => "{$resource}.{$action}",
+                $definition['actions'],
+            );
+            $permissionNames = array_values(array_diff($permissionNames, $knownNames));
+            foreach ((array) ($data[$field] ?? []) as $action) {
+                if (in_array($action, $definition['actions'], true)) {
+                    $permissionNames[] = "{$resource}.{$action}";
                 }
-
-                $permissionNames[] = "{$resource}.{$action}";
             }
         }
 

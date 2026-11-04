@@ -379,6 +379,39 @@ class Event extends Model
 
         return new HtmlString($html);
     }
+    /**
+     * Las reservas se abren automáticamente cuando todos los slots visibles
+     * del ORBAT están ocupados. No depende del toggle histórico.
+     */
+    public function acceptsReservations(): bool
+    {
+        if (! $this->eventStatus()->where('name', 'ACTIVO')->exists()) {
+            return false;
+        }
+
+        if (! ($this->activity?->activityType?->usesReservations() ?? false)) {
+            return false;
+        }
+
+        $totalSlots = $this->getOrbatSlotsCount();
+        if ($totalSlots < 1) {
+            return false;
+        }
+
+        // No abrir reservas por error en ORBAT históricos sin claves de slot.
+        $keyedSlots = collect($this->orbat['groups'] ?? [])
+            ->filter(fn (array $group): bool => (bool) ($group['visible'] ?? true))
+            ->flatMap(fn (array $group) => collect($group['slots'] ?? [])
+                ->filter(fn (array $slot): bool => (bool) ($slot['visible'] ?? true))
+                ->pluck('slot_key'))
+            ->filter()
+            ->unique()
+            ->count();
+
+        return $keyedSlots === $totalSlots
+            && $this->getAvailableVisibleSlotsCount() === 0;
+    }
+
     public function getAvailableVisibleSlotsCount(): int
     {
         $visibleSlotKeys = collect(

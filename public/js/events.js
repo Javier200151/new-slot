@@ -99,11 +99,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const height = Math.ceil(signature.getBoundingClientRect().height);
-
-            if (height > 0) {
-                frame.style.height = `${height}px`;
-            }
+            // La firma original mide 600px. La ampliamos en pantallas grandes,
+            // y en móvil la ajustamos al ancho del comentario sin recortarla.
+            const naturalWidth = signature.offsetWidth || 600;
+            const naturalHeight = signature.offsetHeight || 130;
+            const availableWidth = frame.clientWidth || naturalWidth;
+            const scale = Math.min(1.24, availableWidth / naturalWidth);
+            signature.style.transformOrigin = 'top left';
+            signature.style.transform = `scale(${scale})`;
+            frame.style.height = `${Math.ceil(naturalHeight * scale) + 4}px`;
         } catch {
             // La altura inicial de CSS se conserva si la firma no es del mismo dominio.
         }
