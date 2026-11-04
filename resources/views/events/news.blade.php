@@ -12,7 +12,7 @@
     <div class="events-news-heading">
         <a href="{{ route('events.index') }}">← Volver a eventos</a>
         <h1>Nuevos mensajes</h1>
-        <p>Los cambios de los últimos 14 días. Las novedades pendientes aparecen primero; las que ya has visto se mantienen en gris hasta que pasan dos semanas desde su publicación.</p>
+        <p>Los cambios de los últimos 14 días. Al abrir esta página, las novedades pendientes se marcan como vistas. Cuando vuelvas, estarán en gris; si hay más actividad en el mismo evento, aparecerá una tarjeta nueva. Cada novedad se conserva durante 14 días.</p>
     </div>
 
     <div class="events-news-list">

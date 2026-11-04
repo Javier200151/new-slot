@@ -141,6 +141,7 @@ class EventNewsService
                 }
                 $messages[] = [
                     'text' => $item['text'],
+                    'key' => 'orbat:' . sha1($item['text'] . '|' . $item['at']),
                     'read' => true,
                     'at' => $item['at'],
                 ];
@@ -153,7 +154,12 @@ class EventNewsService
                 if (collect($messages)->contains(fn (array $old): bool => $old['text'] === $item['text'] && $old['at'] === $item['at'])) {
                     continue;
                 }
-                $messages[] = ['text' => $item['text'], 'read' => false, 'at' => $item['at']];
+                $messages[] = [
+                    'text' => $item['text'],
+                    'key' => 'orbat:' . sha1($item['text'] . '|' . $item['at']),
+                    'read' => false,
+                    'at' => $item['at'],
+                ];
                 $latest = max($latest, $item['at']);
             }
 
@@ -174,7 +180,12 @@ class EventNewsService
                 }
 
                 $at = $comment->created_at->toDateTimeString();
-                $messages[] = ['text' => $message, 'read' => $since !== null && $at <= $since, 'at' => $at];
+                $messages[] = [
+                    'text' => $message,
+                    'key' => 'comment:' . $comment->id,
+                    'read' => $since !== null && $at <= $since,
+                    'at' => $at,
+                ];
                 $latest = max($latest, $at);
             }
 
@@ -216,6 +227,7 @@ class EventNewsService
                 $group = trim((string) ($current->slot_group ?: $assignment->to_slot_group ?: ''));
                 $at = $assignment->created_at->toDateTimeString();
                 $joined[$key] = [
+                    'key' => 'assignment:' . $assignment->id,
                     'member' => $name,
                     'slot' => trim((string) ($current->name ?: $assignment->to_slot_name ?: 'Puesto')),
                     'group' => $group,

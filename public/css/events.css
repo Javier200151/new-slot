@@ -6327,3 +6327,11 @@ a.event-comment__author:hover {
 .events-news-joins__item--seen{opacity:.52}
 .events-news-joins__item--seen.events-news-joins__item--own{background:linear-gradient(90deg,#11231c55,transparent)}
 .events-news-joins__new-count{color:#ffc86e;background:#32240e;border:1px solid #6d5024;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:750}
+
+/* El acceso a Nuevos mensajes sigue disponible aunque no haya novedades pendientes. */
+.event-news-link--read{background:#151a21;border-color:#424a56;color:#9ba5b3;box-shadow:none}
+.event-news-link--read:hover,.event-news-link--read:focus-visible{background:#202731;border-color:#697381;color:#d2d7df}
+.event-news-link--read strong{background:#444e5d;color:#e7ebf0}
+/* Un mismo evento puede tener varias tandas: la última sin leer se muestra
+   con su aspecto habitual, las anteriores se mantienen atenuadas. */
+.events-news-card--seen .events-news-joins__new-count{display:none}

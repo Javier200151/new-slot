@@ -18,8 +18,8 @@
             <p>Consulta los próximas actividades y el histórico de eventos finalizados.</p>
             @auth
                 @if(auth()->user()->status?->name === 'ACTIVO' || auth()->user()->hasRole('admin'))
-                    <a class="event-news-link" href="{{ route('events.news') }}">
-                        <span aria-hidden="true">✱</span> Nuevos mensajes
+                    <a @class(['event-news-link', 'event-news-link--read' => ! ($hasUnreadEventNews ?? false)]) href="{{ route('events.news') }}">
+                        <span aria-hidden="true">{{ ($hasUnreadEventNews ?? false) ? '✱' : '✓' }}</span> Nuevos mensajes
                     </a>
                 @endif
             @endauth
