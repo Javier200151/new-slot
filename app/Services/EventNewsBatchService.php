@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Event;
 use App\Models\User;
 use App\Support\EventUnreadActivity;
+use App\Support\EventNewsEligibility;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +41,21 @@ class EventNewsBatchService
             DB::table('users')->where('id', $user->id)->lockForUpdate()->first(['id']);
 
             $cutoff = now()->subDays(EventNewsService::RETENTION_DAYS);
+            // Los eventos finalizados se retiran exactamente 48 h después
+            // del cambio de estado, aunque nadie haya visto sus novedades.
+            DB::table('event_news_batches')
+                ->where('user_id', $user->id)
+                ->whereIn('event_id', function ($query): void {
+                    $query->select('events.id')->from('events')
+                        ->join('event_status', 'event_status.id', '=', 'events.event_status_id')
+                        ->where('event_status.name', 'FINALIZADO')
+                        ->where(function ($expired): void {
+                            $expired->whereNull('events.event_news_finalized_at')
+                                ->orWhere('events.event_news_finalized_at', '<=', now()->subHours(48));
+                        });
+                })
+                ->delete();
+
             // El historial de tarjetas tiene una vida máxima de 14 días.
             DB::table('event_news_batches')
                 ->where('user_id', $user->id)
@@ -54,12 +70,12 @@ class EventNewsBatchService
                 ->orderByDesc('id')
                 ->get();
 
-            // Una tanda sigue mostrándose hasta su caducidad, incluso si el
-            // evento se ha cerrado desde que se leyó.
+            // Los eventos ACTIVO mantienen hasta 14 días de historial;
+            // los que acaban de pasar a FINALIZADO conservan 48 horas.
             $missingIds = $batchRows->pluck('event_id')->unique()->diff($events->keys());
             if ($missingIds->isNotEmpty()) {
-                $previousEvents = Event::query()
-                    ->with(['activity.activityType', 'activity.platform'])
+                $previousEvents = EventNewsEligibility::query(Event::query())
+                    ->with(['eventStatus', 'activity.activityType', 'activity.platform'])
                     ->whereIn('id', $missingIds->all())->get();
                 foreach ($previousEvents as $previousEvent) {
                     $events->put($previousEvent->id, $previousEvent);
@@ -163,10 +179,13 @@ class EventNewsBatchService
                 }
 
                 $content = json_decode((string) $row->content, true) ?: [];
-                $messages = array_values(array_filter($content['messages'] ?? [],
-                    fn (array $item): bool => Carbon::parse($item['at'])->greaterThanOrEqualTo($cutoff)));
-                $joins = array_values(array_filter($content['joins'] ?? [],
-                    fn (array $item): bool => Carbon::parse($item['at'])->greaterThanOrEqualTo($cutoff)));
+                $finishedAt = mb_strtoupper(trim((string) $event->eventStatus?->name)) === 'FINALIZADO'
+                    ? $event->event_news_finalized_at : null;
+                $withinBounds = static fn (array $item): bool =>
+                    Carbon::parse($item['at'])->greaterThanOrEqualTo($cutoff)
+                    && ($finishedAt === null || Carbon::parse($item['at'])->lessThanOrEqualTo($finishedAt));
+                $messages = array_values(array_filter($content['messages'] ?? [], $withinBounds));
+                $joins = array_values(array_filter($content['joins'] ?? [], $withinBounds));
 
                 if ($messages === [] && $joins === []) {
                     return null;

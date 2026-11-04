@@ -22,6 +22,7 @@ class PublicQuickAccessNavigation
             ['type' => 'link', 'destination' => 'users', 'label' => 'Usuarios', 'icon' => 'users'],
             ['type' => 'link', 'destination' => 'events', 'label' => 'Eventos', 'icon' => 'calendar-days'],
             ['type' => 'link', 'destination' => 'wiki', 'label' => 'Wiki', 'icon' => 'book-open'],
+            ['type' => 'news_summary', 'label' => 'Novedades en SquadALPHA', 'icon' => 'bell-alert'],
             ['type' => 'scroll_top', 'label' => 'Volver arriba', 'icon' => 'arrow-up'],
         ];
     }
@@ -33,6 +34,7 @@ class PublicQuickAccessNavigation
             $items[] = ['type' => 'link', 'destination' => $destination, 'label' => $definition['label'],
                 'published' => (bool) ($definition['published'] ?? true)];
         }
+        $items[] = ['type' => 'news_summary', 'label' => 'Novedades en SquadALPHA'];
         $items[] = ['type' => 'server_status', 'label' => 'Estado de servidores'];
         $items[] = ['type' => 'scroll_top', 'label' => 'Volver arriba'];
         return $items;
@@ -66,6 +68,7 @@ class PublicQuickAccessNavigation
         $icons = self::icons();
 
         $serverStatusSeen = false;
+        $newsSeen = false;
         foreach (array_slice($items, 0, self::MAX_ITEMS) as $item) {
             if (! is_array($item)) {
                 continue;
@@ -85,6 +88,9 @@ class PublicQuickAccessNavigation
             } elseif ($type === 'server_status' && ! $serverStatusSeen) {
                 $serverStatusSeen = true;
                 $entry = ['type' => 'server_status', 'label' => $label ?? 'Estado de servidores', 'icon' => $icon];
+            } elseif ($type === 'news_summary' && ! $newsSeen) {
+                $newsSeen = true;
+                $entry = ['type' => 'news_summary', 'label' => $label ?? 'Novedades en SquadALPHA', 'icon' => $icon];
             } elseif ($type === 'scroll_top') {
                 $entry = ['type' => 'scroll_top', 'label' => $label ?? 'Volver arriba', 'icon' => $icon];
             } else {
@@ -108,6 +114,7 @@ class PublicQuickAccessNavigation
         $icons = self::icons();
         $scrollTopCount = 0;
         $serverStatusCount = 0;
+        $newsSummaryCount = 0;
         $result = [];
 
         foreach ($items as $item) {
@@ -140,12 +147,16 @@ class PublicQuickAccessNavigation
                 if (++$serverStatusCount > 1) {
                     throw new InvalidArgumentException('Estado de servidores solo puede colocarse una vez en los accesos rápidos.');
                 }
+            } elseif ($type === 'news_summary') {
+                if (++$newsSummaryCount > 1) {
+                    throw new InvalidArgumentException('Novedades en SquadALPHA solo puede colocarse una vez.');
+                }
             } elseif ($type === 'scroll_top') {
                 if (++$scrollTopCount > 1) {
                     throw new InvalidArgumentException('Solo puede existir un botón «Volver arriba».');
                 }
             } else {
-                throw new InvalidArgumentException('Solo se admiten botones, Estado de servidores y Volver arriba.');
+                throw new InvalidArgumentException('Tipo de acceso rápido no válido.');
             }
             $visible = $item['visible_to'] ?? $audiences;
             if (! is_array($visible) || $visible === [] ||
@@ -173,6 +184,10 @@ class PublicQuickAccessNavigation
         return array_values(array_filter(self::normalizeStored($items), static function (array $item) use ($audience): bool {
             if (! PublicNavigation::itemVisibleForAudience($item, $audience)) {
                 return false;
+            }
+            if ($item['type'] === 'news_summary') {
+                return auth()->check()
+                    && \App\Services\QuickAccessNewsService::canSeeAny(auth()->user());
             }
             if ($item['type'] === 'server_status') {
                 // La ruta de infraestructura solo permite ACTIVO y RECLUTA.

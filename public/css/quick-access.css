@@ -1,7 +1,7 @@
 /* Squad ALPHA: independent icon-only quick-access bar. */
 .sqa-quick-access{position:fixed;z-index:85;top:50%;transform:translateY(-50%);padding:7px;display:flex;flex-direction:column;align-items:center;gap:6px;max-height:min(80vh,610px);overflow:visible;background:rgba(9,12,17,.96);border:1px solid rgba(224,147,0,.48);border-radius:13px;box-shadow:0 15px 38px rgba(0,0,0,.46);backdrop-filter:blur(12px)}
 .sqa-quick-access--right{right:12px;border-right:3px solid #e38b09}.sqa-quick-access--left{left:12px;border-left:3px solid #e38b09}
-.sqa-quick-access__links{display:flex;flex-direction:column;gap:6px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#916009 transparent;max-height:calc(80vh - 16px)}
+.sqa-quick-access__links{display:flex;flex-direction:column;gap:6px;overflow-y:auto;overflow-x:visible;scrollbar-width:thin;scrollbar-color:#916009 transparent;max-height:calc(80vh - 16px);padding-right:8px}
 .sqa-quick-access__button,.sqa-quick-access__toggle{box-sizing:border-box;width:43px;height:43px;flex:none;border:1px solid #3f414a;background:#171a20;color:#f6f7fa;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:10px;text-decoration:none;cursor:pointer;transition:border-color .18s,background .18s,color .18s,transform .18s}
 .sqa-quick-access__button:hover,.sqa-quick-access__button:focus-visible,.sqa-quick-access__toggle:hover,.sqa-quick-access__toggle:focus-visible{color:#ffa724;background:#242018;border-color:#e49200;transform:translateX(0);outline:2px solid transparent}
 .sqa-quick-access__button:focus-visible,.sqa-quick-access__toggle:focus-visible{outline:2px solid #ffb52b;outline-offset:2px}
@@ -43,14 +43,30 @@
 .sqa-quick-access .footer-infrastructure__ts-floating[hidden],.sqa-quick-access .footer-infrastructure__credential[hidden]{display:none}
 .sqa-quick-access .footer-infrastructure__ts-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12px}
 .sqa-quick-access .footer-infrastructure__ts-header button{border:0;background:transparent;color:#ccc;cursor:pointer}
-.sqa-quick-access .footer-infrastructure__users{padding:6px 4px 4px;margin:0;list-style:none;max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
-.sqa-quick-access .footer-infrastructure__users>.footer-infrastructure__channel{margin:0;padding:8px 10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03);font-size:11px;color:#d8dee9;overflow-wrap:anywhere}
-.sqa-quick-access .footer-infrastructure__users>.footer-infrastructure__channel strong{display:block;margin:0 0 6px;color:#f59e0b;font-weight:600;line-height:1.35}
-.sqa-quick-access .footer-infrastructure__users>.footer-infrastructure__channel>ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
-.sqa-quick-access .footer-infrastructure__users>.footer-infrastructure__channel>ul>li{position:relative;margin:0;padding:0 0 0 14px;border:0;border-radius:0;background:transparent;color:#aeb9cc;font-size:11px;line-height:1.35}
-.sqa-quick-access .footer-infrastructure__users>.footer-infrastructure__channel>ul>li::before{content:'●';position:absolute;left:0;top:.18rem;font-size:7px;color:#22c55e}
+.sqa-quick-access .footer-infrastructure__users{padding:8px 8px 8px 22px;margin:0;list-style:none;max-height:240px;overflow-y:auto}
 .sqa-quick-access .footer-infrastructure__ts-toggle{display:block;margin:8px 0 4px 22px;padding:3px 0;background:none;border:0;color:#f59e0b;font-size:11px;cursor:pointer}
 @media(max-width:767px){
  .sqa-quick-access .sqa-quick-access__server-panel{position:absolute;transform:none;top:auto;bottom:calc(100% + 12px);left:auto;right:0;width:min(345px,calc(100vw - 24px));max-height:calc(65vh - 30px)}
  .sqa-quick-access .footer-infrastructure__ts-floating{right:0;top:auto;bottom:calc(100% + 8px)}
+}
+
+/* Panel desplegable de Foro + Eventos: contador individual y total. */
+.sqa-quick-access__news{position:static;flex:none;margin:0;padding:0;border:0;background:transparent}
+.sqa-quick-access__news>summary{list-style:none;cursor:pointer;user-select:none}
+.sqa-quick-access__news>summary::-webkit-details-marker{display:none}
+.sqa-quick-access__news>summary::marker{content:''}
+.sqa-quick-access__news-trigger{position:relative;z-index:1;overflow:visible}
+.sqa-quick-access__news[open]>summary{color:#ffb236;border-color:#e49200;background:#292116}
+.sqa-quick-access.has-open-news{z-index:112}
+.sqa-quick-access__news-badge{position:absolute;top:-7px;right:-7px;z-index:12;min-width:19px;height:19px;padding:0 4px;border-radius:99px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;font-weight:800;font-size:10px;line-height:1;background:#f2a11e;color:#111;box-shadow:0 2px 8px #000b}
+.sqa-quick-access__news-badge[hidden]{display:none}
+.sqa-quick-access .sqa-quick-access__news-panel{box-sizing:border-box;position:absolute;top:50%;bottom:auto;right:calc(100% + 13px);left:auto;transform:translateY(-50%);width:min(295px,calc(100vw - 90px));max-height:min(65vh,470px);overflow-y:auto;z-index:114;background:#10141c;border:1px solid #424956;border-radius:12px;color:#f4f6fa;padding:15px;box-shadow:0 14px 40px #000b;text-align:left;font-size:13px}
+.sqa-quick-access--left .sqa-quick-access__news-panel{left:calc(100% + 13px);right:auto}
+.sqa-quick-access__news-panel>strong{display:block;color:#f0ae39;font-size:14px;margin-bottom:5px}
+.sqa-quick-access__news-panel>p{font-size:11px;line-height:1.5;color:#aeb9c8;margin:0 0 12px}
+.sqa-quick-access .sqa-quick-access__news-link{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px;border:1px solid #323a47;border-radius:9px;margin-top:7px;background:#171e28;color:#e9edf3;font-size:13px;font-weight:650;text-decoration:none}
+.sqa-quick-access .sqa-quick-access__news-link:hover,.sqa-quick-access .sqa-quick-access__news-link:focus-visible{background:#282214;border-color:#c58a2c;color:#ffd083;outline-offset:1px}
+.sqa-quick-access__news-number{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:15px;background:#4b3519;color:#ffca6a;font-size:12px;box-sizing:border-box}
+@media(max-width:767px){
+ .sqa-quick-access .sqa-quick-access__news-panel,.sqa-quick-access--left .sqa-quick-access__news-panel{top:auto;bottom:calc(100% + 12px);left:auto;right:0;transform:none;width:min(320px,calc(100vw - 24px));max-height:55vh}
 }

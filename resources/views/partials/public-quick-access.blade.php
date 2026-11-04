@@ -14,6 +14,8 @@
             @foreach($quickAccessItems as $quickAccessItem)
                 @if($quickAccessItem['type'] === 'server_status')
                     @include('partials.public-server-status-dropdown', ['mode' => 'quick', 'label' => $quickAccessItem['label'], 'icon' => $quickAccessItem['icon']])
+                @elseif($quickAccessItem['type'] === 'news_summary')
+                    @include('partials.public-quick-news', ['label' => $quickAccessItem['label'], 'icon' => $quickAccessItem['icon']])
                 @elseif($quickAccessItem['type'] === 'scroll_top')
                     <button type="button" class="sqa-quick-access__button" aria-label="{{ $quickAccessItem['label'] }}" title="{{ $quickAccessItem['label'] }}" data-quick-access-top>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><use href="{{ asset('images/quick-access-icons.svg') }}#sqa-{{ $quickAccessItem['icon'] }}"></use></svg>

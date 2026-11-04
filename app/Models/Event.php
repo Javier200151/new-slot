@@ -41,6 +41,7 @@ class Event extends Model
             'orbat' => 'array',
             'multiclans' => 'boolean',
             'reservations_enabled' => 'boolean',
+            'event_news_finalized_at' => 'datetime',
         ];
     }
 
@@ -56,6 +57,22 @@ class Event extends Model
         static::updating(function ($event): void {
             if (Auth::check()) {
                 $event->updated_by = Auth::id();
+            }
+
+            // Fecha fija del paso ACTIVO → FINALIZADO. No debe depender
+            // de updated_at: los cambios posteriores no amplían las 48 h.
+            if ($event->isDirty('event_status_id')) {
+                $before = mb_strtoupper(trim((string) EventStatus::query()
+                    ->whereKey($event->getRawOriginal('event_status_id'))->value('name')));
+                $after = mb_strtoupper(trim((string) EventStatus::query()
+                    ->whereKey($event->event_status_id)->value('name')));
+
+                $event->event_news_finalized_at = $before === 'ACTIVO'
+                    && $after === 'FINALIZADO'
+                    && $event->date !== null
+                    && $event->date->greaterThanOrEqualTo(now()->subDay())
+                        ? now()
+                        : null;
             }
         });
 

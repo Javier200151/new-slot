@@ -7,6 +7,7 @@ use App\Models\EventComment;
 use App\Models\EventSlotHistory;
 use App\Models\User;
 use App\Support\EventUnreadActivity;
+use App\Support\EventNewsEligibility;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -105,16 +106,16 @@ class EventNewsService
     }
 
     /**
-     * Muestra lo sucedido en las últimas dos semanas, tanto pendiente como leído.
-     * La última visita indica el estado de cada novedad, no su visibilidad.
+     * Novedades de los últimos 14 días: eventos ACTIVO hasta 24 h después
+     * de su fecha y sus tarjetas pendientes/vistas durante las 48 h
+     * posteriores a la transición de ACTIVO a FINALIZADO.
      *
      * @return Collection<int, array{event:Event,messages:array,joins:array,join_count:int,own_squad_join_count:int,unread:bool,latest:string}>
      */
     public function forUser(User $user): Collection
     {
         $cutoff = now()->subDays(self::RETENTION_DAYS);
-        $events = Event::query()
-            ->whereHas('eventStatus', fn ($query) => $query->where('name', 'ACTIVO'))
+        $events = EventNewsEligibility::query(Event::query())
             ->with(['eventStatus', 'activity.activityType', 'activity.platform', 'slots:id,event_id,slot_key,user_id,ally_id,ally_nickname,name,slot_group'])
             ->orderByDesc('date')
             ->get();
@@ -133,10 +134,16 @@ class EventNewsService
             $since = $receipt?->last_viewed_at;
             $messages = [];
             $latest = '';
+            // Tras el cierre, nunca se incorporan cambios nuevos a la tanda.
+            $finishedAt = mb_strtoupper(trim((string) $event->eventStatus?->name)) === 'FINALIZADO'
+                ? $event->event_news_finalized_at
+                : null;
+            $wasBeforeClose = static fn ($date): bool => $finishedAt === null
+                || Carbon::parse($date)->lessThanOrEqualTo($finishedAt);
 
             // Persistidos al abrir un evento. No desaparecen al marcarlo leído.
             foreach ($this->savedStructure($receipt) as $item) {
-                if (Carbon::parse($item['at'])->lt($cutoff)) {
+                if (Carbon::parse($item['at'])->lt($cutoff) || ! $wasBeforeClose($item['at'])) {
                     continue;
                 }
                 $messages[] = [
@@ -151,6 +158,9 @@ class EventNewsService
             // Novedades del ORBAT aún no visitadas, calculadas contra la
             // última fotografía. Se guardarán cuando se abra el evento.
             foreach ($this->structureChanges($event, $receipt) as $item) {
+                if (! $wasBeforeClose($item['at'])) {
+                    continue;
+                }
                 if (collect($messages)->contains(fn (array $old): bool => $old['text'] === $item['text'] && $old['at'] === $item['at'])) {
                     continue;
                 }
@@ -180,6 +190,9 @@ class EventNewsService
                 }
 
                 $at = $comment->created_at->toDateTimeString();
+                if (! $wasBeforeClose($at)) {
+                    continue;
+                }
                 $messages[] = [
                     'text' => $message,
                     'key' => 'comment:' . $comment->id,
@@ -226,6 +239,9 @@ class EventNewsService
 
                 $group = trim((string) ($current->slot_group ?: $assignment->to_slot_group ?: ''));
                 $at = $assignment->created_at->toDateTimeString();
+                if (! $wasBeforeClose($at)) {
+                    continue;
+                }
                 $joined[$key] = [
                     'key' => 'assignment:' . $assignment->id,
                     'member' => $name,
