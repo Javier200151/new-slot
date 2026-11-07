@@ -13,20 +13,58 @@ class PublicCampaignController extends Controller
     public function index(Request $request): View
     {
         $filters = $request->validate([
-            'sort' => ['nullable', 'in:published_desc,published_asc,name_asc,name_desc'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'persistent' => ['nullable', 'in:all,yes,no'],
+            'events' => ['nullable', 'in:all,with,without'],
+            'sort' => ['nullable', 'in:published_desc,published_asc,name_asc,name_desc,first_event_asc,first_event_desc'],
         ]);
+
+        $selectedSearch = trim((string) ($filters['q'] ?? ''));
+        $selectedPersistent = $filters['persistent'] ?? 'all';
+        $selectedEvents = $filters['events'] ?? 'all';
         $selectedSort = $filters['sort'] ?? 'published_desc';
 
         $campaignsQuery = Campaign::query()
             ->withCount([
                 'activities as operations_count',
                 'events',
-            ]);
+            ])
+            // Primera partida visible de la campaña; no usamos borradores
+            // ni cancelados para ordenar o mostrar fechas en el listado público.
+            ->withMin([
+                'events as first_public_event_date' => fn ($query) => $query
+                    ->whereHas('eventStatus', fn ($query) => $query
+                        ->whereIn('name', ['ACTIVO', 'FINALIZADO'])),
+            ], 'date');
+
+        if ($selectedSearch !== '') {
+            $campaignsQuery->where('name', 'like', '%' . $selectedSearch . '%');
+        }
+
+        if ($selectedPersistent !== 'all') {
+            $campaignsQuery->where('persistent', $selectedPersistent === 'yes');
+        }
+
+        if ($selectedEvents === 'with') {
+            $campaignsQuery->has('events');
+        } elseif ($selectedEvents === 'without') {
+            $campaignsQuery->doesntHave('events');
+        }
 
         match ($selectedSort) {
             'published_asc' => $campaignsQuery->orderBy('id'),
             'name_asc' => $campaignsQuery->orderBy('name')->orderBy('id'),
             'name_desc' => $campaignsQuery->orderByDesc('name')->orderByDesc('id'),
+            'first_event_asc' => $campaignsQuery
+                ->orderByRaw('first_public_event_date IS NULL')
+                ->orderBy('first_public_event_date')
+                ->orderBy('name')
+                ->orderBy('id'),
+            'first_event_desc' => $campaignsQuery
+                ->orderByRaw('first_public_event_date IS NULL')
+                ->orderByDesc('first_public_event_date')
+                ->orderBy('name')
+                ->orderBy('id'),
             default => $campaignsQuery->orderByDesc('id'),
         };
 
@@ -37,9 +75,22 @@ class PublicCampaignController extends Controller
                 'summary',
                 trim(strip_tags((string) BbcodeMarkup::render($campaign->description))),
             );
+
+            $campaign->setAttribute(
+                'first_event_date_label',
+                $campaign->first_public_event_date
+                    ? \Illuminate\Support\Carbon::parse($campaign->first_public_event_date)->format('d/m/Y')
+                    : null,
+            );
         }
 
-        return view('campaigns.index', compact('campaigns', 'selectedSort'));
+        return view('campaigns.index', compact(
+            'campaigns',
+            'selectedSort',
+            'selectedSearch',
+            'selectedPersistent',
+            'selectedEvents',
+        ));
     }
 
     public function show(Campaign $campaign): View

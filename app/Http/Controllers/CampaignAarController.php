@@ -91,11 +91,17 @@ class CampaignAarController extends Controller
         );
 
         /*
-         * Revalida el expediente al abrirlo. Esto corrige AAR pendientes
-         * creados por versiones anteriores donde el Mando global no quedó
-         * identificado, usando el tipo de slot real del ORBAT.
+         * Una visita al AAR es una consulta de solo lectura. No llamar aquí
+         * a ensureForFinalizedEvent(): al regenerar el snapshot del ORBAT
+         * guardaba el modelo y generaba auditorías "updated" con un simple GET.
+         *
+         * La creación del AAR sigue en el evento al pasar a FINALIZADO y
+         * los expedientes históricos se crean mediante el backfill existente.
          */
-        $aar = $this->aarService->ensureForFinalizedEvent($event, false);
+        $aar = CampaignAar::query()
+            ->where('campaign_id', $campaign->id)
+            ->where('event_id', $event->id)
+            ->first();
 
         abort_unless($aar, 404);
         abort_unless($request->user()?->can('view', $aar) ?? $aar->is_visible, 404);
