@@ -2,35 +2,11 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\Auditable;
-use Spatie\Activitylog\Support\LogOptions;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class ContactSubmission extends Model
 {
-    use Auditable;
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->useLogName('audit')
-            ->logOnly([
-                'recruitment_review_status',
-                'recruitment_reviewed_at',
-                'recruitment_reviewed_by',
-                'recruitment_interviewer_user_id',
-                'recruitment_matched_user_id',
-                'recruited_at',
-                'recruitment_tier',
-                'recruitment_tier_marked_by',
-                'recruitment_tier_marked_at',
-            ])
-            ->logOnlyDirty()
-            ->dontLogEmptyChanges();
-    }
-
     public const REVIEW_UNREVIEWED = 'unreviewed';
     public const REVIEW_DISCARDED = 'discarded';
     public const REVIEW_APPROVED = 'approved';
@@ -40,7 +16,7 @@ class ContactSubmission extends Model
     public const TIER_3 = 3;
 
     protected $fillable = [
-        'nickname', 'email', 'message', 'is_recruitment',
+        'nickname', 'email', 'message', 'is_recruitment', 'recruitment_answers',
         'full_name', 'birth_date', 'residence', 'phone_whatsapp', 'discord_profile', 'how_heard_us',
         'accepted_rules', 'is_adult', 'accepts_contributions', 'has_required_game_content',
         'tuesday_available', 'friday_available', 'has_previous_experience', 'experience_summary',
@@ -183,6 +159,7 @@ class ContactSubmission extends Model
     {
         return [
             'is_recruitment' => 'boolean',
+            'recruitment_answers' => 'array',
             'birth_date' => 'date',
             'accepted_rules' => 'boolean',
             'is_adult' => 'boolean',

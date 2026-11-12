@@ -130,7 +130,6 @@ class ActivityForm
                     ->disk('public')
                     ->directory('activities')
                     ->visibility('public')
-                    ->preserveFilenames()
                     ->image()
                     ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesImage() ?? false),
                 

@@ -6,6 +6,7 @@ use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +61,12 @@ class CommunityPost extends Model
     public function comments()
     {
         return $this->hasMany(CommunityPostComment::class)->oldest();
+    }
+
+    /** Última respuesta no eliminada; evita cargar todas las respuestas del hilo. */
+    public function latestComment(): HasOne
+    {
+        return $this->hasOne(CommunityPostComment::class)->latestOfMany();
     }
 
     public function forumCategory()

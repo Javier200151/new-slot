@@ -28,11 +28,11 @@
                             @foreach([
                                 'Nick' => $submission->nickname,
                                 'Email' => $submission->email,
-                                'Nombre y apellidos' => $submission->is_recruitment ? $submission->full_name : null,
-                                'Fecha de nacimiento' => $submission->is_recruitment ? $submission->birth_date?->format('d/m/Y') : null,
-                                'Residencia' => $submission->is_recruitment ? $submission->residence : null,
-                                'WhatsApp' => $submission->is_recruitment ? $submission->phone_whatsapp : null,
-                                'Discord' => $submission->is_recruitment ? $submission->discord_profile : null,
+                                'Nombre y apellidos' => $submission->is_recruitment && $submission->recruitment_answers === null ? $submission->full_name : null,
+                                'Fecha de nacimiento' => $submission->is_recruitment && $submission->recruitment_answers === null ? $submission->birth_date?->format('d/m/Y') : null,
+                                'Residencia' => $submission->is_recruitment && $submission->recruitment_answers === null ? $submission->residence : null,
+                                'WhatsApp' => $submission->is_recruitment && $submission->recruitment_answers === null ? $submission->phone_whatsapp : null,
+                                'Discord' => $submission->is_recruitment && $submission->recruitment_answers === null ? $submission->discord_profile : null,
                             ] as $label => $value)
                                 @if(filled($value))
                                     <tr>
@@ -54,7 +54,7 @@
                     </td>
                 </tr>
 
-                @if($submission->is_recruitment)
+                @if($submission->is_recruitment && $submission->recruitment_answers === null)
                     <tr>
                         <td style="padding:12px 36px;">
                             <div style="margin-bottom:8px;color:#f59e0b;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Cómo conociste Squad ALPHA</div>
@@ -94,6 +94,7 @@
                         </td>
                     </tr>
                 @endif
+                @include('emails.partials.recruitment-answers')
 
                 <tr>
                     <td style="padding:22px 36px 30px;border-top:1px solid #252b35;color:#7f8998;font-size:12px;line-height:1.7;text-align:center;">

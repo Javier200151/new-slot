@@ -397,8 +397,9 @@ class Event extends Model
         return new HtmlString($html);
     }
     /**
-     * Las reservas se abren automáticamente cuando todos los slots visibles
-     * del ORBAT están ocupados. No depende del toggle histórico.
+     * Las reservas se abren al habilitarlas manualmente o cuando se llena
+     * el ORBAT visible. Ambos modos requieren evento ACTIVO y un tipo
+     * de actividad que permita reservas.
      */
     public function acceptsReservations(): bool
     {
@@ -408,6 +409,12 @@ class Event extends Model
 
         if (! ($this->activity?->activityType?->usesReservations() ?? false)) {
             return false;
+        }
+
+        // Apertura manual: no depende de si quedan huecos libres.
+        // Si se desactiva, la apertura automática sigue funcionando.
+        if ((bool) $this->reservations_enabled) {
+            return true;
         }
 
         $totalSlots = $this->getOrbatSlotsCount();

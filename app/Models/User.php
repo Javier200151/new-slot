@@ -118,7 +118,8 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             || $this->can('event-calendar.view')
             || $this->can('event-calendar.reserve')
             || $this->can('event-calendar.manage')
-            || $this->can('recruitment-applications.manage');
+            || $this->can('recruitment-applications.manage')
+            || $this->can('recruitment-form.manage');
     }
     
     public function sendEmailVerificationNotification(): void

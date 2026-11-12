@@ -26,7 +26,6 @@
         href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}"
     >
     <link rel="stylesheet" href="{{ asset('css/bbcode.css') }}?v={{ filemtime(public_path('css/bbcode.css')) }}">
-    <link rel="stylesheet" href="{{ asset('css/community-clips.css') }}?v=15">
 </head>
 
 <body
@@ -42,7 +41,6 @@
         </div>
     @endif
     @include('partials.public-header')
-
 
     <main>
 
@@ -115,13 +113,6 @@
                     @endguest
                 </div>
 
-                @if($news->isNotEmpty())
-                    <a href="#actualidad" class="home-news-hero-notice" data-sqa-news-hero hidden>
-                        <span class="home-news-hero-notice__dot" aria-hidden="true"></span>
-                        Nuevos anuncios de Squad ALPHA <span aria-hidden="true">↗</span>
-                    </a>
-                @endif
-
                 <a href="#actualidad" class="scroll-indicator">
                     <span>Conoce Squad ALPHA</span>
                     <span class="scroll-indicator__line"></span>
@@ -131,9 +122,8 @@
         </section>
 
         {{-- ACTUALIDAD / NEWSLETTER --}}
-        <section id="actualidad" class="home-news-section" data-sqa-news-section data-sqa-account="{{ auth()->id() ?? 'guest' }}" data-sqa-latest="{{ $news->max(fn ($item) => ($item->published_at ?? $item->created_at)?->timestamp ?? 0) ?? 0 }}">
+        <section id="actualidad" class="home-news-section">
             <div class="container">
-                @if($canViewNews)
                 <header class="home-section-heading">
                     <div>
                         <span class="section-index">01</span>
@@ -142,9 +132,6 @@
 
                     <div class="home-section-heading__copy">
                         <h2>{{ $settings->news_title }}</h2>
-                        @if($news->isNotEmpty())
-                            <span class="home-news-section-indicator" data-sqa-section-new hidden>Hay anuncios nuevos</span>
-                        @endif
                         @if($settings->news_intro)
                             <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($settings->news_intro) !!}</div>
                         @endif
@@ -153,15 +140,51 @@
                 </header>
 
                 @if($news->isNotEmpty())
-                    @include('news.partials.cards', ['news' => $news])
-                    <div class="home-news-more"><a href="{{ route('news.index') }}" class="home-text-link">Ver historial completo <span aria-hidden="true">→</span></a></div>
+                    <div class="home-news-grid">
+                        @foreach($news as $item)
+                            <article class="home-news-card {{ $loop->first ? 'home-news-card--featured' : '' }}">
+                                @if($item->image)
+                                    <div class="home-news-card__media">
+                                        <img src="{{ asset('storage/' . $item->image) }}" alt="{{ $item->title }}">
+                                    </div>
+                                @endif
+
+                                <div class="home-news-card__body">
+                                    <div class="home-news-card__meta">
+                                        <span>{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
+                                        @if($item->published_at)
+                                            <time datetime="{{ $item->published_at->toDateString() }}">
+                                                {{ $item->published_at->format('d · m · Y') }}
+                                            </time>
+                                        @endif
+                                    </div>
+
+                                    <h3>{{ $item->title }}</h3>
+
+                                    @if($item->excerpt)
+                                        <div class="bbcode-rich forum-rich">{!! \App\Support\BbcodeMarkup::render($item->excerpt) !!}</div>
+                                    @endif
+
+                                    @if($item->body)
+                                        <div class="home-news-card__content">
+                                            {!! \App\Support\BbcodeMarkup::render($item->body) !!}
+                                        </div>
+                                    @endif
+
+                                    @if($item->external_url)
+                                        <a href="{{ $item->external_url }}" target="_blank" rel="noopener noreferrer" class="home-text-link">
+                                            Ver publicación <span aria-hidden="true">↗</span>
+                                        </a>
+                                    @endif
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
                 @else
                     <div class="home-empty-state">
                         <span>ALPHA / NEWS</span>
                         <p>La próxima novedad de la comunidad aparecerá aquí.</p>
                     </div>
-                @endif
-
                 @endif
 
                 <div class="instagram-feed">
@@ -359,42 +382,6 @@
             </div>
         </section>
 
-        {{-- CLIPS DE LA COMUNIDAD --}}
-        @if($clipYearContest && $clipYearWinners->isNotEmpty())
-            <section class="home-vods-section sqa-year-winners">
-                <div class="container"><h2>Clip del año {{ $clipYearContest->year }}</h2>
-                    <div class="sqa-year-winners__items">
-                        @foreach($clipYearWinners as $winner)
-                            <a href="{{ route('clips.year', ['year' => $clipYearContest->year]) }}"><strong>{{ $loop->iteration }}.º puesto</strong> · {{ $winner->clip?->title }}</a>
-                        @endforeach
-                    </div>
-                </div>
-            </section>
-        @endif
-        <section class="home-vods-section" id="clips-semana">
-          <div class="container">
-            <div class="sqa-clips-home">
-              <div class="sqa-clips-home__head"><h3>Clips de la semana</h3><a href="{{ route('clips.index') }}">Ver todos los clips →</a></div>
-              @if($clips->isNotEmpty())
-                <div class="sqa-clips-list">
-                  @foreach($clips as $clip)
-                    <article class="sqa-clip-card">
-                      <button class="sqa-clip-card__open" type="button" data-clip-open="{{ $clip->id }}" aria-label="Reproducir {{ $clip->title }}">
-                        @if($clip->thumbnail_url)<img src="{{ $clip->thumbnail_url }}" alt="" loading="lazy">@else<div class="sqa-clip-card__placeholder">{{ strtoupper($clip->platform) }}</div>@endif
-                        <span class="sqa-clip-card__play">▶</span>
-                      </button>
-                      <div class="sqa-clip-card__info"><strong>{{ $clip->title }}</strong><small>{{ $clip->user?->nick ?? $clip->broadcaster_name ?? 'Squad ALPHA' }}</small></div>
-                    </article>
-                  @endforeach
-                </div>
-              @else
-                <div class="home-empty-state home-empty-state--vods"><p>Todavía no hay clips compartidos esta semana.</p><a class="home-text-link" href="{{ route('clips.index') }}">Compartir clip →</a></div>
-              @endif
-            </div>
-          </div>
-        </section>
-        @include('clips.partials.viewer', ['viewerClips' => $clips])
-
         {{-- CONTACTO / ALISTAMIENTO --}}
         <section id="alistamiento" class="home-contact-section">
             <div class="container home-contact-layout">
@@ -502,160 +489,7 @@
                             </div>
 
                             <div class="recruitment-fields" data-recruitment-fields @if(!old('is_recruitment')) hidden @endif>
-                                <div class="requirement-block">
-                                    <h3>Datos personales</h3>
-
-                                    <div class="form-grid">
-                                        <label class="form-field form-field--full">
-                                            <span>Nombre y apellidos (reales) *</span>
-                                            <input
-                                                type="text"
-                                                name="full_name"
-                                                value="{{ old('full_name') }}"
-                                                maxlength="160"
-                                                autocomplete="name"
-                                                data-recruitment-required
-                                                placeholder="Nombre y apellidos"
-                                            >
-                                        </label>
-
-                                        <label class="form-field">
-                                            <span>Fecha de nacimiento *</span>
-                                            <input
-                                                type="date"
-                                                name="birth_date"
-                                                value="{{ old('birth_date') }}"
-                                                autocomplete="bday"
-                                                data-recruitment-required
-                                            >
-                                        </label>
-
-                                        <label class="form-field">
-                                            <span>Lugar de residencia</span>
-                                            <input
-                                                type="text"
-                                                name="residence"
-                                                value="{{ old('residence') }}"
-                                                maxlength="160"
-                                                autocomplete="address-level2"
-                                                data-recruitment-required
-                                                placeholder="Ciudad / Provincia"
-                                            >
-                                        </label>
-
-                                        <label class="form-field form-field--full">
-                                            <span>Teléfono (contacto WhatsApp) *</span>
-                                            <input
-                                                type="tel"
-                                                name="phone_whatsapp"
-                                                value="{{ old('phone_whatsapp') }}"
-                                                maxlength="40"
-                                                autocomplete="tel"
-                                                inputmode="tel"
-                                                data-recruitment-required
-                                                placeholder="+34 ..."
-                                            >
-                                        </label>
-
-                                        <label class="form-field form-field--full">
-                                            <span>Perfil de Discord <small>(opcional)</small></span>
-                                            <input
-                                                type="text"
-                                                name="discord_profile"
-                                                value="{{ old('discord_profile') }}"
-                                                maxlength="160"
-                                                autocomplete="off"
-                                                placeholder="Usuario de Discord o enlace al perfil"
-                                            >
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div class="requirement-block">
-                                    <h3>Cómo nos conociste</h3>
-                                    <div class="form-field">
-                                        @include('partials.bbcode-editor', [
-                                            'id' => 'how-heard-us',
-                                            'name' => 'how_heard_us',
-                                            'label' => 'Cuéntanos brevemente cómo llegaste a Squad ALPHA',
-                                            'value' => old('how_heard_us'),
-                                            'rows' => 4,
-                                            'maxlength' => 1500,
-                                            'placeholder' => 'YouTube, Twitch, un amigo, redes sociales, buscador...',
-                                        ])
-                                    </div>
-                                </div>
-
-                                <div class="requirement-block">
-                                    <h3>Normativa</h3>
-                                    <label class="form-check">
-                                        <input type="checkbox" name="accepted_rules" value="1" @checked(old('accepted_rules')) data-recruitment-required>
-                                        <span>Confirmo haber leído y me comprometo a cumplir la <a href="{{ url('/normativa') }}" target="_blank">Normativa del Squad ALPHA</a>.</span>
-                                    </label>
-                                </div>
-
-                                <div class="requirement-block">
-                                    <h3>Mayoría de edad</h3>
-                                    <label class="form-check">
-                                        <input type="checkbox" name="is_adult" value="1" @checked(old('is_adult')) data-recruitment-required>
-                                        <span>Certifico que soy mayor de edad.</span>
-                                    </label>
-                                </div>
-
-                                <div class="requirement-block">
-                                    <h3>Aportaciones económicas</h3>
-                                    <label class="form-check">
-                                        <input type="checkbox" name="accepts_contributions" value="1" @checked(old('accepts_contributions')) data-recruitment-required>
-                                        <span>Acepto que tendré que realizar aportaciones económicas.</span>
-                                    </label>
-                                </div>
-
-                                <div class="requirement-block">
-                                    <h3>DLCs y ARMA 3 Original</h3>
-                                    <label class="form-check">
-                                        <input type="checkbox" name="has_required_game_content" value="1" @checked(old('has_required_game_content')) data-recruitment-required>
-                                        <span>Confirmo tener Arma 3 original, así como sus DLC "APEX" y sus CDLCs "S.O.G. Prairie Fire" y "Spearhead 1944", o estar dispuesto/a a comprarlos en caso de ser reclutado/a por Squad ALPHA.</span>
-                                    </label>
-                                </div>
-
-                                <div class="requirement-block">
-                                    <h3>Disponibilidad martes</h3>
-                                    <input type="hidden" name="tuesday_available" value="0">
-                                    <label class="form-check">
-                                        <input type="checkbox" name="tuesday_available" value="1" @checked((string) old('tuesday_available') === '1')>
-                                        <span>Tengo disponibilidad para participar los martes (de 20:00 a 22:30h). Si no puedes normalmente, deja esta casilla sin marcar.</span>
-                                    </label>
-                                </div>
-
-                                <div class="requirement-block">
-                                    <h3>Disponibilidad viernes</h3>
-                                    <input type="hidden" name="friday_available" value="0">
-                                    <label class="form-check">
-                                        <input type="checkbox" name="friday_available" value="1" @checked((string) old('friday_available') === '1')>
-                                        <span>Tengo disponibilidad para participar los viernes (a partir de las 22:30h). Si no puedes normalmente, deja esta casilla sin marcar.</span>
-                                    </label>
-                                </div>
-
-                                <div class="requirement-block">
-                                    <h3>Experiencia previa</h3>
-                                    <input type="hidden" name="has_previous_experience" value="0">
-                                    <label class="form-check">
-                                        <input type="checkbox" name="has_previous_experience" value="1" @checked((string) old('has_previous_experience') === '1')>
-                                        <span>Tengo experiencia previa en simulación militar con Arma 3.</span>
-                                    </label>
-
-                                    <div class="form-field" style="margin-top: 14px;">
-                                        @include('partials.bbcode-editor', [
-                                            'id' => 'experience-summary',
-                                            'name' => 'experience_summary',
-                                            'label' => 'Resumen de experiencia en simulación militar en Arma 3 y Arma Reforger',
-                                            'value' => old('experience_summary'),
-                                            'rows' => 6,
-                                            'maxlength' => 4000,
-                                            'placeholder' => 'Cuéntanos comunidades anteriores, tiempo jugando, roles habituales, experiencia con ACE/TFAR/ACRE, etc. Si no tienes experiencia previa, indícalo.',
-                                        ])
-                                    </div>
-                                </div>
+                                @include('partials.recruitment-form-fields')
                             </div>
                         @endif
 
@@ -695,9 +529,6 @@
         defer
     ></script>
     <script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
-    <script src="{{ asset('js/home-bulletin.js') }}?v={{ filemtime(public_path('js/home-bulletin.js')) }}" defer></script>
 
-    <script src="{{ asset('js/community-clips.js') }}?v=14" defer></script>
 </body>
 </html>
-

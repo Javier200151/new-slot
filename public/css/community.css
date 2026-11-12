@@ -2496,3 +2496,21 @@
         gap: 30px;
     }
 }
+
+/* Nombre del último participante en las tarjetas de hilos: discreto en PC y móvil. */
+.forum-row__last-author {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 5px;
+    margin-top: 5px;
+    color: #7d8a9c;
+    font-size: .66rem;
+    font-weight: 400;
+    line-height: 1.4;
+}
+.forum-row__last-author-name {
+    color: #aeb9c9;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}

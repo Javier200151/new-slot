@@ -67,7 +67,7 @@
                                                     <a href="mailto:{{ $submission->email }}" style="color:#f59e0b;text-decoration:none;">{{ $submission->email }}</a>
                                                 </td>
                                             </tr>
-                                            @if($submission->is_recruitment)
+                                            @if($submission->is_recruitment && $submission->recruitment_answers === null)
                                                 <tr>
                                                     <td style="width:145px;padding:12px 14px;background:#090c11;border:1px solid #252b35;border-right:0;border-radius:8px 0 0 8px;color:#7f8998;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">Nombre real</td>
                                                     <td style="padding:12px 14px;background:#090c11;border:1px solid #252b35;border-left:0;border-radius:0 8px 8px 0;color:#f7f7f8;font-size:14px;">{{ $submission->full_name }}</td>
@@ -108,7 +108,7 @@
                                     </td>
                                 </tr>
 
-                                @if($submission->is_recruitment)
+                                @if($submission->is_recruitment && $submission->recruitment_answers === null)
                                     <tr>
                                         <td style="padding:0 42px 24px;">
                                             <div style="margin-bottom:12px;color:#f59e0b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Cómo nos conociste</div>
@@ -127,7 +127,7 @@
                                     </tr>
                                 @endif
 
-                                @if($submission->is_recruitment)
+                                @if($submission->is_recruitment && $submission->recruitment_answers === null)
                                     <tr>
                                         <td style="padding:0 42px;">
                                             <div style="height:1px;background-color:#252b35;"></div>
@@ -161,6 +161,8 @@
                                         </td>
                                     </tr>
                                 @endif
+
+                                @include('emails.partials.recruitment-answers')
 
                                 <tr>
                                     <td style="padding:0 42px;">

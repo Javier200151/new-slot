@@ -79,6 +79,7 @@ class CommunityForumController extends Controller
             ->with([
                 'author.status',
                 'author.mainSqaGroup',
+                'latestComment.author',
                 'forumCategory',
                 'process.poll',
                 'process.activeApplications',
@@ -653,6 +654,7 @@ class CommunityForumController extends Controller
                 ->with([
                     'author.status',
                     'author.mainSqaGroup',
+                    'latestComment.author',
                     'forumCategory',
                     'process.poll',
                     'process.activeApplications',
