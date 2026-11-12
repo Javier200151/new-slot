@@ -72,6 +72,8 @@ class ActiveMemberInactivityService
         $users = User::query()
             ->select(['users.id', 'users.nick', 'users.member_at', 'users.created_at'])
             ->whereHas('status', fn ($query) => $query->whereRaw('UPPER(TRIM(name)) = ?', ['ACTIVO']))
+            // PlanaMayor es una cuenta técnica de superadministración: no participa en eventos.
+            ->whereRaw('LOWER(TRIM(users.nick)) <> ?', ['planamayor'])
             ->leftJoinSub($lastEvents, 'last_participation', 'last_participation.user_id', '=', 'users.id')
             ->addSelect('last_participation.last_event_at')
             ->get();
