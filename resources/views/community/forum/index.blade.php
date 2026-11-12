@@ -328,6 +328,10 @@
                             <span class="forum-row__author" style="--author-color: {{ $post->author?->getFrontendColor() ?? '#fff' }}">{{ $post->author?->nick ?? 'Usuario eliminado' }}</span>
                             · última actividad {{ $post->updated_at->format('d/m/Y H:i') }}
                         </div>
+                        <div class="forum-row__last-author">
+                            <span>Última actualización por</span>
+                            <span class="forum-row__last-author-name">{{ $post->latestComment ? ($post->latestComment->author?->nick ?? 'Usuario eliminado') : ($post->author?->nick ?? 'Usuario eliminado') }}</span>
+                        </div>
                     </a>
 
                     <div class="forum-row__stats">

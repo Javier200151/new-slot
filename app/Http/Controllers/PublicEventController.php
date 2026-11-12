@@ -1001,7 +1001,7 @@ class PublicEventController extends Controller
 
             if (! $lockedEvent->acceptsReservations()) {
                 throw ValidationException::withMessages([
-                    'reservation' => 'Las reservas se abren cuando se complete el ORBAT.',
+                    'reservation' => 'Las reservas están cerradas en este evento.',
                 ]);
             }
 

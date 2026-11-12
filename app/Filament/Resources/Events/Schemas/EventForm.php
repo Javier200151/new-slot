@@ -171,9 +171,15 @@ class EventForm
                     ->default(false),
 
 
-                \Filament\Forms\Components\Placeholder::make('reservations_info')
-                    ->label('Reservas')
-                    ->content('Las reservas se abrirán automáticamente cuando se ocupen todos los puestos visibles del ORBAT.')
+                Toggle::make('reservations_enabled')
+                    ->label('Abrir reservas manualmente')
+                    ->helperText(
+                        'Permite reservar aunque queden puestos libres en el ORBAT. '
+                        .'Si todos los puestos visibles se ocupan, las reservas '
+                        .'se abrirán automáticamente aunque esta opción esté desactivada.'
+                    )
+                    ->default(false)
+                    ->inline(false)
                     ->visible(function (Get $get): bool {
                         $typeId = Activity::query()->whereKey($get('activity_id'))->value('activity_type_id');
                         return ActivityTypeConfiguration::find($typeId)?->usesReservations() ?? false;

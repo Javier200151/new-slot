@@ -38,7 +38,6 @@ class GameMapForm
                     ->disk('public')
                     ->directory('maps')
                     ->visibility('public')
-                    ->preserveFilenames()
                     ->nullable(),
 
                 TextInput::make('url')

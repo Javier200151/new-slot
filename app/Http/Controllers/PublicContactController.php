@@ -8,6 +8,7 @@ use App\Mail\ContactSubmissionAdminMail;
 use App\Mail\ContactSubmissionConfirmationMail;
 use App\Models\ContactSubmission;
 use App\Models\HomepageSetting;
+use App\Support\RecruitmentFormFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -29,40 +30,17 @@ class PublicContactController extends Controller
             'website' => ['nullable', 'max:0'],
         ];
 
+        $recruitmentFields = $recruitmentRequested ? RecruitmentFormFields::visible() : [];
         if ($recruitmentRequested) {
-            $rules += [
-                'full_name' => ['required', 'string', 'max:160'],
-                'birth_date' => ['required', 'date', 'after_or_equal:1900-01-01', 'before_or_equal:' . now()->subYears(18)->toDateString()],
-                'residence' => ['required', 'string', 'max:160'],
-                'phone_whatsapp' => ['required', 'string', 'max:40', 'regex:/^[0-9+() .\-]{7,40}$/'],
-                'discord_profile' => ['nullable', 'string', 'max:160'],
-                'how_heard_us' => ['required', 'string', 'max:1500'],
-                'accepted_rules' => ['accepted'],
-                'is_adult' => ['accepted'],
-                'accepts_contributions' => ['accepted'],
-                'has_required_game_content' => ['accepted'],
-                'tuesday_available' => ['required', 'boolean'],
-                'friday_available' => ['required', 'boolean'],
-                'has_previous_experience' => ['required', 'boolean'],
-                'experience_summary' => ['required', 'string', 'max:4000'],
-            ];
+            $rules += RecruitmentFormFields::validationRules($recruitmentFields);
         }
 
         $validated = $request->validate($rules, [
             'nickname.required' => 'Indica el nickname por el que debemos conocerte.',
             'email.required' => 'Indica un email de contacto.',
-            'full_name.required' => 'Indica tu nombre y apellidos reales.',
-            'birth_date.required' => 'Indica tu fecha de nacimiento.',
-            'birth_date.before_or_equal' => 'Para solicitar el alistamiento debes ser mayor de edad.',
-            'residence.required' => 'Indica tu lugar de residencia.',
-            'phone_whatsapp.required' => 'Indica un teléfono de contacto con WhatsApp.',
-            'phone_whatsapp.regex' => 'El teléfono de contacto no tiene un formato válido.',
-            'how_heard_us.required' => 'Cuéntanos cómo conociste Squad ALPHA.',
-            'experience_summary.required' => 'Resume tu experiencia en simulación militar con Arma 3. Si no tienes experiencia, indícalo.',
-            'accepted_rules.accepted' => 'Debes aceptar la normativa de Squad ALPHA.',
-            'is_adult.accepted' => 'Debes confirmar que eres mayor de edad.',
-            'accepts_contributions.accepted' => 'Debes aceptar la condición relativa a las aportaciones económicas.',
-            'has_required_game_content.accepted' => 'Debes confirmar el requisito de Arma 3 original y los DLC/CDLC indicados.',
+            'recruitment_answers.*.required' => 'Completa esta pregunta del alistamiento.',
+            'recruitment_answers.*.accepted' => 'Debes marcar esta casilla para continuar.',
+            'recruitment_answers.*.before_or_equal' => 'Para solicitar el alistamiento debes ser mayor de edad.',
             'accepted_privacy.accepted' => 'Debes aceptar la política de privacidad.',
             'accepted_contact.accepted' => 'Debes aceptar el consentimiento de contacto.',
         ]);
@@ -84,22 +62,21 @@ class PublicContactController extends Controller
         ];
 
         if ($recruitmentRequested) {
-            $submissionData += [
-                'full_name' => trim($validated['full_name']),
-                'birth_date' => $validated['birth_date'],
-                'residence' => trim($validated['residence']),
-                'phone_whatsapp' => trim($validated['phone_whatsapp']),
-                'discord_profile' => trim((string) ($validated['discord_profile'] ?? '')) ?: null,
-                'how_heard_us' => trim($validated['how_heard_us']),
-                'accepted_rules' => $request->boolean('accepted_rules'),
-                'is_adult' => $request->boolean('is_adult'),
-                'accepts_contributions' => $request->boolean('accepts_contributions'),
-                'has_required_game_content' => $request->boolean('has_required_game_content'),
-                'tuesday_available' => $request->boolean('tuesday_available'),
-                'friday_available' => $request->boolean('friday_available'),
-                'has_previous_experience' => $request->boolean('has_previous_experience'),
-                'experience_summary' => trim($validated['experience_summary']),
-            ];
+            $submissionData['recruitment_answers'] = RecruitmentFormFields::snapshot($recruitmentFields, $validated);
+            $answers = (array) ($validated['recruitment_answers'] ?? []);
+
+            // Keep existing columns populated for recruitment workflows that still use them.
+            // Removed or hidden questions are not required and are left at DB defaults.
+            foreach ($recruitmentFields as $field) {
+                $key = $field['key'];
+                if (! array_key_exists($key, RecruitmentFormFields::LEGACY_TYPES)) {
+                    continue;
+                }
+                $value = $answers[$key] ?? null;
+                $submissionData[$key] = $field['type'] === 'checkbox'
+                    ? filter_var($value ?? false, FILTER_VALIDATE_BOOLEAN)
+                    : (is_string($value) && trim($value) !== '' ? trim($value) : null);
+            }
         }
 
         $submission = ContactSubmission::create($submissionData);

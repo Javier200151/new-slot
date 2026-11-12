@@ -65,6 +65,12 @@ return [
                         'manage' => 'Gestión de alistados',
                     ],
                 ],
+                'recruitment-form' => [
+                    'label' => 'Formulario de alistamiento',
+                    'actions' => [
+                        'manage' => 'Gestionar formulario de alistamiento',
+                    ],
+                ],
             ],
         ],
 

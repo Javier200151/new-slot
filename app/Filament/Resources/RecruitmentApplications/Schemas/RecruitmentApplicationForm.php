@@ -43,23 +43,34 @@ class RecruitmentApplicationForm
                 ->schema([
                     TextInput::make('nickname')->label('Nick')->disabled(),
                     TextInput::make('email')->label('Email')->disabled(),
-                    TextInput::make('full_name')->label('Nombre y apellidos reales')->disabled(),
+                    TextInput::make('full_name')->label('Nombre y apellidos reales')->disabled()->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers === null),
                     TextInput::make('birth_date_display')
                         ->label('Fecha de nacimiento')
                         ->formatStateUsing(fn (?ContactSubmission $record): string => $record?->birth_date?->format('d/m/Y') ?? 'No indicado')
-                        ->disabled(),
-                    TextInput::make('residence')->label('Lugar de residencia')->disabled(),
-                    TextInput::make('phone_whatsapp')->label('Teléfono / WhatsApp')->disabled(),
-                    TextInput::make('discord_profile')->label('Discord')->disabled()->placeholder('No indicado'),
+                        ->disabled()
+                        ->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers === null),
+                    TextInput::make('residence')->label('Lugar de residencia')->disabled()->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers === null),
+                    TextInput::make('phone_whatsapp')->label('Teléfono / WhatsApp')->disabled()->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers === null),
+                    TextInput::make('discord_profile')->label('Discord')->disabled()->placeholder('No indicado')->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers === null),
                     TextInput::make('created_at_display')
                         ->label('Recibida')
                         ->formatStateUsing(fn (?ContactSubmission $record): string => $record?->created_at?->format('d/m/Y H:i') ?? '—')
                         ->disabled(),
                     Textarea::make('message')->label('Mensaje')->rows(5)->disabled()->columnSpanFull(),
-                    Textarea::make('how_heard_us')->label('Cómo nos conoció')->rows(3)->disabled()->columnSpanFull(),
-                    Textarea::make('experience_summary')->label('Experiencia en simulación militar / Arma 3')->rows(4)->disabled()->columnSpanFull(),
+                    Textarea::make('how_heard_us')->label('Cómo nos conoció')->rows(3)->disabled()->columnSpanFull()->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers === null),
+                    Textarea::make('experience_summary')->label('Experiencia en simulación militar / Arma 3')->rows(4)->disabled()->columnSpanFull()->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers === null),
                 ])
                 ->columns(2)
+                ->columnSpanFull(),
+
+            Section::make('Respuestas del alistamiento')
+                ->schema([
+                    Placeholder::make('recruitment_answers_display')
+                        ->hiddenLabel()
+                        ->content(fn (?ContactSubmission $record): HtmlString => self::submittedAnswers($record))
+                        ->columnSpanFull(),
+                ])
+                ->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers !== null)
                 ->columnSpanFull(),
 
             Section::make('Requisitos declarados')
@@ -87,6 +98,7 @@ class RecruitmentApplicationForm
                         ->content(fn (?ContactSubmission $record): HtmlString => self::booleanIndicator((bool) $record?->has_previous_experience)),
                 ])
                 ->columns(4)
+                ->visible(fn (?ContactSubmission $record): bool => $record?->recruitment_answers === null)
                 ->columnSpanFull(),
 
             Section::make('Consentimientos')
@@ -101,6 +113,33 @@ class RecruitmentApplicationForm
                 ->columns(2)
                 ->columnSpanFull(),
         ]);
+    }
+
+    private static function submittedAnswers(?ContactSubmission $record): HtmlString
+    {
+        $answers = (array) ($record?->recruitment_answers ?? []);
+        if ($answers === []) {
+            return new HtmlString('<span style="color:#94a3b8;">No hay preguntas adicionales en esta solicitud.</span>');
+        }
+
+        $html = '<div style="display:grid;gap:12px;">';
+        $section = null;
+        foreach ($answers as $answer) {
+            if (! is_array($answer)) continue;
+            $currentSection = (string) ($answer['section'] ?? '');
+            if ($currentSection !== $section && $currentSection !== '') {
+                $html .= '<strong style="color:#fbbf24;margin-top:8px;font-size:14px;">' . e($currentSection) . '</strong>';
+            }
+            $section = $currentSection;
+            $value = ($answer['type'] ?? '') === 'checkbox'
+                ? (! empty($answer['value']) ? 'Sí' : 'No')
+                : (trim((string) ($answer['value'] ?? '')) ?: 'Sin respuesta');
+            $html .= '<div style="border:1px solid rgba(148,163,184,.22);background:rgba(127,127,127,.06);border-radius:8px;padding:12px;">'
+                . '<div style="color:#cbd5e1;font-weight:700;margin-bottom:5px;">' . e((string) ($answer['label'] ?? 'Pregunta')) . '</div>'
+                . '<div style="color:#f3f4f6;white-space:pre-wrap;overflow-wrap:anywhere;">' . e($value) . '</div></div>';
+        }
+
+        return new HtmlString($html . '</div>');
     }
 
     private static function booleanIndicator(bool $value): HtmlString
