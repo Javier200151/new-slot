@@ -1,0 +1,821 @@
+/* Avisos laterales agrupados en escritorio, independientes y plegables en móvil. */
+.sqa-community-shortcuts {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    z-index: 95;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    pointer-events: none;
+}
+.sqa-community-shortcuts__item {
+    position: relative;
+    pointer-events: auto;
+}
+.sqa-community-shortcuts__item > a {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    width: min(270px, calc(100vw - 32px));
+    min-height: 48px;
+    padding: 12px 16px 12px 14px;
+    border: 1px solid #c58925;
+    border-left: 0;
+    border-radius: 0 14px 14px 0;
+    color: #f9ca74;
+    background: linear-gradient(125deg, #231609, #543611);
+    box-shadow: 0 8px 28px #000b;
+    font-size: 13px;
+    line-height: 1.25;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: normal;
+    animation: sqa-shortcut-breathe 2.8s ease-in-out infinite;
+}
+.sqa-community-shortcuts__item > a:hover,
+.sqa-community-shortcuts__item > a:focus-visible {
+    color: #fff;
+    filter: brightness(1.12);
+}
+.sqa-community-shortcuts .sqa-year-shortcut {
+    position: relative !important;
+    inset: auto !important;
+    max-width: 100%;
+    margin: 0 !important;
+}
+.sqa-community-shortcuts .sqa-raffle-shortcut {
+    border-color: #cfa33f;
+    background: linear-gradient(120deg, #22324b, #9c661d);
+    color: #fff;
+}
+.sqa-community-shortcuts .sqa-raffle-shortcut.is-closed {
+    background: linear-gradient(120deg, #18212d, #2d3645);
+    border-color: #596274;
+    color: #e6dbba;
+}
+.sqa-community-shortcuts__handle { display: none; }
+
+body:has([data-clips-viewer].is-active) .sqa-community-shortcuts,
+body:has(.clips-viewer.is-open) .sqa-community-shortcuts {
+    visibility: hidden;
+}
+
+body.sqa-clip-lock .sqa-community-shortcuts {
+    display: none !important;
+}
+
+/* Mismo pilar central que las páginas de comunidad y la ruleta de eventos. */
+.community-shell.sqa-raffle-page {
+    width: min(1180px, calc(100% - 40px));
+    max-width: 1180px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    padding: 130px 0 65px;
+}
+.sqa-raffle-page {
+    padding-block: 30px 65px;
+    color: #f4f6fa;
+}
+
+.sqa-raffle-page h1 {
+    font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+    line-height: 1.06;
+    margin: 8px 0 15px;
+    color: #fff;
+}
+
+.sqa-raffle-page h2 {
+    font-size: 1.55rem;
+    color: #fff;
+    margin: 0;
+}
+
+.sqa-raffle-page h3 {
+    font-size: 1.15rem;
+    color: #f3f7fb;
+}
+
+.sqa-raffle-lead,
+.sqa-raffle-hero p {
+    color: #aab8c9;
+    max-width: 780px;
+    line-height: 1.6;
+}
+
+.sqa-raffle-topbar,
+.sqa-raffle-section-head,
+.sqa-raffle-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.sqa-raffle-kicker,
+.sqa-raffle-panel-kicker {
+    color: #ffb337;
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.sqa-raffle-back {
+    color: #f2b54a;
+    text-decoration: none;
+    font-weight: 750;
+    font-size: .95rem;
+}
+
+.sqa-raffle-live-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #f3f7fb;
+    font-weight: 800;
+}
+
+.sqa-raffle-archive {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 15px;
+    margin-top: 24px;
+}
+
+.sqa-raffle-archive-card {
+    padding: 24px;
+    min-height: 160px;
+    background: #111827;
+    border: 1px solid #344052;
+    border-radius: 16px;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sqa-raffle-archive-card span {
+    color: #dfa633;
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.sqa-raffle-archive-card strong {
+    color: #fff;
+    font-size: 1.3rem;
+}
+
+.sqa-raffle-archive-card small {
+    color: #99aabd;
+}
+
+.sqa-raffle-archive-card em {
+    color: #f0b449;
+    font-style: normal;
+    font-weight: 800;
+    margin-top: auto;
+}
+
+.sqa-raffle-hero {
+    border-radius: 19px;
+    padding: 28px 30px;
+    margin: 20px 0 22px;
+    background: linear-gradient(125deg, #172339, #10131a);
+    border: 1px solid #3a4354;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+}
+
+.sqa-raffle-hero__meta {
+    min-width: 180px;
+    display: grid;
+    gap: 10px;
+    color: #cbd6e3;
+    font-size: .92rem;
+}
+
+.sqa-raffle-hero__meta span {
+    padding: 9px 12px;
+    border-radius: 12px;
+    border: 1px solid #3e4c61;
+    background: rgba(18, 27, 40, .9);
+}
+
+.sqa-raffle-hero__meta b {
+    color: #ffcf73;
+}
+
+.sqa-raffle-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(310px, .7fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.sqa-raffle-stage,
+.sqa-raffle-prize-panel,
+.sqa-raffle-winners,
+.sqa-raffle-manager,
+.sqa-raffle-admin-actions {
+    background: #101723;
+    border: 1px solid #364052;
+    border-radius: 19px;
+    padding: 24px;
+}
+
+.sqa-raffle-stage {
+    position: sticky;
+    top: 18px;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.sqa-raffle-stage__halo {
+    position: absolute;
+    z-index: -1;
+    inset: 11% 17% auto;
+    height: 52%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 163, 52, .12), transparent 68%);
+    filter: blur(18px);
+}
+
+.sqa-raffle-wheel-wrap {
+    position: relative;
+    width: min(460px, 100%);
+    aspect-ratio: 1;
+    margin: 6px auto 20px;
+}
+
+.sqa-raffle-wheel-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    filter: drop-shadow(0 22px 34px rgba(0, 0, 0, .42));
+    transform-origin: center center;
+    will-change: transform;
+}
+
+.sqa-raffle-wheel-wrap::before,
+.sqa-raffle-wheel-wrap::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    z-index: -1;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 163, 52, .22);
+}
+
+.sqa-raffle-wheel-wrap::after {
+    inset: -16px;
+    border-color: rgba(148, 163, 184, .08);
+}
+
+.sqa-raffle-pointer {
+    position: absolute;
+    z-index: 5;
+    top: -7px;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform: translateX(-50%);
+    border-left: 16px solid transparent;
+    border-right: 16px solid transparent;
+    border-top: 36px solid #ff9d23;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .55));
+}
+
+.sqa-raffle-wheel-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 84px;
+    height: 84px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-weight: 950;
+    color: #fff;
+    background: #151c26;
+    border: 6px solid #0b1017;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, .5);
+    letter-spacing: .05em;
+}
+
+.sqa-raffle-result {
+    max-width: 580px;
+    margin: 10px auto 16px;
+    padding: 18px 20px;
+    border: 1px solid rgba(255, 163, 52, .32);
+    border-radius: 14px;
+    background: rgba(255, 163, 52, .08);
+    text-align: center;
+}
+
+.sqa-raffle-result strong {
+    display: block;
+    font-size: 1.2rem;
+    color: #ffd383;
+}
+
+.sqa-raffle-result p {
+    color: #bac4d3;
+    line-height: 1.5;
+    margin: 8px 0 0;
+}
+
+.sqa-raffle-spin-button {
+    display: grid;
+    gap: 3px;
+    width: min(360px, 100%);
+    margin: 8px auto 0;
+    padding: 15px 24px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffb33b, #dd8420);
+    box-shadow: 0 12px 28px rgba(255, 138, 0, .16);
+    color: #18130a;
+    cursor: pointer;
+    font: inherit;
+    transition: transform .16s ease, filter .16s ease, opacity .16s ease;
+}
+
+.sqa-raffle-spin-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.05);
+}
+
+.sqa-raffle-spin-button:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
+.sqa-raffle-spin-button span {
+    font-size: 1rem;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.sqa-raffle-spin-button small {
+    font-size: .73rem;
+    font-weight: 700;
+}
+
+.sqa-raffle-live-note {
+    text-align: center;
+    color: #8fa1b5;
+    font-size: .82rem;
+    margin: 16px 0 0;
+}
+
+.sqa-raffle-live-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #687b91;
+}
+
+.sqa-raffle-live-dot.is-live {
+    background: #44bf89;
+    box-shadow: 0 0 0 0 rgba(68, 191, 137, .48);
+    animation: sqa-raffle-live-pulse 1.7s infinite;
+}
+
+.sqa-raffle-panel-head,
+.sqa-raffle-section-head {
+    margin-bottom: 18px;
+}
+
+.sqa-raffle-panel-head > span {
+    color: #9eb0c6;
+    font-size: .82rem;
+}
+
+.sqa-raffle-prize-list {
+    display: grid;
+    gap: 12px;
+}
+
+.sqa-raffle-prize {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid #303d4f;
+    background: #162030;
+    border-radius: 12px;
+    padding: 10px;
+    min-height: 80px;
+}
+
+.sqa-raffle-prize img {
+    height: 69px;
+    width: 79px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #0a1019;
+}
+
+.sqa-raffle-prize strong,
+.sqa-raffle-prize small {
+    display: block;
+}
+
+.sqa-raffle-prize strong {
+    color: #fff;
+}
+
+.sqa-raffle-prize small {
+    color: #9aaec4;
+    margin-top: 6px;
+}
+
+.sqa-raffle-manage-spin {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #37445a;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.sqa-raffle-manage-spin label {
+    color: #f3bd61;
+    font-size: .84rem;
+    font-weight: 800;
+}
+
+.sqa-raffle-manager input[type=search],
+.sqa-raffle-manage-spin select,
+.sqa-raffle-change-prize select {
+    width: 100%;
+    background: #0c131e;
+    border: 1px solid #516076;
+    border-radius: 9px;
+    color: #fff;
+    padding: 12px;
+}
+
+.sqa-raffle-manage-spin small {
+    color: #9cacbf;
+    line-height: 1.5;
+}
+
+.sqa-raffle-action {
+    cursor: pointer;
+    background: #e99f28;
+    color: #1b140a;
+    border: 1px solid #e9a42b;
+    border-radius: 9px;
+    padding: 12px 19px;
+    font-weight: 850;
+}
+
+.sqa-raffle-action:hover {
+    background: #ffbb50;
+}
+
+.sqa-raffle-action:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.sqa-raffle-action--secondary {
+    background: #2b3443;
+    color: #fff;
+    border-color: #768496;
+}
+
+.sqa-raffle-winners {
+    margin-top: 23px;
+}
+
+.sqa-raffle-winners__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.sqa-raffle-winner-card {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+    background: #1c2838;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #554527;
+}
+
+.sqa-raffle-winner-card__icon {
+    font-size: 2.1rem;
+}
+
+.sqa-raffle-winner-card strong,
+.sqa-raffle-winner-card span,
+.sqa-raffle-winner-card small {
+    display: block;
+}
+
+.sqa-raffle-winner-card strong {
+    color: #ffcf73;
+    font-size: 1.2rem;
+}
+
+.sqa-raffle-winner-card span {
+    color: #fff;
+    margin-top: 4px;
+}
+
+.sqa-raffle-winner-card small {
+    color: #9badc2;
+    margin-top: 7px;
+}
+
+.sqa-raffle-claims {
+    background: #211e17;
+    border: 1px solid #6c5329;
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 21px;
+}
+
+.sqa-raffle-claims strong {
+    color: #f6bd58;
+}
+
+.sqa-raffle-claims p {
+    color: #eee;
+    white-space: pre-wrap;
+    line-height: 1.55;
+}
+
+.sqa-raffle-manager {
+    margin-top: 20px;
+}
+
+.sqa-raffle-manager > summary {
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.sqa-raffle-manager > summary small {
+    display: block;
+    font-size: .82rem;
+    color: #a5b2c4;
+    font-weight: 400;
+    margin-top: 4px;
+}
+
+.sqa-raffle-manager__selectors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0;
+}
+
+.sqa-raffle-manager__selectors button,
+.sqa-raffle-admin-row button,
+.sqa-raffle-reroll {
+    color: #f4c476;
+    background: #242c3b;
+    border: 1px solid #67634c;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 9px 12px;
+}
+
+.sqa-raffle-reroll {
+    margin-top: 9px;
+    font-size: .84rem;
+}
+
+.sqa-raffle-manager__searches {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.sqa-raffle-manager__searches label {
+    font-size: .85rem;
+    font-weight: 700;
+    color: #e2e9f2;
+    display: grid;
+    gap: 6px;
+}
+
+.sqa-raffle-manager__roster {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+    max-height: 380px;
+    overflow: auto;
+    margin: 16px 0 20px;
+}
+
+.sqa-raffle-manager__roster label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #1b2737;
+    border: 1px solid #344154;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.sqa-raffle-manager__roster label[hidden] {
+    display: none;
+}
+
+.sqa-raffle-manager__roster input {
+    width: 18px;
+    height: 18px;
+    accent-color: #e6a22a;
+}
+
+.sqa-raffle-admin-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.sqa-raffle-admin-actions p,
+.sqa-raffle-empty {
+    color: #9aa9bb;
+}
+
+.sqa-raffle-admin-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid #384254;
+}
+
+.sqa-raffle-notice,
+.sqa-raffle-error {
+    background: #20372c;
+    border: 1px solid #537761;
+    border-radius: 9px;
+    padding: 14px;
+    margin-bottom: 18px;
+    color: #cef0d8;
+}
+
+.sqa-raffle-error {
+    background: #3d2020;
+    color: #f7cece;
+    border-color: #9c5757;
+}
+
+.sqa-raffle-change-prize {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+body:has(.sqa-community-shortcuts) .sqa-fallujah__beacon {
+    top: 28%;
+}
+
+@keyframes sqa-shortcut-breathe {
+    0%, 100% { transform: translateX(0) scale(1); box-shadow: 0 8px 28px rgba(0, 0, 0, .72), 0 0 0 0 rgba(220, 148, 37, .22); }
+    50% { transform: translateX(3px) scale(1.015); box-shadow: 0 10px 32px rgba(0, 0, 0, .78), 0 0 0 8px rgba(220, 148, 37, 0); }
+}
+
+@keyframes sqa-raffle-live-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(68, 191, 137, .45); }
+    70% { box-shadow: 0 0 0 10px rgba(68, 191, 137, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(68, 191, 137, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sqa-community-shortcuts a,
+    .sqa-raffle-live-dot.is-live {
+        animation: none !important;
+    }
+}
+
+@media (max-width: 980px) {
+    .sqa-raffle-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sqa-raffle-stage {
+        position: static;
+    }
+
+    .sqa-raffle-prize-panel {
+        order: 2;
+    }
+}
+
+@media (max-width: 767px) {
+    .sqa-community-shortcuts {
+        top: 50%;
+        bottom: auto;
+        left: 0;
+        transform: translateY(-50%);
+        gap: 12px;
+    }
+    .sqa-community-shortcuts__item {
+        width: min(236px, calc(100vw - 42px));
+        transform: translateX(calc(-100% + 32px));
+        transition: transform .24s ease;
+        touch-action: pan-y;
+    }
+    .sqa-community-shortcuts__item.is-open {
+        transform: translateX(0);
+    }
+    .sqa-community-shortcuts__item > a {
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 40px 10px 12px;
+        font-size: 12px;
+        animation: none !important;
+    }
+    .sqa-community-shortcuts__handle {
+        display: grid;
+        place-items: center;
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 32px;
+        border: 1px solid #c58925;
+        border-radius: 0 12px 12px 0;
+        background: linear-gradient(180deg, #473210, #775017);
+        color: #fff;
+        cursor: pointer;
+        font-size: 14px;
+        touch-action: pan-y;
+    }
+    .community-shell.sqa-raffle-page {
+        width: min(100% - 24px, 1180px);
+        padding-top: 105px;
+        padding-bottom: 50px;
+    }
+
+    .sqa-raffle-hero {
+        padding: 20px;
+        display: block;
+    }
+
+    .sqa-raffle-hero__meta {
+        margin-top: 16px;
+        min-width: 0;
+    }
+
+    .sqa-raffle-stage,
+    .sqa-raffle-prize-panel,
+    .sqa-raffle-winners,
+    .sqa-raffle-manager,
+    .sqa-raffle-admin-actions {
+        padding: 16px;
+    }
+
+    .sqa-raffle-wheel-wrap {
+        width: min(360px, 100%);
+    }
+
+    .sqa-raffle-wheel-center {
+        width: 64px;
+        height: 64px;
+        font-size: .9rem;
+    }
+
+    .sqa-raffle-result {
+        margin-bottom: 12px;
+    }
+
+    .sqa-raffle-manager__searches {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mantener contenidos de la ruleta dentro de su columna incluso tras un error. */
+.sqa-raffle-page .sqa-raffle-main-grid > *,
+.sqa-raffle-page .sqa-raffle-stage,
+.sqa-raffle-page .sqa-raffle-prize-panel { min-width: 0; max-width: 100%; }
+.sqa-raffle-page .sqa-raffle-stage canvas { max-width: 100%; }
+.sqa-raffle-spin-error { max-width: 580px; margin: 12px auto; line-height: 1.5; }
+.sqa-raffle-spin-error[hidden] { display: none !important; }

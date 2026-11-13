@@ -49,7 +49,7 @@
         <div class="sqa-clip-card__info"><strong>{{ $clip->title }}</strong><small>{{ $clip->user?->nick ?? $clip->broadcaster_name ?? 'Squad ALPHA' }}@if($clip->protagonistNames()) · Protagonistas: {{ implode(', ', $clip->protagonistNames()) }}@endif · {{ $clip->clip_created_at?->format('d/m/Y') }}</small></div>
         @auth
           @if((int) $clip->user_id === (int) auth()->id() || auth()->user()->can('community-clips.delete') || auth()->user()->hasRole('admin'))
-            <form method="POST" action="{{ route('clips.destroy', $clip) }}" onsubmit="return confirm('¿Retirar este clip?')">@csrf @method('DELETE')<button class="sqa-clip-remove" type="submit">Retirar</button></form>
+            <form method="POST" action="{{ route('clips.destroy', $clip) }}" data-sqa-confirm="¿Retirar este clip?">@csrf @method('DELETE')<button class="sqa-clip-remove" type="submit">Retirar</button></form>
           @endif
         @endauth
       </article>

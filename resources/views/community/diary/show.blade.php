@@ -267,7 +267,7 @@
                                 </form>
                             </details>
 
-                            <form method="POST" action="{{ route('community.diary.destroy', $entry) }}" onsubmit="return confirm('¿Eliminar esta entrada y sus comentarios?')">
+                            <form method="POST" action="{{ route('community.diary.destroy', $entry) }}" data-sqa-confirm="¿Eliminar esta entrada y sus comentarios?">
                                 @csrf
                                 @method('DELETE')
                                 <button class="community-btn community-btn--danger" type="submit">Eliminar</button>
@@ -328,7 +328,7 @@
                                         </form>
                                     </details>
 
-                                    <form method="POST" action="{{ route('community.diary.comments.destroy', [$diary, $comment]) }}" onsubmit="return confirm('¿Eliminar este comentario?')">
+                                    <form method="POST" action="{{ route('community.diary.comments.destroy', [$diary, $comment]) }}" data-sqa-confirm="¿Eliminar este comentario?">
                                         @csrf @method('DELETE')
                                         <button class="community-btn community-btn--danger" type="submit">Eliminar</button>
                                     </form>

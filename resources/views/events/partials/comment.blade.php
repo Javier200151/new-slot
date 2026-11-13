@@ -90,7 +90,7 @@
                     data-confirm-message="{{ $replies->isNotEmpty()
                         ? '¿Eliminar este comentario? También se eliminarán todas sus respuestas.'
                         : '¿Eliminar este comentario?' }}"
-                    onsubmit="return confirm(this.dataset.confirmMessage);"
+                    data-sqa-confirm-from="confirmMessage"
                 >
                     @csrf
                     @method('DELETE')

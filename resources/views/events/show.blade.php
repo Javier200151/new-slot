@@ -925,11 +925,7 @@
                                                                     ]
                                                                 )
                                                             }}"
-                                                            onsubmit="
-                                                                return confirm(
-                                                                    '¿Eliminar este clip?'
-                                                                );
-                                                            "
+                                                            data-sqa-confirm="¿Eliminar este clip?"
                                                         >
                                                             @csrf
                                                             @method('DELETE')
@@ -1009,7 +1005,7 @@
                                                 <form
                                                     method="POST"
                                                     action="{{ route('events.media.destroy', [$event, $photo]) }}"
-                                                    onsubmit="return confirm('¿Eliminar esta foto?');"
+                                                    data-sqa-confirm="¿Eliminar esta foto?"
                                                 >
                                                     @csrf
                                                     @method('DELETE')
@@ -1152,11 +1148,7 @@
                                                 class="
                                                     event-media-vod__delete
                                                 "
-                                                onsubmit="
-                                                    return confirm(
-                                                        '¿Eliminar este VOD?'
-                                                    );
-                                                "
+                                                data-sqa-confirm="¿Eliminar este VOD?"
                                             >
                                                 @csrf
                                                 @method('DELETE')

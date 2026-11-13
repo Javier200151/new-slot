@@ -11,6 +11,7 @@ use App\Http\Controllers\CommunityPollController;
 use App\Http\Controllers\CommunityProcessController;
 use App\Http\Controllers\CommunitySubscriptionController;
 use App\Http\Controllers\CommunityRouletteController;
+use App\Http\Controllers\CommunityRaffleController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LinkedAccountController;
@@ -46,6 +47,31 @@ use App\Http\Controllers\BbcodePreviewController;
 */
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Sorteos de la comunidad: acceso solo para inscritos y gestores.
+// La autorización se vuelve a comprobar dentro del controlador para las URL directas.
+Route::middleware('auth')->group(function (): void {
+    Route::get('/media/sorteos/{filename}', \App\Http\Controllers\CommunityRaffleImageController::class)
+        ->where('filename', '[A-Za-z0-9._-]+')->name('raffles.image');
+    Route::get('/sorteos', [CommunityRaffleController::class, 'index'])->name('raffles.index');
+    Route::get('/sorteos/{raffle}', [CommunityRaffleController::class, 'show'])
+        ->whereNumber('raffle')->name('raffles.show');
+    Route::get('/sorteos/{raffle}/estado', [CommunityRaffleController::class, 'state'])
+        ->whereNumber('raffle')->middleware('throttle:60,1')->name('raffles.state');
+});
+Route::middleware(['auth', 'throttle:30,1'])->group(function (): void {
+    Route::post('/sorteos/{raffle}/participantes', [CommunityRaffleController::class, 'participants'])
+        ->whereNumber('raffle')->name('raffles.participants');
+    Route::post('/sorteos/{raffle}/girar', [CommunityRaffleController::class, 'spin'])
+        ->whereNumber('raffle')->name('raffles.spin');
+    Route::post('/sorteos/{raffle}/repetir/{draw}', [CommunityRaffleController::class, 'reroll'])
+        ->whereNumber('raffle')->whereNumber('draw')->name('raffles.reroll');
+    Route::post('/sorteos/{raffle}/cambiar-premio/{draw}', [CommunityRaffleController::class, 'changePrize'])
+        ->whereNumber('raffle')->whereNumber('draw')->name('raffles.change-prize');
+    Route::post('/sorteos/{raffle}/cerrar', [CommunityRaffleController::class, 'close'])
+        ->whereNumber('raffle')->name('raffles.close');
+});
+
 Route::get('/actualidad', [HomeController::class, 'announcements'])->name('news.index');
 
 

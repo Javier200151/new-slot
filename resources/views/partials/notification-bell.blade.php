@@ -199,6 +199,9 @@
                         )
                             ↩
 
+                        @elseif(in_array($type, ['community_raffle_prize', 'community_raffle_cancelled', 'community_raffle_changed'], true))
+                            🎁
+
                         @elseif(
                             $type
                             === 'community_roulette_winner'
@@ -217,8 +220,6 @@
                         )
                             📋
 
-                        @elseif($type === 'clip_year_phase')
-                            ☠
                         @elseif(
                             $type
                             === 'event_slot_changed'
@@ -253,10 +254,6 @@
                                 cumple años hoy. ¡Felicidades! 🎉
                             </span>
 
-                        @elseif($type === 'clip_year_phase')
-                            <strong>{{ $data['title'] ?? 'Clip del año' }}</strong>
-                            <span>{{ $data['message'] ?? 'Hay novedades del concurso.' }}</span>
-                            <small>Edición {{ $data['year'] ?? '' }}</small>
                         @elseif(
                             $type
                             === 'event_published'
@@ -383,6 +380,19 @@
                                     ] ?? 'un evento' }}
                                 </b>
                             </span>
+                        @elseif($type === 'community_raffle_prize')
+                            <strong>¡Has ganado un sorteo!</strong>
+                            <span>Has ganado <b>{{ $data['prize_name'] ?? 'un premio' }}</b> en <b>{{ $data['raffle_title'] ?? 'un sorteo de Squad ALPHA' }}</b>.</span>
+                            @if(filled($data['phrase'] ?? null))<small>{{ $data['phrase'] }}</small>@endif
+
+                        @elseif($type === 'community_raffle_changed')
+                            <strong>Tu premio ha cambiado</strong>
+                            <span>Ahora tienes <b>{{ $data['prize_name'] ?? 'un premio' }}</b> en <b>{{ $data['raffle_title'] ?? 'un sorteo' }}</b>. Consulta el sorteo para ver los detalles.</span>
+
+                        @elseif($type === 'community_raffle_cancelled')
+                            <strong>Tirada de sorteo anulada</strong>
+                            <span>Se ha repetido la tirada de <b>{{ $data['prize_name'] ?? 'un premio' }}</b> en <b>{{ $data['raffle_title'] ?? 'un sorteo' }}</b>. El resultado anterior ya no es válido.</span>
+
                         @elseif(
                             $type
                             === 'community_roulette_winner'

@@ -7,6 +7,8 @@ use App\Listeners\FilterInternalNotification;
 use Illuminate\Notifications\Events\NotificationSending;
 use App\Models\Activity as NewSlotActivity;
 use App\Models\CampaignAar;
+use App\Models\CommunityRaffle;
+use App\Policies\CommunityRafflePolicy;
 use App\Models\Operation;
 use App\Models\GameMap;
 use App\Models\Role;
@@ -104,6 +106,8 @@ class AppServiceProvider extends ServiceProvider
             Role::class,
             RolePolicy::class
         );
+
+        Gate::policy(CommunityRaffle::class, CommunityRafflePolicy::class);
 
         Gate::policy(
             CampaignAar::class,

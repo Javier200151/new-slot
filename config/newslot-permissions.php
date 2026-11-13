@@ -248,6 +248,13 @@ return [
                     'label' => 'Categorías del foro',
                 ],
 
+                'raffles' => [
+                    'label' => 'Sorteos',
+                    'actions' => [
+                        'manage' => 'Gestionar sorteos y girar la ruleta',
+                    ],
+                ],
+
                 'community-roulette' => [
                     'label' => 'Ruleta de responsabilidad',
                     'actions' => [
