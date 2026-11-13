@@ -50,7 +50,7 @@
                     </form>
                 @endif
                 @if($canDeleteAny)
-                    <form method="POST" action="{{ route('community.forum.destroy', [$categoryKey, $post]) }}" onsubmit="return confirm('¿Eliminar este hilo, sus respuestas y el proceso/votación vinculados?')">
+                    <form method="POST" action="{{ route('community.forum.destroy', [$categoryKey, $post]) }}" data-sqa-confirm="¿Eliminar este hilo, sus respuestas y el proceso/votación vinculados?">
                         @csrf @method('DELETE')
                         <button class="community-btn community-btn--danger" type="submit">Eliminar hilo</button>
                     </form>
@@ -161,7 +161,7 @@
                 @endif
 
                 @if($post->user_id === auth()->id() && !$canDeleteAny)
-                    <form method="POST" action="{{ route('community.forum.destroy', [$categoryKey, $post]) }}" onsubmit="return confirm('¿Eliminar tu hilo?')">
+                    <form method="POST" action="{{ route('community.forum.destroy', [$categoryKey, $post]) }}" data-sqa-confirm="¿Eliminar tu hilo?">
                         @csrf @method('DELETE')
                         <button class="forum-message-action forum-message-action--danger" type="submit" title="Eliminar mensaje">
                             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -297,7 +297,7 @@
                             @endif
 
                             @if($comment->user_id === auth()->id() || $canDeleteAny)
-                                <form method="POST" action="{{ route('community.forum.comments.destroy', [$categoryKey, $post, $comment]) }}" onsubmit="return confirm('¿Eliminar esta respuesta?')">
+                                <form method="POST" action="{{ route('community.forum.comments.destroy', [$categoryKey, $post, $comment]) }}" data-sqa-confirm="¿Eliminar esta respuesta?">
                                     @csrf @method('DELETE')
                                     <button class="forum-message-action forum-message-action--danger" type="submit" title="Eliminar mensaje">
                                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">

@@ -33,6 +33,7 @@
     data-spin-url="{{ route('community.roulette.spin', $room) }}"
     data-csrf="{{ csrf_token() }}"
     data-room-id="{{ $room->id }}"
+    data-viewer-id="{{ auth()->id() ?? '' }}"
 >
     <div class="roulette-room__topbar">
         <a class="community-kicker" href="{{ route('community.roulette.index') }}">← Ruleta</a>
@@ -191,7 +192,7 @@
                                         <form
                                             method="POST"
                                             action="{{ route('community.roulette.candidates.destroy', [$room, $candidate->user_id]) }}"
-                                            onsubmit="return confirm('¿Quitar a {{ addslashes($candidate->nick_snapshot) }} de esta ruleta?')"
+                                            data-sqa-confirm="¿Quitar a {{ addslashes($candidate->nick_snapshot) }} de esta ruleta?"
                                         >
                                             @csrf
                                             @method('DELETE')
@@ -327,7 +328,7 @@
             class="roulette-repeat-room"
             data-roulette-repeat-room
             @if(! ($initialState['can_repeat'] ?? false)) hidden @endif
-            onsubmit="return confirm('¿Repetir el sorteo? El ganador anterior quedará excluido, se intentará devolver a su slot previo y el ORBAT volverá a bloquearse.')"
+            data-sqa-confirm="¿Repetir el sorteo? El ganador anterior quedará excluido, se intentará devolver a su slot previo y el ORBAT volverá a bloquearse."
         >
             @csrf
             <button class="community-btn" type="submit">↻ Repetir sorteo</button>
@@ -336,7 +337,7 @@
     @endif
 
     @if($canControl && $room->locksEventRegistration())
-        <form method="POST" action="{{ route('community.roulette.destroy', $room) }}" class="roulette-close-room" data-roulette-close-room onsubmit="return confirm('¿Cerrar la sala? Se desbloquearán las inscripciones y esta ruleta pasará al histórico.')">
+        <form method="POST" action="{{ route('community.roulette.destroy', $room) }}" class="roulette-close-room" data-roulette-close-room data-sqa-confirm="¿Cerrar la sala? Se desbloquearán las inscripciones y esta ruleta pasará al histórico.">
             @csrf
             @method('DELETE')
             <button type="submit">Cerrar sala y desbloquear ORBAT</button>

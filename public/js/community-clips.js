@@ -141,7 +141,7 @@
       const remove = document.createElement('button'); remove.type = 'button';
       remove.textContent = 'Eliminar'; remove.setAttribute('aria-label','Eliminar comentario');
       remove.addEventListener('click', async () => {
-        if (!confirm('¿Eliminar este comentario?')) return;
+        if (!await window.SqaDialog.confirm('¿Eliminar este comentario?')) return;
         try {
           const clip = clips[index];
           const data = await request(`${clip.comments_url}/${item.id}`, 'DELETE');

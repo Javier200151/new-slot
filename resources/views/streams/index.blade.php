@@ -513,7 +513,7 @@
                           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-top:1px solid #353d46">
                             <a href="{{ $vod->stream_url }}" rel="noopener noreferrer" target="_blank">{{ $vod->title ?: 'Vídeo' }}</a>
                             @if($vod->visible_on_home)
-                              <form method="POST" action="{{ route('streams.vods.destroy', $vod) }}" onsubmit="return confirm('¿Retirar este VOD de Squad ALPHA?')">@csrf @method('DELETE')<button type="submit" class="live-refresh-button">Retirar de portada</button></form>
+                              <form method="POST" action="{{ route('streams.vods.destroy', $vod) }}" data-sqa-confirm="¿Retirar este VOD de Squad ALPHA?">@csrf @method('DELETE')<button type="submit" class="live-refresh-button">Retirar de portada</button></form>
                             @else
                               <small>Oculto</small>
                             @endif

@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinUrl = room.dataset.spinUrl;
     const csrf = room.dataset.csrf;
     const roomId = room.dataset.roomId;
+    const viewerId = Number(room.dataset.viewerId || 0);
     let lastState = null;
     let serverOffsetMs = 0;
     let frame = null;
@@ -40,6 +41,37 @@ document.addEventListener('DOMContentLoaded', () => {
     let spinBusy = false;
     let currentRotation = 0;
     let lastWheelSignature = '';
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let visibleSegments = [];
+    const wheelWrapper = canvas.closest('.roulette-wheel-wrap') || canvas.parentElement;
+    const tooltip = document.createElement('div');
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.setAttribute('aria-hidden', 'true');
+    Object.assign(tooltip.style, {
+        position: 'absolute', zIndex: '30', pointerEvents: 'none',
+        padding: '9px 13px', borderRadius: '9px',
+        border: '1px solid rgba(255, 184, 76, .75)',
+        background: '#0c131e', color: '#fff',
+        font: '800 15px/1.25 system-ui, sans-serif',
+        boxShadow: '0 8px 24px rgba(0,0,0,.65)',
+        whiteSpace: 'nowrap', maxWidth: 'min(240px, 85vw)',
+        overflow: 'hidden', textOverflow: 'ellipsis',
+        opacity: '0', visibility: 'hidden',
+        transition: 'opacity .12s ease'
+    });
+    wheelWrapper.appendChild(tooltip);
+    let lastHighlightFrame = 0;
+    const highlightPulse = () => reducedMotion.matches ? .45 : .5 + .5 * Math.sin(performance.now() * Math.PI * 2 / 6000);
+    const animateMySegment = (timestamp) => {
+        if (viewerId > 0 && !document.hidden && !reducedMotion.matches &&
+            timestamp - lastHighlightFrame >= 90 &&
+            (lastState?.wheel || []).some(candidate => Number(candidate.user_id) === viewerId && Number(candidate.tickets) > 0)) {
+            lastHighlightFrame = timestamp;
+            drawWheel(lastState.wheel, true);
+        }
+        requestAnimationFrame(animateMySegment);
+    };
+    if (viewerId > 0) requestAnimationFrame(animateMySegment);
 
     const statusLabels = {
         active: 'Preparando',
@@ -66,6 +98,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return `hsl(${hue} 58% 39%)`;
     };
 
+    const hideTooltip = () => {
+        tooltip.style.opacity = '0';
+        tooltip.style.visibility = 'hidden';
+    };
+
+    const showTooltip = (event, label) => {
+        const rect = wheelWrapper.getBoundingClientRect();
+        tooltip.textContent = label;
+        tooltip.style.visibility = 'visible';
+        tooltip.style.opacity = '1';
+        const x = event.clientX - rect.left + 14;
+        const y = event.clientY - rect.top - 42;
+        tooltip.style.left = `${Math.max(4, Math.min(x, rect.width - tooltip.offsetWidth - 4))}px`;
+        tooltip.style.top = `${Math.max(4, Math.min(y, rect.height - tooltip.offsetHeight - 4))}px`;
+    };
+
+    const findSegmentFromPointer = (event) => {
+        if (!visibleSegments.length) return null;
+        const rect = canvas.getBoundingClientRect();
+        const dx = event.clientX - (rect.left + rect.width / 2);
+        const dy = event.clientY - (rect.top + rect.height / 2);
+        const distance = Math.hypot(dx, dy);
+        if (distance > rect.width * (canvas.width / 2 - 10) / canvas.width || distance < rect.width * 0.08) return null;
+        const full = Math.PI * 2;
+        let angle = Math.atan2(dy, dx) - currentRotation * Math.PI / 180;
+        angle = ((angle + Math.PI / 2) % full + full) % full - Math.PI / 2;
+        return visibleSegments.find(segment => angle >= segment.begin && angle < segment.end) || null;
+    };
+
     const drawEmptyWheel = () => {
         const size = canvas.width;
         const center = size / 2;
@@ -87,16 +148,17 @@ document.addEventListener('DOMContentLoaded', () => {
         context.fillText('Sin papeletas', center, center - 76);
     };
 
-    const drawWheel = (wheel) => {
+    const drawWheel = (wheel, force = false) => {
         const candidates = Array.isArray(wheel) ? wheel.filter((candidate) => Number(candidate.tickets) > 0) : [];
         const signature = JSON.stringify(candidates.map((candidate) => [candidate.user_id, candidate.nick, candidate.tickets]));
 
-        if (signature === lastWheelSignature) {
+        if (signature === lastWheelSignature && !force) {
             return;
         }
         lastWheelSignature = signature;
 
         if (candidates.length === 0) {
+            visibleSegments = [];
             drawEmptyWheel();
             return;
         }
@@ -110,27 +172,49 @@ document.addEventListener('DOMContentLoaded', () => {
         let cursor = -Math.PI / 2;
 
         context.clearRect(0, 0, size, size);
+        visibleSegments = [];
 
         candidates.forEach((candidate, index) => {
             const fraction = Number(candidate.tickets) / totalTickets;
             const arc = fraction * Math.PI * 2;
             const end = cursor + arc;
+            const isMine = viewerId > 0 && Number(candidate.user_id) === viewerId;
+            const pulse = isMine ? highlightPulse() : 0;
 
+            context.save();
+            if (isMine) {
+                context.shadowColor = '#9cfbff';
+                context.shadowBlur = 5 + pulse * 9;
+            }
             context.beginPath();
             context.moveTo(center, center);
             context.arc(center, center, outerRadius, cursor, end);
             context.closePath();
             context.fillStyle = colorForIndex(index, candidates.length);
             context.fill();
-            context.lineWidth = 3;
-            context.strokeStyle = '#0b1017';
-            context.stroke();
+            if (isMine) {
+                context.fillStyle = `rgba(167, 247, 255, ${0.09 + pulse * .22})`;
+                context.fill();
+                context.shadowColor = '#9cfbff';
+                context.shadowBlur = 6 + pulse * 11;
+                context.lineWidth = 2 + pulse * 1.5;
+                context.strokeStyle = '#62dff1';
+                context.stroke();
+            }
+            context.restore();
+            if (!isMine) {
+                context.lineWidth = 2;
+                context.strokeStyle = '#0b1017';
+                context.stroke();
+            }
 
             const midpoint = cursor + (arc / 2);
             const x = center + Math.cos(midpoint) * textRadius;
             const y = center + Math.sin(midpoint) * textRadius;
             const label = String(candidate.nick || 'Jugador');
             const tickets = Number(candidate.tickets || 0);
+            const availableWidth = Math.max(5, 2 * textRadius * Math.sin(Math.min(arc, Math.PI) / 2) * .85);
+            const fontSize = Math.max(7, Math.min(20, availableWidth * .85));
 
             context.save();
             context.translate(x, y);
@@ -141,17 +225,19 @@ document.addEventListener('DOMContentLoaded', () => {
             context.rotate(textRotation);
             context.textAlign = 'center';
             context.textBaseline = 'middle';
-            context.shadowColor = 'rgba(0, 0, 0, .5)';
-            context.shadowBlur = 4;
+            context.shadowColor = isMine ? '#00eaff' : 'rgba(0, 0, 0, .6)';
+            context.shadowBlur = isMine ? 3 + 4 * pulse : 3;
             context.fillStyle = '#fff';
-            const fontSize = Math.max(13, Math.min(22, 17 - Math.max(0, candidates.length - 10) * .28));
-            context.font = `800 ${fontSize}px system-ui, sans-serif`;
-            context.fillText(label.length > 15 ? `${label.slice(0, 14)}…` : label, 0, -8);
-            context.fillStyle = 'rgba(255,255,255,.78)';
-            context.font = `700 ${Math.max(11, fontSize - 4)}px system-ui, sans-serif`;
-            context.fillText(`${tickets} ${tickets === 1 ? 'papeleta' : 'papeletas'}`, 0, 12);
+            context.font = `${isMine ? 900 : 800} ${fontSize}px system-ui, sans-serif`;
+            // Nunca omitir el nombre, aunque la porción sea muy estrecha.
+            context.fillText(label, 0, fontSize > 11 ? -5 : 0, radius * .67);
+            if (fontSize > 11 && arc * textRadius > 24) {
+                context.fillStyle = 'rgba(255,255,255,.85)';
+                context.font = `700 ${Math.max(9, fontSize - 5)}px system-ui, sans-serif`;
+                context.fillText(`${tickets} ${tickets === 1 ? 'papeleta' : 'papeletas'}`, 0, 10, radius * .67);
+            }
             context.restore();
-
+            visibleSegments.push({ begin: cursor, end, label });
             cursor = end;
         });
 
@@ -460,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const message = payload?.message
                     || Object.values(payload?.errors || {})?.flat?.()?.[0]
                     || 'No se ha podido iniciar la ruleta.';
-                window.alert(message);
+                await window.SqaDialog.alert(message);
                 return;
             }
 
@@ -468,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyState(payload.state);
             }
         } catch {
-            window.alert('No se ha podido comunicar con la sala. Vuelve a intentarlo.');
+            await window.SqaDialog.alert('No se ha podido comunicar con la sala. Vuelve a intentarlo.');
         } finally {
             spinBusy = false;
             if (lastState) {
@@ -482,6 +568,14 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchState();
         }
     });
+
+    wheelWrapper.addEventListener('pointermove', (event) => {
+        const segment = findSegmentFromPointer(event);
+        if (!segment) { hideTooltip(); return; }
+        showTooltip(event, segment.label);
+    });
+    wheelWrapper.addEventListener('pointerleave', hideTooltip);
+    window.addEventListener('scroll', hideTooltip, { passive: true });
 
     drawEmptyWheel();
     fetchState();

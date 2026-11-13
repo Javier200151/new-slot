@@ -352,7 +352,7 @@
                                 <form method="POST" action="{{ route('community.forum.pin', [$postCategoryKey, $post]) }}">@csrf @method('PATCH')<button type="submit" title="{{ $post->is_pinned ? 'Desfijar' : 'Fijar' }}">📌</button></form>
                             @endif
                             @if($canDeleteAny)
-                                <form method="POST" action="{{ route('community.forum.destroy', [$postCategoryKey, $post]) }}" onsubmit="return confirm('¿Eliminar este hilo y su contenido asociado?')">@csrf @method('DELETE')<button type="submit" class="is-danger" title="Eliminar">🗑</button></form>
+                                <form method="POST" action="{{ route('community.forum.destroy', [$postCategoryKey, $post]) }}" data-sqa-confirm="¿Eliminar este hilo y su contenido asociado?">@csrf @method('DELETE')<button type="submit" class="is-danger" title="Eliminar">🗑</button></form>
                             @endif
                         </div>
                     @endif

@@ -65,7 +65,7 @@
                         <button
                             type="submit"
                             class="linked-account__unlink"
-                            onclick="return confirm('¿Desvincular Discord? Las automatizaciones de Discord dejarán de funcionar hasta volver a vincular una cuenta. No se quitarán roles ni se ejecutará ninguna baja.')"
+                            data-sqa-confirm="¿Desvincular Discord? Las automatizaciones de Discord dejarán de funcionar hasta volver a vincular una cuenta. No se quitarán roles ni se ejecutará ninguna baja."
                         >
                             Desvincular
                         </button>
@@ -115,7 +115,7 @@
                         <button
                             type="submit"
                             class="linked-account__unlink"
-                            onclick="return confirm('¿Desvincular Steam? Algunas funciones vinculadas a Steam dejarán de estar disponibles hasta que vuelvas a enlazar la cuenta.')"
+                            data-sqa-confirm="¿Desvincular Steam? Algunas funciones vinculadas a Steam dejarán de estar disponibles hasta que vuelvas a enlazar la cuenta."
                         >
                             Desvincular
                         </button>

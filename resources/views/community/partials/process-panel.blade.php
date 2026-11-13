@@ -99,7 +99,7 @@
     @endif
 
     @if($isCall && $myApplication && ! $myApplication->isWithdrawn() && $process->applicationsAreOpen() && $process->allow_application_withdraw)
-        <form method="POST" action="{{ route('community.processes.withdraw', $process) }}" class="process-withdraw-form" onsubmit="return confirm('¿Retirar tu candidatura?')">
+        <form method="POST" action="{{ route('community.processes.withdraw', $process) }}" class="process-withdraw-form" data-sqa-confirm="¿Retirar tu candidatura?">
             @csrf @method('DELETE')
             <button class="community-btn community-btn--danger" type="submit">Retirar candidatura</button>
         </form>

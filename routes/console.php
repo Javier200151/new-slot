@@ -42,7 +42,6 @@ Schedule::command('treasury:sync-monthly-control')
 // Requires an operational Laravel scheduler (php artisan schedule:run every minute).
 Schedule::command('wiki:revoke-pending')->everyMinute()->withoutOverlapping();
 
-Schedule::command('clips:import-twitch')->everyThirtyMinutes()->withoutOverlapping();
-Schedule::command('clips:import-youtube')->hourly()->withoutOverlapping();
-
-Schedule::command('clips:notify-year-phase')->hourly()->withoutOverlapping();
+// Completa tiradas aunque todos los espectadores hayan cerrado la página.
+Schedule::call(fn () => app(\App\Services\CommunityRaffleService::class)->settleDue())
+    ->everyMinute()->name('community-raffle-settle')->withoutOverlapping();

@@ -212,7 +212,7 @@
                                 <button
                                     type="submit"
                                     class="profile-text-button"
-                                    onclick="return confirm('¿Eliminar la imagen de perfil?')"
+                                    data-sqa-confirm="¿Eliminar la imagen de perfil?"
                                 >
                                     Eliminar imagen
                                 </button>

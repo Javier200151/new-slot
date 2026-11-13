@@ -923,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
             && String(targetUserId)
                 !== String(draggedUserId)
         ) {
-            const confirmed = window.confirm(
+            const confirmed = await window.SqaDialog.confirm(
                 `¿Está seguro de intercambiar a ${draggedUserName} con ${targetName}?`
             );
 
@@ -1325,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         /*
          * Confirmación destructiva.
          */
-        const confirmed = window.confirm(
+        const confirmed = await window.SqaDialog.confirm(
             `¿Está seguro de eliminar a ${userName} del ORBAT?`
         );
 
