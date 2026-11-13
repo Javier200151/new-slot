@@ -158,7 +158,7 @@
         @if($publicRaffleShortcut && ! request()->routeIs('raffles.show'))
             <div class="sqa-community-shortcuts__item" data-shortcut-item>
                 <a class="sqa-raffle-shortcut{{ $publicRaffleShortcut->status === 'closed' ? ' is-closed' : '' }}" href="{{ route('raffles.show', $publicRaffleShortcut) }}">
-                    🎁 {{ $publicRaffleShortcut->status === 'closed' ? 'Ganadores: ' : 'Sorteo: ' }}{{ $publicRaffleShortcut->title }}
+                    🎁 {{ $publicRaffleShortcut->title }}
                 </a>
                 <button type="button" class="sqa-community-shortcuts__handle" data-shortcut-handle aria-label="Mostrar u ocultar sorteo" aria-expanded="false">🎁</button>
             </div>
