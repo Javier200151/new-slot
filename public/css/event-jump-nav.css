@@ -1,0 +1,75 @@
+/* Accesos al índice del evento, discretos y fuera de la columna central. */
+.event-jump-nav {
+    position: fixed;
+    top: 96px;
+    left: max(10px, calc((100vw - 1120px) / 2 - 163px));
+    z-index: 68;
+    width: 145px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: min(68vh, calc(100vh - 112px));
+    overflow: auto;
+    padding: 10px 8px;
+    border: 1px solid rgba(136, 146, 164, .23);
+    border-radius: 12px;
+    background: rgba(12, 17, 25, .84);
+    box-shadow: 0 8px 23px rgba(0, 0, 0, .16);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    scrollbar-width: thin;
+    color: #aeb7c5;
+    opacity: .78;
+    transition: opacity .2s ease, border-color .2s ease;
+}
+.event-jump-nav[hidden] { display: none !important; }
+.event-jump-nav:hover,
+.event-jump-nav:focus-within { opacity: 1; border-color: rgba(233, 159, 40, .4); }
+.event-jump-nav__title {
+    display: block;
+    padding: 4px 9px 6px;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .15em;
+    color: #77869c;
+}
+.event-jump-nav__link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    text-decoration: none;
+    color: #b1bed0;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    transition: background .18s ease, color .18s ease;
+}
+.event-jump-nav__link:hover,
+.event-jump-nav__link:focus-visible,
+.event-jump-nav__link.is-active {
+    color: #ffd08b;
+    background: rgba(227, 145, 27, .13);
+}
+.event-jump-nav__link:focus-visible { outline: 2px solid #e9a12e; outline-offset: -2px; }
+
+/* En portátiles se conservan los nombres, con una barra más estrecha. */
+@media (max-width: 1550px) {
+    .event-jump-nav {
+        left: max(8px, calc((100vw - 1120px) / 2 - 116px));
+        width: 108px;
+        padding: 7px 4px;
+    }
+    .event-jump-nav__title { padding-inline: 6px; }
+    .event-jump-nav__link { padding: 6px; font-size: 10px; min-height: 31px; }
+}
+@media (max-width: 1180px), (hover: none), (pointer: coarse) {
+    .event-jump-nav { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .event-jump-nav, .event-jump-nav__link { transition: none; }
+}
