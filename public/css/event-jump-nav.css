@@ -1,8 +1,9 @@
-/* Accesos al índice del evento, discretos y fuera de la columna central. */
+/* Accesos al índice del evento, a la derecha de la columna central y separados de los accesos rápidos. */
 .event-jump-nav {
     position: fixed;
     top: 96px;
-    left: max(10px, calc((100vw - 1120px) / 2 - 163px));
+    right: max(86px, calc((100vw - 1120px) / 2 - 163px));
+    left: auto;
     z-index: 68;
     width: 145px;
     box-sizing: border-box;
@@ -60,7 +61,8 @@
 /* En portátiles se conservan los nombres, con una barra más estrecha. */
 @media (max-width: 1550px) {
     .event-jump-nav {
-        left: max(8px, calc((100vw - 1120px) / 2 - 116px));
+        right: max(86px, calc((100vw - 1120px) / 2 - 116px));
+        left: auto;
         width: 108px;
         padding: 7px 4px;
     }
