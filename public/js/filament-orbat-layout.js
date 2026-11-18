@@ -8,6 +8,109 @@
     const trackedContainers = new Set();
     const containerState = new WeakMap();
 
+    // Editor de ORBAT de actividades: conservar el grupo visible cuando
+    // Livewire reconstruye el repeater al cambiar el tipo/nombre de un slot.
+    // No modificamos el estado del formulario ni forzamos un reload.
+    let editorViewport = null;
+    let editorRestoreFrame = null;
+    let editorRestoreDelay = null;
+    let editorRestoreInProgress = false;
+
+    const findEditorScrollArea = (editor) => {
+        for (let node = editor; node && node !== document.body; node = node.parentElement) {
+            if (/auto|scroll/.test(window.getComputedStyle(node).overflowY)
+                && node.scrollHeight > node.clientHeight + 10) {
+                return node;
+            }
+        }
+        return null;
+    };
+
+    const findEditorGroup = (editor, target) => {
+        const items = editor.querySelector(':scope > .fi-fo-repeater-items');
+        if (!items) return { index: -1, element: null };
+        const groups = Array.from(items.children).filter((child) => child.classList?.contains('fi-fo-repeater-item'));
+        const index = groups.findIndex((item) => item.contains(target));
+        return { index, element: groups[index] || null };
+    };
+
+    const captureEditorViewport = (event) => {
+        const editor = event.target?.closest?.('.fi-modal-window .orbat-group-cards');
+        if (!editor) return;
+        const modal = editor.closest('.fi-modal-window');
+        const scroller = findEditorScrollArea(editor);
+        const group = findEditorGroup(editor, event.target);
+        editorViewport = {
+            modal,
+            top: scroller?.scrollTop ?? window.scrollY,
+            hadScroller: Boolean(scroller),
+            groupIndex: group.index,
+            groupOffset: group.element
+                ? group.element.getBoundingClientRect().top - (scroller ? scroller.getBoundingClientRect().top : 0)
+                : null,
+            // La selección puede abrir un segundo modal antes de llamar a Livewire.
+            capturedAt: Date.now(),
+        };
+    };
+
+    const restoreEditorViewport = (snapshot) => {
+        if (!snapshot || editorViewport !== snapshot || editorRestoreInProgress) return;
+        if (Date.now() - snapshot.capturedAt > 90000) { editorViewport = null; return; }
+        const editor = document.querySelector('.fi-modal-window .orbat-group-cards');
+        if (!editor || !editor.closest('.fi-modal-window')) return;
+        const scroller = findEditorScrollArea(editor);
+        if (snapshot.hadScroller && !scroller) return;
+        let wanted = snapshot.top;
+
+        const groups = editor.querySelector(':scope > .fi-fo-repeater-items');
+        const item = snapshot.groupIndex >= 0
+            ? Array.from(groups?.children || [])
+                .filter((child) => child.classList?.contains('fi-fo-repeater-item'))[snapshot.groupIndex]
+            : null;
+        if (item && snapshot.groupOffset !== null) {
+            const offset = item.getBoundingClientRect().top - (scroller ? scroller.getBoundingClientRect().top : 0);
+            const present = scroller?.scrollTop ?? window.scrollY;
+            wanted = present + offset - snapshot.groupOffset;
+        }
+
+        const current = scroller?.scrollTop ?? window.scrollY;
+        if (Math.abs(current - wanted) < 15) return;
+        editorRestoreInProgress = true;
+        if (scroller) scroller.scrollTop = wanted;
+        else window.scrollTo({ top: wanted, behavior: 'instant' });
+        editorRestoreInProgress = false;
+    };
+
+    const queueEditorViewportRestore = () => {
+        if (!editorViewport) return;
+        if (editorRestoreFrame !== null) window.cancelAnimationFrame(editorRestoreFrame);
+        if (editorRestoreDelay !== null) window.clearTimeout(editorRestoreDelay);
+        const snapshot = editorViewport;
+        editorRestoreFrame = window.requestAnimationFrame(() => {
+            editorRestoreFrame = null;
+            restoreEditorViewport(snapshot);
+            // Esperar al reajuste masonry y al foco que Filament devuelve
+            // al botón del slot tras cerrar el selector.
+            editorRestoreDelay = window.setTimeout(() => {
+                editorRestoreDelay = null;
+                restoreEditorViewport(snapshot);
+            }, 160);
+        });
+    };
+
+    document.addEventListener('pointerdown', captureEditorViewport, true);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') captureEditorViewport(event);
+    }, true);
+    // Si la persona decide desplazarse a otra escuadra, no la devolvemos
+    // al grupo que estaba editando antes.
+    document.addEventListener('wheel', (event) => {
+        if (event.target.closest?.('.fi-modal-window .orbat-group-cards')) editorViewport = null;
+    }, { passive: true, capture: true });
+    document.addEventListener('touchmove', (event) => {
+        if (event.target.closest?.('.fi-modal-window .orbat-group-cards')) editorViewport = null;
+    }, { passive: true, capture: true });
+
     const directItems = (container) =>
         Array.from(container.children).filter((child) =>
             child.classList?.contains(itemClass),
@@ -210,6 +313,12 @@
                     || node.querySelector?.('.event-orbat-visibility-section')));
         });
         if (changedOrbat) queueVisibilityRestore(!livewireHookRegistered);
+
+        if (editorViewport && mutations.some((mutation) => mutation.target.closest?.('.orbat-group-cards')
+            || Array.from(mutation.addedNodes).some((node) => node.nodeType === 1
+                && (node.matches?.('.orbat-group-cards') || node.querySelector?.('.orbat-group-cards'))))) {
+            queueEditorViewportRestore();
+        }
     });
 
     const relayoutAll = () => {
@@ -332,6 +441,7 @@
         });
         window.Livewire.hook('morphed', (context) => {
             if (isOrbatMorph(context)) queueVisibilityRestore(true);
+            if (editorViewport) queueEditorViewportRestore();
         });
     };
 

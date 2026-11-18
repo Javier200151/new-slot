@@ -65,13 +65,24 @@ document.addEventListener('DOMContentLoaded', () => {
         nav.hidden = !visible;
         if (!visible) return;
 
-        // Marcar el último apartado alcanzado, sin alterar los saltos nativos.
+        // El orden de los enlaces del encabezado puede diferir del orden real
+        // de los bloques en un evento finalizado (por ejemplo, Multimedia).
+        // Calcular por posición evita que quede resaltada una sección equivocada.
+        const marker = 165;
+        const ordered = controls
+            .map((section) => ({ ...section, rect: section.target.getBoundingClientRect() }))
+            .filter((section) => section.target.getClientRects().length > 0 && section.rect.height > 0)
+            .sort((a, b) => a.rect.top - b.rect.top);
+
         let active = null;
+        for (const section of ordered) {
+            if (section.rect.top <= marker) active = section;
+            else break;
+        }
+        // Al dejar atrás la cabecera, pero antes de la primera sección,
+        // evitamos que una sección futura se marque por anticipado.
         controls.forEach((section) => {
-            if (section.target.getBoundingClientRect().top <= 165) active = section;
-        });
-        controls.forEach((section) => {
-            const selected = active === section;
+            const selected = active?.id === section.id;
             section.link.classList.toggle('is-active', selected);
             if (selected) section.link.setAttribute('aria-current', 'location');
             else section.link.removeAttribute('aria-current');
