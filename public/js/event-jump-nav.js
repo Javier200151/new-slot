@@ -13,7 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const label = anchor.textContent.trim().replace(/\s+/g, ' ');
             return target && label ? { hash, id, target, label } : null;
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        // Multimedia se muestra físicamente encima del Briefing al finalizar
+        // el evento, por lo que su enlace debe abrir el panel lateral.
+        // Solo existe si el propio encabezado lo muestra (condición Blade).
+        .sort((a, b) => (a.id === 'multimedia' ? -1 : 0) - (b.id === 'multimedia' ? -1 : 0));
 
     if (!sections.length) return;
 
