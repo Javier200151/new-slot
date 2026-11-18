@@ -50,11 +50,17 @@
     overflow-wrap: anywhere;
     transition: background .18s ease, color .18s ease;
 }
+/* El hover no debe parecer una segunda sección activa. */
 .event-jump-nav__link:hover,
-.event-jump-nav__link:focus-visible,
-.event-jump-nav__link.is-active {
+.event-jump-nav__link:focus-visible {
+    color: #e9edf5;
+    background: rgba(148, 163, 184, .09);
+}
+.event-jump-nav__link.is-active,
+.event-jump-nav__link.is-active:hover,
+.event-jump-nav__link.is-active:focus-visible {
     color: #ffd08b;
-    background: rgba(227, 145, 27, .13);
+    background: rgba(227, 145, 27, .16);
 }
 .event-jump-nav__link:focus-visible { outline: 2px solid #e9a12e; outline-offset: -2px; }
 

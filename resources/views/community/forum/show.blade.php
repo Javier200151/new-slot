@@ -238,6 +238,18 @@
             @endif
         </div>
 
+        <div class="diary-order-switch" aria-label="Orden de las respuestas del hilo">
+            <span>Ordenar respuestas:</span>
+            <a
+                @class(['is-active' => ($commentOrder ?? 'antiguos') === 'antiguos'])
+                href="{{ route('community.forum.show', [$categoryKey, $post, 'orden' => 'antiguos']) }}#respuestas"
+            >Más antiguas primero</a>
+            <a
+                @class(['is-active' => ($commentOrder ?? 'antiguos') === 'nuevos'])
+                href="{{ route('community.forum.show', [$categoryKey, $post, 'orden' => 'nuevos']) }}#respuestas"
+            >Más nuevas primero</a>
+        </div>
+
         <div class="forum-comments">
             @forelse($post->comments as $comment)
                 <article class="forum-comment forum-message" id="respuesta-{{ $comment->id }}">

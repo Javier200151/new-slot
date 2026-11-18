@@ -191,12 +191,26 @@ class CommunityForumController extends Controller
             abort(404);
         }
 
+        // Guardar la preferencia de orden por hilo. Al publicar una respuesta
+        // volvemos a esta misma presentación aunque el POST redirija sin query.
+        $orderKey = 'community.forum.order.' . $post->getKey();
+        $requestedOrder = $request->query('orden');
+        if (in_array($requestedOrder, ['nuevos', 'antiguos'], true)) {
+            $request->session()->put($orderKey, $requestedOrder);
+        }
+        $commentOrder = $request->session()->get($orderKey, 'antiguos');
+        if (! in_array($commentOrder, ['nuevos', 'antiguos'], true)) {
+            $commentOrder = 'antiguos';
+        }
+        $direction = $commentOrder === 'nuevos' ? 'desc' : 'asc';
+
         $post->load([
             'forumCategory',
             'author.status',
             'author.mainSqaGroup',
             'reactions.user:id,nick',
             'lockedBy:id,nick',
+            'comments' => fn ($query) => $query->reorder('created_at', $direction)->orderBy('id', $direction),
             'comments.author.status',
             'comments.author.mainSqaGroup',
             'comments.reactions.user:id,nick',
@@ -239,6 +253,7 @@ class CommunityForumController extends Controller
             'categoryKey' => $categoryKey,
             'category' => $categoryDefinition,
             'post' => $post,
+            'commentOrder' => $commentOrder,
             'process' => $process,
             'myApplication' => $myApplication,
             'pollData' => $pollData,

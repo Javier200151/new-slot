@@ -88,9 +88,18 @@ class CommunityDiaryController extends Controller
     {
         $this->authorizeDiary($request);
 
-        $entryOrder = $request->query('orden') === 'antiguos'
-            ? 'antiguos'
-            : 'nuevos';
+        // Recordar por diario la opción elegida al publicar o editar una entrada.
+        // Los redirects tras guardar no incluyen ?orden=..., así que usamos
+        // la sesión del usuario para conservar la presentación seleccionada.
+        $orderKey = 'community.diary.order.' . $diary->getKey();
+        $requestedOrder = $request->query('orden');
+        if (in_array($requestedOrder, ['nuevos', 'antiguos'], true)) {
+            $request->session()->put($orderKey, $requestedOrder);
+        }
+        $entryOrder = $request->session()->get($orderKey, 'nuevos');
+        if (! in_array($entryOrder, ['nuevos', 'antiguos'], true)) {
+            $entryOrder = 'nuevos';
+        }
 
         $diary->load([
             'author.status',
