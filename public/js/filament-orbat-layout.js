@@ -1,4 +1,143 @@
 (() => {
+
+    // Resumen rápido de los slots mientras se edita el ORBAT.
+    // Se lee el repetidor actual, no los datos guardados en BD: incluye las
+    // copias recién creadas y los cambios de tipo pendientes de guardar.
+    let countsOverlay = null;
+    let countsReturnFocus = null;
+
+    const directRepeaterRows = (container) =>
+        Array.from(container?.children || []).filter((row) =>
+            row.classList?.contains('fi-fo-repeater-item'));
+
+    const readOrbatGroups = (editor) => {
+        const groupRows = directRepeaterRows(editor.querySelector('.orbat-group-cards > .fi-fo-repeater-items'));
+        return groupRows.map((row, index) => {
+            const nameInput = row.querySelector('.orbat-count-group-name input, input.orbat-count-group-name');
+            const name = nameInput?.value?.trim()
+                || row.querySelector('.fi-fo-repeater-item-header-label')?.textContent?.trim()
+                || `Escuadra ${index + 1}`;
+            const types = new Map();
+            // El marcador es el tipo real elegido en Filament, nunca el nombre
+            // personalizado ni el nombre rápido del slot.
+            row.querySelectorAll('.orbat-slot-cards [data-orbat-slot-type]').forEach((marker) => {
+                const type = marker.getAttribute('data-orbat-slot-type')?.trim() || 'Sin tipo';
+                types.set(type, (types.get(type) || 0) + 1);
+            });
+            return { key: String(index), name, types };
+        });
+    };
+
+    const closeCountsDialog = () => {
+        if (!countsOverlay) return;
+        countsOverlay.remove();
+        countsOverlay = null;
+        if (countsReturnFocus?.isConnected) countsReturnFocus.focus();
+        countsReturnFocus = null;
+    };
+
+    const renderCounts = (groups, filter, list, total) => {
+        const included = filter === '*' ? groups : groups.filter((group) => group.key === filter);
+        const counts = new Map();
+        included.forEach((group) => group.types.forEach((quantity, type) => {
+            counts.set(type, (counts.get(type) || 0) + quantity);
+        }));
+        const sorted = [...counts.entries()].sort((a, b) =>
+            a[0].localeCompare(b[0], 'es', { sensitivity: 'base' }));
+        total.textContent = `${sorted.reduce((sum, [, quantity]) => sum + quantity, 0)} slots`;
+        list.replaceChildren();
+        if (!sorted.length) {
+            const empty = document.createElement('p');
+            empty.className = 'orbat-counts-empty';
+            empty.textContent = 'No hay slots en esta selección.';
+            list.append(empty);
+            return;
+        }
+        for (const [type, quantity] of sorted) {
+            const row = document.createElement('div');
+            row.className = 'orbat-counts-row';
+            const name = document.createElement('span');
+            name.textContent = type;
+            const number = document.createElement('strong');
+            number.textContent = String(quantity);
+            row.append(name, number);
+            list.append(row);
+        }
+    };
+
+    const openCountsDialog = (trigger) => {
+        const editor = trigger.closest('.fi-modal-window');
+        if (!editor?.querySelector('.orbat-group-cards')) return;
+        closeCountsDialog();
+        countsReturnFocus = trigger;
+        const groups = readOrbatGroups(editor);
+        const overlay = document.createElement('div');
+        overlay.className = 'orbat-counts-overlay';
+        overlay.innerHTML = `
+            <section class="orbat-counts-dialog" role="dialog" aria-modal="true"
+                aria-labelledby="orbat-counts-title">
+                <header class="orbat-counts-header">
+                    <h2 id="orbat-counts-title">Resumen de slots</h2>
+                    <button type="button" class="orbat-counts-close" aria-label="Cerrar resumen">×</button>
+                </header>
+                <div class="orbat-counts-body">
+                    <label for="orbat-counts-group">Escuadra</label>
+                    <select id="orbat-counts-group"></select>
+                    <div class="orbat-counts-total" aria-live="polite"></div>
+                    <div class="orbat-counts-list"></div>
+                </div>
+                <footer class="orbat-counts-footer">
+                    <button type="button" class="orbat-counts-done">Cerrar</button>
+                </footer>
+            </section>`;
+        document.body.append(overlay);
+        countsOverlay = overlay;
+        const select = overlay.querySelector('select');
+        const all = new Option('Todas las escuadras', '*');
+        select.append(all);
+        groups.forEach((group) => select.append(new Option(group.name, group.key)));
+        const list = overlay.querySelector('.orbat-counts-list');
+        const total = overlay.querySelector('.orbat-counts-total');
+        const refresh = () => renderCounts(groups, select.value, list, total);
+        select.addEventListener('change', refresh);
+        overlay.querySelectorAll('.orbat-counts-close, .orbat-counts-done')
+            .forEach((button) => button.addEventListener('click', closeCountsDialog));
+        overlay.addEventListener('mousedown', (event) => {
+            if (event.target === overlay) closeCountsDialog();
+        });
+        refresh();
+        select.focus();
+    };
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest?.('[data-orbat-counts-open]');
+        if (!trigger) return;
+        event.preventDefault();
+        event.stopPropagation();
+        openCountsDialog(trigger);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (!countsOverlay) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            closeCountsDialog();
+        } else if (event.key === 'Tab') {
+            const tabbable = [...countsOverlay.querySelectorAll('button, select')];
+            if (!tabbable.length) return;
+            const first = tabbable[0];
+            const last = tabbable[tabbable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+    }, true);
+
     const containerSelector = '.orbat-group-cards > .fi-fo-repeater-items';
     const itemClass = 'fi-fo-repeater-item';
     const desktopBreakpoint = 1024;

@@ -1,0 +1,63 @@
+/* Aviso sencillo, solo tras subir un PBO en el formulario de actividad. */
+.sqa-pbo-save-prompt {
+    width: min(420px, calc(100vw - 32px));
+    max-width: 420px;
+    max-height: calc(100vh - 40px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid #424858;
+    border-radius: 14px;
+    color: #eceef4;
+    background: #1b1b20;
+    box-shadow: 0 24px 80px rgba(0,0,0,.65);
+}
+.sqa-pbo-save-prompt::backdrop {
+    background: rgba(0,0,0,.64);
+}
+.sqa-pbo-save-prompt__inner {
+    padding: 24px;
+}
+.sqa-pbo-save-prompt h2 {
+    margin: 0 0 9px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+.sqa-pbo-save-prompt p {
+    margin: 0;
+    color: #b6bdca;
+    font-size: .95rem;
+    line-height: 1.55;
+}
+.sqa-pbo-save-prompt__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+}
+.sqa-pbo-save-prompt__actions button {
+    min-height: 38px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: .9rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+.sqa-pbo-save-prompt__cancel {
+    color: #e2e6ee;
+    background: #2a2c33;
+    border: 1px solid #535662;
+}
+.sqa-pbo-save-prompt__save {
+    color: #19130a;
+    background: #f5ac24;
+    border: 1px solid #f5ac24;
+}
+.sqa-pbo-save-prompt__actions button:disabled { opacity: .55; cursor: wait; }
+.sqa-pbo-save-prompt__actions button:focus-visible { outline: 2px solid #f5ac24; outline-offset: 3px; }
+@media (max-width: 430px) {
+    .sqa-pbo-save-prompt__inner { padding: 20px; }
+    .sqa-pbo-save-prompt__actions { justify-content: stretch; }
+    .sqa-pbo-save-prompt__actions button { flex: 1; }
+}

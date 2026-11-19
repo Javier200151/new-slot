@@ -5,6 +5,12 @@ namespace App\Filament\Resources\Activities\Schemas;
 use App\Models\GameMap;
 use App\Models\Platform;
 use App\Models\ActivityType;
+use App\Support\ActivityPbo;
+use App\Rules\PboFilenameRule;
+use App\Models\Activity;
+use Filament\Forms\Components\Placeholder;
+use Illuminate\Support\HtmlString;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Support\ActivityTypeAccess;
 use App\Support\ActivityEditorSelection;
 use App\Support\ActivityTypeConfiguration;
@@ -583,9 +589,52 @@ class ActivityForm
                         'both' => 'Ambos',
                     ])
                     ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesDayOrNight() ?? false),
-                TextInput::make('pbo')
-                    ->label('PBO')
-                    ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesPbo() ?? false),
+                Section::make('PBO de la misión')
+                    ->description('Archivo de misión (opcional).')
+                    ->visible(fn (Get $get): bool => ActivityPbo::appliesTo($get('activity_type_id'), $get('platform_id')))
+                    ->columnSpanFull()
+                    ->schema([
+                        FileUpload::make('pbo_path')
+                            ->label('Subir o sustituir PBO')
+                            ->disk('local')
+                            ->directory('activity-pbos')
+                            ->visibility('private')
+                            ->storeFileNamesIn('pbo')
+                            ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file): string => ActivityPbo::storageFilename($file))
+                            ->preventFilePathTampering()
+                            ->previewable(false)
+                            ->downloadable()
+                            ->maxSize(ActivityPbo::MAX_SIZE_KB)
+                            ->rule(new PboFilenameRule())
+                            ->live()
+                            ->afterStateUpdated(function (mixed $state, \Livewire\Component $livewire): void {
+                                // Se avisa únicamente cuando llega un archivo nuevo.
+                                // El guardado definitivo sigue siendo el de Filament.
+                                if ($state instanceof TemporaryUploadedFile) {
+                                    $livewire->dispatch('sqa-activity-pbo-uploaded');
+                                }
+                            }),
+                        Placeholder::make('pbo_information')
+                            ->label('PBO guardado actualmente')
+                            ->content(function (?Activity $record): HtmlString {
+                                if (! $record?->pbo_path) {
+                                    return new HtmlString('<span class="text-gray-500">Todavía no se ha guardado ningún archivo PBO.</span>');
+                                }
+
+                                $name = e((string) ($record->pbo ?: basename($record->pbo_path)));
+                                $date = $record->pbo_uploaded_at?->format('d/m/Y H:i') ?? 'No disponible';
+                                $uploader = e((string) ($record->pboUploadedBy?->nick ?? 'No disponible'));
+                                $bytes = $record->pbo_size_bytes;
+                                $size = $bytes !== null ? number_format($bytes / 1000000, 1, ',', '.') . ' MB (' . number_format($bytes, 0, ',', '.') . ' bytes)' : 'No disponible';
+
+                                return new HtmlString('<div class="rounded-lg border border-gray-700 p-4 text-sm">'
+                                    . '<div><strong>Archivo:</strong> <span class="break-all">' . $name . '</span></div>'
+                                    . '<div><strong>Fecha de subida:</strong> ' . e($date) . '</div>'
+                                    . '<div><strong>Subido por:</strong> ' . $uploader . '</div>'
+                                    . '<div><strong>Tamaño:</strong> ' . e($size) . '</div>'
+                                    . '</div>');
+                            }),
+                    ]),
 
                 TextInput::make('addon_package_url')
                     ->label('Paquete de addons')

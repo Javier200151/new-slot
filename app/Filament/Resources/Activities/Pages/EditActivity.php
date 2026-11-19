@@ -43,6 +43,7 @@ use App\Support\ActivityTypeAccess;
 use App\Support\ActivityEditorSelection;
 use App\Support\FactionOptionLabel;
 use App\Support\ActivityTypeConfiguration;
+use App\Support\ActivityPbo;
 use App\Support\SlotQuickSelection;
 use App\Support\BriefingMarkup;
 use App\Support\BriefingSectionImages;
@@ -54,6 +55,8 @@ class EditActivity extends EditRecord
     protected static string $resource = ActivityResource::class;
     
     protected array $auditDaysBefore = [];
+
+    protected ?string $previousPboPath = null;
 
     protected array $auditEnemyFactionsBefore = [];
 
@@ -78,6 +81,7 @@ class EditActivity extends EditRecord
     ): array {
         $data = ActivityEditorSelection::resolveChoice($data);
         $data = ActivityTypeConfiguration::normalizeActivityData($data);
+        $data = ActivityPbo::prepare($data, $this->record);
 
         $targetOperationTypeId =
             $data['activity_type_id'] ?? null;
@@ -167,6 +171,7 @@ class EditActivity extends EditRecord
 
     protected function beforeSave(): void
     {
+        $this->previousPboPath = $this->record->pbo_path;
         $this->auditDaysBefore =
             $this->record
                 ->days()
@@ -186,6 +191,7 @@ class EditActivity extends EditRecord
 
     protected function afterSave(): void
     {
+        ActivityPbo::deletePrevious($this->previousPboPath, $this->record->pbo_path);
         $this->record->loadMissing('activityType');
 
         if (! ($this->record->activityType?->usesEnemyFactions() ?? false)) {
@@ -997,6 +1003,14 @@ class EditActivity extends EditRecord
                         ->default(false)
                         ->columnSpanFull(),
 
+                    Placeholder::make('orbat_slot_count_button')
+                        ->label('')
+                        ->content(new HtmlString(
+                            '<button type="button" class="orbat-counts-trigger" data-orbat-counts-open>'
+                            . 'Ver resumen de slots</button>'
+                        ))
+                        ->columnSpanFull(),
+
                     Repeater::make('groups')
                         ->label('Grupos')
                         ->columns(12)
@@ -1008,6 +1022,7 @@ class EditActivity extends EditRecord
                                 ->label('Nombre')
                                 ->required()
                                 ->maxLength(255)
+                                ->extraAttributes(['class' => 'orbat-count-group-name'])
                                 ->columnSpan(10),
 
                             Toggle::make('visible')
@@ -1309,8 +1324,11 @@ class EditActivity extends EditRecord
                                                         );
                                                     }
                                                 )
-                                                ->extraAttributes([
+                                                ->extraAttributes(fn (Get $get): array => [
                                                     'class' => 'orbat-slot-choice-field',
+                                                    'data-orbat-slot-type' => SlotQuickSelection::selectedLabel(
+                                                        $get('slot_choice')
+                                                    ) ?? 'Sin tipo',
                                                 ])
                                                 ->columnSpan([
                                                     'default' => 12,
@@ -1410,6 +1428,61 @@ class EditActivity extends EditRecord
                                 ->collapsible()
                                 ->compact()
                                 ->cloneable()
+                                ->cloneAction(fn (Action $action): Action => $action
+                                    ->tooltip('Copiar slot')
+                                    ->modalHeading('Copiar slot')
+                                    ->modalDescription('¿Cuántas copias quieres crear?')
+                                    ->modalSubmitActionLabel('Copiar')
+                                    ->schema([
+                                        TextInput::make('copies')
+                                            ->label('Número de copias')
+                                            ->numeric()
+                                            ->integer()
+                                            ->minValue(1)
+                                            ->maxValue(6)
+                                            ->default(1)
+                                            ->required(),
+                                    ])
+                                    ->action(function (
+                                        array $arguments,
+                                        array $data,
+                                        Repeater $component
+                                    ): void {
+                                        $items = $component->getRawState() ?? [];
+                                        $sourceKey = $arguments['item'] ?? null;
+
+                                        if (! isset($items[$sourceKey]) || ! is_array($items[$sourceKey])) {
+                                            return;
+                                        }
+
+                                        $copies = max(1, min(6, (int) ($data['copies'] ?? 1)));
+                                        $source = $items[$sourceKey];
+                                        $result = [];
+
+                                        foreach ($items as $key => $item) {
+                                            $result[$key] = $item;
+
+                                            if ((string) $key !== (string) $sourceKey) {
+                                                continue;
+                                            }
+
+                                            for ($index = 0; $index < $copies; $index++) {
+                                                // Cada slot y cada fila del repetidor deben tener
+                                                // identificadores independientes del original.
+                                                $copy = $source;
+                                                $copy['slot_key'] = (string) Str::ulid();
+                                                $result[(string) Str::uuid()] = $copy;
+                                            }
+                                        }
+
+                                        $component->rawState($result);
+                                        $component->collapsed(false, shouldMakeComponentCollapsible: false);
+                                        $component->callAfterStateUpdated();
+
+                                        if ($component->shouldPartiallyRenderAfterActionsCalled()) {
+                                            $component->partiallyRender();
+                                        }
+                                    }))
                                 ->default([])
                                 ->addActionLabel('Añadir slot')
                                 ->columnSpanFull(),
@@ -2347,6 +2420,14 @@ class EditActivity extends EditRecord
                     );
 
                     $duplicate = $this->record->replicate();
+                    // El PBO tiene una ruta privada exclusiva por subida. No
+                    // compartirla entre actividades duplicadas: sustituir uno
+                    // podría eliminar el archivo de la otra actividad.
+                    $duplicate->pbo_path = null;
+                    $duplicate->pbo = null;
+                    $duplicate->pbo_size_bytes = null;
+                    $duplicate->pbo_uploaded_by = null;
+                    $duplicate->pbo_uploaded_at = null;
 
                     $duplicate->name = trim($this->record->name . ' (copia)');
                     $duplicate->orbat = static::regenerateOrbatSlotKeys($this->record->orbat ?? []);

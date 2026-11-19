@@ -8,6 +8,7 @@ use App\Services\AuditLogger;
 use App\Support\ActivityTypeAccess;
 use App\Support\ActivityEditorSelection;
 use App\Support\ActivityTypeConfiguration;
+use App\Support\ActivityPbo;
 use App\Support\OrbatGlobalCommand;
 use App\Models\ActivityStatus;
 use Illuminate\Validation\ValidationException;
@@ -34,6 +35,7 @@ class CreateActivity extends CreateRecord
     {
         $data = ActivityEditorSelection::resolveChoice($data);
         $data = ActivityTypeConfiguration::normalizeActivityData($data);
+        $data = ActivityPbo::prepare($data);
 
         $activityTypeId = $data['activity_type_id'] ?? null;
 

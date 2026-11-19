@@ -38,6 +38,10 @@ class Activity extends Model
         'respawn',
         'jip',
         'pbo',
+        'pbo_path',
+        'pbo_size_bytes',
+        'pbo_uploaded_by',
+        'pbo_uploaded_at',
         'addons',
         'addon_package_url',
         'created_by',
@@ -57,6 +61,8 @@ class Activity extends Model
             'ocap' => 'boolean',
             'respawn' => 'boolean',
             'jip' => 'boolean',
+            'pbo_uploaded_at' => 'datetime',
+            'pbo_size_bytes' => 'integer',
             'description' => 'array',
             'radio' => 'array',
             'orbat' => 'array',
@@ -167,6 +173,11 @@ class Activity extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function pboUploadedBy()
+    {
+        return $this->belongsTo(User::class, 'pbo_uploaded_by');
     }
 
     public function updatedBy()
