@@ -6,6 +6,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -17,6 +18,9 @@ class PlatformsTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                IconColumn::make('has_pbo')
+                    ->label('Tiene PBO')
+                    ->boolean(),
                 ImageColumn::make('image')
                     ->label('Imagen')
                     ->state(fn ($record): ?string => $record->image

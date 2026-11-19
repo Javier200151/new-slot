@@ -72,6 +72,7 @@ class ActivityTypeConfiguration
 
         if (! $type->usesPbo()) {
             $data['pbo'] = null;
+            $data['pbo_path'] = null;
         }
 
         if (! $type->usesImage()) {

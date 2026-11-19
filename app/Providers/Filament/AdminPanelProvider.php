@@ -64,24 +64,30 @@ class AdminPanelProvider extends PanelProvider
                         $styles[] = '<link rel="stylesheet" href="' . $url . '">';
                     }
 
+                    $pboStyle = public_path('css/filament-pbo-save-prompt.css');
+                    if (is_file($pboStyle)) {
+                        $version = substr(hash_file('sha256', $pboStyle), 0, 16);
+                        $styles[] = '<link rel="stylesheet" href="' . e(asset('css/filament-pbo-save-prompt.css') . '?v=' . $version) . '">';
+                    }
+
                     return new HtmlString(implode("\n", $styles));
                 },
             )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 function (): HtmlString {
-                    $path = public_path('js/filament-orbat-layout.js');
+                    $scripts = [];
+                    foreach (['filament-orbat-layout.js', 'filament-pbo-save-prompt.js'] as $filename) {
+                        $asset = public_path('js/' . $filename);
+                        if (! is_file($asset)) {
+                            continue;
+                        }
 
-                    if (! is_file($path)) {
-                        return new HtmlString('');
+                        $version = substr(hash_file('sha256', $asset), 0, 16);
+                        $scripts[] = '<script src="' . e(asset('js/' . $filename) . '?v=' . $version) . '"></script>';
                     }
 
-                    // Mantener la ejecución en BODY_END, como el script inline anterior:
-                    // evita introducir cambios de orden con Livewire o Alpine.
-                    $version = substr(hash_file('sha256', $path), 0, 16);
-                    $url = e(asset('js/filament-orbat-layout.js') . '?v=' . $version);
-
-                    return new HtmlString('<script src="' . $url . '"></script>');
+                    return new HtmlString(implode("\n", $scripts));
                 },
             )
             ->assets([

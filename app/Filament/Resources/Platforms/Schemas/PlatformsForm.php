@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Platforms\Schemas;
 
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class PlatformsForm
@@ -14,6 +15,9 @@ class PlatformsForm
             ->components([
                 TextInput::make('name')
                     ->required(),
+                Toggle::make('has_pbo')
+                    ->label('Tiene PBO')
+                    ->default(false),
                 FileUpload::make('image')
                     ->image()
                     ->disk('public')

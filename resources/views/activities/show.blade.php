@@ -330,6 +330,26 @@
 
             </section>
 
+            @if($activity->pbo_path && \App\Support\ActivityPbo::appliesTo($activity->activity_type_id, $activity->platform_id))
+                <section class="event-detail__facts" aria-label="PBO de la misión" style="margin-top: 16px;">
+                    <div>
+                        <dt>PBO de la misión</dt>
+                        <dd style="overflow-wrap: anywhere;">{{ $activity->pbo ?: basename($activity->pbo_path) }}</dd>
+                    </div>
+                    <div>
+                        <dt>Subido por</dt>
+                        <dd>{{ $activity->pboUploadedBy?->nick ?? 'No disponible' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Fecha de subida</dt>
+                        <dd>{{ $activity->pbo_uploaded_at?->format('d/m/Y H:i') ?? 'No disponible' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Tamaño del archivo</dt>
+                        <dd>{{ $activity->pbo_size_bytes !== null ? number_format($activity->pbo_size_bytes / 1048576, 2, ',', '.') . ' MB' : 'No disponible' }}</dd>
+                    </div>
+                </section>
+            @endif
 
             {{-- =====================================================
                 OPCIONES
