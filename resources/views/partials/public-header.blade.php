@@ -3,6 +3,7 @@
 @php
     $navUser = auth()->user();
     $publicNavigationItems = \App\Support\PublicNavigation::items();
+    $headerAdminBypass = \App\Support\PublicNavigation::adminSeesAllNavigation();
 @endphp
 
 <header class="landing-header">
@@ -37,7 +38,7 @@
                         @php
                             $destination = (string) ($navigationItem['destination'] ?? '');
                             $isExternal = \App\Support\PublicNavigation::itemIsExternal($navigationItem);
-                            $canDisplay = \App\Support\PublicNavigation::canDisplayItem($navigationItem)
+                            $canDisplay = \App\Support\PublicNavigation::canDisplayItem($navigationItem, $headerAdminBypass)
                                 && \App\Support\PublicNavigation::canDisplayNavigationItem($navigationItem);
                         @endphp
 
@@ -54,9 +55,9 @@
                         @endif
                     @elseif(($navigationItem['type'] ?? null) === 'dropdown')
                         @php
-                            $dropdownVisible = \App\Support\PublicNavigation::canDisplayItem($navigationItem);
+                            $dropdownVisible = \App\Support\PublicNavigation::canDisplayItem($navigationItem, $headerAdminBypass);
                             $children = $dropdownVisible
-                                ? \App\Support\PublicNavigation::visibleChildren($navigationItem['children'] ?? [])
+                                ? \App\Support\PublicNavigation::visibleChildren($navigationItem['children'] ?? [], $headerAdminBypass)
                                 : [];
                             $dropdownLabel = \App\Support\PublicNavigation::dropdownDisplayLabel($navigationItem);
                         @endphp

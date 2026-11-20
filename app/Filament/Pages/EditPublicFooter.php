@@ -24,6 +24,7 @@ class EditPublicFooter extends Page
     public array $items = [];
     public array $catalog = [];
     public array $audiences = [];
+    public bool $showAllToAdmins = false;
 
     public static function canAccess(): bool
     {
@@ -36,9 +37,10 @@ class EditPublicFooter extends Page
         $this->items = PublicFooterNavigation::editorItems(PublicFooterNavigation::items());
         $this->catalog = PublicFooterNavigation::catalog();
         $this->audiences = PublicNavigation::audienceOptions();
+        $this->showAllToAdmins = PublicFooterNavigation::showAllToAdmins();
     }
 
-    public function saveLayout(array $items): array
+    public function saveLayout(array $items, bool $showAllToAdmins = false): array
     {
         abort_unless(static::canAccess(), 403);
 
@@ -48,12 +50,12 @@ class EditPublicFooter extends Page
             return ['ok' => false, 'message' => $exception->getMessage()];
         }
 
-        DB::transaction(function () use ($normalized): void {
+        DB::transaction(function () use ($normalized, $showAllToAdmins): void {
             $setting = PublicFooterSetting::query()->lockForUpdate()->first();
             if ($setting) {
-                $setting->update(['items' => $normalized]);
+                $setting->update(['items' => $normalized, 'show_all_to_admins' => $showAllToAdmins]);
             } else {
-                PublicFooterSetting::query()->create(['items' => $normalized]);
+                PublicFooterSetting::query()->create(['items' => $normalized, 'show_all_to_admins' => $showAllToAdmins]);
             }
         });
 

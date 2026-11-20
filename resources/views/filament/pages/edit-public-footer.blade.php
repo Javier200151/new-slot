@@ -1,8 +1,8 @@
 <x-filament-panels::page>
     @include('filament.pages.partials.sqa-navigation-builder-styles')
     <script>
-        window.footerNavigationEditor = (initialItems, initialCatalog, audienceOptions) => ({
-            menu: initialItems, catalog: initialCatalog, audiences: audienceOptions,
+        window.footerNavigationEditor = (initialItems, initialCatalog, audienceOptions, initialAdminVisibility) => ({
+            menu: initialItems, catalog: initialCatalog, audiences: audienceOptions, showAllToAdmins: initialAdminVisibility,
             dragging: null, dirty: false, saving: false, notice: '', failed: false,
             search: '', externalLabel: '', externalUrl: '', counter: 0,
             makeKey() { this.counter++; return `footer-${Date.now()}-${this.counter}`; },
@@ -61,7 +61,7 @@
                 if (this.saving) return;
                 this.saving = true; this.notice = ''; this.failed = false;
                 try {
-                    const response = await this.$wire.saveLayout(JSON.parse(JSON.stringify(this.menu)));
+                    const response = await this.$wire.saveLayout(JSON.parse(JSON.stringify(this.menu)), this.showAllToAdmins);
                     this.notice = response.message; this.failed = !response.ok;
                     if (response.ok) this.dirty = false;
                 } catch (e) { this.error('No se ha podido guardar. Revisa tu conexión.'); }
@@ -69,13 +69,16 @@
             }
         });
     </script>
-    <div x-data="footerNavigationEditor(@js($items),@js($catalog),@js($audiences))" class="sqa-builder">
+    <div x-data="footerNavigationEditor(@js($items),@js($catalog),@js($audiences),@js($showAllToAdmins))" class="sqa-builder">
         <div class="sqa-builder__split" style="margin-bottom:18px">
             <div>
                 <h2 class="sqa-builder__title">Botones del footer público</h2>
                 <p class="sqa-builder__help">Diseño independiente del header. Botones individuales; Estado conserva el desplegable de servidores.</p>
             </div>
             <button type="button" @click="save()" :disabled="saving || !dirty" class="sqa-builder__button sqa-builder__button--accent" x-text="saving?'Guardando…':'Guardar footer'"></button>
+        </div>
+        <div class="sqa-builder__options" style="margin-bottom:14px">
+            <label><input type="checkbox" x-model="showAllToAdmins" @change="changed()"> Mostrar todos los enlaces a administradores</label>
         </div>
         <p x-show="notice" x-text="notice" :class="failed?'sqa-builder__message--error':'sqa-builder__message--ok'" class="sqa-builder__message" role="status" style="margin-bottom:14px"></p>
         <div class="sqa-builder__layout">
@@ -125,7 +128,7 @@
                                         <label><input type="checkbox" :checked="item.visible_to.includes(entry[0])" @change="toggleAudience(item,entry[0],$event.target.checked)"><span x-text="entry[1]"></span></label>
                                     </template>
                                 </div>
-                                <p x-show="item.type==='server_status'" class="sqa-builder__help" style="margin-top:10px">Estado conserva también su restricción de acceso a infraestructura.</p>
+                                <p x-show="item.type==='server_status'" class="sqa-builder__help" style="margin-top:10px">El acceso al servidor requiere autorización.</p>
                             </details>
                         </article>
                     </template>

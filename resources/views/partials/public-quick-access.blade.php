@@ -1,7 +1,7 @@
 @php
     $quickAccessConfig = \App\Support\PublicQuickAccessNavigation::settings();
     $quickAccessItems = $quickAccessConfig['is_enabled']
-        ? \App\Support\PublicQuickAccessNavigation::visibleItems($quickAccessConfig['items'])
+        ? \App\Support\PublicQuickAccessNavigation::visibleItems($quickAccessConfig['items'], $quickAccessConfig['show_all_to_admins'])
         : [];
 @endphp
 @if($quickAccessItems !== [])
