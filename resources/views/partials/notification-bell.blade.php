@@ -175,7 +175,10 @@
                 >
                     <span class="notification-item__icon">
 
-                        @if(
+                        @if($type === 'changelog_published')
+                            📣
+
+                        @elseif(
                             $type
                             === 'birthday'
                         )
@@ -241,7 +244,14 @@
 
                     <span class="notification-item__content">
 
-                        @if(
+                        @if($type === 'changelog_published')
+                            <strong>Nuevo changelog publicado</strong>
+                            <span>{{ filled($data['version'] ?? null) ? 'Actualización ' . $data['version'] : 'Ya puedes consultar las novedades de Squad ALPHA.' }}</span>
+                            @if(filled($data['release_date'] ?? null))
+                                <small>{{ \Illuminate\Support\Carbon::parse($data['release_date'])->format('d/m/Y') }}</small>
+                            @endif
+
+                        @elseif(
                             $type
                             === 'birthday'
                         )

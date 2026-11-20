@@ -548,6 +548,16 @@ Route::get('/firmas/{nick}.html', function ($nick) {
     ->name('firmas.show');
 /*
 |--------------------------------------------------------------------------
+| Centro de estadísticas
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/estadisticas', [\App\Http\Controllers\PublicStatisticsController::class, 'index'])
+    ->middleware('throttle:60,1')
+    ->name('statistics.index');
+
+/*
+|--------------------------------------------------------------------------
 | Usuarios públicos
 |--------------------------------------------------------------------------
 */
@@ -718,6 +728,10 @@ Route::middleware('auth')->group(function (): void {
         '/area/foro/changelog',
         [ChangelogController::class, 'index']
     )->name('community.changelog.index');
+
+    Route::get('/area/foro/changelog/{changelog}', [ChangelogController::class, 'show'])
+        ->whereNumber('changelog')
+        ->name('community.changelog.show');
 
     // Compatibilidad con enlaces antiguos. Las categorías normales usan ahora
     // directamente /area/foro/{slug}; solo Diario mantiene su ruta interna.

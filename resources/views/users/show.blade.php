@@ -17,6 +17,7 @@
         rel="stylesheet"
         href="{{ asset('css/users.css') }}?v={{ filemtime(public_path('css/users.css')) }}"
     >
+    <link rel="stylesheet" href="{{ asset('css/sqa-statistics.css') }}?v={{ filemtime(public_path('css/sqa-statistics.css')) }}">
 @endpush
 
 @section('body-class', 'public-user-body')
@@ -255,6 +256,10 @@
 
             </div>
 
+
+            @if($memberStats !== null)
+                @include('statistics.member')
+            @endif
 
             @if(
                 $user->firma
