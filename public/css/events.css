@@ -6335,3 +6335,64 @@ a.event-comment__author:hover {
 /* Un mismo evento puede tener varias tandas: la última sin leer se muestra
    con su aspecto habitual, las anteriores se mantienen atenuadas. */
 .events-news-card--seen .events-news-joins__new-count{display:none}
+
+/* Addon links and launcher preset export on activity/event detail pages. */
+.event-detail__collapsible-summary > .event-detail__addons-summary-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.event-detail__addons-count {
+    white-space: nowrap;
+    color: var(--text-soft);
+    font-size: 0.78rem;
+}
+
+.event-detail__collapsible-summary .event-detail__addons-download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 14px;
+    border: 1px solid var(--event-color, #f59e0b);
+    border-radius: 8px;
+    color: var(--event-color, #f59e0b);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+}
+
+.event-detail__collapsible-summary .event-detail__addons-download:hover,
+.event-detail__collapsible-summary .event-detail__addons-download:focus-visible {
+    background: var(--event-color, #f59e0b);
+    color: #0a0c10;
+}
+
+.event-detail__addons-table td a {
+    color: var(--event-color, #f5a623);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.event-detail__addons-table td a:hover,
+.event-detail__addons-table td a:focus-visible {
+    text-decoration: underline;
+}
+
+@media (max-width: 620px) {
+    .event-detail__addons-section .event-detail__collapsible-summary {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .event-detail__collapsible-summary > .event-detail__addons-summary-actions {
+        width: 100%;
+        justify-content: space-between;
+        padding-right: 4px;
+    }
+}

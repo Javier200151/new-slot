@@ -24,6 +24,13 @@ class AddonsTable
 
                 
 
+                TextColumn::make('download_url')
+                    ->label('Enlace')
+                    ->formatStateUsing(fn ($state): string => filled($state) ? 'Abrir enlace' : '—')
+                    ->url(fn ($record): ?string => \App\Support\ActivityAddonsHtml::safeUrl($record->download_url))
+                    ->openUrlInNewTab()
+                    ->toggleable(),
+
                 IconColumn::make('mandatory')
                     ->label('Obligatorio')
                     ->boolean()

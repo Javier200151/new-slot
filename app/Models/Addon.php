@@ -10,6 +10,7 @@ class Addon extends Model
     use Auditable;
     protected $fillable = [
         'name',
+        'download_url',
         'description',
         'mandatory',
         'active',
