@@ -52,6 +52,10 @@ class HomepageSetting extends Model
             return false;
         }
 
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
         $statuses = array_map('intval', (array) ($this->news_visible_status_ids ?? []));
 
         return in_array((int) $user->status_id, $statuses, true);

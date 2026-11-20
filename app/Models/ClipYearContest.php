@@ -66,7 +66,9 @@ class ClipYearContest extends Model
 
     public function allowsUser(?User $user): bool
     {
-        return $user && in_array((int) $user->status_id, $this->allowedStatusIds(), true);
+        return $user !== null && (
+            $user->hasRole('admin') || in_array((int) $user->status_id, $this->allowedStatusIds(), true)
+        );
     }
     public function phase(): string
     {

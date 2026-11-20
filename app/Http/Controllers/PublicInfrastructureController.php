@@ -10,8 +10,11 @@ class PublicInfrastructureController extends Controller
 {
     public function credential(int $index): JsonResponse
     {
-        $statusName = strtoupper(trim((string) request()->user()?->status?->name));
-        abort_unless(in_array($statusName, ['ACTIVO', 'RECLUTA'], true), 403);
+        $user = request()->user();
+        $statusName = strtoupper(trim((string) $user?->status?->name));
+        abort_unless($user && (
+            $user->hasRole('admin') || in_array($statusName, ['ACTIVO', 'RECLUTA'], true)
+        ), 403);
         $settings = InfrastructureSetting::current();
         $password = $settings->serverAccessPassword($index);
         abort_if($password === null, 404);
@@ -20,10 +23,11 @@ class PublicInfrastructureController extends Controller
 
     public function status(InfrastructureStatusService $statusService): JsonResponse
     {
-        $statusName = strtoupper(trim((string) request()->user()?->status?->name));
+        $user = request()->user();
+        $statusName = strtoupper(trim((string) $user?->status?->name));
 
         abort_unless(
-            in_array($statusName, ['ACTIVO', 'RECLUTA'], true),
+            $user && ($user->hasRole('admin') || in_array($statusName, ['ACTIVO', 'RECLUTA'], true)),
             403,
         );
 

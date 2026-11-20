@@ -726,6 +726,12 @@ class PublicNavigation
         return strtoupper(trim((string) $user->status?->name));
     }
 
+    /** El rol admin puede ver los accesos por estado, sin alterar su configuración. */
+    public static function currentUserIsAdmin(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
+
     public static function itemVisibleForAudience(array $item, string $audience): bool
     {
         if (! array_key_exists('visible_to', $item)) {
@@ -739,17 +745,19 @@ class PublicNavigation
 
     public static function canDisplayItem(array $item): bool
     {
-        return self::itemVisibleForAudience($item, self::currentAudience());
+        return self::currentUserIsAdmin()
+            || self::itemVisibleForAudience($item, self::currentAudience());
     }
 
     public static function visibleChildren(array $children): array
     {
         $audience = self::currentAudience();
+        $isAdmin = self::currentUserIsAdmin();
 
         return array_values(array_filter(
             $children,
             static fn ($child): bool => is_array($child)
-                && self::itemVisibleForAudience($child, $audience)
+                && ($isAdmin || self::itemVisibleForAudience($child, $audience))
                 && self::canDisplayNavigationItem($child),
         ));
     }

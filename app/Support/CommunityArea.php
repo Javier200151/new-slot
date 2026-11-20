@@ -34,7 +34,7 @@ class CommunityArea
             return null;
         }
 
-        return self::status($user) === 'RECLUTA'
+        return ! $user->hasRole('admin') && self::status($user) === 'RECLUTA'
             ? 'Reclutamiento'
             : 'Área 51';
     }

@@ -181,8 +181,9 @@ class PublicQuickAccessNavigation
     public static function visibleItems(array $items): array
     {
         $audience = PublicNavigation::currentAudience();
-        return array_values(array_filter(self::normalizeStored($items), static function (array $item) use ($audience): bool {
-            if (! PublicNavigation::itemVisibleForAudience($item, $audience)) {
+        $isAdmin = PublicNavigation::currentUserIsAdmin();
+        return array_values(array_filter(self::normalizeStored($items), static function (array $item) use ($audience, $isAdmin): bool {
+            if (! $isAdmin && ! PublicNavigation::itemVisibleForAudience($item, $audience)) {
                 return false;
             }
             if ($item['type'] === 'news_summary') {
@@ -190,8 +191,7 @@ class PublicQuickAccessNavigation
                     && \App\Services\QuickAccessNewsService::canSeeAny(auth()->user());
             }
             if ($item['type'] === 'server_status') {
-                // La ruta de infraestructura solo permite ACTIVO y RECLUTA.
-                return in_array($audience, ['ACTIVO', 'RECLUTA'], true);
+                return $isAdmin || in_array($audience, ['ACTIVO', 'RECLUTA'], true);
             }
             return $item['type'] === 'scroll_top' || PublicNavigation::canDisplayNavigationItem($item);
         }));

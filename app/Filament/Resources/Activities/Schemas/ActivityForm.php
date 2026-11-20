@@ -627,11 +627,20 @@ class ActivityForm
                                 $bytes = $record->pbo_size_bytes;
                                 $size = $bytes !== null ? number_format($bytes / 1000000, 1, ',', '.') . ' MB (' . number_format($bytes, 0, ',', '.') . ' bytes)' : 'No disponible';
 
+                                $export = $record->pboExport;
+                                $syncStatus = match ($export?->status) {
+                                    'synced' => 'Transferido a Windows',
+                                    'pending' => 'Pendiente de transferencia',
+                                    'error' => 'Transferencia pendiente de reintento',
+                                    default => 'Sin exportar',
+                                };
+
                                 return new HtmlString('<div class="rounded-lg border border-gray-700 p-4 text-sm">'
                                     . '<div><strong>Archivo:</strong> <span class="break-all">' . $name . '</span></div>'
                                     . '<div><strong>Fecha de subida:</strong> ' . e($date) . '</div>'
                                     . '<div><strong>Subido por:</strong> ' . $uploader . '</div>'
                                     . '<div><strong>Tamaño:</strong> ' . e($size) . '</div>'
+                                    . '<div><strong>Windows:</strong> ' . e($syncStatus) . '</div>'
                                     . '</div>');
                             }),
                     ]),
