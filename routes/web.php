@@ -325,6 +325,9 @@ Route::get(
     [PublicActivityController::class, 'index']
 )->name('activities.index');
 
+Route::get('/actividades/{activity}/addons.html', \App\Http\Controllers\PublicActivityAddonsHtmlController::class)
+    ->name('activities.addons.download');
+
 Route::get(
     '/actividades/{activity}',
     [PublicActivityController::class, 'show']

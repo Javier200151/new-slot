@@ -2109,57 +2109,7 @@
                     </div>
                 </section>
             @elseif($addons->isNotEmpty())
-                <details
-                    id="addons"
-                    class="
-                        event-detail__section
-                        event-detail__collapsible
-                    "
-                >
-                    <summary
-                        class="event-detail__collapsible-summary"
-                    >
-                        <div>
-                            <span>Addons</span>
-
-                            <small>
-                                Mods utilizados por la actividad
-                            </small>
-                        </div>
-
-                        <strong>
-                            {{ $addons->count() }}
-                            {{ $addons->count() === 1
-                                ? 'addon'
-                                : 'addons' }}
-                        </strong>
-                    </summary>
-
-                    <div class="event-detail__collapsible-content">
-                        <div class="event-detail__table-wrap">
-                            <table
-                                class="
-                                    event-detail__table
-                                    event-detail__addons-table
-                                "
-                            >
-                                <thead>
-                                    <tr>
-                                        <th>Addon</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    @foreach($addons as $addon)
-                                        <tr>
-                                            <td>{{ $addon->name }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </details>
+                @include('partials.activity-addons')
             @endif
 
             <dialog class="event-unregister-dialog" data-event-unregister-dialog>

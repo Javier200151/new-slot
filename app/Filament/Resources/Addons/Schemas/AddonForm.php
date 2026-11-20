@@ -19,6 +19,13 @@ class AddonForm
                     ->required()
                     ->maxLength(255),
 
+                TextInput::make('download_url')
+                    ->label('Enlace del addon')
+                    ->placeholder('https://steamcommunity.com/sharedfiles/filedetails/?id=...')
+                    ->url()
+                    ->rule('url:http,https')
+                    ->maxLength(2048),
+
                 BbcodeTextarea::make('description')
                     ->label('Descripción')
                     ->columnSpanFull(),
