@@ -2442,7 +2442,8 @@ class PublicEventController extends Controller
 
         $user->loadMissing('status');
 
-        return strtoupper(trim((string) $user->status?->name)) === 'ACTIVO';
+        return $user->hasRole('admin')
+            || strtoupper(trim((string) $user->status?->name)) === 'ACTIVO';
     }
 
     /*

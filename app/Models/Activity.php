@@ -175,6 +175,11 @@ class Activity extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function pboExport()
+    {
+        return $this->hasOne(ActivityPboExport::class);
+    }
+
     public function pboUploadedBy()
     {
         return $this->belongsTo(User::class, 'pbo_uploaded_by');

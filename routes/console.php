@@ -45,3 +45,6 @@ Schedule::command('wiki:revoke-pending')->everyMinute()->withoutOverlapping();
 // Completa tiradas aunque todos los espectadores hayan cerrado la página.
 Schedule::call(fn () => app(\App\Services\CommunityRaffleService::class)->settleDue())
     ->everyMinute()->name('community-raffle-settle')->withoutOverlapping();
+
+// PBO/HTML export retry; requires a running Laravel scheduler in production.
+Schedule::command('sqa:sync-pbos --limit=20')->everyMinute()->withoutOverlapping();

@@ -55,6 +55,10 @@ class TreasuryService
 
     private function userStatusAllowed(User $user, mixed $configuredStatusIds): bool
     {
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
         if ($configuredStatusIds === null) {
             $activeStatusId = Status::query()
                 ->whereRaw('UPPER(name) = ?', ['ACTIVO'])

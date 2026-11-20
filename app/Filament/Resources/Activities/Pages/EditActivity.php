@@ -44,6 +44,8 @@ use App\Support\ActivityEditorSelection;
 use App\Support\FactionOptionLabel;
 use App\Support\ActivityTypeConfiguration;
 use App\Support\ActivityPbo;
+use App\Support\ActivityAddonsHtml;
+use App\Services\ActivityPboExportService;
 use App\Support\SlotQuickSelection;
 use App\Support\BriefingMarkup;
 use App\Support\BriefingSectionImages;
@@ -192,6 +194,7 @@ class EditActivity extends EditRecord
     protected function afterSave(): void
     {
         ActivityPbo::deletePrevious($this->previousPboPath, $this->record->pbo_path);
+        app(ActivityPboExportService::class)->queue($this->record);
         $this->record->loadMissing('activityType');
 
         if (! ($this->record->activityType?->usesEnemyFactions() ?? false)) {
@@ -631,6 +634,27 @@ class EditActivity extends EditRecord
                     'class' =>
                         'operation-header-action--primary',
                 ]),
+
+            Action::make('regeneratePboHtml')
+                ->label('Autogenerar HTML del PBO')
+                ->icon('heroicon-o-document-arrow-down')
+                ->visible(fn (): bool => filled($this->record->pbo_path)
+                    && ActivityPbo::isOwnStoredPath((string) $this->record->pbo_path))
+                ->extraAttributes(['class' => 'operation-header-action--secondary'])
+                ->action(function (ActivityPboExportService $sync): void {
+                    try {
+                        $sync->regenerate($this->record->refresh());
+                        Notification::make()
+                            ->title('HTML de addons generado')
+                            ->body('Se enviará a Windows junto al PBO. También puedes descargarlo desde Editar addons.')
+                            ->success()->send();
+                    } catch (\Throwable $exception) {
+                        Notification::make()
+                            ->title('No se pudo generar el HTML')
+                            ->body($exception->getMessage())
+                            ->danger()->send();
+                    }
+                }),
 
             $this->getCancelFormAction()
                 ->label('Cancelar')
@@ -2386,6 +2410,8 @@ class EditActivity extends EditRecord
                     $this->record->forceFill([
                         'addons' => ['addon_ids' => $addonIds],
                     ])->save();
+
+                    app(ActivityPboExportService::class)->queue($this->record);
                 }),
 
 
@@ -2538,28 +2564,7 @@ class EditActivity extends EditRecord
 
     protected static function buildAddonsHtml(array $addonIds): string
     {
-        $addons = Addon::query()
-            ->whereIn('id', $addonIds)
-            ->orderBy('name')
-            ->get();
-
-        $rows = $addons
-            ->map(function (Addon $addon): string {
-                $name = htmlspecialchars($addon->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-                return <<<HTML
-  <tr data-type="ModContainer">
-    <td data-type="DisplayName">{$name}</td>
-  </tr>
-HTML;
-            })
-            ->implode("\n");
-
-        return <<<HTML
-<html><head></head><body><table>
-  <tbody>{$rows}
-</tbody></table></body></html>
-HTML;
+        return ActivityAddonsHtml::fromIds($addonIds);
     }
 
     protected static function extractAddonNamesFromText(?string $text): array

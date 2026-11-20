@@ -59,6 +59,8 @@ class CreateActivity extends CreateRecord
 
     protected function afterCreate(): void
     {
+        app(\App\Services\ActivityPboExportService::class)->queue($this->record);
+
         /*
         |--------------------------------------------------------------------------
         | Días del actividad

@@ -158,10 +158,11 @@ class PublicFooterNavigation
     public static function visibleItems(): array
     {
         $audience = PublicNavigation::currentAudience();
-        $canSeeServers = in_array($audience, ['ACTIVO', 'RECLUTA'], true);
+        $isAdmin = PublicNavigation::currentUserIsAdmin();
+        $canSeeServers = $isAdmin || in_array($audience, ['ACTIVO', 'RECLUTA'], true);
 
-        return array_values(array_filter(self::items(), static function (array $item) use ($audience, $canSeeServers): bool {
-            if (! PublicNavigation::itemVisibleForAudience($item, $audience)) {
+        return array_values(array_filter(self::items(), static function (array $item) use ($audience, $canSeeServers, $isAdmin): bool {
+            if (! $isAdmin && ! PublicNavigation::itemVisibleForAudience($item, $audience)) {
                 return false;
             }
             if ($item['type'] === 'server_status') {
