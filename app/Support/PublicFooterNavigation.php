@@ -155,14 +155,26 @@ class PublicFooterNavigation
         return $result;
     }
 
+    /** Independiente del interruptor del header. */
+    public static function showAllToAdmins(): bool
+    {
+        try {
+            return Schema::hasTable('public_footer_settings')
+                && Schema::hasColumn('public_footer_settings', 'show_all_to_admins')
+                && (bool) PublicFooterSetting::query()->first()?->show_all_to_admins;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public static function visibleItems(): array
     {
         $audience = PublicNavigation::currentAudience();
-        $isAdmin = PublicNavigation::currentUserIsAdmin();
-        $canSeeServers = $isAdmin || in_array($audience, ['ACTIVO', 'RECLUTA'], true);
+        $adminBypass = PublicNavigation::currentUserIsAdmin() && self::showAllToAdmins();
+        $canSeeServers = $adminBypass || in_array($audience, ['ACTIVO', 'RECLUTA'], true);
 
-        return array_values(array_filter(self::items(), static function (array $item) use ($audience, $canSeeServers, $isAdmin): bool {
-            if (! $isAdmin && ! PublicNavigation::itemVisibleForAudience($item, $audience)) {
+        return array_values(array_filter(self::items(), static function (array $item) use ($audience, $canSeeServers, $adminBypass): bool {
+            if (! $adminBypass && ! PublicNavigation::itemVisibleForAudience($item, $audience)) {
                 return false;
             }
             if ($item['type'] === 'server_status') {

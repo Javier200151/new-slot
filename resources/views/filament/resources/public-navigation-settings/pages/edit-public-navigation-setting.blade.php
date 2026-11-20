@@ -6,12 +6,14 @@
             destinations,
             audiences,
             maxVisiblePerAudience,
+            initialAdminVisibility,
         ) => ({
             menu: initialMenu,
             catalog,
             destinations,
             audiences,
             maxVisiblePerAudience,
+            showAllToAdmins: initialAdminVisibility,
             dragging: null,
             dirty: false,
             saving: false,
@@ -519,6 +521,7 @@
                     const result = await this.$wire.saveLayout(
                         JSON.parse(JSON.stringify(this.menu)),
                         JSON.parse(JSON.stringify(this.catalog)),
+                        this.showAllToAdmins,
                     );
 
                     if (result?.ok) {
@@ -549,7 +552,8 @@
             @js($availablePages),
             @js($destinations),
             @js($audiences),
-            @js($maxTopLevelItems)
+            @js($maxTopLevelItems),
+            @js($showAllToAdmins)
         )"
         class="public-nav-builder"
     >
@@ -585,6 +589,13 @@
                 </x-filament::button>
             </div>
         </section>
+
+        <div style="margin:0 0 18px">
+            <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
+                <input type="checkbox" x-model="showAllToAdmins" x-on:change="markDirty()">
+                Mostrar todos los enlaces a administradores
+            </label>
+        </div>
 
         <section class="public-nav-builder__external-create">
             <div>

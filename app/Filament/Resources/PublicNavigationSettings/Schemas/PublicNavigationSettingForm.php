@@ -6,6 +6,7 @@ use App\Support\PublicNavigation;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -20,6 +21,10 @@ class PublicNavigationSettingForm
                     'Ordena hasta 6 posiciones del menú principal. Las páginas y rutas siguen definiéndose por código; aquí solo decides cómo se muestran. El Área 51 / Reclutamiento y los controles de cuenta se añaden automáticamente y no consumen estas posiciones.'
                 )
                 ->schema([
+                    Toggle::make('show_all_to_admins')
+                        ->label('Mostrar todos los enlaces a administradores')
+                        ->default(false)
+                        ->columnSpanFull(),
                     Repeater::make('items')
                         ->label('Posiciones del menú')
                         ->schema([

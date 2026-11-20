@@ -1,8 +1,8 @@
 <x-filament-panels::page>
     @include('filament.pages.partials.sqa-navigation-builder-styles')
     <script>
-        window.sqaQuickAccessEditor = (initialItems, catalog, icons, audiences, initialPosition, enabled) => ({
-            menu: initialItems, catalog, icons, audiences, position: initialPosition, enabled,
+        window.sqaQuickAccessEditor = (initialItems, catalog, icons, audiences, initialPosition, enabled, initialAdminVisibility) => ({
+            menu: initialItems, catalog, icons, audiences, position: initialPosition, enabled, showAllToAdmins: initialAdminVisibility,
             dirty: false, saving: false, notice: '', failed: false,
             search: '', iconSearch: '', externalName: '', externalUrl: '', keyCounter: 0,
             pickedIcon: null,
@@ -54,7 +54,7 @@
                 if (this.saving) return;
                 this.saving=true;this.failed=false;this.notice='';
                 try {
-                    const response=await this.$wire.saveLayout(JSON.parse(JSON.stringify(this.menu)),this.position,this.enabled);
+                    const response=await this.$wire.saveLayout(JSON.parse(JSON.stringify(this.menu)),this.position,this.enabled,this.showAllToAdmins);
                     this.failed=!response.ok;this.notice=response.message;
                     if(response.ok)this.dirty=false;
                 } catch(e) {this.error('No se pudo guardar. Comprueba la conexión.');}
@@ -62,7 +62,7 @@
             }
         });
     </script>
-    <div class="sqa-builder" x-data="sqaQuickAccessEditor(@js($items),@js($catalog),@js($icons),@js($audiences),@js($position),@js($isEnabled))">
+    <div class="sqa-builder" x-data="sqaQuickAccessEditor(@js($items),@js($catalog),@js($icons),@js($audiences),@js($position),@js($isEnabled),@js($showAllToAdmins))">
         <div class="sqa-builder__split" style="margin-bottom:18px">
             <div>
                 <h2 class="sqa-builder__title">Barra lateral de accesos rápidos</h2>
@@ -98,6 +98,7 @@
                 </div>
                 <div class="sqa-builder__options">
                     <label><input type="checkbox" x-model="enabled" @change="change()"> Activar barra</label>
+                    <label><input type="checkbox" x-model="showAllToAdmins" @change="change()"> Mostrar todos los enlaces a administradores</label>
                     <label>Posición
                         <select x-model="position" @change="change()" style="width:auto;min-width:140px">
                             <option value="right">Derecha</option><option value="left">Izquierda</option>

@@ -12,12 +12,14 @@ class PublicNavigationSetting extends Model
 
     protected $fillable = [
         'items',
+        'show_all_to_admins',
     ];
 
     protected function casts(): array
     {
         return [
             'items' => 'array',
+            'show_all_to_admins' => 'boolean',
         ];
     }
 }

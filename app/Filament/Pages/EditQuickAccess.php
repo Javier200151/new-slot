@@ -27,6 +27,7 @@ class EditQuickAccess extends Page
     public array $audiences = [];
     public string $position = 'right';
     public bool $isEnabled = true;
+    public bool $showAllToAdmins = false;
 
     public static function canAccess(): bool
     {
@@ -40,12 +41,13 @@ class EditQuickAccess extends Page
         $this->items = PublicQuickAccessNavigation::editorItems($settings['items']);
         $this->position = $settings['position'];
         $this->isEnabled = $settings['is_enabled'];
+        $this->showAllToAdmins = $settings['show_all_to_admins'];
         $this->catalog = PublicQuickAccessNavigation::catalog();
         $this->audiences = PublicNavigation::audienceOptions();
         $this->icons = PublicQuickAccessNavigation::icons();
     }
 
-    public function saveLayout(array $items, string $position, bool $enabled): array
+    public function saveLayout(array $items, string $position, bool $enabled, bool $showAllToAdmins = false): array
     {
         abort_unless(static::canAccess(), 403);
         try {
@@ -57,9 +59,9 @@ class EditQuickAccess extends Page
             return ['ok' => false, 'message' => $e->getMessage()];
         }
 
-        DB::transaction(function () use ($normalized, $position, $enabled): void {
+        DB::transaction(function () use ($normalized, $position, $enabled, $showAllToAdmins): void {
             $setting = PublicQuickAccessSetting::query()->lockForUpdate()->first();
-            $attributes = ['items' => $normalized, 'position' => $position, 'is_enabled' => $enabled];
+            $attributes = ['items' => $normalized, 'position' => $position, 'is_enabled' => $enabled, 'show_all_to_admins' => $showAllToAdmins];
             if ($setting) {
                 $setting->update($attributes);
             } else {

@@ -726,7 +726,7 @@ class PublicNavigation
         return strtoupper(trim((string) $user->status?->name));
     }
 
-    /** El rol admin puede ver los accesos por estado, sin alterar su configuración. */
+    /** Rol administrativo para permisos de páginas (NO altera los filtros de navegación). */
     public static function currentUserIsAdmin(): bool
     {
         return auth()->user()?->hasRole('admin') ?? false;
@@ -743,21 +743,37 @@ class PublicNavigation
         return in_array($audience, $visibility, true);
     }
 
-    public static function canDisplayItem(array $item): bool
+    /** El interruptor del header no altera los permisos de las páginas. */
+    public static function adminSeesAllNavigation(): bool
     {
-        return self::currentUserIsAdmin()
+        if (! self::currentUserIsAdmin()) {
+            return false;
+        }
+
+        try {
+            return Schema::hasTable('public_navigation_settings')
+                && Schema::hasColumn('public_navigation_settings', 'show_all_to_admins')
+                && (bool) PublicNavigationSetting::query()->first()?->show_all_to_admins;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public static function canDisplayItem(array $item, ?bool $adminBypass = null): bool
+    {
+        return ($adminBypass ?? self::adminSeesAllNavigation())
             || self::itemVisibleForAudience($item, self::currentAudience());
     }
 
-    public static function visibleChildren(array $children): array
+    public static function visibleChildren(array $children, ?bool $adminBypass = null): array
     {
         $audience = self::currentAudience();
-        $isAdmin = self::currentUserIsAdmin();
+        $bypass = $adminBypass ?? self::adminSeesAllNavigation();
 
         return array_values(array_filter(
             $children,
             static fn ($child): bool => is_array($child)
-                && ($isAdmin || self::itemVisibleForAudience($child, $audience))
+                && ($bypass || self::itemVisibleForAudience($child, $audience))
                 && self::canDisplayNavigationItem($child),
         ));
     }

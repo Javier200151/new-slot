@@ -42,7 +42,7 @@ class PublicQuickAccessNavigation
 
     public static function settings(): array
     {
-        $defaults = ['items' => self::defaultItems(), 'position' => 'right', 'is_enabled' => true];
+        $defaults = ['items' => self::defaultItems(), 'position' => 'right', 'is_enabled' => true, 'show_all_to_admins' => false];
         try {
             if (! Schema::hasTable('public_quick_access_settings')) {
                 return $defaults;
@@ -55,6 +55,7 @@ class PublicQuickAccessNavigation
                 'items' => self::normalizeStored((array) $stored->items),
                 'position' => in_array($stored->position, ['left', 'right'], true) ? $stored->position : 'right',
                 'is_enabled' => (bool) $stored->is_enabled,
+                'show_all_to_admins' => (bool) ($stored->show_all_to_admins ?? false),
             ];
         } catch (\Throwable) {
             return $defaults;
@@ -178,12 +179,14 @@ class PublicQuickAccessNavigation
         ], $items, array_keys($items));
     }
 
-    public static function visibleItems(array $items): array
+    public static function visibleItems(array $items, ?bool $showAllToAdmins = null): array
     {
         $audience = PublicNavigation::currentAudience();
-        $isAdmin = PublicNavigation::currentUserIsAdmin();
-        return array_values(array_filter(self::normalizeStored($items), static function (array $item) use ($audience, $isAdmin): bool {
-            if (! $isAdmin && ! PublicNavigation::itemVisibleForAudience($item, $audience)) {
+        $adminBypass = PublicNavigation::currentUserIsAdmin()
+            && ($showAllToAdmins ?? (bool) self::settings()['show_all_to_admins']);
+
+        return array_values(array_filter(self::normalizeStored($items), static function (array $item) use ($audience, $adminBypass): bool {
+            if (! $adminBypass && ! PublicNavigation::itemVisibleForAudience($item, $audience)) {
                 return false;
             }
             if ($item['type'] === 'news_summary') {
@@ -191,7 +194,7 @@ class PublicQuickAccessNavigation
                     && \App\Services\QuickAccessNewsService::canSeeAny(auth()->user());
             }
             if ($item['type'] === 'server_status') {
-                return $isAdmin || in_array($audience, ['ACTIVO', 'RECLUTA'], true);
+                return $adminBypass || in_array($audience, ['ACTIVO', 'RECLUTA'], true);
             }
             return $item['type'] === 'scroll_top' || PublicNavigation::canDisplayNavigationItem($item);
         }));

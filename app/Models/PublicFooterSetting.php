@@ -10,10 +10,10 @@ class PublicFooterSetting extends Model
 {
     use Auditable;
 
-    protected $fillable = ['items'];
+    protected $fillable = ['items', 'show_all_to_admins'];
 
     protected function casts(): array
     {
-        return ['items' => 'array'];
+        return ['items' => 'array', 'show_all_to_admins' => 'boolean'];
     }
 }

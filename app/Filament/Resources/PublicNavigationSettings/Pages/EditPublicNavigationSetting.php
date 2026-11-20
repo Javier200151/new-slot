@@ -19,6 +19,7 @@ class EditPublicNavigationSetting extends Page
         'filament.resources.public-navigation-settings.pages.edit-public-navigation-setting';
 
     public int $recordId;
+    public bool $showAllToAdmins = false;
 
     /** @var array<int, array<string, mixed>> */
     public array $menuItems = [];
@@ -44,6 +45,7 @@ class EditPublicNavigationSetting extends Page
         $navigation = PublicNavigationSetting::query()->findOrFail($record);
 
         $this->recordId = (int) $navigation->getKey();
+        $this->showAllToAdmins = (bool) $navigation->show_all_to_admins;
         $this->destinations = PublicNavigation::destinations();
         $this->audiences = PublicNavigation::audienceOptions();
 
@@ -73,7 +75,7 @@ class EditPublicNavigationSetting extends Page
      * @param  array<int, mixed>  $availablePages
      * @return array{ok: bool, message: string}
      */
-    public function saveLayout(array $menuItems, array $availablePages = []): array
+    public function saveLayout(array $menuItems, array $availablePages = [], bool $showAllToAdmins = false): array
     {
         abort_unless(
             auth()->user()?->can('public-navigation.update') ?? false,
@@ -96,6 +98,7 @@ class EditPublicNavigationSetting extends Page
 
         $navigation->update([
             'items' => $normalized,
+            'show_all_to_admins' => $showAllToAdmins,
         ]);
 
         $this->menuItems = PublicNavigation::editorState($normalized)['menu'];
