@@ -214,8 +214,8 @@
                 <div class="sqa-stats__empty">No hay resultados para los filtros seleccionados. Prueba con otro periodo o una categoría diferente.</div>
             @endif
             <div class="sqa-stats__notice">
-                <strong>Cómo se calculan los datos</strong>
-                <p>Las participaciones utilizan los slots asignados y su último movimiento válido. Los roles se agrupan por tipo de slot, no por nombre personalizado. Solo se identifican usuarios con perfil público disponible. Las fechas corresponden a los eventos celebrados.</p>
+                <strong>¿Buscas algo concreto?</strong>
+                <p>Elige un tipo de slot para descubrir quién lo ha jugado más, o selecciona un editor para consultar sus eventos. Ajusta el periodo y combina filtros para afinar los resultados.</p>
             </div>
         </section>
     </div>
