@@ -40,6 +40,7 @@ class PublicNavigation
             'campaigns' => ['label' => 'Campañas'],
             'organization' => ['label' => 'Organigrama'],
             'users' => ['label' => 'Usuarios'],
+            'statistics' => ['label' => 'Estadísticas'],
             'faqs' => ['label' => 'FAQs'],
             'wiki' => ['label' => 'Wiki', 'external' => true],
             'forum' => ['label' => 'Foro'],
@@ -608,6 +609,7 @@ class PublicNavigation
             'campaigns' => route('campaigns.index'),
             'organization' => route('community.organization'),
             'users' => route('users.index'),
+            'statistics' => route('statistics.index'),
             'faqs' => route('pages.show', 'faqs'),
             'wiki' => 'https://wiki.squadalpha.es/',
             'forum' => route('community.forum.home'),
@@ -677,6 +679,7 @@ class PublicNavigation
             'campaigns' => request()->routeIs('campaigns.*'),
             'organization' => request()->routeIs('community.organization'),
             'users' => request()->routeIs('users.*'),
+            'statistics' => request()->routeIs('statistics.*'),
             'faqs' => request()->routeIs('pages.show')
                 && request()->route('page')?->slug === 'faqs',
             'forum' => request()->routeIs('community.forum.*'),
@@ -692,6 +695,10 @@ class PublicNavigation
 
         if (! is_array($definition)) {
             return false;
+        }
+
+        if ($destination === 'statistics') {
+            return \App\Models\StatisticsSetting::current()->canView(auth()->user());
         }
 
         // Dynamic Filament pages may be prepared in the header before they

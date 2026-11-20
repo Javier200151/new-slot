@@ -123,7 +123,7 @@ class PublicUserController extends Controller
         );
     }
 
-    public function show(User $user): View
+    public function show(User $user, Request $request, \App\Services\PublicStatisticsService $statistics): View
     {
         $user->load([
             'status:id,name,color',
@@ -139,9 +139,50 @@ class PublicUserController extends Controller
         $veterancy = $veterancyService->summary($user);
         $veterancyLevel = $veterancyService->recognizedLevel($user);
 
-        return view(
-            'users.show',
-            compact('user', 'veterancy', 'veterancyLevel')
-        );
+        $memberStats = null;
+        $memberFilters = null;
+        $memberPeriodOptions = \App\Services\PublicStatisticsService::PERIODS;
+        $memberPlatforms = collect();
+        $memberActivityTypes = collect();
+        $memberRoleTypes = collect();
+        $memberMaps = collect();
+        $memberCampaigns = collect();
+
+        if (\App\Models\StatisticsSetting::current()->canViewProfile($request->user()) && $user->promo_id) {
+            $validated = $request->validate([
+                'stats_period' => ['nullable', 'in:1m,3m,6m,12m,year,all,custom'],
+                'stats_from' => ['nullable', 'date_format:Y-m-d'],
+                'stats_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:stats_from'],
+                'stats_platform' => ['nullable', 'integer', 'min:1', 'exists:platforms,id'],
+                'stats_type' => ['nullable', 'integer', 'min:1', 'exists:activity_types,id'],
+                'stats_map' => ['nullable', 'integer', 'min:1', 'exists:maps,id'],
+                'stats_campaign' => ['nullable', 'integer', 'min:1', 'exists:campaign,id'],
+                'stats_role' => ['nullable', 'integer', 'min:1', 'exists:slot_types,id'],
+            ]);
+            $memberFilters = $statistics->normalized([
+                'period' => $validated['stats_period'] ?? '12m',
+                'from' => $validated['stats_from'] ?? null,
+                'to' => $validated['stats_to'] ?? null,
+                'platform' => $validated['stats_platform'] ?? null,
+                'activity_type' => $validated['stats_type'] ?? null,
+                'role' => $validated['stats_role'] ?? null,
+                'map' => $validated['stats_map'] ?? null,
+                'campaign' => $validated['stats_campaign'] ?? null,
+                'user' => $user->id,
+            ]);
+            $memberStats = $statistics->profile($user, $memberFilters);
+            $memberPlatforms = \App\Models\Platform::query()->orderBy('name')->pluck('name', 'id');
+            $memberActivityTypes = \App\Models\ActivityType::query()->orderBy('name')->pluck('name', 'id');
+            $memberRoleTypes = \App\Models\SlotType::query()->orderBy('name')->pluck('name', 'id');
+            $memberMaps = \App\Models\GameMap::query()->orderBy('name')->pluck('name', 'id');
+            $memberCampaigns = \App\Models\Campaign::query()->orderBy('name')->pluck('name', 'id');
+        }
+
+        return view('users.show', compact(
+            'user', 'veterancy', 'veterancyLevel',
+            'memberStats', 'memberFilters', 'memberPeriodOptions',
+            'memberPlatforms', 'memberActivityTypes', 'memberRoleTypes',
+            'memberMaps', 'memberCampaigns',
+        ));
     }
 }

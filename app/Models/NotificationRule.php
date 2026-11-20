@@ -15,11 +15,11 @@ class NotificationRule extends Model
     protected $primaryKey = 'key';
     public $incrementing = false;
     protected $keyType = 'string';
-    protected $fillable = ['enabled', 'max_age_value', 'max_age_unit'];
+    protected $fillable = ['enabled', 'max_age_value', 'max_age_unit', 'recipient_status_ids'];
 
     protected function casts(): array
     {
-        return ['enabled' => 'boolean', 'max_age_value' => 'integer'];
+        return ['enabled' => 'boolean', 'max_age_value' => 'integer', 'recipient_status_ids' => 'array'];
     }
 
     protected static function booted(): void

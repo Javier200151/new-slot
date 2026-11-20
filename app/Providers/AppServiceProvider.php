@@ -109,6 +109,8 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(CommunityRaffle::class, CommunityRafflePolicy::class);
 
+        Gate::policy(\App\Models\StatisticsSetting::class, \App\Policies\StatisticsSettingPolicy::class);
+
         Gate::policy(
             CampaignAar::class,
             CampaignAarPolicy::class

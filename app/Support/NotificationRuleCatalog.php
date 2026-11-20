@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\CommunityDiary;
 use App\Models\CommunityPost;
 use App\Notifications\BirthdayNotification;
+use App\Notifications\ChangelogPublishedNotification;
 use App\Notifications\CampaignAarPendingNotification;
 use App\Notifications\CampaignAarPublishedNotification;
 use App\Notifications\ClipYearPhaseNotification;
@@ -35,6 +36,7 @@ final class NotificationRuleCatalog
         'subscription_forum' => ['label' => 'Novedades de temas seguidos del foro', 'category' => 'Comunidad', 'class' => CommunitySubscriptionUpdatedNotification::class, 'age' => true, 'default' => null],
         'subscription_diary' => ['label' => 'Novedades de diarios seguidos', 'category' => 'Comunidad', 'class' => CommunitySubscriptionUpdatedNotification::class, 'age' => true, 'default' => null],
         'community_subscription_update' => ['label' => 'Otras publicaciones seguidas', 'category' => 'Comunidad', 'class' => CommunitySubscriptionUpdatedNotification::class, 'age' => true, 'default' => null],
+        'changelog_published' => ['label' => 'Nuevo changelog publicado', 'category' => 'Comunidad', 'class' => ChangelogPublishedNotification::class, 'age' => true, 'default' => null],
         'birthday' => ['label' => 'Cumpleaños de miembros', 'category' => 'Comunidad', 'class' => BirthdayNotification::class, 'age' => false, 'default' => null],
         'metopa_awarded' => ['label' => 'Concesión de metopas', 'category' => 'Comunidad', 'class' => MetopaAwardedNotification::class, 'age' => false, 'default' => null],
         'clip_year_nominations' => ['label' => 'Apertura de candidaturas', 'category' => 'Clip Awards', 'class' => ClipYearPhaseNotification::class, 'age' => true, 'default' => null],
@@ -95,6 +97,9 @@ final class NotificationRuleCatalog
                 return $subject?->created_at?->toIso8601String();
             });
             return $date ? Carbon::parse($date) : null;
+        }
+        if ($notification instanceof ChangelogPublishedNotification) {
+            return $notification->entry->published_at;
         }
         if ($notification instanceof ClipYearPhaseNotification) {
             return $notification->phase === 'nominations'

@@ -46,5 +46,8 @@ Schedule::command('wiki:revoke-pending')->everyMinute()->withoutOverlapping();
 Schedule::call(fn () => app(\App\Services\CommunityRaffleService::class)->settleDue())
     ->everyMinute()->name('community-raffle-settle')->withoutOverlapping();
 
-// PBO/HTML export retry; requires a running Laravel scheduler in production.
-Schedule::command('sqa:sync-pbos --limit=20')->everyMinute()->withoutOverlapping();
+// La sincronización PBO/HTML se activa por eventos mediante la cola pbo-sync.
+// sqa:sync-pbos continúa disponible únicamente para recuperación manual.
+
+// Entradas de changelog programadas: solamente publicaciones pendientes.
+Schedule::command('changelog:notify-publications')->everyMinute()->withoutOverlapping();

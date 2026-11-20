@@ -5,6 +5,7 @@ namespace App\Filament\Resources\NotificationRules;
 use App\Filament\Resources\NotificationRules\Pages\EditNotificationRule;
 use App\Filament\Resources\NotificationRules\Pages\ListNotificationRules;
 use App\Models\NotificationRule;
+use App\Models\Status;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -63,6 +64,12 @@ class NotificationRuleResource extends Resource
     {
         return $schema->components([
             Toggle::make('enabled')->label('Enviar esta notificación'),
+            Select::make('recipient_status_ids')
+                ->label('Estados destinatarios')
+                ->multiple()
+                ->options(fn (): array => Status::query()->orderBy('name')->pluck('name', 'id')->all())
+                ->helperText('Miembros que recibirán el aviso.')
+                ->visible(fn (?NotificationRule $record): bool => $record?->key === 'changelog_published'),
             TextInput::make('max_age_value')
                 ->label('Antigüedad máxima')
                 ->numeric()->integer()->minValue(1)->maxValue(3650)

@@ -9,6 +9,23 @@ use Illuminate\View\View;
 
 class ChangelogController extends Controller
 {
+    public function show(Request $request, ChangelogEntry $changelog): View
+    {
+        abort_unless(ChangelogAccess::canView($request->user()), 403);
+
+        $entries = ChangelogEntry::query()
+            ->whereKey($changelog->getKey())
+            ->where('is_published', true)
+            ->where(function ($query): void {
+                $query->whereNull('published_at')->orWhere('published_at', '<=', now());
+            })
+            ->paginate(12);
+
+        abort_if($entries->isEmpty(), 404);
+
+        return view('community.changelog.index', compact('entries'));
+    }
+
     public function index(Request $request): View
     {
         abort_unless(ChangelogAccess::canView($request->user()), 403);

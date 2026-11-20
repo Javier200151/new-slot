@@ -93,6 +93,11 @@ class NotificationController extends Controller
             'community_subscription_update' =>
                 $this->redirectToCommunitySubscription($data),
 
+            'changelog_published' =>
+                redirect()->route('community.changelog.show', [
+                    'changelog' => (int) ($data['changelog_id'] ?? 0),
+                ]),
+
             default =>
                 redirect()->route('home'),
         };
