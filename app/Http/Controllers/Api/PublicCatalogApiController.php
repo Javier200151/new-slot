@@ -31,7 +31,7 @@ class PublicCatalogApiController extends Controller
             'mapa'=>'sometimes|integer|min:1','campana'=>'sometimes|integer|min:1',
             'q'=>'sometimes|string|max:50', ...Api::pageRules(),
         ]);
-        $q = Api::activities()->with(['activityType','platform','map']);
+        $q = Api::activities()->with(['activityType','platform','map','pboExport']);
         foreach (['tipo_actividad'=>'activity_type_id','plataforma'=>'platform_id','mapa'=>'map_id','campana'=>'campaign_id'] as $filter=>$column) {
             if (isset($f[$filter])) $q->where($column,$f[$filter]);
         }
@@ -42,7 +42,7 @@ class PublicCatalogApiController extends Controller
 
     public function activity(int $id): JsonResponse
     {
-        return Api::one(Api::activity(Api::activities()->findOrFail($id),true));
+        return Api::one(Api::activity(Api::activities()->with('pboExport')->findOrFail($id),true));
     }
 
     public function activityEvents(Request $request, int $id): JsonResponse

@@ -321,13 +321,14 @@ final class PublicApiData
 
     public static function activity(Activity $activity, bool $detailed = false): array
     {
-        $activity->loadMissing(['activityType','platform','map']);
+        $activity->loadMissing(['activityType','platform','map','pboExport']);
         $row = [
             'id' => (int) $activity->id, 'nombre' => $activity->name,
             'resumen_publico' => self::activityDescription($activity, 350),
             'tipo' => self::named($activity->activityType),
             'plataforma' => self::named($activity->platform), 'mapa' => self::named($activity->map),
             'imagen_url' => self::image($activity->image), 'url' => url('/actividades/'.$activity->id),
+            ...PublicActivityPbo::forActivity($activity),
         ];
         if ($detailed) {
             $row['descripcion_publica'] = self::activityDescription($activity, 5000);

@@ -301,6 +301,14 @@ return [
                 'infrastructure-settings' => [
                     'label' => 'Infraestructura',
                 ],
+                'game-servers' => [
+                    'label' => 'Gestión de servidores',
+                    'actions' => [
+                        'view' => 'Ver panel de servidores',
+                        'launch' => 'Lanzar operativos y arrancar academias (próxima fase)',
+                        'stop' => 'Parar y reiniciar servidores (próxima fase)',
+                    ],
+                ],
                 'homepage-news' => [
                     'label' => 'Noticias de portada',
                 ],
