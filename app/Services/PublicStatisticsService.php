@@ -171,15 +171,21 @@ class PublicStatisticsService
         return $query;
     }
 
-    protected function participantQuery(array $filters): Builder
+    protected function participantQuery(array $filters, bool $publicProfilesOnly = true): Builder
     {
         $query = $this->events($filters)
             ->joinSub($this->assignments(), 'part', fn ($join) => $join->on('part.event_id', '=', 'e.id'))
             ->join('users as u', 'u.id', '=', 'part.user_id')
             ->leftJoin('slot_types as st', 'st.id', '=', 'part.slot_type_id')
-            // Los usuarios eliminados no pueden identificarse por un ranking público.
-            ->whereNull('u.deleted_at')
-            ->whereNotNull('u.promo_id');
+            // Nunca mostrar participaciones de cuentas eliminadas.
+            ->whereNull('u.deleted_at');
+
+        // El explorador general mantiene sus reglas de identidad pública.
+        // Una ficha de usuario, en cambio, puede mostrar su propio historial aunque
+        // su estado sea RECLUTA, RESERVA o USUARIO y no tenga promoción asignada.
+        if ($publicProfilesOnly) {
+            $query->whereNotNull('u.promo_id');
+        }
 
         if (($filters['user'] ?? 0) > 0) $query->where('u.id', $filters['user']);
         if (($filters['status'] ?? 0) > 0) $query->where('u.status_id', $filters['status']);
@@ -285,14 +291,23 @@ class PublicStatisticsService
     public function profile(User $user, array $filters): array
     {
         $base = $this->normalized(['period' => 'all', 'user' => $user->getKey(), 'top' => 100]);
-        $total = (int) $this->participantQuery($base)->distinct()->count('e.id');
-        $lastYear = (int) $this->participantQuery(array_replace($base, ['period' => '12m']))
+        $total = (int) $this->participantQuery($base, false)->distinct()->count('e.id');
+        $lastYear = (int) $this->participantQuery(array_replace($base, ['period' => '12m']), false)
             ->distinct()->count('e.id');
-        $roleRows = $this->participantQuery($base)
+        // El rol más jugado se calcula únicamente para eventos de tipo OPERACIÓN.
+        // Cursos, prácticas, maniobras y tutorías no alteran el Top 3 histórico.
+        $favoriteRoles = $this->participantQuery($base, false)
+            ->whereRaw("UPPER(TRIM(atype.name)) IN ('OPERACION', 'OPERACIÓN')")
             ->whereNotNull('part.slot_type_id')
             ->selectRaw('st.name AS label, COUNT(DISTINCT e.id) AS total')
             ->groupBy('part.slot_type_id', 'st.name')
-            ->orderByDesc('total')->orderBy('st.name')->get();
+            ->orderByDesc('total')->orderBy('st.name')
+            ->limit(3)->get();
+
+        // Las demás cifras del perfil siguen incluyendo todos los tipos de evento.
+        $differentRoles = (int) $this->participantQuery($base, false)
+            ->whereNotNull('part.slot_type_id')
+            ->distinct()->count('part.slot_type_id');
 
         $filtered = array_replace($base, [
             'period' => $filters['period'],
@@ -305,22 +320,26 @@ class PublicStatisticsService
             'role' => $filters['role'],
         ]);
 
-        $byRole = $this->participantQuery($filtered)
+        $byRole = $this->participantQuery($filtered, false)
             ->selectRaw("COALESCE(st.name, 'Sin tipo de slot') AS label, COUNT(DISTINCT e.id) AS total")
             ->groupBy('part.slot_type_id', 'st.name')
             ->orderByDesc('total')->orderBy('label')->limit(8)->get();
 
-        $recentEvents = $this->participantQuery($filtered)
+        $recentEvents = $this->participantQuery($filtered, false)
             ->select(['e.id', 'e.name', 'e.date', 'a.name as activity_name', 'st.name as role_name'])
             ->orderByDesc('e.date')->orderByDesc('e.id')->limit(12)->get();
 
         return [
             'total' => $total,
             'last_year' => $lastYear,
-            'favorite_role' => $roleRows->first()?->label,
-            'favorite_role_count' => (int) ($roleRows->first()?->total ?? 0),
-            'different_roles' => $roleRows->count(),
-            'filtered_total' => (int) $this->participantQuery($filtered)->distinct()->count('e.id'),
+            'favorite_role' => $favoriteRoles->first()?->label,
+            'favorite_role_count' => (int) ($favoriteRoles->first()?->total ?? 0),
+            'favorite_role_top3' => $favoriteRoles->map(fn ($role): array => [
+                'label' => (string) $role->label,
+                'total' => (int) $role->total,
+            ])->all(),
+            'different_roles' => $differentRoles,
+            'filtered_total' => (int) $this->participantQuery($filtered, false)->distinct()->count('e.id'),
             'by_role' => $byRole,
             'recent_events' => $recentEvents,
         ];

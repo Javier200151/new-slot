@@ -10,8 +10,15 @@ class StatisticsSetting extends Model
 {
     use Auditable;
 
+    public const PROFILE_METRICS = [
+        'favorite_role' => 'Rol más jugado',
+        'last_year' => 'Eventos en los últimos 12 meses',
+        'total' => 'Total de eventos',
+        'different_roles' => 'Roles diferentes',
+    ];
+
     protected $fillable = [
-        'is_enabled', 'allowed_statuses', 'allow_admins', 'show_user_profiles',
+        'is_enabled', 'allowed_statuses', 'allow_admins', 'show_user_profiles', 'profile_metrics',
     ];
 
     protected function casts(): array
@@ -21,6 +28,7 @@ class StatisticsSetting extends Model
             'allowed_statuses' => 'array',
             'allow_admins' => 'boolean',
             'show_user_profiles' => 'boolean',
+            'profile_metrics' => 'array',
         ];
     }
 
@@ -55,8 +63,21 @@ class StatisticsSetting extends Model
         return in_array(mb_strtoupper(trim((string) $viewer->status?->name)), $allowed, true);
     }
 
+    /** El rol más jugado es obligatorio; el resto de tarjetas se configura en Filament. */
+    public function profileMetricKeys(): array
+    {
+        $selected = (array) ($this->profile_metrics ?? ['favorite_role']);
+        $selected = array_filter($selected, 'is_string');
+        $allowed = array_keys(self::PROFILE_METRICS);
+
+        return array_values(array_filter($allowed, static fn (string $key): bool =>
+            $key === 'favorite_role' || in_array($key, $selected, true)
+        ));
+    }
+
+    /** Las fichas son visibles para cualquier usuario identificado, sin filtro de estado. */
     public function canViewProfile(?User $viewer): bool
     {
-        return $this->show_user_profiles && $this->canView($viewer);
+        return (bool) ($this->is_enabled && $this->show_user_profiles && $viewer !== null);
     }
 }

@@ -1,22 +1,53 @@
-<section class="sqa-stats__member" aria-labelledby="sqa-member-stats-title">
-    <div class="sqa-stats__member-header">
-        <div>
-            <span class="sqa-stats__kicker">ACTIVIDAD DEL MIEMBRO</span>
-            <h2 id="sqa-member-stats-title">Estadísticas de jugador</h2>
-        </div>
-        <a href="{{ route('statistics.index', ['focus' => 'user', 'metric' => 'participations', 'group' => 'role', 'user' => $user->id, 'period' => $memberFilters['period'], 'platform' => $memberFilters['platform'] ?: null, 'activity_type' => $memberFilters['activity_type'] ?: null, 'role' => $memberFilters['role'] ?: null, 'map' => $memberFilters['map'] ?: null, 'campaign' => $memberFilters['campaign'] ?: null, 'from' => $memberFilters['from'], 'to' => $memberFilters['to']]) }}">Ver estadísticas completas</a>
+<section class="sqa-stats__member sqa-stats__member-panel" aria-labelledby="sqa-member-stats-title">
+    <div class="sqa-stats__member-heading">
+        <span class="sqa-stats__kicker">ACTIVIDAD DEL MIEMBRO</span>
+        <h2 id="sqa-member-stats-title">Estadísticas de jugador</h2>
     </div>
-
     <div class="sqa-stats__cards">
-        <div class="sqa-stats__card"><span>Rol más jugado · Histórico</span><strong>{{ $memberStats['favorite_role'] ?? 'Sin datos' }}</strong><small>{{ $memberStats['favorite_role_count'] }} partidas</small></div>
-        <div class="sqa-stats__card"><span>Últimos 12 meses</span><strong>{{ $memberStats['last_year'] }}</strong><small>Partidas registradas</small></div>
-        <div class="sqa-stats__card"><span>Total histórico</span><strong>{{ $memberStats['total'] }}</strong><small>Partidas registradas</small></div>
-        <div class="sqa-stats__card"><span>Roles diferentes</span><strong>{{ $memberStats['different_roles'] }}</strong><small>Tipos de slot utilizados</small></div>
+        <div class="sqa-stats__card sqa-stats__card--favorite">
+            <span>Rol más jugado · Operación</span>
+            <strong>{{ $memberStats['favorite_role'] ?? 'Sin datos' }}</strong>
+            <small>{{ $memberStats['favorite_role_count'] }} {{ $memberStats['favorite_role_count'] === 1 ? 'evento' : 'eventos' }} · Histórico</small>
+            @if(count($memberStats['favorite_role_top3']) > 1)
+                <div class="sqa-stats__favorite-runner-ups" aria-label="Segundo y tercer rol más jugado en operaciones">
+                    @foreach(array_slice($memberStats['favorite_role_top3'], 1, 2) as $index => $role)
+                        <div class="sqa-stats__favorite-runner-up">
+                            <span>{{ $index + 2 }}.º {{ $role['label'] }}</span>
+                            <small>{{ $role['total'] }} {{ $role['total'] === 1 ? 'evento' : 'eventos' }}</small>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+        @if(in_array('last_year', $memberMetricKeys, true))
+            <div class="sqa-stats__card"><span>Últimos 12 meses</span><strong>{{ $memberStats['last_year'] }}</strong><small>Eventos registrados</small></div>
+        @endif
+        @if(in_array('total', $memberMetricKeys, true))
+            <div class="sqa-stats__card"><span>Total histórico</span><strong>{{ $memberStats['total'] }}</strong><small>Eventos registrados</small></div>
+        @endif
+        @if(in_array('different_roles', $memberMetricKeys, true))
+            <div class="sqa-stats__card"><span>Roles diferentes</span><strong>{{ $memberStats['different_roles'] }}</strong><small>Tipos de slot utilizados</small></div>
+        @endif
     </div>
 
-    <div class="sqa-stats__member-grid">
+    <details class="sqa-stats__member-explorer" @if(request()->hasAny(['stats_period', 'stats_from', 'stats_to', 'stats_platform', 'stats_type', 'stats_role', 'stats_map', 'stats_campaign'])) open @endif>
+        <summary class="sqa-stats__member-toggle">
+            <span class="sqa-stats__member-toggle-label">
+                <strong>Explorar sus estadísticas</strong>
+                <small>Filtra sus eventos y consulta los resultados</small>
+            </span>
+            <span class="sqa-stats__member-toggle-action" aria-hidden="true">Ver filtros <span class="sqa-stats__member-chevron"></span></span>
+        </summary>
+        <div class="sqa-stats__member-content">
+            @if($canViewStatisticsPage)
+                <div class="sqa-stats__member-header">
+                    <a href="{{ route('statistics.index', ['focus' => 'user', 'metric' => 'participations', 'group' => 'role', 'user' => $user->id, 'period' => $memberFilters['period'], 'platform' => $memberFilters['platform'] ?: null, 'activity_type' => $memberFilters['activity_type'] ?: null, 'role' => $memberFilters['role'] ?: null, 'map' => $memberFilters['map'] ?: null, 'campaign' => $memberFilters['campaign'] ?: null, 'from' => $memberFilters['from'], 'to' => $memberFilters['to']]) }}">Ver estadísticas completas</a>
+                </div>
+            @endif
+
+            <div class="sqa-stats__member-grid">
         <form action="{{ route('users.show', ['user' => $user->nick]) }}" method="GET" class="sqa-stats__member-filters">
-            <h3>Explorar sus partidas</h3>
+            <h3>Explorar sus eventos</h3>
             <label for="ms-period">Periodo</label>
             <select id="ms-period" name="stats_period">
                 @foreach($memberPeriodOptions as $key => $label)
@@ -77,16 +108,16 @@
         </form>
 
         <div class="sqa-stats__member-details">
-            <div class="sqa-stats__member-subheading"><h3>Roles más jugados</h3><span>{{ $memberStats['filtered_total'] }} partidas</span></div>
+            <div class="sqa-stats__member-subheading"><h3>Roles más jugados</h3><span>{{ $memberStats['filtered_total'] }} eventos</span></div>
             @forelse($memberStats['by_role'] as $role)
                 <div class="sqa-stats__ranking-item">
                     <div class="sqa-stats__ranking-head"><span>{{ $role->label }}</span><strong>{{ $role->total }}</strong></div>
                     <div class="sqa-stats__bar"><span style="width: {{ $memberStats['filtered_total'] ? min(100, 100 * $role->total / $memberStats['filtered_total']) : 0 }}%"></span></div>
                 </div>
             @empty
-                <p class="sqa-stats__empty">Sin partidas registradas con estos filtros.</p>
+                <p class="sqa-stats__empty">Sin eventos registrados con estos filtros.</p>
             @endforelse
-            <h3 class="sqa-stats__recent-title">Partidas recientes</h3>
+            <h3 class="sqa-stats__recent-title">Eventos recientes</h3>
             <div class="sqa-stats__events">
                 @forelse($memberStats['recent_events'] as $event)
                     <a href="{{ route('events.show', ['event' => $event->id]) }}">
@@ -100,5 +131,7 @@
             </div>
         </div>
     </div>
-    <p class="sqa-stats__hint">Las cifras se basan en asignaciones de slots registradas en eventos celebrados. No acreditan asistencia física.</p>
+            <p class="sqa-stats__hint">Los datos muestran las participaciones registradas en los eventos.</p>
+        </div>
+    </details>
 </section>

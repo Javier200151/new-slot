@@ -141,6 +141,8 @@ class PublicUserController extends Controller
 
         $memberStats = null;
         $memberFilters = null;
+        $memberMetricKeys = ['favorite_role'];
+        $canViewStatisticsPage = false;
         $memberPeriodOptions = \App\Services\PublicStatisticsService::PERIODS;
         $memberPlatforms = collect();
         $memberActivityTypes = collect();
@@ -148,7 +150,10 @@ class PublicUserController extends Controller
         $memberMaps = collect();
         $memberCampaigns = collect();
 
-        if (\App\Models\StatisticsSetting::current()->canViewProfile($request->user()) && $user->promo_id) {
+        $statisticsSettings = \App\Models\StatisticsSetting::current();
+        $canViewStatisticsPage = $statisticsSettings->canView($request->user());
+        if ($statisticsSettings->canViewProfile($request->user())) {
+            $memberMetricKeys = $statisticsSettings->profileMetricKeys();
             $validated = $request->validate([
                 'stats_period' => ['nullable', 'in:1m,3m,6m,12m,year,all,custom'],
                 'stats_from' => ['nullable', 'date_format:Y-m-d'],
@@ -180,7 +185,7 @@ class PublicUserController extends Controller
 
         return view('users.show', compact(
             'user', 'veterancy', 'veterancyLevel',
-            'memberStats', 'memberFilters', 'memberPeriodOptions',
+            'memberStats', 'memberFilters', 'memberMetricKeys', 'canViewStatisticsPage', 'memberPeriodOptions',
             'memberPlatforms', 'memberActivityTypes', 'memberRoleTypes',
             'memberMaps', 'memberCampaigns',
         ));
