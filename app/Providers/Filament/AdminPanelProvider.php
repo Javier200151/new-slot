@@ -9,6 +9,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\ServidoresJuego;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Assets\Js;
@@ -42,6 +43,12 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): HtmlString => ServidoresJuego::canAccess()
+                    ? new HtmlString(view('filament.components.game-servers-topbar-link')->render())
+                    : new HtmlString(''),
+            )
+            ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 function (): HtmlString {
                     $styles = [];
@@ -49,6 +56,7 @@ class AdminPanelProvider extends PanelProvider
                     foreach ([
                         'filament-custom.css',
                         'personal-dashboard.css',
+                        'filament-game-servers.css',
                     ] as $filename) {
                         $path = public_path('css/' . $filename);
 
@@ -68,6 +76,12 @@ class AdminPanelProvider extends PanelProvider
                     if (is_file($pboStyle)) {
                         $version = substr(hash_file('sha256', $pboStyle), 0, 16);
                         $styles[] = '<link rel="stylesheet" href="' . e(asset('css/filament-pbo-save-prompt.css') . '?v=' . $version) . '">';
+                    }
+
+                    $demoJs = public_path('js/filament-game-servers-demo.js');
+                    if (is_file($demoJs)) {
+                        $version = substr(hash_file('sha256', $demoJs), 0, 16);
+                        $styles[] = '<script defer src="' . e(asset('js/filament-game-servers-demo.js') . '?v=' . $version) . '"></script>';
                     }
 
                     return new HtmlString(implode("\n", $styles));
