@@ -47,8 +47,14 @@ class StatisticsSettingResource extends Resource
                         ->label('Permitir a administradores')
                         ->default(true),
                     Toggle::make('show_user_profiles')
-                        ->label('Estadísticas en las fichas de miembros')
+                        ->label('Estadísticas en los perfiles')
                         ->default(true),
+                    Select::make('profile_metrics')
+                        ->label('Indicadores del perfil')
+                        ->multiple()
+                        ->options(StatisticsSetting::PROFILE_METRICS)
+                        ->default(['favorite_role'])
+                        ->helperText('El rol más jugado aparece siempre.'),
                 ])->columns(2),
         ]);
     }
