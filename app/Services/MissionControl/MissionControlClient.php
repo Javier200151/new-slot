@@ -154,7 +154,7 @@ final class MissionControlClient
         }
         $method = strtoupper($method);
         $path = '/api/v1'.$endpoint;
-        if (! preg_match('~\A/api/v1/[a-z0-9/_-]+\z/D', $path)) {
+        if (! preg_match('~\A/api/v1/[a-z0-9/_-]+\z~', $path)) {
             throw new MissionControlException('Ruta no autorizada.', 'ruta_no_valida');
         }
         // GETs have an empty byte body for the HMAC. JSON payload uses the same bytes sent over TLS.
