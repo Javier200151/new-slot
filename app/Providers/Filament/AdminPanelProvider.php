@@ -78,10 +78,10 @@ class AdminPanelProvider extends PanelProvider
                         $styles[] = '<link rel="stylesheet" href="' . e(asset('css/filament-pbo-save-prompt.css') . '?v=' . $version) . '">';
                     }
 
-                    $demoJs = public_path('js/filament-game-servers-demo.js');
+                    $demoJs = public_path('js/filament-game-servers-control.js');
                     if (is_file($demoJs)) {
                         $version = substr(hash_file('sha256', $demoJs), 0, 16);
-                        $styles[] = '<script defer src="' . e(asset('js/filament-game-servers-demo.js') . '?v=' . $version) . '"></script>';
+                        $styles[] = '<script defer src="' . e(asset('js/filament-game-servers-control.js') . '?v=' . $version) . '"></script>';
                     }
 
                     return new HtmlString(implode("\n", $styles));

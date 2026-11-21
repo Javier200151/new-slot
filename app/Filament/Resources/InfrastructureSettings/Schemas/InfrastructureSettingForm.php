@@ -25,6 +25,18 @@ class InfrastructureSettingForm
                                 ->required()
                                 ->maxLength(120),
 
+                            \Filament\Forms\Components\Select::make('mission_control_id')
+                                ->label('Servidor en Mission Control')
+                                ->options([
+                                    'operativos' => 'Arma 3 Operativos',
+                                    'academia' => 'Arma 3 Academia',
+                                    'academia_vietnam' => 'Academia Vietnam',
+                                    'academia_ww2' => 'Academia WW2',
+                                ])
+                                ->placeholder('Sin vincular')
+                                ->helperText('Permite identificar este servidor en el panel de control.')
+                                ->nullable(),
+
                             TextInput::make('host')
                                 ->label('IP o dominio')
                                 ->maxLength(255),
