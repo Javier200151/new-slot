@@ -151,3 +151,11 @@
 .sqa-server-panel__legend-dot--warning{background:#f4c76b}
 .sqa-server-panel__legend-dot--danger{background:#ef9b9d}
 @media(max-width:600px){.sqa-server-panel__picker-option{align-items:flex-start;flex-direction:column;gap:5px}.sqa-server-panel__picker-option-status{align-self:flex-start}}
+/* Estado real de Mission Control: errores y avisos del servidor. */
+.sqa-server-panel__feedback{padding:12px 15px;border:1px solid #746027;border-radius:9px;background:#2a2417;color:#ffdda1;font-size:13px;margin-top:16px}
+.sqa-server-panel__hint-box{margin:0;border:1px solid #3d4754;border-radius:8px;background:#181d25;color:#c3cbd6;padding:10px 12px;font-size:12px}
+.sqa-server-panel__link{color:#f4ad35;font-size:12px;font-weight:650;text-decoration:underline}
+.sqa-server-panel__link:hover{color:#ffd582}
+.sqa-server-panel__preview{max-width:100%}
+.sqa-server-panel__note{line-height:1.5}
+.sqa-server-panel__activity-details{min-height:260px}

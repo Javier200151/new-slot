@@ -305,8 +305,8 @@ return [
                     'label' => 'Gestión de servidores',
                     'actions' => [
                         'view' => 'Ver panel de servidores',
-                        'launch' => 'Lanzar operativos y arrancar academias (próxima fase)',
-                        'stop' => 'Parar y reiniciar servidores (próxima fase)',
+                        'launch' => 'Lanzar operativos y arrancar academias',
+                        'stop' => 'Parar, reiniciar y configurar servidores',
                     ],
                 ],
                 'homepage-news' => [
