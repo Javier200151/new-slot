@@ -159,3 +159,6 @@
 .sqa-server-panel__preview{max-width:100%}
 .sqa-server-panel__note{line-height:1.5}
 .sqa-server-panel__activity-details{min-height:260px}
+
+/* Campañas: fecha local del último guardado y tamaño, destacado sin duplicar el dato. */
+.sqa-server-panel__campaign-progress{margin:0;border:1px solid #805d23;border-radius:8px;background:#332716;color:#fde68a;padding:11px 13px;font-size:13px;line-height:1.45;font-weight:650;overflow-wrap:anywhere}

@@ -210,8 +210,46 @@ final class MissionControlDashboard
             'launchable' => $this->isOperation($activity) && ($isCampaign ? (bool) $campaignReady : ($pboReady && $addonIds && ! $missing)),
             'reason' => $reason,
             'webLink' => $event ? route('events.show', ['event' => $event->id]) : null,
-            'saveInfo' => $isCampaign && isset($campaign['progreso']['fecha']) ? 'Progreso guardado: '.$campaign['progreso']['fecha'] : null,
+            'saveInfo' => $isCampaign ? $this->campaignProgressLabel($activity->campaign?->name ?? ($campaign['nombre'] ?? null), $campaign['progreso'] ?? null) : null,
         ];
+    }
+
+    /**
+     * Human-readable campaign progress metadata from Mission Control (ISO 8601 + KB).
+     * Dates are displayed in the same timezone as Squad ALPHA, not as raw API values.
+     * @param mixed $progress
+     */
+    private function campaignProgressLabel(?string $name, mixed $progress): ?string
+    {
+        if (! is_array($progress) || ! is_string($progress['fecha'] ?? null) || trim($progress['fecha']) === '') {
+            return null;
+        }
+
+        try {
+            $savedAt = Carbon::parse($progress['fecha'])->setTimezone('Europe/Madrid');
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $today = Carbon::now('Europe/Madrid');
+        if ($savedAt->isSameDay($today)) {
+            $dateLabel = 'hoy '.$savedAt->format('H:i');
+        } elseif ($savedAt->isSameDay($today->copy()->subDay())) {
+            $dateLabel = 'ayer '.$savedAt->format('H:i');
+        } else {
+            $dateLabel = $savedAt->locale('es')->translatedFormat(
+                $savedAt->year === $today->year ? 'D d/m H:i' : 'd/m/Y H:i'
+            );
+        }
+
+        $title = trim((string) ($name ?: 'Sin nombre'));
+        $label = 'Campaña: '.$title.' · progreso guardado '.$dateLabel;
+        $sizeKb = $progress['tamano_kb'] ?? null;
+        if (is_numeric($sizeKb) && (float) $sizeKb > 0) {
+            $label .= ' ('.number_format((float) $sizeKb / 1024, 1, ',', '.').' MB)';
+        }
+
+        return $label;
     }
 
     /**
