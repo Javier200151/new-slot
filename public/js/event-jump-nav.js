@@ -1,5 +1,6 @@
-/* Navegación lateral de las secciones de un evento.
-   Usa siempre los enlaces visibles del encabezado: no inventa apartados. */
+/* Navegación de las secciones del evento.
+   El salto se alinea con el encabezado visible, no con el espacio superior
+   de la sección; también funciona al abrir apartados plegados. */
 document.addEventListener('DOMContentLoaded', () => {
     const eventPage = document.querySelector('.event-detail');
     const headerNav = eventPage?.querySelector('.event-detail__section-nav');
@@ -11,12 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = hash?.slice(1);
             const target = id ? document.getElementById(id) : null;
             const label = anchor.textContent.trim().replace(/\s+/g, ' ');
-            return target && label ? { hash, id, target, label } : null;
+            return target && label ? { hash, id, target, label, headerLink: anchor } : null;
         })
         .filter(Boolean)
-        // Multimedia se muestra físicamente encima del Briefing al finalizar
-        // el evento, por lo que su enlace debe abrir el panel lateral.
-        // Solo existe si el propio encabezado lo muestra (condición Blade).
+        // En los eventos finalizados, Multimedia aparece antes de Briefing.
         .sort((a, b) => (a.id === 'multimedia' ? -1 : 0) - (b.id === 'multimedia' ? -1 : 0));
 
     if (!sections.length) return;
@@ -32,6 +31,23 @@ document.addEventListener('DOMContentLoaded', () => {
     title.textContent = 'SECCIONES';
     nav.append(title);
 
+    // Las secciones tienen padding-top (62px), por lo que alinear el nodo
+    // completo deja el título demasiado abajo. Alineamos su cabecera visible.
+    const visibleHeading = (target) => {
+        if (target instanceof HTMLDetailsElement) {
+            return target.querySelector(':scope > summary') || target;
+        }
+        return target.querySelector(':scope > header, :scope > summary') || target;
+    };
+
+    const topOffset = () => window.matchMedia('(max-width: 700px)').matches ? 92 : 108;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const desktop = window.matchMedia('(min-width: 1181px) and (hover: hover) and (pointer: fine)');
+    const footer = document.querySelector('.landing-footer');
+    let scheduled = false;
+    let navigatingTo = null;
+    let navigationTimer = null;
+
     const controls = sections.map((section) => {
         const link = document.createElement('a');
         link.className = 'event-jump-nav__link';
@@ -43,23 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
         full.className = 'event-jump-nav__label';
         full.textContent = section.label;
         link.append(full);
-
-        // Desplegar los <details> antes del salto para no apuntar a contenido oculto.
-        link.addEventListener('click', () => {
-            let parent = section.target;
-            while (parent && parent !== eventPage) {
-                if (parent instanceof HTMLDetailsElement) parent.open = true;
-                parent = parent.parentElement;
-            }
-        });
         nav.append(link);
-        return { ...section, link };
+        return { ...section, link, heading: visibleHeading(section.target) };
     });
 
     document.body.append(nav);
-    const desktop = window.matchMedia('(min-width: 1181px) and (hover: hover) and (pointer: fine)');
-    const footer = document.querySelector('.landing-footer');
-    let scheduled = false;
 
     const update = () => {
         scheduled = false;
@@ -69,13 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
         nav.hidden = !visible;
         if (!visible) return;
 
-        // El orden de los enlaces del encabezado puede diferir del orden real
-        // de los bloques en un evento finalizado (por ejemplo, Multimedia).
-        // Calcular por posición evita que quede resaltada una sección equivocada.
-        const marker = 165;
+        // Calcular usando los encabezados reales evita marcar Facciones
+        // cuando Comunicaciones ya está visualmente en pantalla.
+        const marker = topOffset() + 35;
         const ordered = controls
-            .map((section) => ({ ...section, rect: section.target.getBoundingClientRect() }))
-            .filter((section) => section.target.getClientRects().length > 0 && section.rect.height > 0)
+            .map((section) => ({ ...section, rect: section.heading.getBoundingClientRect() }))
+            .filter((section) => section.heading.getClientRects().length > 0 && section.rect.height > 0)
             .sort((a, b) => a.rect.top - b.rect.top);
 
         let active = null;
@@ -83,10 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (section.rect.top <= marker) active = section;
             else break;
         }
-        // Al dejar atrás la cabecera, pero antes de la primera sección,
-        // evitamos que una sección futura se marque por anticipado.
+        const selectedId = navigatingTo || active?.id;
         controls.forEach((section) => {
-            const selected = active?.id === section.id;
+            const selected = selectedId === section.id;
             section.link.classList.toggle('is-active', selected);
             if (selected) section.link.setAttribute('aria-current', 'location');
             else section.link.removeAttribute('aria-current');
@@ -98,6 +100,49 @@ document.addEventListener('DOMContentLoaded', () => {
         scheduled = true;
         window.requestAnimationFrame(update);
     };
+
+    const navigate = (event, section) => {
+        // Mantener el comportamiento normal de abrir en otra pestaña.
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+
+        // Desplegar antes de medir, por si cambia la altura del documento.
+        let element = section.target;
+        while (element && element !== eventPage) {
+            if (element instanceof HTMLDetailsElement) element.open = true;
+            element = element.parentElement;
+        }
+
+        navigatingTo = section.id;
+        window.clearTimeout(navigationTimer);
+        if (window.location.hash !== section.hash) {
+            window.history.pushState(null, '', section.hash);
+        }
+        scheduleUpdate();
+
+        // Esperamos al layout tras abrir los <details> para que el salto no
+        // termine a mitad de la sección anterior.
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                const y = window.scrollY + section.heading.getBoundingClientRect().top - topOffset();
+                window.scrollTo({
+                    top: Math.max(0, y),
+                    behavior: prefersReducedMotion.matches ? 'instant' : 'smooth',
+                });
+            });
+        });
+
+        // Mientras dura el desplazamiento, la selección sigue el clic.
+        navigationTimer = window.setTimeout(() => {
+            if (navigatingTo === section.id) navigatingTo = null;
+            scheduleUpdate();
+        }, prefersReducedMotion.matches ? 100 : 1100);
+    };
+
+    controls.forEach((section) => {
+        section.link.addEventListener('click', (event) => navigate(event, section));
+        section.headerLink.addEventListener('click', (event) => navigate(event, section));
+    });
 
     window.addEventListener('scroll', scheduleUpdate, { passive: true });
     window.addEventListener('resize', scheduleUpdate, { passive: true });
