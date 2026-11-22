@@ -1,4 +1,4 @@
-/* Squad ALPHA · Mission Control, v95. Scoped to Filament; follows its .dark class. */
+/* Squad ALPHA · Mission Control, v96. Scoped to Filament; follows its .dark class. */
 .sqa-server-panel[x-cloak],.sqa-server-panel [x-cloak]{display:none!important}
 .sqa-server-panel{
   --mc-bg:#f3f4f6;--mc-card:#fff;--mc-inset:#f7f8fa;--mc-border:#e1e4ea;--mc-border-strong:#cdd2db;
@@ -13,7 +13,7 @@
   --mc-shadow:0 1px 2px rgba(16,24,40,.06);
   --sqa-bg:var(--mc-card);--sqa-inset:var(--mc-inset);--sqa-outline:var(--mc-border);--sqa-muted:var(--mc-muted);--sqa-amber:var(--mc-accent);--sqa-text:var(--mc-ink);
   color:var(--mc-ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:15px;line-height:1.45;
-  max-width:1840px;margin:0 auto 3rem;isolation:isolate;
+  width:100%;min-width:0;max-width:1840px;box-sizing:border-box;margin:0 auto 3rem;isolation:isolate;
 }
 .dark .sqa-server-panel{
   --mc-bg:#0f1115;--mc-card:#171a21;--mc-inset:#12151b;--mc-border:#262b36;--mc-border-strong:#333a47;
