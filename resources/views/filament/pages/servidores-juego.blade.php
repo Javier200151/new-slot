@@ -6,7 +6,7 @@
                 <p>Estado en directo · se actualiza cada 5 s <span x-show="checkedAt">· última lectura <span x-text="checkedAt"></span></span></p>
             </div>
             <div class="sqa-server-panel__intro-indicators">
-                <span class="sqa-server-panel__mode" x-show="mode" x-text="'Modo: ' + (mode === 'simulation' ? 'simulación' : mode)"></span>
+                <span class="sqa-server-panel__mode" x-show="mode" x-text="'Modo: ' + modeLabel()"></span>
                 <span class="sqa-server-panel__preview" :class="connected ? 'sqa-server-panel__preview--on' : 'sqa-server-panel__preview--off'">
                     <span class="sqa-server-panel__preview-dot"></span>
                     <span x-text="!ready ? 'Conectando…' : (connected ? (readOnly ? 'Solo lectura' : 'Conectado') : 'Sin conexión')"></span>
@@ -17,7 +17,7 @@
         <div class="sqa-server-panel__banners" aria-live="polite">
             <div class="sqa-server-panel__banner sqa-server-panel__banner--error" x-show="ready && !connected">
                 <strong>Sin conexión con Mission Control</strong>
-                <span x-text="(error || 'No se ha podido obtener el estado.') + ' Lo que ves puede estar desactualizado. Se reintentará automáticamente.'"></span>
+                <span x-text="(error || 'No se ha podido obtener el estado.') + ' Se reintentará cada 5 segundos. Los datos pueden estar desactualizados. ' + lastReading() + '.'"></span>
             </div>
             <div class="sqa-server-panel__banner sqa-server-panel__banner--warning" x-show="connected && readOnly">
                 <strong>Mission Control está en modo solo lectura</strong><span>Los controles están desactivados.</span>
@@ -111,11 +111,12 @@
                             <span>Misión de la web</span>
                             <button type="button" class="sqa-server-panel__reload" :disabled="loading" @click="reloadActivities()">Recargar</button>
                         </div>
-                        <div class="sqa-server-panel__picker" @click.outside="closeActivityPicker()" @keydown.escape.window="closeActivityPicker()">
+                        <div class="sqa-server-panel__picker" @click.outside="closeActivityPicker()" @keydown.escape.window="closeActivityPicker(true)">
                             <button
                                 type="button"
                                 class="sqa-server-panel__picker-trigger"
                                 id="sqa-demo-activity"
+                                x-ref="activityPickerTrigger"
                                 aria-haspopup="listbox"
                                 aria-controls="sqa-demo-activity-options"
                                 aria-labelledby="sqa-demo-activity-label"
@@ -144,15 +145,17 @@
                                     />
                                     <button type="button" x-show="activitySearch.length > 0" @click="activitySearch = ''; activeActivityIndex = 0; $refs.activitySearchInput.focus()" aria-label="Limpiar búsqueda" class="sqa-server-panel__picker-clear">×</button>
                                 </div>
+                                <div class="sqa-server-panel__picker-summary" x-text="activityCountLabel" aria-live="polite"></div>
                                 <div class="sqa-server-panel__picker-list" id="sqa-demo-activity-options" role="listbox" aria-label="Misiones disponibles">
-                                    <div class="sqa-server-panel__picker-empty" x-show="filteredActivities.length === 0">No se han encontrado coincidencias.</div>
+                                    <div class="sqa-server-panel__picker-empty" x-show="filteredActivities.length === 0" x-text="activitySearch ? 'No hay eventos que coincidan con la búsqueda.' : 'No hay eventos disponibles.'"></div>
                                     <template x-for="group in filteredActivityGroups" :key="group.id">
                                         <div class="sqa-server-panel__picker-group" role="group" :aria-label="group.title">
-                                            <div class="sqa-server-panel__picker-group-heading" x-text="group.title" aria-hidden="true"></div>
+                                            <div class="sqa-server-panel__picker-group-heading" x-text="group.title"></div>
                                             <template x-for="activity in group.items" :key="activity.id">
                                                 <button
                                                     type="button"
                                                     role="option"
+                                                    :id="'sqa-mission-option-' + activity.id.replace(/[^a-z0-9_-]/gi, '-')"
                                                     tabindex="-1"
                                                     class="sqa-server-panel__picker-option"
                                                     :class="{ 'sqa-server-panel__picker-option--active': activityIndex(activity.id) === activeActivityIndex, 'sqa-server-panel__picker-option--selected': selectedId === activity.id }"

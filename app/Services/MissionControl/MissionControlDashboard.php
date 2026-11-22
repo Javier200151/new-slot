@@ -52,13 +52,17 @@ final class MissionControlDashboard
             try {
                 if ($refreshCatalog) {
                     Cache::forget('mission-control.catalog.v1');
+                    Cache::forget('mission-control.picker.v94');
                 }
-                $catalog = Cache::remember('mission-control.catalog.v1', now()->addSeconds(30), fn (): array => [
-                    'misiones' => $this->client->missions(),
-                    'campanas' => $this->client->campaigns(),
-                    'mods' => $this->client->mods(),
-                ]);
-                $result['activities'] = $this->picker($catalog['misiones'], $catalog['campanas'], $catalog['mods']);
+                $result['activities'] = Cache::remember('mission-control.picker.v94', now()->addSeconds(30), function (): array {
+                    $catalog = Cache::remember('mission-control.catalog.v1', now()->addSeconds(30), fn (): array => [
+                        'misiones' => $this->client->missions(),
+                        'campanas' => $this->client->campaigns(),
+                        'mods' => $this->client->mods(),
+                    ]);
+
+                    return $this->picker($catalog['misiones'], $catalog['campanas'], $catalog['mods']);
+                });
             } catch (\Throwable $e) {
                 // Do not turn a working server connection into "offline" because one catalog endpoint failed.
                 $result['catalogError'] = 'No se ha podido actualizar el listado de eventos. Conserva el último listado válido.';
@@ -80,9 +84,33 @@ final class MissionControlDashboard
     {
         return GameServerActionLog::query()->orderByDesc('id')->limit(20)->get()
             ->map(static fn (GameServerActionLog $row): array => [
-                'at' => $row->created_at?->format('d/m H:i') ?? '',
-                'text' => $row->actor.' · '.$row->action.' · '.($row->subject ?: $row->server_id).' ('.$row->result.')',
+                'at' => $row->created_at?->copy()->setTimezone('Europe/Madrid')->format('d/m H:i') ?? '',
+                'text' => self::readableLogEntry($row),
             ])->all();
+    }
+
+    private static function readableLogEntry(GameServerActionLog $row): string
+    {
+        $server = match ($row->server_id) {
+            'operativos' => 'Operativos',
+            'academia' => 'Arma 3 Academia',
+            'academia_vietnam' => 'Academia Vietnam',
+            'academia_ww2' => 'Academia WW2',
+            default => 'un servidor',
+        };
+        $action = match ($row->action) {
+            'lanzar' => 'solicitó lanzar un evento en '.$server,
+            'arrancar' => 'solicitó arrancar '.$server,
+            'parar' => 'solicitó parar '.$server,
+            'reiniciar' => 'solicitó reiniciar '.$server,
+            'reinicio_diario' => $row->subject === 'desactivado'
+                ? 'desactivó el reinicio diario de '.$server
+                : 'programó el reinicio diario de '.$server.' a las '.($row->subject ?: '—'),
+            default => 'realizó una acción en '.$server,
+        };
+        $status = $row->result === 'error' ? ' · No se pudo completar' : '';
+
+        return ($row->actor ?: 'Sistema').' '.$action.$status;
     }
 
     /** @return list<array<string,mixed>> */
