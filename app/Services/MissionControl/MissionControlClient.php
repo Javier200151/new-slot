@@ -168,7 +168,9 @@ final class MissionControlClient
             'X-SQA-Signature' => self::signature((string) config('mission_control.secret'), $time, $nonce, $method, $path, $body),
         ];
         try {
-            $pending = Http::timeout((int) config('mission_control.timeout', 5))
+            // Reads are short; an accepted server action can take longer. Never auto-retry a POST.
+            $timeout = $method === 'GET' ? max(8, (int) config('mission_control.timeout', 8)) : 60;
+            $pending = Http::timeout($timeout)
                 ->connectTimeout(3)
                 ->withOptions([
                     'verify' => (string) config('mission_control.ca_certificate'),
@@ -180,7 +182,10 @@ final class MissionControlClient
             }
             $response = $pending->send($method, rtrim((string) config('mission_control.url'), '/').$endpoint);
         } catch (Throwable) {
-            throw new MissionControlException('No se puede conectar con SQA Mission Control. Revisa el certificado, la red y el servicio.', 'sin_conexion');
+            $message = $method === 'GET'
+                ? 'No se puede conectar con SQA Mission Control. Revisa el certificado, la red y el servicio.'
+                : 'No se ha podido confirmar la orden. Comprueba el estado del servidor antes de volver a enviarla.';
+            throw new MissionControlException($message, 'sin_conexion');
         }
 
         $json = $response->json();

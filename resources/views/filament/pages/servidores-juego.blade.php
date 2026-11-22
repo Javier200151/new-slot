@@ -2,17 +2,31 @@
     <div class="sqa-server-panel" x-data="sqaMissionControl()" x-cloak wire:ignore>
         <div class="sqa-server-panel__intro">
             <div>
-                <div class="sqa-server-panel__eyebrow">SQUAD ALPHA · CONTROL</div>
                 <h1>Servidores de juego</h1>
-                <p>SQA-BRAIN · Estado del servicio y servidores de Arma 3</p>
+                <p>Estado en directo · se actualiza cada 5 s <span x-show="checkedAt">· última lectura <span x-text="checkedAt"></span></span></p>
             </div>
-            <div class="sqa-server-panel__preview">
-                <span class="sqa-server-panel__preview-dot"></span>
-                <span x-text="connected ? (readOnly ? 'Solo lectura' : (mode === 'simulation' ? 'Simulación' : 'Conectado')) : 'Sin conexión'"></span>
+            <div class="sqa-server-panel__intro-indicators">
+                <span class="sqa-server-panel__mode" x-show="mode" x-text="'Modo: ' + (mode === 'simulation' ? 'simulación' : mode)"></span>
+                <span class="sqa-server-panel__preview" :class="connected ? 'sqa-server-panel__preview--on' : 'sqa-server-panel__preview--off'">
+                    <span class="sqa-server-panel__preview-dot"></span>
+                    <span x-text="!ready ? 'Conectando…' : (connected ? (readOnly ? 'Solo lectura' : 'Conectado') : 'Sin conexión')"></span>
+                </span>
             </div>
         </div>
 
-        <div class="sqa-server-panel__layout">
+        <div class="sqa-server-panel__banners" aria-live="polite">
+            <div class="sqa-server-panel__banner sqa-server-panel__banner--error" x-show="ready && !connected">
+                <strong>Sin conexión con Mission Control</strong>
+                <span x-text="(error || 'No se ha podido obtener el estado.') + ' Lo que ves puede estar desactualizado. Se reintentará automáticamente.'"></span>
+            </div>
+            <div class="sqa-server-panel__banner sqa-server-panel__banner--warning" x-show="connected && readOnly">
+                <strong>Mission Control está en modo solo lectura</strong><span>Los controles están desactivados.</span>
+            </div>
+            <div class="sqa-server-panel__banner sqa-server-panel__banner--warning" x-show="connected && catalogError">
+                <strong>No se pudo actualizar la lista de eventos</strong><span x-text="catalogError"></span>
+            </div>
+        </div>
+        <div class="sqa-server-panel__layout" :class="{'sqa-server-panel__layout--stale':stale}">
             {{-- Columna de academias --}}
             <section class="sqa-server-panel__academies" aria-labelledby="sqa-academies-title">
                 <div class="sqa-server-panel__section-title">
@@ -25,7 +39,7 @@
                             <div class="sqa-server-panel__card-head">
                                 <div>
                                     <h3 x-text="academy.name"></h3>
-                                    <p><span x-text="academy.mission"></span> · puerto <span x-text="academy.port"></span></p>
+                                    <p><span x-show="academy.mission" x-text="academy.mission + ' · '"></span>puerto <span x-text="academy.port"></span></p>
                                 </div>
                                 <span class="sqa-server-panel__status" :class="statusClass(academy.state)">
                                     <i></i><span x-text="statusLabel(academy.state)"></span>
@@ -33,21 +47,27 @@
                             </div>
 
                             <div class="sqa-server-panel__mini-grid">
-                                <div class="sqa-server-panel__mini-stat"><span>En marcha</span><strong x-text="academy.state === 'en_marcha' ? academy.uptime : '—'"></strong></div>
-                                <div class="sqa-server-panel__mini-stat"><span>Jugadores</span><strong><span x-text="academy.players"></span> <small>/ <span x-text="academy.max"></span></small></strong></div>
+                                <div class="sqa-server-panel__mini-stat"><span>En marcha</span><strong x-text="onlineUptime(academy)"></strong></div>
+                                <div class="sqa-server-panel__mini-stat"><span>Jugadores</span><strong x-text="playerLine(academy)"></strong></div>
                             </div>
 
-                            <div class="sqa-server-panel__button-grid">
-                                <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--start" :disabled="!canChangeServer || !canLaunch || !academy.controlable || academy.state !== 'detenido'" @click="command('academia', academy.id, 'arrancar')">Arrancar</button>
-                                <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--stop" :disabled="!canChangeServer || !canStop || !academy.controlable || academy.state !== 'en_marcha'" @click="command('academia', academy.id, 'parar')">Parar</button>
-                                <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" :disabled="!canChangeServer || !canStop || !academy.controlable || !['en_marcha','caido'].includes(academy.state)" @click="command('academia', academy.id, 'reiniciar')">Reiniciar</button>
+                            <p class="sqa-server-panel__server-error" x-show="academy.lastError" x-text="'Último error: ' + academy.lastError"></p>
+                            <div x-show="!academy.controlable" class="sqa-server-panel__external-note">Este servidor no se controla desde Mission Control.</div>
+                            <div class="sqa-server-panel__button-grid" x-show="academy.controlable">
+                                <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--start" :disabled="!allowAction(academy,'arrancar')" @click="command('academia', academy.id, 'arrancar')" x-text="isBusy(academy.id) ? 'Enviando…' : 'Arrancar'"></button>
+                                <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--stop" :disabled="!allowAction(academy,'parar')" @click="command('academia', academy.id, 'parar')" x-text="isBusy(academy.id) ? 'Enviando…' : 'Parar'"></button>
+                                <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" :disabled="!allowAction(academy,'reiniciar')" @click="command('academia', academy.id, 'reiniciar')" x-text="isBusy(academy.id) ? 'Enviando…' : 'Reiniciar'"></button>
                             </div>
 
-                            <div class="sqa-server-panel__restart">
-                                <label class="sqa-server-panel__check-label"><input type="checkbox" x-model="academy.auto" :disabled="!canChangeServer || !canConfigure || !academy.controlable" @change="saveRestart(academy)"/><span>Reinicio automático diario</span></label>
-                                <label class="sqa-server-panel__time-label">a las <input type="time" x-model="academy.time" :disabled="!academy.auto || !canChangeServer || !canConfigure || !academy.controlable" @change="saveRestart(academy)" /></label>
-                            </div>
-                            <p class="sqa-server-panel__next" x-text="academy.auto ? (academy.nextRestart ? 'Próximo reinicio: ' + new Date(academy.nextRestart).toLocaleString('es-ES') : 'Reinicio diario a las ' + academy.time) : 'Sin reinicio automático'"></p>
+                            <template x-if="academy.hasDaily">
+                                <div>
+                                    <div class="sqa-server-panel__restart">
+                                        <label class="sqa-server-panel__check-label"><input type="checkbox" x-model="academy.auto" :disabled="!allowRestartConfig(academy)" @change="saveRestart(academy)"/><span>Reinicio automático diario</span></label>
+                                        <label class="sqa-server-panel__time-label">a las <input type="time" x-model="academy.time" :disabled="!allowRestartConfig(academy)" @change="saveRestart(academy)" /></label>
+                                    </div>
+                                    <p class="sqa-server-panel__next" x-text="restartLine(academy)"></p>
+                                </div>
+                            </template>
                         </article>
                     </template>
                 </div>
@@ -63,24 +83,26 @@
                     <div class="sqa-server-panel__operations-status">
                         <div class="sqa-server-panel__card-head">
                             <span class="sqa-server-panel__status" :class="statusClass(operation.state)"><i></i><span x-text="statusLabel(operation.state)"></span></span>
-                            <span class="sqa-server-panel__subtle" x-text="operation.state === 'en_marcha' ? 'Actividad en curso' : (operation.state === 'externo' ? 'Servidor iniciado fuera de Mission Control' : 'Sin actividad en curso')"></span>
+                            <span class="sqa-server-panel__subtle" x-text="sinceLabel(operation)"></span>
                         </div>
                         <div class="sqa-server-panel__uptime">
                             <span>Tiempo en marcha</span>
-                            <strong x-text="operation.state === 'en_marcha' ? operation.uptime : '—'"></strong>
+                            <strong x-text="onlineUptime(operation)"></strong>
                         </div>
                         <div class="sqa-server-panel__mini-grid">
-                            <div class="sqa-server-panel__mini-stat"><span>Jugadores</span><strong><span x-text="operation.players"></span> <small>/ <span x-text="operation.max"></span></small></strong></div>
-                            <div class="sqa-server-panel__mini-stat"><span>Headless clients</span><strong><span x-text="operation.hc"></span> <small>/ <span x-text="operation.expectedHc"></span></small></strong></div>
+                            <div class="sqa-server-panel__mini-stat"><span>Jugadores</span><strong x-text="playerLine(operation)"></strong></div>
+                            <div class="sqa-server-panel__mini-stat"><span>Headless clients</span><strong x-text="hcLine(operation)"></strong></div>
                         </div>
                         <div class="sqa-server-panel__current-mission">
                             <span>Misión cargada</span>
-                            <strong x-text="operation.state === 'en_marcha' ? activeActivityName : 'Ninguna'"></strong>
-                            <small x-text="operation.state === 'en_marcha' ? activePbo : 'Selecciona una actividad para lanzarla'"></small>
+                            <strong x-text="operation.mission || 'Ninguna'"></strong>
+                            <small x-text="operation.pbo || (operation.state === 'detenido' ? 'Elige un evento para lanzarlo' : '')"></small>
                         </div>
-                        <div class="sqa-server-panel__operations-buttons">
-                            <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--stop" :disabled="!canChangeServer || !canStop || !operation.controlable || operation.state !== 'en_marcha'" @click="command('operativos', 'operativos', 'parar')">Parar</button>
-                            <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" :disabled="!canChangeServer || !canStop || !operation.controlable || !['en_marcha','caido'].includes(operation.state)" @click="command('operativos', 'operativos', 'reiniciar')">Reiniciar</button>
+                        <p class="sqa-server-panel__server-error" x-show="operation.lastError" x-text="'Último error: ' + operation.lastError"></p>
+                        <div class="sqa-server-panel__external-note" x-show="!operation.controlable || operation.state === 'externo'">Servidor iniciado fuera de Mission Control. No se puede controlar desde aquí.</div>
+                        <div class="sqa-server-panel__operations-buttons" x-show="operation.controlable && operation.state !== 'externo'">
+                            <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--stop" :disabled="!allowAction(operation,'parar')" @click="command('operativos', 'operativos', 'parar')" x-text="isBusy('operativos') ? 'Enviando…' : 'Parar'"></button>
+                            <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" :disabled="!allowAction(operation,'reiniciar')" @click="command('operativos', 'operativos', 'reiniciar')" x-text="isBusy('operativos') ? 'Enviando…' : 'Reiniciar'"></button>
                         </div>
                     </div>
 
@@ -98,10 +120,10 @@
                                 aria-controls="sqa-demo-activity-options"
                                 aria-labelledby="sqa-demo-activity-label"
                                 :aria-expanded="activityPickerOpen ? 'true' : 'false'"
-                                :disabled="operation.state !== 'detenido'"
+                                :disabled="!canPick()"
                                 @click="toggleActivityPicker()"
                             >
-                                <span class="sqa-server-panel__picker-current" x-text="selectedId ? ((selectedActivity.whenLabel ? selectedActivity.whenLabel + ' · ' : '') + selectedActivity.name) : '— Elige una misión —'"></span>
+                                <span class="sqa-server-panel__picker-current" x-text="selectedId ? ((displayActivity.whenLabel ? displayActivity.whenLabel + ' · ' : '') + displayActivity.name) : '— Elige una misión —'"></span>
                                 <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
 
@@ -157,29 +179,29 @@
                                 </div>
                             </div>
                         </div>
-                        <p class="sqa-server-panel__locked" x-show="operation.state !== 'detenido' && operation.state !== 'sin_conexion'">La actividad no se puede cambiar mientras el servidor está en marcha.</p>
+                        <p class="sqa-server-panel__locked" x-show="!!lockReason()" x-text="lockReason()"></p>
                         <div class="sqa-server-panel__activity-details">
                             <div class="sqa-server-panel__activity-head">
-                                <h3 x-text="selectedActivity.name"></h3>
-                                <span x-text="selectedActivity.event"></span>
+                                <h3 x-text="displayActivity.name"></h3>
+                                <span x-text="displayActivity.event"></span>
                             </div>
                             <dl class="sqa-server-panel__details-grid">
-                                <dt>Mapa</dt><dd x-text="selectedActivity.map"></dd>
-                                <dt>Slots</dt><dd x-text="selectedActivity.slots"></dd>
-                                <dt>Perfil</dt><dd x-text="selectedActivity.profile"></dd>
+                                <dt>Mapa</dt><dd x-text="displayActivity.map"></dd>
+                                <dt>Slots</dt><dd x-text="displayActivity.slots"></dd>
+                                <dt>Perfil</dt><dd x-text="displayActivity.profile"></dd>
                             </dl>
                             <div class="sqa-server-panel__activity-checks">
-                                <div><span class="sqa-server-panel__signal" :class="'sqa-server-panel__signal--' + (selectedActivity.pboReady ? 'ok' : 'danger')" x-text="selectedActivity.pboReady ? '✓' : '×'"></span><div><strong x-text="selectedActivity.mode === 'Campaña' ? (selectedActivity.pboReady ? 'Campaña preparada en Windows' : 'Campaña no disponible') : (selectedActivity.pboReady ? 'PBO preparado en Windows' : 'PBO no disponible')"></strong><small x-text="selectedActivity.pbo || 'Falta el archivo .pbo'"></small></div></div>
-                                <div><span class="sqa-server-panel__signal" :class="'sqa-server-panel__signal--' + (selectedActivity.htmlReady ? 'ok' : 'warning')" x-text="selectedActivity.htmlReady ? '✓' : '!'" ></span><div><strong x-text="selectedActivity.mode === 'Campaña' ? (selectedActivity.htmlReady ? 'Progreso de campaña disponible' : 'Sin progreso guardado') : (selectedActivity.htmlReady ? selectedActivity.addons + ' addons en el HTML' : 'HTML de addons pendiente')"></strong><small x-text="selectedActivity.mode === 'Campaña' ? (selectedActivity.htmlReady ? 'Progreso ALiVE disponible en Windows' : 'Sin progreso guardado') : (selectedActivity.html || 'Falta el archivo .html')"></small></div></div>
+                                <div><span class="sqa-server-panel__signal" :class="'sqa-server-panel__signal--' + (displayActivity.pboReady ? 'ok' : 'danger')" x-text="displayActivity.pboReady ? '✓' : '×'"></span><div><strong x-text="displayActivity.mode === 'Campaña' ? (displayActivity.pboReady ? 'Campaña preparada en Windows' : 'Campaña no disponible') : (displayActivity.pboReady ? 'PBO preparado en Windows' : 'PBO no disponible')"></strong><small x-text="displayActivity.pbo || 'Falta el archivo .pbo'"></small></div></div>
+                                <div><span class="sqa-server-panel__signal" :class="'sqa-server-panel__signal--' + (displayActivity.htmlReady ? 'ok' : 'warning')" x-text="displayActivity.htmlReady ? '✓' : '!'" ></span><div><strong x-text="displayActivity.mode === 'Campaña' ? (displayActivity.htmlReady ? 'Progreso de campaña disponible' : 'Sin progreso guardado') : (displayActivity.htmlReady ? displayActivity.addons + ' addons en el HTML' : 'HTML de addons pendiente')"></strong><small x-text="displayActivity.mode === 'Campaña' ? (displayActivity.htmlReady ? 'Progreso ALiVE disponible en Windows' : 'Sin progreso guardado') : (displayActivity.html || 'Falta el archivo .html')"></small></div></div>
                             </div>
                         </div>
-                        <p class="sqa-server-panel__hint-box" x-show="selectedActivity.reason" x-text="selectedActivity.reason"></p>
-                        <p class="sqa-server-panel__campaign-progress" x-show="selectedActivity.mode === 'Campaña' && selectedActivity.saveInfo" x-text="selectedActivity.saveInfo"></p>
-                        <a x-show="selectedActivity.webLink" :href="selectedActivity.webLink" target="_blank" rel="noopener noreferrer" class="sqa-server-panel__link">Ver evento en la web</a>
-                        <label class="sqa-server-panel__check-label sqa-server-panel__stop-academies"><input type="checkbox" x-model="stopAcademies" :disabled="!canLaunchSelected"/><span>Parar las academias durante el operativo y volver a arrancarlas al terminar</span></label>
+                        <p class="sqa-server-panel__hint-box" x-show="displayActivity.reason" x-text="displayActivity.reason"></p>
+                        <p class="sqa-server-panel__campaign-progress" x-show="displayActivity.mode === 'Campaña' && displayActivity.saveInfo" x-text="displayActivity.saveInfo"></p>
+                        <a x-show="displayActivity.webLink" :href="displayActivity.webLink" target="_blank" rel="noopener noreferrer" class="sqa-server-panel__link">Ver evento en la web</a>
+                        <label class="sqa-server-panel__check-label sqa-server-panel__stop-academies"><input type="checkbox" x-model="stopAcademies" :disabled="!canLaunchSelected"/><span>Parar las academias mientras dure el evento y volver a arrancarlas al terminar</span></label>
                         <button type="button" class="sqa-server-panel__launch-button" :disabled="!canLaunchSelected" @click="command('operativos', 'operativos', 'lanzar')">
                             <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
-                            <span x-text="operation.state === 'en_marcha' ? 'Actividad en curso' : 'Lanzar ' + selectedActivity.name"></span>
+                            <span x-text="isBusy('operativos') ? 'Enviando…' : launchLabel()"></span>
                         </button>
                     </div>
                 </article>
@@ -195,19 +217,32 @@
             </div>
         </section>
 
-        <p x-show="feedback" class="sqa-server-panel__feedback" role="status" x-text="feedback"></p>
-        <div class="sqa-server-panel__note">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/></svg>
-            <span><span x-text="error || (connected ? (readOnly ? 'Mission Control está en modo de solo lectura.' : 'Conexión segura con SQA Mission Control. Las acciones se registran.') : 'No hay conexión con Mission Control. Los controles están desactivados.')"></span></span>
+        <div class="sqa-server-panel__footer-meta" x-show="connected">
+            SQA Mission Control <span x-show="version" x-text="'· versión ' + version"></span>
+            <span x-show="mode" x-text="'· modo ' + mode"></span>
+            <span x-show="readOnly">· solo lectura</span>
         </div>
 
-        <div class="sqa-server-panel__modal-overlay" x-show="confirmation !== null" x-transition.opacity @keydown.escape.window="closeConfirm()" @click.self="closeConfirm()" style="display:none">
-            <div class="sqa-server-panel__modal" role="dialog" aria-modal="true" aria-labelledby="sqa-confirm-title">
+        <div class="sqa-server-panel__toasts" aria-live="polite">
+            <template x-for="toast in toasts" :key="toast.id">
+                <button type="button" class="sqa-server-panel__toast" :class="'sqa-server-panel__toast--' + toast.type" :role="toast.type === 'error' ? 'alert' : 'status'" @click="dismissNotice(toast.id)" :title="'Clic para cerrar'">
+                    <span x-text="toast.message"></span><span aria-hidden="true">×</span>
+                </button>
+            </template>
+        </div>
+
+        <div class="sqa-server-panel__modal-overlay" x-show="confirmation !== null" x-transition.opacity @keydown.escape.window="closeConfirm()" style="display:none">
+            <div class="sqa-server-panel__modal" role="dialog" aria-modal="true" aria-labelledby="sqa-confirm-title" tabindex="-1">
                 <h3 id="sqa-confirm-title" x-text="confirmation?.title || ''"></h3>
                 <p x-text="confirmation?.message || ''"></p>
+                <dl class="sqa-server-panel__modal-rows">
+                    <template x-for="(row,index) in (confirmation?.rows || [])" :key="index">
+                        <div class="sqa-server-panel__modal-row"><dt x-text="row[0]"></dt><dd x-text="row[1]"></dd></div>
+                    </template>
+                </dl>
                 <div class="sqa-server-panel__modal-buttons">
-                    <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" @click="closeConfirm()">Cancelar</button>
-                    <button type="button" class="sqa-server-panel__btn" :class="confirmation?.danger ? 'sqa-server-panel__btn--stop' : 'sqa-server-panel__btn--amber'" @click="acceptConfirm()" x-text="updating ? 'Enviando...' : (confirmation?.accept || 'Confirmar')" :disabled="updating"></button>
+                    <button type="button" x-ref="cancelServerConfirm" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" @click="closeConfirm()">Cancelar</button>
+                    <button type="button" class="sqa-server-panel__btn" :class="confirmation?.danger ? 'sqa-server-panel__btn--danger' : 'sqa-server-panel__btn--amber'" @click="acceptConfirm()" x-text="confirmation?.accept || 'Confirmar'" :disabled="isBusy(confirmation?.id)"></button>
                 </div>
             </div>
         </div>
