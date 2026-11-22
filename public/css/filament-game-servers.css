@@ -1,4 +1,4 @@
-/* Squad ALPHA · Mission Control, v93. Scoped to Filament; follows its .dark class. */
+/* Squad ALPHA · Mission Control, v95. Scoped to Filament; follows its .dark class. */
 .sqa-server-panel[x-cloak],.sqa-server-panel [x-cloak]{display:none!important}
 .sqa-server-panel{
   --mc-bg:#f3f4f6;--mc-card:#fff;--mc-inset:#f7f8fa;--mc-border:#e1e4ea;--mc-border-strong:#cdd2db;
@@ -228,4 +228,55 @@
  .sqa-server-panel__modal-buttons .sqa-server-panel__btn{width:100%}
  .sqa-server-panel__toasts{left:16px;right:16px;max-width:none}
  .sqa-server-panel__toast{max-width:none}
+}
+
+/* v95: native dialogs and layout based on the actual available panel width. */
+.sqa-server-panel{container-name:mc-panel;container-type:inline-size}
+.sqa-server-panel__operations{container-name:mc-operations;container-type:inline-size}
+.sqa-server-panel__layout{grid-template-columns:minmax(0,min(640px,34%)) minmax(0,1fr)}
+.sqa-server-panel__operations{order:0}
+.sqa-server-panel__academy-list{display:flex;flex-direction:column}
+.sqa-server-panel__layout .sqa-server-panel__section-title{min-height:42px;align-content:flex-start}
+.sqa-server-panel__operations-card{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}
+.sqa-server-panel__operations-status{border-right:1px solid var(--mc-border);border-bottom:0}
+.sqa-server-panel__operations-buttons{margin-top:0}
+.sqa-server-panel__launch{gap:16px}
+.sqa-server-panel__card-head>div{min-width:0}
+.sqa-server-panel__card-head{flex-wrap:wrap}
+.sqa-server-panel__operations-status .sqa-server-panel__mini-stat strong{font-size:22px}
+.sqa-server-panel__button-grid .sqa-server-panel__btn{min-width:0;padding-inline:8px;overflow-wrap:anywhere}
+.sqa-server-panel__modal-overlay{display:none}
+.sqa-server-panel dialog.sqa-server-panel__modal{position:fixed;inset:0;margin:auto;width:calc(100% - 32px);max-width:580px;max-height:calc(100dvh - 32px);overflow:auto;padding:0;border:1px solid var(--mc-border-strong);border-radius:14px;background:var(--mc-card);color:var(--mc-ink);overscroll-behavior:contain}
+.sqa-server-panel dialog.sqa-server-panel__modal:not([open]){display:none}
+.sqa-server-panel dialog.sqa-server-panel__modal::backdrop{background:rgba(0,0,0,.6)}
+.sqa-server-panel__modal-body{padding:22px;display:flex;flex-direction:column;gap:14px}
+.sqa-server-panel__modal h3,.sqa-server-panel__modal p,.sqa-server-panel__modal-rows{margin:0}
+.sqa-server-panel__modal-rows{display:grid;grid-template-columns:minmax(95px,max-content) minmax(0,1fr);gap:6px 16px}
+.sqa-server-panel__modal-row{display:contents}
+.sqa-server-panel__modal-row dt{overflow-wrap:anywhere}
+.sqa-server-panel__modal-row dd{min-width:0}
+.sqa-server-panel__modal-highlight{color:var(--mc-camp-ink);background:var(--mc-camp-bg);border-radius:6px;padding:2px 6px}
+.sqa-server-panel__modal-warning{background:var(--mc-camp-bg);color:var(--mc-camp-ink);border:1px solid var(--mc-camp-border);border-radius:8px;padding:10px 12px;font-weight:600}
+.sqa-server-panel__modal-buttons .sqa-server-panel__btn--amber{min-height:48px;font-weight:700}
+@container mc-panel (max-width:1059px){
+ .sqa-server-panel__layout{grid-template-columns:1fr}
+ .sqa-server-panel__operations{order:-1}
+ .sqa-server-panel__layout .sqa-server-panel__section-title{min-height:0}
+ .sqa-server-panel__academy-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:start}
+}
+@container mc-operations (max-width:719px){
+ .sqa-server-panel__operations-card{grid-template-columns:1fr}
+ .sqa-server-panel__operations-status{border-right:0;border-bottom:1px solid var(--mc-border)}
+ .sqa-server-panel__picker-popup{width:100%;max-width:100%;right:0;left:0}
+}
+@container mc-panel (max-width:659px){
+ .sqa-server-panel__academy-list{grid-template-columns:1fr}
+ .sqa-server-panel__academy-card,.sqa-server-panel__operations-status,.sqa-server-panel__launch{padding:18px}
+}
+@media(max-width:480px){
+ .sqa-server-panel__modal-body{padding:18px}
+ .sqa-server-panel__modal-rows{grid-template-columns:minmax(0,1fr);gap:4px}
+ .sqa-server-panel__modal-row dd{margin-bottom:8px}
+ .sqa-server-panel__modal-buttons{flex-direction:column-reverse}
+ .sqa-server-panel__modal-buttons .sqa-server-panel__btn{width:100%}
 }
