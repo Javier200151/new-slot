@@ -150,6 +150,7 @@ final class MissionControlDashboard
                 'sync' => 'partial', 'pboReady' => true, 'htmlReady' => false,
                 'launchable' => false, 'reason' => 'Asocia este PBO a una actividad con addons para poder lanzarlo.',
                 'mode' => 'Archivo de Windows', 'webLink' => null, 'serverMods' => [],
+                'addonNames' => [], 'missingAddons' => [],
             ];
         }
         // Existing campaigns without a selected nearby event: use the campaign profile in Windows.
@@ -194,7 +195,7 @@ final class MissionControlDashboard
             : (! $pboReady ? 'El PBO todavía no está confirmado en Windows.'
                 : (! $addonIds ? 'La actividad necesita addons seleccionados en Filament.'
                     : ($missing ? 'Faltan addons instalados: '.implode(', ', array_slice($missing, 0, 3)) : null)));
-        $dateLabel = $event?->date?->translatedFormat('D d/m H:i') ?? '';
+        $dateLabel = $event?->date?->copy()->locale('es')->translatedFormat('D d/m H:i') ?? '';
 
         return [
             'id' => $event ? 'event:'.$event->id : 'activity:'.$activity->id,
@@ -210,7 +211,13 @@ final class MissionControlDashboard
             'slots' => count(collect($event?->orbat['groups'] ?? $activity->orbat['groups'] ?? [])->flatMap(fn ($g) => $g['slots'] ?? [])),
             'profile' => ($isCampaign ? 'Campaña' : ($event?->multiclans ? 'Multiclán' : 'Estándar')).' · 3 HC',
             'addons' => $isCampaign ? count($campaign['addons'] ?? []) : count($addonNames),
-            'serverMods' => $campaign['server_mods'] ?? [],
+            'addonNames' => $isCampaign
+                ? array_values(array_filter($campaign['addons'] ?? [], 'is_string'))
+                : $addonNames,
+            'missingAddons' => $isCampaign
+                ? array_values(array_filter($campaign['faltan'] ?? [], 'is_string'))
+                : $missing,
+            'serverMods' => array_values(array_filter($campaign['server_mods'] ?? [], 'is_string')),
             'mode' => $isCampaign ? 'Campaña' : 'OPERACIÓN',
             'sync' => $isCampaign ? ($campaignReady ? 'ok' : 'missing') : ($pboReady && $htmlReady ? 'ok' : (($pboReady || $htmlReady) ? 'partial' : 'missing')),
             'pboReady' => (bool) ($isCampaign ? ($campaign['pbo_existe'] ?? false) : $pboReady),
