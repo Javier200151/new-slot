@@ -109,6 +109,12 @@
         })).filter(group => group.items.length);
       },
       get filteredActivities() { return this.filteredActivityGroups.flatMap(g => g.items); },
+      get activityCountLabel() {
+        const count = this.filteredActivities.length;
+        return this.activitySearch.trim()
+          ? `${count} ${count === 1 ? 'coincidencia' : 'coincidencias'}`
+          : `${count} ${count === 1 ? 'opción disponible' : 'opciones disponibles'}`;
+      },
       get selectedSyncTone() { return this.syncTone(this.selectedActivity?.sync); },
       isBusy(id) { return !!this.busyServer[id]; },
       allowAction(server, action) {
@@ -153,6 +159,10 @@
         const date = academy.nextRestart ? this.formatDate(academy.nextRestart) : 'a las ' + academy.time;
         return 'Próximo reinicio: ' + date + '. Si hay jugadores, se retrasa hasta una hora.';
       },
+      modeLabel() {
+        return ({ windows:'Windows', simulation:'Simulación', simulacion:'Simulación' })[this.mode] || this.mode;
+      },
+      lastReading() { return this.checkedAt ? `Última lectura: ${this.checkedAt}` : 'Todavía sin lectura'; },
       notice(message,type='info') {
         if (!message) return;
         const id = ++this.toastSeq;
@@ -166,7 +176,7 @@
         this.toasts = this.toasts.filter(n => n.id !== id);
       },
       async refresh(force=false) {
-        if (this.loading) return;
+        if (this.loading) return false;
         this.loading = true;
         try {
           const data = await this.$wire.loadPanel(force);
@@ -193,14 +203,18 @@
             } else if (!this.activities.some(a => a.id === this.selectedId)) this.selectedId = '';
           }
           if (Array.isArray(data.log)) this.log = data.log;
+          if (!this.canPick() && this.activityPickerOpen) this.closeActivityPicker();
+          return online && !this.catalogError;
         } catch (_) {
           this.connected = false; this.readOnly = true; this.stale = true;
           this.error = 'Sin conexión con Mission Control. Los datos pueden estar desactualizados.';
+          return false;
         } finally { this.ready = true; this.loading = false; }
       },
       async reloadActivities() {
-        await this.refresh(true);
-        this.notice(this.error || this.catalogError || `Lista de misiones actualizada (${this.activities.length}).`, this.error || this.catalogError ? 'error' : 'ok');
+        if (this.loading) { this.notice('Ya se está actualizando el panel.', 'info'); return; }
+        const updated = await this.refresh(true);
+        this.notice(updated ? `Lista de eventos actualizada (${this.activities.length}).` : (this.catalogError || this.error || 'No se ha podido actualizar la lista.'), updated ? 'ok' : 'error');
       },
       foldActivityText(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es'); },
       toggleActivityPicker() { this.activityPickerOpen ? this.closeActivityPicker() : this.openActivityPicker(); },
@@ -211,7 +225,12 @@
         this.activeActivityIndex = Math.max(0,this.filteredActivities.findIndex(a => a.id === this.selectedId));
         this.$nextTick(() => this.$refs.activitySearchInput?.focus());
       },
-      closeActivityPicker() { this.activityPickerOpen = false; this.activitySearch = ''; },
+      closeActivityPicker(restoreFocus = false) {
+        if (!this.activityPickerOpen) return;
+        this.activityPickerOpen = false;
+        this.activitySearch = '';
+        if (restoreFocus) this.$nextTick(() => this.$refs.activityPickerTrigger?.focus());
+      },
       activityIndex(id) { return this.filteredActivities.findIndex(item => item.id === id); },
       moveActivitySelection(direction) {
         const options = this.filteredActivities;
@@ -220,7 +239,7 @@
         this.$nextTick(() => this.$root.querySelectorAll('.sqa-server-panel__picker-option')[this.activeActivityIndex]?.scrollIntoView({block:'nearest'}));
       },
       chooseActiveActivity() { const option = this.filteredActivities[this.activeActivityIndex] || this.filteredActivities[0]; if (option) this.chooseActivity(option); },
-      chooseActivity(activity) { if (!this.canPick()) return; this.selectedId = activity.id; this.showAddons = false; this.closeActivityPicker(); this.$nextTick(() => this.$root.querySelector('#sqa-demo-activity')?.focus()); },
+      chooseActivity(activity) { if (!this.canPick()) return; this.selectedId = activity.id; this.showAddons = false; this.closeActivityPicker(true); },
       statusClass(s) { return ({ en_marcha:'sqa-server-panel__status--running',detenido:'sqa-server-panel__status--stopped',arrancando:'sqa-server-panel__status--starting',parando:'sqa-server-panel__status--starting',caido:'sqa-server-panel__status--crashed',externo:'sqa-server-panel__status--external' })[s] || 'sqa-server-panel__status--stopped'; },
       statusLabel(s) { return ({ en_marcha:'En marcha',detenido:'Detenido',arrancando:'Arrancando…',parando:'Parando…',caido:'Caído',externo:'Externo (FASTER)',sin_conexion:'Sin conexión' })[s] || str(s); },
       syncTone(s) { return s === 'ok' ? 'ok' : s === 'partial' ? 'warning' : 'danger'; },
@@ -270,7 +289,10 @@
         }
         this.$nextTick(() => this.$refs.cancelServerConfirm?.focus());
       },
-      closeConfirm() { this.confirmation = null; },
+      closeConfirm() {
+        if (this.confirmation?.force) this.notice('Cancelado: no se ha hecho ningún cambio.', 'info');
+        this.confirmation = null;
+      },
       async acceptConfirm() {
         const confirmation = this.confirmation;
         if (!confirmation || this.isBusy(confirmation.id)) return;

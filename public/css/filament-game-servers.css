@@ -207,3 +207,25 @@
 @media(max-width:1220px){.sqa-server-panel__operations-card{grid-template-columns:1fr}.sqa-server-panel__operations-status{border-right:0;border-bottom:1px solid var(--mc-border)}.sqa-server-panel__operations-buttons{margin-top:0}}
 @media(max-width:940px){.sqa-server-panel__layout{grid-template-columns:1fr}.sqa-server-panel__operations{order:-1}.sqa-server-panel__academy-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}}
 @media(max-width:660px){.sqa-server-panel__academy-list{grid-template-columns:1fr}.sqa-server-panel__academy-card,.sqa-server-panel__operations-status,.sqa-server-panel__launch{padding:18px}.sqa-server-panel__uptime strong{font-size:32px}.sqa-server-panel__picker-option{align-items:flex-start;flex-direction:column;gap:5px}.sqa-server-panel__picker-option-status{align-self:flex-start}.sqa-server-panel__modal-row{grid-template-columns:minmax(75px,max-content) minmax(0,1fr)}.sqa-server-panel__log-row{gap:9px}.sqa-server-panel__log-row>span:first-child{flex:0 0 80px}.sqa-servers-top-link{padding:.45rem;margin-right:.3rem}.sqa-servers-top-link span{display:none}}
+
+/* v94: Selector y avisos más legibles, también en pantallas estrechas. */
+.sqa-server-panel__picker-popup{width:max(100%,min(550px,calc(100vw - 48px)));right:0;left:auto;max-width:calc(100vw - 32px)}
+.sqa-server-panel__picker-summary{padding:7px 13px;border-bottom:1px solid var(--mc-border);color:var(--mc-muted);font-size:12px;text-align:right;background:var(--mc-card);font-variant-numeric:tabular-nums}
+.sqa-server-panel__picker-option:focus-visible{outline:2px solid var(--mc-accent);outline-offset:-2px}
+.sqa-server-panel__picker-group-heading{font-size:13px;line-height:1.4;color:var(--mc-ink)}
+.sqa-server-panel__picker-group:not(:first-child){margin-top:7px}
+.sqa-server-panel__picker-option-name{font-size:13px}
+.sqa-server-panel__picker-option-content small{line-height:1.35}
+.sqa-server-panel__log-row>span:last-child{min-width:0;overflow-wrap:anywhere}
+.sqa-server-panel__footer-meta{overflow-wrap:anywhere}
+@media(max-width:660px){
+ .sqa-server-panel__picker-popup{width:calc(100vw - 48px);max-width:calc(100vw - 48px);right:-8px}
+ .sqa-server-panel__picker-list{max-height:min(380px,50vh)}
+ .sqa-server-panel__intro-indicators{width:100%;justify-content:flex-start}
+ .sqa-server-panel__mode,.sqa-server-panel__preview{font-size:12px}
+ .sqa-server-panel__modal{max-height:calc(100dvh - 36px);overflow-y:auto}
+ .sqa-server-panel__modal-buttons{flex-direction:column-reverse}
+ .sqa-server-panel__modal-buttons .sqa-server-panel__btn{width:100%}
+ .sqa-server-panel__toasts{left:16px;right:16px;max-width:none}
+ .sqa-server-panel__toast{max-width:none}
+}
