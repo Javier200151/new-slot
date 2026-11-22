@@ -72,14 +72,29 @@
       mode:'', version:'', actorName:'', checkedAt:'', error:'', catalogError:'',
       servers:{}, activities:[], selectedId:'',
       activitySearch:'', activityPickerOpen:false, activeActivityIndex:0,
-      stopAcademies:false, confirmation:null, log:[],
+      stopAcademies:false, showAddons:false, confirmation:null, log:[],
       busyServer:{}, toasts:[], toastSeq:0,
       get academies() { return IDS.map(id => this.servers[id] || defaultServer(id)); },
       get operation() { return this.servers.operativos || defaultServer('operativos'); },
       get activeActivityName() { return this.operation.mission || ''; },
       get activePbo() { return this.operation.pbo || ''; },
       get selectedActivity() { return this.activities.find(a => a.id === this.selectedId) || null; },
-      get displayActivity() { return this.selectedActivity || { name:'—', event:'',pbo:null,html:null,map:'—',slots:'—',profile:'—',addons:0,mode:'',sync:'missing',pboReady:false,htmlReady:false,launchable:false,reason:'Elige una misión para consultar sus datos.',saveInfo:null,webLink:null }; },
+      get displayActivity() { return this.selectedActivity || { name:'—', event:'',pbo:null,html:null,map:'—',slots:'—',profile:'—',addons:0,addonNames:[],missingAddons:[],serverMods:[],mode:'',sync:'missing',pboReady:false,htmlReady:false,launchable:false,reason:'Elige una misión para consultar sus datos.',saveInfo:null,webLink:null }; },
+      get hasSelected() { return !!this.selectedActivity; },
+      get addonNames() { return Array.isArray(this.displayActivity.addonNames) ? this.displayActivity.addonNames : []; },
+      get missingAddons() { return Array.isArray(this.displayActivity.missingAddons) ? this.displayActivity.missingAddons : []; },
+      get serverMods() { return Array.isArray(this.displayActivity.serverMods) ? this.displayActivity.serverMods : []; },
+      get addonsAvailable() { return this.addonNames.length > 0 && this.missingAddons.length === 0; },
+      get addonStatusText() {
+        if (!this.hasSelected || this.addonNames.length === 0) return 'Sin addons configurados';
+        if (this.missingAddons.length) return `Faltan ${this.missingAddons.length} addons en el servidor`;
+        return `${this.addonNames.length} addons, todos en el servidor`;
+      },
+      get addonStatusDescription() {
+        return this.missingAddons.length
+          ? this.missingAddons.join(', ')
+          : (this.addonNames.length ? 'Comprobado con el catálogo de mods del servidor' : 'No hay listado de addons para comprobar');
+      },
       get canChangeServer() { return this.connected && !this.readOnly; },
       get canLaunchSelected() { return this.allowAction(this.operation,'lanzar') && !!this.selectedActivity?.launchable; },
       get selectableActivityGroups() {
@@ -205,7 +220,7 @@
         this.$nextTick(() => this.$root.querySelectorAll('.sqa-server-panel__picker-option')[this.activeActivityIndex]?.scrollIntoView({block:'nearest'}));
       },
       chooseActiveActivity() { const option = this.filteredActivities[this.activeActivityIndex] || this.filteredActivities[0]; if (option) this.chooseActivity(option); },
-      chooseActivity(activity) { if (!this.canPick()) return; this.selectedId = activity.id; this.closeActivityPicker(); this.$nextTick(() => this.$root.querySelector('#sqa-demo-activity')?.focus()); },
+      chooseActivity(activity) { if (!this.canPick()) return; this.selectedId = activity.id; this.showAddons = false; this.closeActivityPicker(); this.$nextTick(() => this.$root.querySelector('#sqa-demo-activity')?.focus()); },
       statusClass(s) { return ({ en_marcha:'sqa-server-panel__status--running',detenido:'sqa-server-panel__status--stopped',arrancando:'sqa-server-panel__status--starting',parando:'sqa-server-panel__status--starting',caido:'sqa-server-panel__status--crashed',externo:'sqa-server-panel__status--external' })[s] || 'sqa-server-panel__status--stopped'; },
       statusLabel(s) { return ({ en_marcha:'En marcha',detenido:'Detenido',arrancando:'Arrancando…',parando:'Parando…',caido:'Caído',externo:'Externo (FASTER)',sin_conexion:'Sin conexión' })[s] || str(s); },
       syncTone(s) { return s === 'ok' ? 'ok' : s === 'partial' ? 'warning' : 'danger'; },

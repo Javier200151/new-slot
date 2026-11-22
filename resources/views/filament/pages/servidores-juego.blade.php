@@ -31,7 +31,7 @@
             <section class="sqa-server-panel__academies" aria-labelledby="sqa-academies-title">
                 <div class="sqa-server-panel__section-title">
                     <h2 id="sqa-academies-title">Academias</h2>
-                    <span>Reinicios diarios administrados por Mission Control</span>
+                    <span>Servidores de entrenamiento</span>
                 </div>
                 <div class="sqa-server-panel__academy-list">
                     <template x-for="academy in academies" :key="academy.id">
@@ -77,7 +77,7 @@
             <section class="sqa-server-panel__operations" aria-labelledby="sqa-operations-title">
                 <div class="sqa-server-panel__section-title">
                     <h2 id="sqa-operations-title">Operativos</h2>
-                    <span>Una sola actividad a la vez · Arma 3 Operativos · puerto 2302</span>
+                    <span>Un evento a la vez · Arma 3 Operativos · puerto 2302</span>
                 </div>
                 <article class="sqa-server-panel__card sqa-server-panel__operations-card">
                     <div class="sqa-server-panel__operations-status">
@@ -180,25 +180,60 @@
                             </div>
                         </div>
                         <p class="sqa-server-panel__locked" x-show="!!lockReason()" x-text="lockReason()"></p>
-                        <div class="sqa-server-panel__activity-details">
+                        <div class="sqa-server-panel__activity-details" x-show="hasSelected" x-cloak>
                             <div class="sqa-server-panel__activity-head">
                                 <h3 x-text="displayActivity.name"></h3>
+                            </div>
+                            <div class="sqa-server-panel__activity-meta">
                                 <span x-text="displayActivity.event"></span>
+                                <span x-show="displayActivity.mode" x-text="displayActivity.mode"></span>
+                                <a x-show="displayActivity.webLink" :href="displayActivity.webLink" target="_blank" rel="noopener noreferrer">Ver en la web</a>
                             </div>
-                            <dl class="sqa-server-panel__details-grid">
-                                <dt>Mapa</dt><dd x-text="displayActivity.map"></dd>
-                                <dt>Slots</dt><dd x-text="displayActivity.slots"></dd>
-                                <dt>Perfil</dt><dd x-text="displayActivity.profile"></dd>
-                            </dl>
+
+                            <p class="sqa-server-panel__campaign-progress" x-show="displayActivity.mode === 'Campaña' && displayActivity.saveInfo" x-text="displayActivity.saveInfo"></p>
+
                             <div class="sqa-server-panel__activity-checks">
-                                <div><span class="sqa-server-panel__signal" :class="'sqa-server-panel__signal--' + (displayActivity.pboReady ? 'ok' : 'danger')" x-text="displayActivity.pboReady ? '✓' : '×'"></span><div><strong x-text="displayActivity.mode === 'Campaña' ? (displayActivity.pboReady ? 'Campaña preparada en Windows' : 'Campaña no disponible') : (displayActivity.pboReady ? 'PBO preparado en Windows' : 'PBO no disponible')"></strong><small x-text="displayActivity.pbo || 'Falta el archivo .pbo'"></small></div></div>
-                                <div><span class="sqa-server-panel__signal" :class="'sqa-server-panel__signal--' + (displayActivity.htmlReady ? 'ok' : 'warning')" x-text="displayActivity.htmlReady ? '✓' : '!'" ></span><div><strong x-text="displayActivity.mode === 'Campaña' ? (displayActivity.htmlReady ? 'Progreso de campaña disponible' : 'Sin progreso guardado') : (displayActivity.htmlReady ? displayActivity.addons + ' addons en el HTML' : 'HTML de addons pendiente')"></strong><small x-text="displayActivity.mode === 'Campaña' ? (displayActivity.htmlReady ? 'Progreso ALiVE disponible en Windows' : 'Sin progreso guardado') : (displayActivity.html || 'Falta el archivo .html')"></small></div></div>
+                                <div class="sqa-server-panel__check">
+                                    <span class="sqa-server-panel__signal" :class="'sqa-server-panel__signal--' + (displayActivity.pboReady ? 'ok' : 'danger')" x-text="displayActivity.pboReady ? '✓' : '×'"></span>
+                                    <div>
+                                        <strong x-text="displayActivity.mode === 'Campaña' ? (displayActivity.pboReady ? 'Misión de campaña en el servidor' : 'Misión de campaña no disponible') : (displayActivity.pboReady ? 'Misión en el servidor' : 'PBO no disponible')"></strong>
+                                        <small x-text="displayActivity.pbo || 'Falta el archivo PBO'"></small>
+                                    </div>
+                                </div>
+                                <div class="sqa-server-panel__check" :class="{'sqa-server-panel__check--missing':missingAddons.length > 0}">
+                                    <span class="sqa-server-panel__signal" :class="'sqa-server-panel__signal--' + (missingAddons.length ? 'danger' : (addonsAvailable ? 'ok' : 'neutral'))" x-text="missingAddons.length ? '×' : (addonsAvailable ? '✓' : '·')"></span>
+                                    <div>
+                                        <strong x-text="addonStatusText"></strong>
+                                        <small x-text="addonStatusDescription"></small>
+                                    </div>
+                                </div>
+                                <div class="sqa-server-panel__check" x-show="serverMods.length > 0">
+                                    <span class="sqa-server-panel__signal sqa-server-panel__signal--neutral">·</span>
+                                    <div>
+                                        <strong x-text="serverMods.length + ' server mods'"></strong>
+                                        <small x-text="serverMods.join(', ')"></small>
+                                    </div>
+                                </div>
                             </div>
+
+                            <div class="sqa-server-panel__addons" x-show="addonNames.length > 0">
+                                <button type="button" class="sqa-server-panel__addons-toggle" :aria-expanded="showAddons ? 'true' : 'false'" @click="showAddons = !showAddons">
+                                    <span x-text="showAddons ? '▾' : '▸'"></span>
+                                    <span x-text="'Ver los ' + addonNames.length + ' addons'"></span>
+                                </button>
+                                <div class="sqa-server-panel__addons-list" x-show="showAddons" x-transition.opacity.duration.120ms>
+                                    <template x-for="name in addonNames" :key="name">
+                                        <div class="sqa-server-panel__addon-row" :class="{'sqa-server-panel__addon-row--missing':missingAddons.includes(name)}">
+                                            <span x-text="name"></span>
+                                            <span x-text="missingAddons.includes(name) ? 'Falta' : 'Instalado'"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <p class="sqa-server-panel__hint-box" x-show="displayActivity.reason" x-text="displayActivity.reason"></p>
                         </div>
-                        <p class="sqa-server-panel__hint-box" x-show="displayActivity.reason" x-text="displayActivity.reason"></p>
-                        <p class="sqa-server-panel__campaign-progress" x-show="displayActivity.mode === 'Campaña' && displayActivity.saveInfo" x-text="displayActivity.saveInfo"></p>
-                        <a x-show="displayActivity.webLink" :href="displayActivity.webLink" target="_blank" rel="noopener noreferrer" class="sqa-server-panel__link">Ver evento en la web</a>
-                        <label class="sqa-server-panel__check-label sqa-server-panel__stop-academies"><input type="checkbox" x-model="stopAcademies" :disabled="!canLaunchSelected"/><span>Parar las academias mientras dure el evento y volver a arrancarlas al terminar</span></label>
+                        <p class="sqa-server-panel__locked" x-show="!hasSelected">Selecciona una misión para ver sus datos.</p>
+                        <label class="sqa-server-panel__check-label sqa-server-panel__stop-academies"><input type="checkbox" x-model="stopAcademies" :disabled="!canLaunchSelected"/><span>Parar las academias durante el evento y volver a arrancarlas al terminar</span></label>
                         <button type="button" class="sqa-server-panel__launch-button" :disabled="!canLaunchSelected" @click="command('operativos', 'operativos', 'lanzar')">
                             <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
                             <span x-text="isBusy('operativos') ? 'Enviando…' : launchLabel()"></span>
