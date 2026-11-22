@@ -162,3 +162,55 @@
 
 /* Campañas: fecha local del último guardado y tamaño, destacado sin duplicar el dato. */
 .sqa-server-panel__campaign-progress{margin:0;border:1px solid #805d23;border-radius:8px;background:#332716;color:#fde68a;padding:11px 13px;font-size:13px;line-height:1.45;font-weight:650;overflow-wrap:anywhere}
+
+/* v92 · Primera convergencia con SQA Mission Control local (estados y seguridad). */
+.sqa-server-panel{max-width:1840px;font-size:15px;line-height:1.45}
+.sqa-server-panel__intro h1,.sqa-server-panel__section-title h2,.sqa-server-panel__card-head h3,.sqa-server-panel__uptime strong{font-family:Bahnschrift,"Segoe UI Semibold","Segoe UI",system-ui,sans-serif}
+.sqa-server-panel__layout{grid-template-columns:minmax(310px, min(640px, 36%)) minmax(0,1fr);gap:24px;transition:opacity .2s}
+.sqa-server-panel__layout--stale{opacity:.58}
+.sqa-server-panel__operations-card{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);min-height:0}
+.sqa-server-panel__btn{min-height:44px;padding:9px 13px;font-size:14px;font-weight:650;border-radius:8px}
+.sqa-server-panel__launch-button{min-height:48px;font-size:15px}
+.sqa-server-panel__preview{border:1px solid #454a55;border-radius:999px;padding:4px 10px;font-size:13px;color:var(--sqa-muted);background:transparent}
+.sqa-server-panel__preview--on .sqa-server-panel__preview-dot{background:#10b981}
+.sqa-server-panel__preview--off{color:#fca5a5;border-color:#dc2626}
+.sqa-server-panel__preview--off .sqa-server-panel__preview-dot{background:#ef4444}
+.sqa-server-panel__intro-indicators{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sqa-server-panel__mode{border:1px solid #3d4450;border-radius:999px;padding:4px 9px;font-size:12px;color:var(--sqa-muted)}
+.sqa-server-panel__banners{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.sqa-server-panel__banner{display:flex;flex-direction:column;gap:2px;border:1px solid;border-radius:10px;padding:12px 16px;font-size:13px}
+.sqa-server-panel__banner strong{font-size:15px}
+.sqa-server-panel__banner--error{background:#331a20;border-color:#b4232b;color:#fecaca}
+.sqa-server-panel__banner--warning{background:#3b3019;border-color:#9a6b12;color:#fde68a}
+.sqa-server-panel__status{gap:8px;padding:5px 12px;font-size:13px;font-weight:650}
+.sqa-server-panel__status i{width:8px;height:8px}
+.sqa-server-panel__status--crashed{background:rgba(239,68,68,.14);color:#fca5a5}
+.sqa-server-panel__status--external{background:rgba(59,130,246,.16);color:#93c5fd}
+.sqa-server-panel__status--starting i{animation:sqa-mc-pulse 1s ease-in-out alternate infinite}
+@keyframes sqa-mc-pulse{from{opacity:.25}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.sqa-server-panel__status--starting i{animation:none}}
+.sqa-server-panel__server-error{margin:0;padding:10px 11px;border-radius:8px;border:1px solid #9e3139;background:#301b20;color:#fca5a5;font-size:13px;overflow-wrap:anywhere}
+.sqa-server-panel__external-note{padding:11px 13px;border:1px solid #335a90;border-radius:8px;background:#152233;color:#bfdbfe;font-size:13px}
+.sqa-server-panel__mini-stat>span,.sqa-server-panel__current-mission>span,.sqa-server-panel__subtle{font-size:13px}
+.sqa-server-panel__mini-stat strong{font-size:18px}
+.sqa-server-panel__uptime strong{font-size:40px}
+.sqa-server-panel__section-title h2{font-size:20px}
+.sqa-server-panel__footer-meta{margin-top:22px;padding:10px 12px;border-top:1px solid #2b303c;color:var(--sqa-muted);font-size:12px}
+.sqa-server-panel__toasts{position:fixed;bottom:16px;right:16px;z-index:150;display:flex;flex-direction:column;gap:9px;align-items:flex-end;pointer-events:none;max-width:min(440px,calc(100vw - 32px))}
+.sqa-server-panel__toast{pointer-events:auto;width:100%;display:flex;gap:14px;justify-content:space-between;align-items:flex-start;text-align:left;color:#f1f5f9;background:#182029;border:1px solid #485364;border-left:4px solid #94a3b8;box-shadow:0 6px 24px rgba(0,0,0,.27);padding:12px 16px;border-radius:10px;font-size:14px;line-height:1.45}
+.sqa-server-panel__toast--ok{border-left-color:#34d399}
+.sqa-server-panel__toast--error{border-left-color:#ef4444}
+.sqa-server-panel__toast span:last-child{font-size:19px;line-height:1;opacity:.7}
+.sqa-server-panel__modal{max-width:580px;background:var(--sqa-bg);border-color:#3e4857;padding:22px}
+.sqa-server-panel__modal h3{font-family:Bahnschrift,"Segoe UI Semibold","Segoe UI",system-ui,sans-serif;font-size:20px}
+.sqa-server-panel__modal p{font-size:14px;color:var(--sqa-text)}
+.sqa-server-panel__modal-rows{display:flex;flex-direction:column;gap:7px;margin:0 0 22px;font-size:14px}
+.sqa-server-panel__modal-row{display:grid;grid-template-columns:minmax(98px,max-content) minmax(0,1fr);gap:12px}
+.sqa-server-panel__modal-row dt{color:var(--sqa-muted)}
+.sqa-server-panel__modal-row dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.sqa-server-panel__btn--danger{background:#dc2626;border-color:#dc2626;color:#fff}
+.sqa-server-panel__btn--danger:hover{background:#b91c1c}
+.sqa-server-panel button:focus-visible{outline:2px solid var(--sqa-amber);outline-offset:2px}
+@media(max-width:1360px){.sqa-server-panel__layout{grid-template-columns:minmax(280px,.82fr) minmax(0,1.3fr)}.sqa-server-panel__operations-card{grid-template-columns:1fr}.sqa-server-panel__operations-status{border-right:0;border-bottom:1px solid var(--sqa-outline)}.sqa-server-panel__operations-buttons{margin-top:0}}
+@media(max-width:940px){.sqa-server-panel__layout{grid-template-columns:1fr}.sqa-server-panel__operations{order:-1}.sqa-server-panel__academy-list{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}}
+@media(max-width:660px){.sqa-server-panel__academy-list{grid-template-columns:1fr}.sqa-server-panel__uptime strong{font-size:32px}.sqa-server-panel__modal-row{grid-template-columns:minmax(80px,max-content) minmax(0,1fr)}}

@@ -28,7 +28,8 @@ final class MissionControlDashboard
             'servers' => [],
             'activities' => [],
             'log' => $this->recentLog(),
-            'checkedAt' => now()->format('H:i:s'),
+            'checkedAt' => null,
+            'catalogError' => null,
         ];
         if ($result['error']) {
             return $result;
@@ -37,6 +38,7 @@ final class MissionControlDashboard
             $health = $this->client->health();
             $servers = $this->client->servers();
             $result['connected'] = true;
+            $result['checkedAt'] = now('Europe/Madrid')->format('H:i:s');
             $result['readOnly'] = (bool) ($health['solo_lectura'] ?? true);
             $result['mode'] = (string) ($health['modo'] ?? 'desconocido');
             $result['version'] = (string) ($health['version'] ?? '');
@@ -47,15 +49,21 @@ final class MissionControlDashboard
                 }
                 $result['servers'][] = $row;
             }
-            if ($refreshCatalog) {
-                Cache::forget('mission-control.catalog.v1');
+            try {
+                if ($refreshCatalog) {
+                    Cache::forget('mission-control.catalog.v1');
+                }
+                $catalog = Cache::remember('mission-control.catalog.v1', now()->addSeconds(30), fn (): array => [
+                    'misiones' => $this->client->missions(),
+                    'campanas' => $this->client->campaigns(),
+                    'mods' => $this->client->mods(),
+                ]);
+                $result['activities'] = $this->picker($catalog['misiones'], $catalog['campanas'], $catalog['mods']);
+            } catch (\Throwable $e) {
+                // Do not turn a working server connection into "offline" because one catalog endpoint failed.
+                $result['catalogError'] = 'No se ha podido actualizar el listado de eventos. Conserva el último listado válido.';
+                report($e);
             }
-            $catalog = Cache::remember('mission-control.catalog.v1', now()->addSeconds(30), fn (): array => [
-                'misiones' => $this->client->missions(),
-                'campanas' => $this->client->campaigns(),
-                'mods' => $this->client->mods(),
-            ]);
-            $result['activities'] = $this->picker($catalog['misiones'], $catalog['campanas'], $catalog['mods']);
         } catch (MissionControlException $e) {
             $result['error'] = $e->getMessage();
             $result['connected'] = false;
