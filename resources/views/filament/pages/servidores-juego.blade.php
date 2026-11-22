@@ -97,6 +97,7 @@
                             <span>Misión cargada</span>
                             <strong x-text="operation.mission || 'Ninguna'"></strong>
                             <small x-text="operation.pbo || (operation.state === 'detenido' ? 'Elige un evento para lanzarlo' : '')"></small>
+                            <small x-show="operation.launchedBy && operation.state !== 'detenido'" x-text="'Lanzado por ' + operation.launchedBy"></small>
                         </div>
                         <p class="sqa-server-panel__server-error" x-show="operation.lastError" x-text="'Último error: ' + operation.lastError"></p>
                         <div class="sqa-server-panel__external-note" x-show="!operation.controlable || operation.state === 'externo'">Servidor iniciado fuera de Mission Control. No se puede controlar desde aquí.</div>
@@ -269,20 +270,22 @@
             </template>
         </div>
 
-        <div class="sqa-server-panel__modal-overlay" x-show="confirmation !== null" x-transition.opacity @keydown.escape.window="closeConfirm()" style="display:none">
-            <div class="sqa-server-panel__modal" role="dialog" aria-modal="true" aria-labelledby="sqa-confirm-title" tabindex="-1">
+        <dialog class="sqa-server-panel__modal" x-ref="serverConfirm" aria-labelledby="sqa-confirm-title" aria-describedby="sqa-confirm-description" @cancel.prevent="closeConfirm()">
+            <div class="sqa-server-panel__modal-body">
                 <h3 id="sqa-confirm-title" x-text="confirmation?.title || ''"></h3>
-                <p x-text="confirmation?.message || ''"></p>
-                <dl class="sqa-server-panel__modal-rows">
+                <p id="sqa-confirm-description" x-text="confirmation?.message || ''"></p>
+                <dl class="sqa-server-panel__modal-rows" x-show="confirmation?.rows?.length">
                     <template x-for="(row,index) in (confirmation?.rows || [])" :key="index">
-                        <div class="sqa-server-panel__modal-row"><dt x-text="row[0]"></dt><dd x-text="row[1]"></dd></div>
+                        <div class="sqa-server-panel__modal-row"><dt x-text="row[0]"></dt><dd :class="{'sqa-server-panel__modal-highlight':row[2] === 'highlight'}" x-text="row[1]"></dd></div>
                     </template>
                 </dl>
+                <p class="sqa-server-panel__modal-warning" x-show="confirmation?.warning" x-text="confirmation?.warning || ''"></p>
+                <p class="sqa-server-panel__modal-warning" role="status" x-show="confirmationProblem" x-text="confirmationProblem"></p>
                 <div class="sqa-server-panel__modal-buttons">
-                    <button type="button" x-ref="cancelServerConfirm" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" @click="closeConfirm()">Cancelar</button>
-                    <button type="button" class="sqa-server-panel__btn" :class="confirmation?.danger ? 'sqa-server-panel__btn--danger' : 'sqa-server-panel__btn--amber'" @click="acceptConfirm()" x-text="confirmation?.accept || 'Confirmar'" :disabled="isBusy(confirmation?.id)"></button>
+                    <button type="button" x-ref="cancelServerConfirm" autofocus class="sqa-server-panel__btn sqa-server-panel__btn--neutral" @click="closeConfirm()">Cancelar</button>
+                    <button type="button" class="sqa-server-panel__btn" :class="confirmation?.danger ? 'sqa-server-panel__btn--danger' : 'sqa-server-panel__btn--amber'" @click="acceptConfirm()" x-text="confirmation?.accept || 'Confirmar'" :disabled="!!confirmationProblem"></button>
                 </div>
             </div>
-        </div>
+        </dialog>
     </div>
 </x-filament-panels::page>

@@ -65,6 +65,8 @@
         if (this.pollTimer) window.clearInterval(this.pollTimer);
         if (this.clockTimer) window.clearInterval(this.clockTimer);
         this.toasts.forEach(item => window.clearTimeout(item.timer));
+        this.confirmationQueue = [];
+        if (this.$refs.serverConfirm?.open) this.$refs.serverConfirm.close();
       },
       pollTimer:null, clockTimer:null, nowMs:Date.now(),
       loading:false, ready:false, connected:false, readOnly:true, stale:false,
@@ -72,7 +74,7 @@
       mode:'', version:'', actorName:'', checkedAt:'', error:'', catalogError:'',
       servers:{}, activities:[], selectedId:'',
       activitySearch:'', activityPickerOpen:false, activeActivityIndex:0,
-      stopAcademies:false, showAddons:false, confirmation:null, log:[],
+      stopAcademies:false, showAddons:false, confirmation:null, confirmationQueue:[], log:[],
       busyServer:{}, toasts:[], toastSeq:0,
       get academies() { return IDS.map(id => this.servers[id] || defaultServer(id)); },
       get operation() { return this.servers.operativos || defaultServer('operativos'); },
@@ -259,61 +261,98 @@
         if (!['detenido','caido'].includes(this.operation.state)) return 'Hay un evento en curso. Detén el servidor antes de seleccionar otro.';
         return '';
       },
+      // The native modal isolates focus from the rest of Filament. Force prompts
+      // from concurrent server requests must not overwrite another open prompt.
+      openConfirm(command) {
+        if (this.confirmation) { this.confirmationQueue.push(command); return; }
+        this.confirmation = command;
+        this.closeActivityPicker();
+        this.$nextTick(() => {
+          const dialog = this.$refs.serverConfirm;
+          if (!this.confirmation || !dialog?.isConnected) return;
+          if (!dialog.open) dialog.showModal();
+          this.$refs.cancelServerConfirm?.focus();
+        });
+      },
+      serverFingerprint(server) {
+        return JSON.stringify([server.id,server.startedAt,server.mission,server.pbo]);
+      },
+      launchFingerprint(a) {
+        if (!a) return '';
+        return JSON.stringify([a.id,a.name,a.pbo,a.html,a.profile,a.mode,a.saveInfo,a.addonNames,a.missingAddons,a.serverMods]);
+      },
+      get confirmationProblem() {
+        const c = this.confirmation;
+        if (!c) return '';
+        const server = this.servers[c.id] || defaultServer(c.id);
+        if (!this.canChangeServer) return 'No hay conexión de control disponible.';
+        if (this.isBusy(c.id)) return 'Hay una orden en curso para este servidor.';
+        if (!this.allowAction(server,c.action)) return 'El estado o los permisos del servidor han cambiado. Revisa la acción.';
+        if (c.action !== 'lanzar' && c.serverFingerprint && c.serverFingerprint !== this.serverFingerprint(server)) return 'El servidor ha cambiado desde que se solicitó esta acción. Cancela y vuelve a comprobarlo.';
+        if (c.action === 'lanzar' && (!this.canLaunchSelected || this.selectedId !== c.selection || (c.fingerprint && c.fingerprint !== this.launchFingerprint(this.selectedActivity)))) return 'Los datos del evento han cambiado. Cancela y vuelve a revisar el lanzamiento.';
+        return '';
+      },
+      finishConfirm() {
+        this.confirmation = null;
+        const dialog = this.$refs.serverConfirm;
+        if (dialog?.open) dialog.close();
+        if (this.confirmationQueue.length) this.openConfirm(this.confirmationQueue.shift());
+      },
       // The local panel acts on Academias immediately. Operativos require a detailed confirmation.
       command(kind,id,action) {
         const item = kind === 'academia' ? this.academies.find(a => a.id === id) : this.operation;
         if (!this.allowAction(item,action)) { this.notice('Esta acción no está disponible ahora.','error'); return; }
         if (action === 'lanzar' && !this.canLaunchSelected) { this.notice(this.selectedActivity?.reason || 'Elige una misión preparada.','error'); return; }
-        if (kind === 'academia') { this.sendAction({id,action,selection:'',stopAcademies:false,force:false,forceToken:''}); return; }
+        if (kind === 'academia') { this.sendAction({id,action,selection:'',stopAcademies:false,force:false,forceToken:'',serverFingerprint:this.serverFingerprint(item)}); return; }
+        if (this.confirmation) return;
         if (action === 'lanzar') {
           const a = this.selectedActivity;
-          this.confirmation = {
-            id,action,selection:a.id,stopAcademies:this.stopAcademies,force:false,forceToken:'',
+          this.openConfirm({
+            id,action,selection:a.id,stopAcademies:this.stopAcademies,force:false,forceToken:'',fingerprint:this.launchFingerprint(a),
             title:'¿Lanzar el evento?',
             message:a.mode === 'Campaña' ? 'Se iniciará la campaña con su progreso guardado en Mission Control.' : 'Se copiará el PBO a la carpeta del servidor y se arrancará con los addons configurados.',
             rows:[['Evento',a.name],['Fecha',a.event || 'Sin evento asociado'],['Archivo',a.pbo || a.fileLabel || '—'],
-                  a.mode === 'Campaña' ? ['Campaña',a.saveInfo || a.name] : ['Perfil',a.profile || 'Estándar'],
+                  a.mode === 'Campaña' ? ['Campaña',(a.saveInfo || a.name).replace(/^Campaña: /,''),'highlight'] : ['Perfil',a.profile || 'Estándar'],
                   ['Addons',String(a.addons ?? 0)],['Parar las academias',this.stopAcademies ? 'Sí, durante el evento' : 'No'],['Lanzado por',this.actorName || 'Administrador']],
             accept:'Lanzar evento',danger:false
-          };
+          });
         } else {
-          this.confirmation = {
-            id,action,selection:'',stopAcademies:false,force:false,forceToken:'',
+          this.openConfirm({
+            id,action,selection:'',stopAcademies:false,force:false,forceToken:'',serverFingerprint:this.serverFingerprint(item),
             title:action === 'parar' ? '¿Parar el servidor de operativos?' : '¿Reiniciar el servidor de operativos?',
             message:action === 'parar'
               ? 'El servidor se cerrará y los jugadores saldrán. Las academias detenidas para este evento volverán a arrancar.'
               : 'El servidor se reiniciará con el mismo evento. Todos los jugadores se desconectarán.',
             rows:[['Servidor',item.name],['Evento',item.mission || '—'],['Jugadores conectados',this.number(item.players)],['Lo hace',this.actorName || 'Administrador']],
             accept:action === 'parar' ? 'Sí, parar servidor' : 'Sí, reiniciar servidor',danger:true
-          };
+          });
         }
-        this.$nextTick(() => this.$refs.cancelServerConfirm?.focus());
       },
       closeConfirm() {
         if (this.confirmation?.force) this.notice('Cancelado: no se ha hecho ningún cambio.', 'info');
-        this.confirmation = null;
+        this.finishConfirm();
       },
       async acceptConfirm() {
         const confirmation = this.confirmation;
-        if (!confirmation || this.isBusy(confirmation.id)) return;
-        this.confirmation = null;
+        if (!confirmation || this.confirmationProblem) return;
+        this.finishConfirm();
         await this.sendAction(confirmation);
       },
       async sendAction(command) {
         if (this.isBusy(command.id) || !this.canChangeServer) return;
+        if (!this.allowAction(this.servers[command.id] || defaultServer(command.id),command.action)) { this.notice('El estado del servidor ha cambiado. Revisa la acción.','error'); return; }
         if (command.action === 'lanzar' && this.selectedId !== command.selection) { this.notice('La misión seleccionada ha cambiado. Revísala de nuevo.','error'); return; }
         this.busyServer = {...this.busyServer,[command.id]:command.action};
         try {
           const result = await this.$wire.controlServer(command.id,command.action,command.selection || '',!!command.stopAcademies,!!command.force,command.forceToken || '');
           if (result.requiresForce) {
             const n = result.players;
-            this.confirmation = {
+            this.openConfirm({
               ...command,force:true,forceToken:result.forceToken || '',
               title:'Hay jugadores conectados',
               message:result.message || (n == null ? 'Hay jugadores conectados. ¿Seguro?' : `Hay ${n} ${plural(n,'jugador conectado','jugadores conectados')}. ¿Seguro?`) + ' Saldrán del servidor.',
-              rows:[], accept:command.action === 'parar' ? 'Sí, parar' : command.action === 'reiniciar' ? 'Sí, reiniciar' : 'Sí, lanzar',danger:true
-            };
-            this.$nextTick(() => this.$refs.cancelServerConfirm?.focus());
+              rows:[['Servidor',(this.servers[command.id] || defaultServer(command.id)).name],['Jugadores conectados',this.number(n)]], warning:'Los jugadores conectados saldrán del servidor.', accept:command.action === 'parar' ? 'Sí, parar' : command.action === 'reiniciar' ? 'Sí, reiniciar' : 'Sí, lanzar',danger:true
+            });
           } else {
             this.notice(result.message || (result.ok ? 'Orden aceptada.' : 'No se pudo completar la acción.'),result.ok ? 'ok' : 'error');
           }
