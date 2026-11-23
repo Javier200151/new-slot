@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ActivityTypes\Schemas;
 
+use App\Models\Status;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
@@ -59,6 +60,21 @@ class ActivityTypeForm
                             ->label('Entrega metopa')
                             ->helperText('Permite asociar una metopa a la actividad y entregarla desde un evento finalizado.')
                             ->default(false),
+                    ]),
+
+                Section::make('Inscripciones a eventos')
+                    ->description('Elige qué estados pueden apuntarse a los eventos de este tipo de actividad.')
+                    ->schema([
+                        Select::make('participation_status_ids')
+                            ->label('Estados permitidos')
+                            ->multiple()
+                            ->options(fn (): array => Status::query()->orderBy('name')->pluck('name', 'id')->all())
+                            ->searchable()
+                            ->preload()
+                            ->default(fn (): array => Status::query()
+                                ->whereIn('name', ['ACTIVO', 'RECLUTA', 'RESERVA'])
+                                ->pluck('id')->map(fn ($id): int => (int) $id)->all())
+                            ->helperText('Se aplica al apuntarse al ORBAT y al entrar en reservas. Los tipos existentes mantienen sus reglas hasta que guardes una selección.'),
                     ]),
 
                 Section::make('Capacidades del evento')
