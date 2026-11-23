@@ -36,6 +36,9 @@ class MemberProcedureSetting extends Model
         'telegram_recruit_message',
         'telegram_tutors_message',
         'telegram_network_chat_id',
+        'telegram_server_chat_id',
+        'telegram_server_notifications_enabled',
+        'telegram_server_notice_minutes',
         'telegram_cantina_invite_url',
         'telegram_official_invite_url',
         'telegram_network_invite_url',
@@ -58,6 +61,8 @@ class MemberProcedureSetting extends Model
     protected function casts(): array
     {
         return [
+            'telegram_server_notifications_enabled' => 'boolean',
+            'telegram_server_notice_minutes' => 'integer',
             'telegram_recruit_entry_endings' => 'array',
             'telegram_recruit_exit_endings' => 'array',
             'telegram_veterancy_endings' => 'array',

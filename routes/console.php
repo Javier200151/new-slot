@@ -49,5 +49,8 @@ Schedule::call(fn () => app(\App\Services\CommunityRaffleService::class)->settle
 // La sincronización PBO/HTML se activa por eventos mediante la cola pbo-sync.
 // sqa:sync-pbos continúa disponible únicamente para recuperación manual.
 
+// Avisos de archivos y arranque automático: Windows es el único encargado de arrancar.
+Schedule::command('sqa:mission-control-telegram')->everyMinute()->withoutOverlapping(15);
+
 // Entradas de changelog programadas: solamente publicaciones pendientes.
 Schedule::command('changelog:notify-publications')->everyMinute()->withoutOverlapping();

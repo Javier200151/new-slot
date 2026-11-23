@@ -33,6 +33,7 @@ class TelegramService
         $chats = [];
         foreach ([
             'network' => $setting->telegram_network_chat_id,
+            'server' => $setting->telegram_server_chat_id,
         ] as $key => $chatId) {
             $chatId = trim((string) $chatId);
             if ($chatId === '') {
