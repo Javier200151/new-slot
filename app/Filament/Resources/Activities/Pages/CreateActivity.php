@@ -10,12 +10,18 @@ use App\Support\ActivityEditorSelection;
 use App\Support\ActivityTypeConfiguration;
 use App\Support\ActivityPbo;
 use App\Support\OrbatGlobalCommand;
+use App\Filament\Resources\Activities\Pages\Concerns\ConfirmsPboReplacement;
 use App\Models\ActivityStatus;
 use Illuminate\Validation\ValidationException;
+use App\Services\PersistentCampaignPbo;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class CreateActivity extends CreateRecord
 {
+    use ConfirmsPboReplacement;
     protected static string $resource = ActivityResource::class;
+    protected bool $inheritedCampaignPbo = false;
 
     protected function getHeaderActions(): array
     {
@@ -26,6 +32,8 @@ class CreateActivity extends CreateRecord
                 ->label('Crear')
                 ->icon('heroicon-o-check'),
 
+            $this->approvePboReplacementAction(),
+
             $this->getCancelFormAction()
                 ->label('Cancelar'),
         ];
@@ -35,7 +43,17 @@ class CreateActivity extends CreateRecord
     {
         $data = ActivityEditorSelection::resolveChoice($data);
         $data = ActivityTypeConfiguration::normalizeActivityData($data);
+        $source = PersistentCampaignPbo::source(isset($data['campaign_id']) ? (int) $data['campaign_id'] : null);
+        $data = app(PersistentCampaignPbo::class)->inherit($data, null);
+        $this->inheritedCampaignPbo = $source && ($data['pbo_path'] ?? null) === $source->pbo_path;
         $data = ActivityPbo::prepare($data);
+        if ($this->inheritedCampaignPbo) {
+            foreach (['pbo', 'pbo_size_bytes', 'pbo_uploaded_by', 'pbo_uploaded_at'] as $column) {
+                $data[$column] = $source->{$column};
+            }
+        }
+        $data['pbo_key'] = PersistentCampaignPbo::campaignKey($data['campaign_id'] ?? null);
+        $this->assertPboReplacementApproved($data['pbo_path'] ?? null);
 
         $activityTypeId = $data['activity_type_id'] ?? null;
 
@@ -57,9 +75,30 @@ class CreateActivity extends CreateRecord
         return $data;
     }
 
+    protected function handleRecordCreation(array $data): Model
+    {
+        return DB::transaction(function () use ($data): Model {
+            $model = static::getModel();
+            $record = $model::create($data);
+            app(PersistentCampaignPbo::class)->reconcile($record, null, null);
+            return $record;
+        });
+    }
+
     protected function afterCreate(): void
     {
-        app(\App\Services\ActivityPboExportService::class)->queue($this->record);
+        if ($this->record->pbo_path && $this->inheritedCampaignPbo
+            && $this->record->pboExport?->status !== 'synced') {
+            app(\App\Services\ActivityPboExportService::class)->queueKey($this->record->pbo_key);
+        }
+        if ($this->record->pbo_path && ! $this->inheritedCampaignPbo) {
+            app(\App\Services\ActivityPboExportService::class)->regenerate(
+                $this->record,
+                strcasecmp($this->approvedPboReplacementName ?? '', basename($this->record->pbo_path)) === 0,
+                false,
+            );
+        }
+        $this->approvedPboReplacementName = null;
 
         /*
         |--------------------------------------------------------------------------

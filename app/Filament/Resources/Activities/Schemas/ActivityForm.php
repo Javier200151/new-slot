@@ -22,6 +22,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Actions;
+use Filament\Notifications\Notification;
+use App\Services\ActivityPboExportService;
+use App\Services\PersistentCampaignPbo;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -109,7 +113,16 @@ class ActivityForm
                     ->searchable()
                     ->preload()
                     ->visible(fn (Get $get): bool => ActivityTypeConfiguration::find($get('activity_type_id'))?->usesCampaign() ?? false)
-                    ->nullable(),
+                    ->nullable()
+                    ->live()
+                    ->afterStateUpdated(function ($state, Set $set, ?Activity $record): void {
+                        $source = PersistentCampaignPbo::source($state ? (int) $state : null, $record?->id);
+                        // The PBO file shown in FileUpload is the one already saved for the campaign.
+                        if ($source) { $set('pbo_path', $source->pbo_path); }
+                        elseif ($record && str_starts_with((string) $record->pbo_key, 'campaign:')) {
+                            $set('pbo_path', null);
+                        }
+                    }),
 
                 Select::make('platform_id')
                     ->label('Plataforma')
@@ -601,7 +614,13 @@ class ActivityForm
                             ->visibility('private')
                             ->storeFileNamesIn('pbo')
                             ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file): string => ActivityPbo::storageFilename($file))
-                            ->preventFilePathTampering()
+                            ->preventFilePathTampering(true, function (string $file, Get $get, ?Activity $record): bool {
+                                $campaignId = (int) $get('campaign_id');
+                                $source = PersistentCampaignPbo::source($campaignId, $record?->id);
+                                return $source !== null && $source->pbo_path === $file
+                                    && ActivityPbo::isOwnStoredPath($file)
+                                    && \Illuminate\Support\Facades\Storage::disk('local')->exists($file);
+                            })
                             ->previewable(false)
                             ->downloadable()
                             ->maxSize(ActivityPbo::MAX_SIZE_KB)
@@ -611,8 +630,16 @@ class ActivityForm
                                 // Se avisa únicamente cuando llega un archivo nuevo.
                                 // El guardado definitivo sigue siendo el de Filament.
                                 if ($state instanceof TemporaryUploadedFile) {
-                                    $livewire->dispatch('sqa-activity-pbo-uploaded');
+                                    $livewire->checkPboReplacement($state->getClientOriginalName());
                                 }
+                            }),
+                        Placeholder::make('persistent_campaign_pbo')
+                            ->label('PBO de esta campaña')
+                            ->visible(fn (Get $get): bool => (bool) PersistentCampaignPbo::campaignKey($get('campaign_id')))
+                            ->content(function (Get $get, ?Activity $record): HtmlString {
+                                $source = PersistentCampaignPbo::source((int) $get('campaign_id'), $record?->id);
+                                if (! $source) { return new HtmlString('Esta campaña todavía no tiene un PBO compartido.'); }
+                                return new HtmlString('PBO compartido: <strong>' . e($source->pbo ?: basename($source->pbo_path)) . '</strong>. Al guardar, esta actividad utilizará el mismo archivo.');
                             }),
                         Placeholder::make('pbo_information')
                             ->label('PBO guardado actualmente')
@@ -632,17 +659,80 @@ class ActivityForm
                                     'synced' => 'Transferido a Windows',
                                     'pending' => 'Pendiente de transferencia',
                                     'error' => 'Transferencia pendiente de reintento',
+                                    'replaced' => 'Sustituido por otra actividad',
                                     default => 'Sin exportar',
                                 };
 
-                                return new HtmlString('<div class="rounded-lg border border-gray-700 p-4 text-sm">'
+                                $shared = PersistentCampaignPbo::campaignKey($record->campaign_id)
+                                    ? Activity::withTrashed()->where('campaign_id', $record->campaign_id)
+                                        ->whereKeyNot($record->id)->whereNotNull('pbo_path')->get()
+                                    : collect();
+                                $others = $shared->map(fn ($a) => e((string) $a->name))->implode(', ');
+                                $origin = $export?->activity?->name;
+                                $difference = $shared->contains(fn ($a) => ($a->addons ?? []) !== ($record->addons ?? []));
+                                $sharing = $others !== '' ? '<div><strong>Lo usan también:</strong> ' . $others . '</div>' : '';
+                                $htmlInfo = $origin ? '<div><strong>HTML generado desde:</strong> ' . e((string) $origin) . '</div>' : '';
+                                if ($difference) {
+                                    $htmlInfo .= '<div class="text-amber-600">Atención: las actividades tienen addons diferentes. Revisad el HTML compartido.</div>';
+                                }
+                                return new HtmlString('<div class="rounded-lg border border-gray-700 p-4 text-sm">' 
                                     . '<div><strong>Archivo:</strong> <span class="break-all">' . $name . '</span></div>'
                                     . '<div><strong>Fecha de subida:</strong> ' . e($date) . '</div>'
                                     . '<div><strong>Subido por:</strong> ' . $uploader . '</div>'
                                     . '<div><strong>Tamaño:</strong> ' . e($size) . '</div>'
                                     . '<div><strong>Windows:</strong> ' . e($syncStatus) . '</div>'
+                                    . $sharing . $htmlInfo
                                     . '</div>');
                             }),
+                        Actions::make([
+                            Action::make('copyAddonsToCampaign')
+                                ->label('Copiar estos addons al resto de la campaña')
+                                ->color('warning')
+                                ->requiresConfirmation()
+                                ->modalHeading('Actualizar addons de la campaña')
+                                ->modalDescription(fn (?Activity $record): string => $record
+                                    ? 'Se copiarán los addons de esta actividad a las demás actividades de la campaña persistente. El PBO no cambiará.' : '')
+                                ->visible(fn (?Activity $record): bool => $record && $record->pbo_path
+                                    && (bool) PersistentCampaignPbo::campaignKey($record->campaign_id)
+                                    && Activity::query()->where('campaign_id', $record->campaign_id)
+                                        ->whereKeyNot($record->id)->exists())
+                                ->action(function (?Activity $record): void {
+                                    if (! $record) { return; }
+                                    $others = Activity::query()->where('campaign_id', $record->campaign_id)
+                                        ->whereKeyNot($record->id)->get();
+                                    foreach ($others as $other) {
+                                        if (! ActivityTypeAccess::can(auth()->user(), 'activities', 'update', $other->activity_type_id)) {
+                                            Notification::make()->title('Sin permisos para modificar ' . $other->name)->danger()->send();
+                                            return;
+                                        }
+                                    }
+                                    foreach ($others as $other) {
+                                        if (($other->addons ?? []) !== ($record->addons ?? [])) {
+                                            $other->forceFill(['addons' => $record->addons])->save();
+                                        }
+                                    }
+                                    app(ActivityPboExportService::class)->regenerate($record->fresh());
+                                    Notification::make()->title('Addons de la campaña actualizados')->success()->send();
+                                }),
+                            Action::make('regeneratePboHtml')
+                                ->label('Autogenerar HTML del PBO')
+                                ->icon('heroicon-o-document-arrow-down')
+                                ->visible(fn (?Activity $record): bool => filled($record?->pbo_path)
+                                    && ActivityPbo::isOwnStoredPath((string) $record->pbo_path))
+                                ->action(function (?Activity $record): void {
+                                    if (! $record) { return; }
+                                    try {
+                                        app(ActivityPboExportService::class)->regenerate($record->fresh());
+                                        Notification::make()->title('HTML de addons actualizado')
+                                            ->body('Se ha generado con los addons actuales de la actividad.')
+                                            ->success()->send();
+                                    } catch (\Throwable $exception) {
+                                        Notification::make()->title('No se pudo generar el HTML')
+                                            ->body($exception->getMessage())->danger()->send();
+                                    }
+                                }),
+                        ])->visible(fn (?Activity $record): bool => filled($record?->pbo_path)
+                            && ActivityPbo::isOwnStoredPath((string) $record->pbo_path)),
                     ]),
 
                 TextInput::make('addon_package_url')

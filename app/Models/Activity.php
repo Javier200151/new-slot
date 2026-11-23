@@ -38,6 +38,7 @@ class Activity extends Model
         'respawn',
         'jip',
         'pbo',
+        'pbo_key',
         'pbo_path',
         'pbo_size_bytes',
         'pbo_uploaded_by',
@@ -83,13 +84,32 @@ class Activity extends Model
         });
 
         static::updating(function ($activity) {
-            $activity->orbat = OrbatGlobalCommand::ensureRequiredSlot(
-                $activity->orbat, $activity->activityType()->first()
-            );
+            // Metadata-only propagation must not rewrite another activity’s ORBAT.
+            if ($activity->isDirty(['orbat', 'activity_type_id'])
+                || ! $activity->isDirty(['pbo_path', 'pbo_key', 'pbo', 'pbo_size_bytes', 'pbo_uploaded_by', 'pbo_uploaded_at'])) {
+                $activity->orbat = OrbatGlobalCommand::ensureRequiredSlot(
+                    $activity->orbat, $activity->activityType()->first()
+                );
+            }
             if (Auth::check()) {
                 $activity->updated_by = Auth::id();
             }
         });
+
+        // Bulk deletes do not run Filament edit hooks; reconcile Windows ownership here.
+        foreach (['deleted', 'restored', 'forceDeleted'] as $event) {
+            static::{$event}(static function (Activity $activity): void {
+                if ($activity->pbo_key) {
+                    \Illuminate\Support\Facades\DB::afterCommit(static function () use ($activity): void {
+                        if ($activity->isForceDeleting() && $activity->pbo_path
+                            && ! Activity::withTrashed()->where('pbo_path', $activity->pbo_path)->exists()) {
+                            \App\Support\ActivityPbo::deletePrevious($activity->pbo_path, null);
+                        }
+                        app(\App\Services\ActivityPboExportService::class)->queueKey($activity->pbo_key);
+                    });
+                }
+            });
+        }
     }
 
     public function activityType()
@@ -177,7 +197,7 @@ class Activity extends Model
 
     public function pboExport()
     {
-        return $this->hasOne(ActivityPboExport::class);
+        return $this->belongsTo(ActivityPboExport::class, 'pbo_key', 'pbo_key');
     }
 
     public function pboUploadedBy()
