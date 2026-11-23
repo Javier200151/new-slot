@@ -167,6 +167,16 @@ final class PublicApiData
         return $model ? ['id' => (int) $model->id, 'nombre' => (string) $model->name] : null;
     }
 
+    /** Public game options are configured on the actividad, never on the event itself. */
+    public static function activityGameOptions(?Activity $activity): array
+    {
+        return [
+            'ocap' => (bool) ($activity?->ocap ?? false),
+            'respawn' => (bool) ($activity?->respawn ?? false),
+            'jip' => (bool) ($activity?->jip ?? false),
+        ];
+    }
+
     public static function event(Event $event, bool $detailed = false): array
     {
         $event->loadMissing(['eventStatus', 'activity.activityType', 'activity.platform', 'activity.map', 'activity.campaign']);
@@ -178,10 +188,12 @@ final class PublicApiData
             'fecha_fin' => $event->end_date?->toIso8601String(),
             'estado' => self::status($event->eventStatus),
             'multiclan' => (bool) $event->multiclans,
+            ...self::activityGameOptions($activity),
             'actividad' => $activity ? [
                 'id' => (int) $activity->id,
                 'nombre' => (string) $activity->name,
                 'tipo' => self::named($activity->activityType),
+                ...self::activityGameOptions($activity),
             ] : null,
             'imagen_url' => self::image($activity?->image),
             'url' => url('/eventos/'.$event->id),
@@ -324,6 +336,7 @@ final class PublicApiData
         $activity->loadMissing(['activityType','platform','map','pboExport']);
         $row = [
             'id' => (int) $activity->id, 'nombre' => $activity->name,
+            ...self::activityGameOptions($activity),
             'resumen_publico' => self::activityDescription($activity, 350),
             'tipo' => self::named($activity->activityType),
             'plataforma' => self::named($activity->platform), 'mapa' => self::named($activity->map),
