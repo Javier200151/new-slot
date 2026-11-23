@@ -280,3 +280,39 @@
  .sqa-server-panel__modal-buttons{flex-direction:column-reverse}
  .sqa-server-panel__modal-buttons .sqa-server-panel__btn{width:100%}
 }
+
+/* v98 — Configuración centralizada, consistente con ambos temas de Filament. */
+.sqa-server-panel__config-link{display:inline-flex;align-items:center;justify-content:center;min-height:35px;padding:7px 14px;border-radius:9px;border:1px solid var(--mc-border-strong);color:var(--mc-ink);background:var(--mc-card);font-weight:600;text-decoration:none;font-size:13px}
+.sqa-server-panel__config-link:hover{border-color:var(--mc-accent);color:var(--mc-link)}
+.sqa-server-panel__settings-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;max-width:1120px}
+.sqa-server-panel__settings-card{padding:22px;min-width:0}
+.sqa-server-panel__settings-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--mc-border);margin-bottom:18px}
+.sqa-server-panel__settings-head h2,.sqa-server-panel__settings-preview h3,.sqa-server-panel__settings-events h3{font-size:20px;line-height:1.3;margin:0 0 5px;font-weight:650}
+.sqa-server-panel__settings-head p,.sqa-server-panel__settings-preview>p{margin:0;color:var(--mc-muted);font-size:13px}
+.sqa-server-panel__settings-form{display:flex;flex-direction:column;gap:16px}
+.sqa-server-panel__settings-check{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:550}
+.sqa-server-panel__settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.sqa-server-panel__settings-field{display:flex;flex-direction:column;gap:7px;font-size:13px;min-width:0;font-weight:600}
+.sqa-server-panel__settings-field--compact{max-width:280px}
+.sqa-server-panel__settings-field input,.sqa-server-panel__settings-field select,.sqa-server-panel__settings-field textarea{width:100%;min-width:0;border:1px solid var(--mc-border-strong);border-radius:9px;background:var(--mc-inset);color:var(--mc-ink);padding:10px 12px;font:inherit;font-weight:400}
+.sqa-server-panel__settings-field textarea{resize:vertical;min-height:150px;font:13px/1.6 ui-monospace,Consolas,monospace}
+.sqa-server-panel__settings-field input:disabled,.sqa-server-panel__settings-field select:disabled,.sqa-server-panel__settings-field textarea:disabled{opacity:.6}
+.sqa-server-panel__settings-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sqa-server-panel__settings-actions .sqa-server-panel__settings-help{flex:1 1 280px}
+.sqa-server-panel__settings-help{font-size:12px;color:var(--mc-muted);line-height:1.55;margin:0}
+.sqa-server-panel__settings-alert{padding:12px 16px;border-radius:9px;border:1px solid var(--mc-bad-dot);color:var(--mc-bad);background:var(--mc-bad-bg);margin-bottom:16px}
+.sqa-server-panel__settings-error{color:var(--mc-bad);font-size:12px}
+.sqa-server-panel__settings-events{border-top:1px solid var(--mc-border);padding-top:20px;margin-top:22px}
+.sqa-server-panel__settings-event{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--mc-border);font-size:13px}
+.sqa-server-panel__settings-event>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.sqa-server-panel__settings-event strong{font-size:14px;font-weight:550;overflow-wrap:anywhere}
+.sqa-server-panel__settings-event small{color:var(--mc-muted);font-size:12px}
+.sqa-server-panel__settings-event .sqa-server-panel__settings-error{color:var(--mc-bad)}
+.sqa-server-panel__settings-preview{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--mc-border);padding-top:22px;margin-top:24px}
+.sqa-server-panel__settings-preview h3{margin-bottom:0}
+.sqa-server-panel__settings-message{border:1px solid var(--mc-border-strong);border-radius:10px;background:var(--mc-inset);padding:16px;max-width:750px}
+.sqa-server-panel__settings-message strong{display:block;font-size:12px;color:var(--mc-muted);margin-bottom:10px}
+.sqa-server-panel__settings-message pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;color:var(--mc-ink);font:13px/1.6 'Segoe UI',system-ui,sans-serif}
+@media(max-width:680px){.sqa-server-panel__settings-card{padding:16px}.sqa-server-panel__settings-grid{grid-template-columns:minmax(0,1fr)}.sqa-server-panel__settings-actions{align-items:stretch}.sqa-server-panel__settings-actions button{width:100%}}
+
+.sqa-server-panel__settings-check--event{font-size:12px;white-space:nowrap;font-weight:450}

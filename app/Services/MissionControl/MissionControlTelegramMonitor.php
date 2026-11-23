@@ -21,6 +21,9 @@ final class MissionControlTelegramMonitor
 {
     private const TZ = 'Europe/Madrid';
 
+    /** @var array<string,string> */
+    private array $templates = [];
+
     public function __construct(
         private readonly MissionControlClient $missionControl,
         private readonly TelegramService $telegram,
@@ -36,7 +39,7 @@ final class MissionControlTelegramMonitor
             || $chat === trim((string) $setting->telegram_network_chat_id)) {
             throw new \RuntimeException('Activa los avisos y configura un chat de servidores independiente del grupo general.');
         }
-        $this->telegram->sendMessage($chat, "✅ Prueba de avisos SERVER [=ALPHA=]\nEl bot puede publicar en el grupo. No se ha ejecutado ninguna acción sobre los servidores.");
+        $this->telegram->sendMessage($chat, MissionControlTelegramTemplates::render('test', [], (array) $setting->telegram_server_templates));
     }
 
     /** @return array<string,int> */
@@ -44,6 +47,7 @@ final class MissionControlTelegramMonitor
     {
         $counts = ['sent' => 0, 'skipped' => 0, 'errors' => 0];
         $setting = MemberProcedureSetting::current();
+        $this->templates = (array) ($setting->telegram_server_templates ?? []);
         $chat = trim((string) $setting->telegram_server_chat_id);
         if (! $setting->telegram_server_notifications_enabled || $chat === '' || ! $this->telegram->isConfigured()) {
             return $counts;
@@ -124,7 +128,7 @@ final class MissionControlTelegramMonitor
             if ($message !== '' && ! $stale) {
                 try {
                     $type = trim((string) ($notice['tipo'] ?? ''));
-                    $text = "🖥️ SERVER [=ALPHA=] · Aviso de Mission Control\n".$message;
+                    $text = $this->message('agent_notice', ['tipo' => $type ?: 'aviso', 'aviso' => $message]);
                     $this->deliver($chat, 'agent:'.$id, $text, null, $type ?: 'notice', $counts);
                 } catch (Throwable $e) {
                     // Do not advance: the same notice is retried on the next tick.
@@ -186,30 +190,35 @@ final class MissionControlTelegramMonitor
             foreach ($dueReadiness as [$event, $start, $key, $checkpoint, $msgKey]) {
                 try {
                     [$lines, $status] = $this->readiness($event, $missions, $campaigns);
-                    $heading = $status === 'ready' ? '✅ Archivos preparados' : ($status === 'unknown' ? '⚠️ No se pudo comprobar todo' : '❌ Faltan archivos o requisitos');
+                    $heading = $status === 'ready' ? 'Archivos preparados' : ($status === 'unknown' ? 'No se pudo comprobar todo' : 'Faltan archivos o requisitos');
+                    $automaticStatus = 'sin verificar';
                     if (is_array($auto)) {
                         if (! ($auto['activo'] ?? false)) {
-                            $lines[] = '⚠️ El lanzamiento automático está desactivado en Windows.';
+                            $automaticStatus = 'desactivado';
                         } else {
+                            $before = (int) ($auto['minutos_antes'] ?? 15);
+                            $automaticStatus = 'activado ('.$before.' min antes)';
                             $entry = collect($auto['eventos'] ?? [])->first(fn ($e) => (int) ($e['evento_id'] ?? 0) === (int) $event->id);
                             if (is_array($entry) && ($entry['automatico'] ?? true) === false) {
-                                $lines[] = '⚠️ Este evento está excluido del arranque automático.';
+                                $automaticStatus = 'excluido para este evento (configuración global: activada)';
                             }
                         }
-                    } else {
-                        $lines[] = '⚠️ No se pudo confirmar la configuración del arranque automático.';
                     }
-                    $text = "📦 SERVER [=ALPHA=] · Comprobación T−{$checkpoint} min\n"
-                        .$heading."\nEvento: ".$this->safeName($event->name)."\n"
-                        .'Inicio: '.$start->format('d/m/Y H:i')."\n"
-                        .implode("\n", $lines);
-                    if ($status !== 'ready' && $checkpoint > 30) {
-                        $text .= "\nVolveré a comprobarlo en 30 minutos (hasta T−30).";
-                    }
-                    if ($status !== 'ready' && $checkpoint === 30) {
-                        $text .= "\nÚltima comprobación previa. Revisad los archivos antes del arranque.";
-                    }
-                    $text .= "\n".url('/eventos/'.$event->id);
+                    $next = $status === 'ready'
+                        ? 'Los archivos están preparados; no es necesario repetir esta comprobación.'
+                        : ($checkpoint > 30
+                            ? 'Se repetirá la comprobación en 30 minutos (hasta T−30).'
+                            : 'Última comprobación previa. Revisad los archivos antes del arranque.');
+                    $text = $this->message('files_'.$status, [
+                        'antelacion' => $checkpoint,
+                        'estado' => $heading,
+                        'evento' => $this->safeName($event->name),
+                        'fecha' => $start->format('d/m/Y H:i'),
+                        'detalles' => implode("\n", $lines),
+                        'automatico' => $automaticStatus,
+                        'proxima' => $next,
+                        'url' => url('/eventos/'.$event->id),
+                    ]);
                     $this->deliver($chat, $msgKey, $text, $event->id, $status, $counts);
                 } catch (Throwable $e) {
                     Log::warning('Mission Control Telegram: falló la comprobación de archivos.', ['event_id' => $event->id, 'type' => get_class($e)]);
@@ -233,21 +242,34 @@ final class MissionControlTelegramMonitor
                     if ($hasInitial) {
                         $initialResult = DB::table('mission_control_telegram_deliveries')
                             ->where('chat_id', $chat)->where('message_key', $first)->value('result');
-                        if (in_array($initialResult, ['ready', 'failed'], true)) { continue; }
+                        if (in_array($initialResult, ['ready', 'manual', 'failed'], true)) { continue; }
                     }
                     [$result, $line] = $this->launchResult($event, $auto, $servers, $autoError);
                     if (! $hasInitial) {
-                        $text = "🚀 SERVER [=ALPHA=] · Arranque automático (T−15)\n"
-                            .$this->safeName($event->name).' · '.$start->format('d/m/Y H:i')."\n".$line
-                            ."\n".url('/eventos/'.$event->id);
+                        $type = match ($result) {
+                            'ready' => 'launch_ready', 'manual' => 'launch_manual',
+                            'failed' => 'launch_failed', default => 'launch_pending',
+                        };
+                        $text = $this->message($type, [
+                            'evento' => $this->safeName($event->name),
+                            'fecha' => $start->format('d/m/Y H:i'),
+                            'resultado' => $line, 'url' => url('/eventos/'.$event->id),
+                        ]);
                         $this->deliver($chat, $first, $text, $event->id, $result, $counts);
                     } elseif ($result !== 'pending' || $now->greaterThanOrEqualTo($start->addMinutes(30))) {
                         if ($result === 'pending') {
                             $result = 'unknown';
-                            $line = '⚠️ No se ha podido confirmar un arranque correcto. Revisad Mission Control.';
+                            $line = 'No se ha podido confirmar un arranque correcto. Revisad Mission Control.';
                         }
-                        $text = "🚀 SERVER [=ALPHA=] · Resultado del arranque\n"
-                            .$this->safeName($event->name).' · '.$start->format('d/m/Y H:i')."\n".$line;
+                        $type = match ($result) {
+                            'ready' => 'launch_ready', 'manual' => 'launch_manual',
+                            'failed' => 'launch_failed', default => 'launch_pending',
+                        };
+                        $text = $this->message($type, [
+                            'evento' => $this->safeName($event->name),
+                            'fecha' => $start->format('d/m/Y H:i'),
+                            'resultado' => $line, 'url' => url('/eventos/'.$event->id),
+                        ]);
                         $this->deliver($chat, $final, $text, $event->id, $result, $counts);
                     }
                 } catch (Throwable $e) {
@@ -326,35 +348,80 @@ final class MissionControlTelegramMonitor
     /** @return array{string,string} */
     private function launchResult(Event $event, ?array $auto, ?array $servers, ?string $error): array
     {
+        // First inspect the live server: a manual launch is successful even if
+        // automatic launch is globally OFF or this event has been excluded.
+        $server = is_array($servers) ? collect($servers)->first(fn ($s) => ($s['id'] ?? null) === 'operativos') : null;
+        $item = is_array($auto)
+            ? collect($auto['eventos'] ?? [])->first(fn ($e) => (int) ($e['evento_id'] ?? 0) === (int) $event->id)
+            : null;
+        if (is_array($server) && ($server['estado'] ?? '') === 'en_marcha'
+            && $this->serverMatchesEvent($server, $event)) {
+            $who = mb_strtolower((string) ($server['lanzado_por']['nombre'] ?? ''));
+            $manual = ($item['estado'] ?? null) === 'ya_en_marcha'
+                || str_contains($who, '(rdp)')
+                || (is_array($auto) && ! ($auto['activo'] ?? false))
+                || (is_array($item) && ($item['automatico'] ?? true) === false);
+            return $manual
+                ? ['manual', 'El operativo ya estaba arrancado manualmente con el evento correcto.']
+                : ['ready', 'El servidor está en marcha con el evento correcto.'];
+        }
         if (! is_array($auto) || ! is_array($servers)) {
-            return ['pending', '⚠️ '.($error ?: 'No se ha podido consultar el resultado de Windows.')];
+            return ['pending', $error ?: 'No se ha podido consultar el resultado de Windows.'];
         }
         if (! ($auto['activo'] ?? false)) {
-            return ['failed', '❌ El lanzamiento automático está desactivado en Mission Control.'];
+            return ['pending', 'El lanzamiento automático está desactivado. Todavía no se ha detectado el evento arrancado manualmente.'];
         }
         if (! empty($auto['error_web'])) {
-            return ['pending', '⚠️ Mission Control no ha podido leer el calendario: '.$this->safeName($auto['error_web'])];
+            return ['pending', 'Mission Control no ha podido leer el calendario: '.$this->safeName($auto['error_web'])];
         }
-        $item = collect($auto['eventos'] ?? [])->first(fn ($e) => (int) ($e['evento_id'] ?? 0) === (int) $event->id);
-        if (! is_array($item)) { return ['pending', '⏳ El evento aún no aparece en el calendario automático del servidor.']; }
-        if (($item['automatico'] ?? true) === false) { return ['failed', '❌ Este evento está excluido del lanzamiento automático.']; }
+        if (! is_array($item)) {
+            return ['pending', 'El evento aún no aparece en el calendario automático del servidor.'];
+        }
+        if (($item['automatico'] ?? true) === false) {
+            return ['pending', 'Este evento está excluido del lanzamiento automático. Pendiente de arranque manual.'];
+        }
         $state = (string) ($item['estado'] ?? 'pendiente');
-        $server = collect($servers)->first(fn ($s) => ($s['id'] ?? null) === 'operativos');
-        if (! is_array($server)) { return ['pending', '⚠️ No se ha podido comprobar el estado de Operativos.']; }
-        $running = ($server['estado'] ?? '') === 'en_marcha';
-        $runningEvent = (int) ($server['mision']['evento']['id'] ?? 0);
-        if ($running && $runningEvent === (int) $event->id) {
-            if ($state === 'ya_en_marcha') { return ['ready', '✅ El operativo ya estaba iniciado manualmente.']; }
-            return ['ready', '✅ El servidor está en marcha con el evento correcto.'];
+        if (! is_array($server)) {
+            return ['pending', 'No se ha podido comprobar el estado de Operativos.'];
         }
         if (in_array($state, ['fallido', 'no_lanzado'], true)) {
             $why = trim((string) ($item['problema'] ?? $server['ultimo_error'] ?? ''));
-            return ['failed', '❌ Mission Control informa de que el arranque ha fallado.'.($why !== '' ? ' '.$this->safeName($why) : '')];
+            return ['failed', 'Mission Control informa de que el arranque ha fallado.'.($why !== '' ? ' '.$this->safeName($why) : '')];
         }
-        if ($running && $runningEvent !== (int) $event->id) {
-            return ['pending', '⚠️ Operativos está en marcha, pero todavía no con este evento.'];
+        if (($server['estado'] ?? '') === 'en_marcha') {
+            return ['pending', 'Operativos está en marcha, pero con otro evento.'];
         }
-        return ['pending', '⏳ Windows todavía no confirma el arranque (estado: '.$this->safeName($state).').'];
+        return ['pending', 'Windows todavía no confirma el arranque (estado: '.$this->safeName($state).').'];
+    }
+
+    /** Exact event identity takes precedence; a mismatched ID must never pass via file name. */
+    private function serverMatchesEvent(array $server, Event $event): bool
+    {
+        $mission = is_array($server['mision'] ?? null) ? $server['mision'] : [];
+        $runningId = (int) ($mission['evento']['id'] ?? 0);
+        if ($runningId > 0) {
+            return $runningId === (int) $event->id;
+        }
+        $runningActivity = (int) ($mission['actividad']['id'] ?? 0);
+        if ($runningActivity > 0 && $runningActivity === (int) $event->activity_id) {
+            return true;
+        }
+        // The RDP panel may launch by file name without an event/actividad ID.
+        if (! $event->activity) { return false; }
+        $remotePbo = mb_strtolower(trim((string) ($mission['pbo'] ?? '')));
+        $localPbo = (string) (PublicActivityPbo::forActivity($event->activity)['pbo_nombre'] ?? '');
+        return $remotePbo !== '' && $localPbo !== '' && $remotePbo === mb_strtolower($localPbo);
+    }
+
+    /** @param array<string,scalar> $variables */
+    private function message(string $template, array $variables): string
+    {
+        foreach ($variables as $key => $value) {
+            if (is_string($value)) {
+                $variables[$key] = MissionControlTelegramTemplates::plain($value);
+            }
+        }
+        return MissionControlTelegramTemplates::render($template, $variables, $this->templates);
     }
 
     public static function checkpointAt(CarbonImmutable $now, CarbonImmutable $start, int $lead): ?int
