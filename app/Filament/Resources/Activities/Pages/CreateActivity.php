@@ -92,10 +92,9 @@ class CreateActivity extends CreateRecord
             app(\App\Services\ActivityPboExportService::class)->queueKey($this->record->pbo_key);
         }
         if ($this->record->pbo_path && ! $this->inheritedCampaignPbo) {
-            app(\App\Services\ActivityPboExportService::class)->regenerate(
+            app(\App\Services\ActivityPboExportService::class)->queue(
                 $this->record,
                 strcasecmp($this->approvedPboReplacementName ?? '', basename($this->record->pbo_path)) === 0,
-                false,
             );
         }
         $this->approvedPboReplacementName = null;

@@ -20,18 +20,16 @@ final class PublicActivityPbo
         $pboUploaded = $validPath && Storage::disk('local')->exists($path);
         $htmlGenerated = $pboUploaded && Storage::disk('local')->exists(dirname($path) . '/' . $htmlName);
 
-        // The export row represents the last successfully verified transfer of the PAIR.
-        // Do not probe the Windows share on each public API request: it may be offline,
-        // slow, or temporarily unavailable. Pending, failed and replaced exports are false.
+        // HTML is no longer generated or transferred. It cannot block a verified PBO.
+        // The public legacy HTML fields are kept for existing integrations.
         $export = $activity->pboExport;
         $synced = $pboUploaded
-            && $htmlGenerated
             && $export !== null
             && $export->status === 'synced'
             && $export->filename === $pboName
             && $export->source_path === $path
-            && filled($export->pbo_sha256)
-            && filled($export->html_sha256);
+            && filled($export->pbo_sha256);
+        $htmlSynced = $synced && $htmlGenerated && filled($export?->html_sha256);
 
         return [
             'pbo_nombre' => $pboName,
@@ -39,7 +37,7 @@ final class PublicActivityPbo
             'pbo_sincronizado_windows' => (bool) $synced,
             'html_nombre' => $htmlName,
             'html_generado' => (bool) $htmlGenerated,
-            'html_sincronizado_windows' => (bool) $synced,
+            'html_sincronizado_windows' => (bool) $htmlSynced,
         ];
     }
 }

@@ -166,8 +166,8 @@ final class PersistentCampaignPbo
         if (! $previous || $previous === $current || ! ActivityPbo::isOwnStoredPath($previous)) { return; }
         DB::afterCommit(static function () use ($previous): void {
             if (! Activity::withTrashed()->where('pbo_path', $previous)->exists()) {
-                $html = dirname($previous) . '/' . \App\Support\ActivityAddonsHtml::htmlFilename(basename($previous));
-                Storage::disk('local')->delete([$previous, $html]);
+                // Keep historical HTML presets untouched; they are no longer managed by PBO sync.
+                Storage::disk('local')->delete($previous);
             }
         });
     }

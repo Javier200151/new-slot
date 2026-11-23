@@ -6,7 +6,6 @@ use App\Models\Activity;
 use App\Models\ActivityPboExport;
 use App\Services\PersistentCampaignPbo;
 use App\Jobs\SyncActivityPboExport;
-use App\Support\ActivityAddonsHtml;
 use App\Support\ActivityPbo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +13,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Synchronises saved PBOs and their Arma 3 Launcher HTML to Windows.
+ * Synchronises verified PBOs to Windows; addons are fetched from the activity API.
  * Writes ONLY to an explicitly verified CIFS mount; never to the VM fallback directory.
  * Existing Windows files are overwritten only after explicit user confirmation.
  */
@@ -33,8 +32,7 @@ final class ActivityPboExportService
         // will refuse to overwrite unknown Windows content without approval.
         try {
             $directory = $this->verifiedDestination();
-            return file_exists($directory . '/' . $filename)
-                || file_exists($directory . '/' . ActivityAddonsHtml::htmlFilename($filename));
+            return file_exists($directory . '/' . $filename);
         } catch (Throwable) {
             return false;
         }
@@ -67,23 +65,6 @@ final class ActivityPboExportService
         }
     }
 
-    /** Explicit user action: ALWAYS recreate local HTML from current saved addon IDs. */
-    public function regenerate(Activity $activity, bool $pboReplacementApproved = false, bool $manualHtml = true): string
-    {
-        if (! is_string($activity->pbo_path) || ! ActivityPbo::isOwnStoredPath($activity->pbo_path)
-            || ! Storage::disk('local')->exists($activity->pbo_path)) {
-            throw new RuntimeException('Guarda primero un PBO válido en la actividad.');
-        }
-
-        $htmlPath = dirname($activity->pbo_path) . '/' . ActivityAddonsHtml::htmlFilename(basename($activity->pbo_path));
-        if (! Storage::disk('local')->put($htmlPath, ActivityAddonsHtml::forActivity($activity))) {
-            throw new RuntimeException('No se ha podido generar el HTML de addons.');
-        }
-        // The HTML button authorizes overwriting that HTML (NOT a different PBO).
-        $this->queue($activity, $pboReplacementApproved, $manualHtml || $pboReplacementApproved);
-        return $htmlPath;
-    }
-
     public function sync(ActivityPboExport $export): bool
     {
         try {
@@ -95,7 +76,7 @@ final class ActivityPboExportService
                 // Another still-live activity may use this same Windows basename.
                 if (! $export->filename || ! Activity::query()->where('pbo_key', '!=', $export->pbo_key)
                     ->whereRaw('LOWER(pbo) = ?', [strtolower($export->filename)])->exists()) {
-                    $this->removeOwnedPair($directory, $export);
+                    $this->removeOwnedPbo($directory, $export);
                 }
                 $export->delete();
                 return true;
@@ -103,14 +84,12 @@ final class ActivityPboExportService
             if ($members->pluck('pbo_path')->unique()->count() > 1) {
                 throw new RuntimeException('La campaña tiene PBO distintos: revisa sqa:share-pbos antes de sincronizar.');
             }
-            $htmlSource = $members->firstWhere('id', $export->html_activity_id);
-            $activity = $htmlSource ?: $members->first();
+            $activity = $members->first();
             $path = $members->first()->pbo_path;
             if (! ActivityPbo::isOwnStoredPath($path) || ! Storage::disk('local')->exists($path)) {
                 throw new RuntimeException('El PBO guardado en Laravel no se encuentra.');
             }
             $filename = basename($path);
-            $htmlFilename = ActivityAddonsHtml::htmlFilename($filename);
 
             // The Windows folder is flat. Never let an unrelated persistent campaign
             // silently replace a mission belonging to a different export key.
@@ -126,27 +105,15 @@ final class ActivityPboExportService
                 throw new RuntimeException('Ya existe otra actividad con el mismo PBO. Confirma la sustitución desde Filament.');
             }
 
-            $htmlPath = dirname($path) . '/' . $htmlFilename;
-            if (! $htmlSource || ! Storage::disk('local')->exists($htmlPath)) {
-                $this->regenerateLocalHtml($activity); // Migración de PBOs anteriores a la v70.
-            }
-            $htmlLocal = Storage::disk('local')->path($htmlPath);
             $pboLocal = Storage::disk('local')->path($path);
             $pboHash = hash_file('sha256', $pboLocal);
-            $htmlHash = hash_file('sha256', $htmlLocal);
-            if (! $pboHash || ! $htmlHash) {
-                throw new RuntimeException('No se han podido comprobar los archivos originales.');
+            if (! $pboHash) {
+                throw new RuntimeException('No se ha podido comprobar el archivo PBO original.');
             }
 
             $pboRemote = $directory . '/' . $filename;
-            $htmlRemote = $directory . '/' . $htmlFilename;
-
             $this->verifyOwnership($pboRemote, $filename === $export->filename ? $export->pbo_sha256 : null, $pboHash, (bool) $export->replacement_approved);
-            $this->verifyOwnership($htmlRemote, $filename === $export->filename ? $export->html_sha256 : null, $htmlHash, (bool) ($export->replacement_approved || $export->html_overwrite_approved));
-
-            // Do not transfer hundreds of MB again when only the HTML changed.
             $needsPbo = ! is_file($pboRemote) || hash_file('sha256', $pboRemote) !== $pboHash;
-            $needsHtml = ! is_file($htmlRemote) || hash_file('sha256', $htmlRemote) !== $htmlHash;
             $staged = [];
             $backups = [];
             $published = [];
@@ -154,7 +121,6 @@ final class ActivityPboExportService
             try {
                 foreach ([
                     $pboRemote => [$pboLocal, $pboHash, $needsPbo],
-                    $htmlRemote => [$htmlLocal, $htmlHash, $needsHtml],
                 ] as $destination => [$source, $hash, $needed]) {
                     if (! $needed) { continue; }
                     $temporary = tempnam($directory, '.sqa-upload-');
@@ -164,8 +130,8 @@ final class ActivityPboExportService
                     $staged[$destination] = $temporary;
                 }
 
-                // Move replaced files to temporary backups, then publish both verified files.
-                // A failed publication restores the previous pair instead of losing it.
+                // Move the previous PBO to a temporary backup before publishing the verified copy.
+                // A failed publication restores the previous PBO instead of losing it.
                 foreach ($staged as $destination => $temporary) {
                     if (file_exists($destination)) {
                         $backup = tempnam($directory, '.sqa-previous-');
@@ -183,7 +149,7 @@ final class ActivityPboExportService
                     unset($staged[$destination]);
                 }
 
-                if (hash_file('sha256', $pboRemote) !== $pboHash || hash_file('sha256', $htmlRemote) !== $htmlHash) {
+                if (hash_file('sha256', $pboRemote) !== $pboHash) {
                     throw new RuntimeException('La verificación final en Windows ha fallado.');
                 }
                 $publishedSuccessfully = true;
@@ -203,18 +169,17 @@ final class ActivityPboExportService
             }
 
             // Verify again after publishing to avoid claiming success on partial writes.
-            if (hash_file('sha256', $pboRemote) !== $pboHash || hash_file('sha256', $htmlRemote) !== $htmlHash) {
+            if (hash_file('sha256', $pboRemote) !== $pboHash) {
                 throw new RuntimeException('La verificación final de la copia en Windows ha fallado.');
             }
 
             if ($export->filename && strcasecmp($export->filename, $filename) !== 0
                 && ! Activity::query()->where('pbo_key', '!=', $export->pbo_key)->where('pbo', $export->filename)->exists()) {
-                $this->removeOwnedPair($directory, $export);
+                $this->removeOwnedPbo($directory, $export);
             }
 
             $changed = $export->filename !== $filename
-                || $export->pbo_sha256 !== $pboHash
-                || $export->html_sha256 !== $htmlHash;
+                || $export->pbo_sha256 !== $pboHash;
 
             // This activity becomes the new owner of the filename in /web.
             if ($export->replacement_approved) {
@@ -227,10 +192,8 @@ final class ActivityPboExportService
                 'replacement_approved' => false,
                 'html_overwrite_approved' => false,
                 'filename' => $filename,
-                'html_activity_id' => $activity->id,
                 'source_path' => $path,
                 'pbo_sha256' => $pboHash,
-                'html_sha256' => $htmlHash,
                 'status' => 'synced',
                 'last_error' => null,
                 'synced_at' => now(),
@@ -240,7 +203,7 @@ final class ActivityPboExportService
                 try {
                     app(AuditLogger::class)->automatic(
                         'activity_pbo_exported',
-                        ['filename' => $filename, 'html' => $htmlFilename, 'other_activity_ids' => $members->where('id', '!=', $activity->id)->pluck('id')->all()],
+                        ['filename' => $filename, 'other_activity_ids' => $members->where('id', '!=', $activity->id)->pluck('id')->all()],
                         $activity,
                         'pbo-sync',
                     );
@@ -267,15 +230,6 @@ final class ActivityPboExportService
         }
     }
 
-    private function regenerateLocalHtml(Activity $activity): string
-    {
-        $htmlPath = dirname($activity->pbo_path) . '/' . ActivityAddonsHtml::htmlFilename(basename($activity->pbo_path));
-        if (! Storage::disk('local')->put($htmlPath, ActivityAddonsHtml::forActivity($activity))) {
-            throw new RuntimeException('No se ha podido guardar el HTML de addons.');
-        }
-        return Storage::disk('local')->path($htmlPath);
-    }
-
     private function verifyOwnership(string $target, ?string $oldHash, string $newHash, bool $confirmed): void
     {
         if (! file_exists($target)) { return; }
@@ -290,13 +244,11 @@ final class ActivityPboExportService
         throw new RuntimeException('Ya existe un archivo distinto en Windows con ese nombre. Debes confirmar su sustitución desde Filament.');
     }
 
-    private function removeOwnedPair(string $directory, ActivityPboExport $export): void
+    /** Never delete historical HTML files; only remove a PBO with an owned hash. */
+    private function removeOwnedPbo(string $directory, ActivityPboExport $export): void
     {
         if (! $export->filename) { return; }
-        foreach ([
-            $export->filename => $export->pbo_sha256,
-            ActivityAddonsHtml::htmlFilename($export->filename) => $export->html_sha256,
-        ] as $name => $checksum) {
+        foreach ([$export->filename => $export->pbo_sha256] as $name => $checksum) {
             if (! $checksum) { continue; }
             $target = $directory . '/' . $name;
             if (is_file($target) && ! is_link($target) && hash_file('sha256', $target) === $checksum) {

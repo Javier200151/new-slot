@@ -76,6 +76,22 @@ class PublicActivityPboTest extends TestCase
         $this->assertFalse($data['html_sincronizado_windows']);
     }
 
+    public function test_verified_pbo_without_html_is_ready_for_mission_control(): void
+    {
+        Storage::disk('local')->put(self::PATH, 'pbo-only');
+        $export = new ActivityPboExport([
+            'status' => 'synced', 'filename' => self::FILENAME,
+            'source_path' => self::PATH, 'pbo_sha256' => hash('sha256', 'pbo-only'),
+            'html_sha256' => null,
+        ]);
+
+        $data = PublicActivityPbo::forActivity($this->activity(self::PATH, $export));
+        $this->assertTrue($data['pbo_subido']);
+        $this->assertTrue($data['pbo_sincronizado_windows']);
+        $this->assertFalse($data['html_generado']);
+        $this->assertFalse($data['html_sincronizado_windows']);
+    }
+
     public function test_stale_export_does_not_claim_new_pbo_was_synced(): void
     {
         Storage::disk('local')->put(self::PATH, 'pbo');

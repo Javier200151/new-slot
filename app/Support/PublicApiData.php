@@ -332,6 +332,7 @@ final class PublicApiData
         ];
         if ($detailed) {
             $row['descripcion_publica'] = self::activityDescription($activity, 5000);
+            $row['addons'] = ActivityAddons::names($activity);
             $row['facciones_publicas'] = $activity->enemyFactions()->orderBy('name')->pluck('name')->map(fn ($n) => ['nombre' => $n])->all();
         }
         return $row;

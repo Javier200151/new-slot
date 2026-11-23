@@ -81,7 +81,7 @@
       get activeActivityName() { return this.operation.mission || ''; },
       get activePbo() { return this.operation.pbo || ''; },
       get selectedActivity() { return this.activities.find(a => a.id === this.selectedId) || null; },
-      get displayActivity() { return this.selectedActivity || { name:'—', event:'',pbo:null,html:null,map:'—',slots:'—',profile:'—',addons:0,addonNames:[],missingAddons:[],serverMods:[],mode:'',sync:'missing',pboReady:false,htmlReady:false,launchable:false,reason:'Elige una misión para consultar sus datos.',saveInfo:null,webLink:null }; },
+      get displayActivity() { return this.selectedActivity || { name:'—', event:'',pbo:null,map:'—',slots:'—',profile:'—',addons:0,addonNames:[],missingAddons:[],serverMods:[],mode:'',sync:'missing',pboReady:false,launchable:false,reason:'Elige una misión para consultar sus datos.',saveInfo:null,webLink:null }; },
       get hasSelected() { return !!this.selectedActivity; },
       get addonNames() { return Array.isArray(this.displayActivity.addonNames) ? this.displayActivity.addonNames : []; },
       get missingAddons() { return Array.isArray(this.displayActivity.missingAddons) ? this.displayActivity.missingAddons : []; },
@@ -245,8 +245,8 @@
       statusClass(s) { return ({ en_marcha:'sqa-server-panel__status--running',detenido:'sqa-server-panel__status--stopped',arrancando:'sqa-server-panel__status--starting',parando:'sqa-server-panel__status--starting',caido:'sqa-server-panel__status--crashed',externo:'sqa-server-panel__status--external' })[s] || 'sqa-server-panel__status--stopped'; },
       statusLabel(s) { return ({ en_marcha:'En marcha',detenido:'Detenido',arrancando:'Arrancando…',parando:'Parando…',caido:'Caído',externo:'Externo (FASTER)',sin_conexion:'Sin conexión' })[s] || str(s); },
       syncTone(s) { return s === 'ok' ? 'ok' : s === 'partial' ? 'warning' : 'danger'; },
-      syncLabel(s) { return s === 'ok' ? 'PBO y HTML listos' : s === 'partial' ? 'Solo uno de los archivos listo' : 'Sin archivos preparados'; },
-      syncHint(a) { return a?.reason || (a?.sync === 'ok' ? 'PBO y HTML disponibles en Windows.' : 'Hay archivos pendientes de sincronizar.'); },
+      syncLabel(s) { return s === 'ok' ? 'PBO y addons listos' : s === 'partial' ? 'PBO disponible, revisar addons' : 'PBO o addons no preparados'; },
+      syncHint(a) { return a?.reason || (a?.sync === 'ok' ? 'PBO verificado y addons disponibles.' : 'Revisa el PBO y los addons de la actividad.'); },
       launchLabel() {
         if (!this.selectedActivity) return 'Elige una misión';
         if (!this.connected || this.readOnly) return 'No disponible';
@@ -279,7 +279,7 @@
       },
       launchFingerprint(a) {
         if (!a) return '';
-        return JSON.stringify([a.id,a.name,a.pbo,a.html,a.profile,a.mode,a.saveInfo,a.addonNames,a.missingAddons,a.serverMods]);
+        return JSON.stringify([a.id,a.name,a.pbo,a.profile,a.mode,a.saveInfo,a.addonNames,a.missingAddons,a.serverMods]);
       },
       get confirmationProblem() {
         const c = this.confirmation;
@@ -344,7 +344,7 @@
         if (command.action === 'lanzar' && this.selectedId !== command.selection) { this.notice('La misión seleccionada ha cambiado. Revísala de nuevo.','error'); return; }
         this.busyServer = {...this.busyServer,[command.id]:command.action};
         try {
-          const result = await this.$wire.controlServer(command.id,command.action,command.selection || '',!!command.stopAcademies,!!command.force,command.forceToken || '');
+          const result = await this.$wire.controlServer(command.id,command.action,command.selection || '',!!command.stopAcademies,!!command.force,command.forceToken || '',command.warningToken || '');
           if (result.requiresForce) {
             const n = result.players;
             this.openConfirm({
@@ -352,6 +352,16 @@
               title:'Hay jugadores conectados',
               message:result.message || (n == null ? 'Hay jugadores conectados. ¿Seguro?' : `Hay ${n} ${plural(n,'jugador conectado','jugadores conectados')}. ¿Seguro?`) + ' Saldrán del servidor.',
               rows:[['Servidor',(this.servers[command.id] || defaultServer(command.id)).name],['Jugadores conectados',this.number(n)]], warning:'Los jugadores conectados saldrán del servidor.', accept:command.action === 'parar' ? 'Sí, parar' : command.action === 'reiniciar' ? 'Sí, reiniciar' : 'Sí, lanzar',danger:true
+            });
+          } else if (result.requiresCampaignWarning) {
+            const removed = Array.isArray(result.removedAddons) ? result.removedAddons : [];
+            this.openConfirm({
+              ...command,warningToken:result.warningToken || '',
+              title:'Campaña: addons retirados',
+              message:result.message || 'El progreso guardado de ALiVE podría necesitar estos addons.',
+              rows:[['Evento',this.selectedActivity?.name || '—'],['Addons retirados',removed.join(', ') || '—']],
+              warning:'Si continúas, el servidor cargará solamente los addons de esta actividad.',
+              accept:'Continuar y lanzar',danger:true
             });
           } else {
             this.notice(result.message || (result.ok ? 'Orden aceptada.' : 'No se pudo completar la acción.'),result.ok ? 'ok' : 'error');

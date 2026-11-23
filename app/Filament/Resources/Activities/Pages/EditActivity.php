@@ -226,10 +226,9 @@ class EditActivity extends EditRecord
     {
         if ($this->previousPboPath !== $this->record->pbo_path) {
             if ($this->record->pbo_path && ! $this->inheritedCampaignPbo) {
-                app(ActivityPboExportService::class)->regenerate(
+                app(ActivityPboExportService::class)->queue(
                     $this->record,
                     strcasecmp($this->approvedPboReplacementName ?? '', basename($this->record->pbo_path)) === 0,
-                    false,
                 );
             } elseif ($this->record->pbo_path && $this->inheritedCampaignPbo) {
                 if ($this->record->pboExport?->status !== 'synced') {
@@ -245,10 +244,6 @@ class EditActivity extends EditRecord
             if ($this->record->pbo_path && $this->previousPboPath === $this->record->pbo_path) {
                 app(ActivityPboExportService::class)->queue($this->record);
             }
-        }
-        if ($this->previousPboPath === $this->record->pbo_path
-            && $this->record->wasChanged('addons') && $this->record->pbo_path) {
-            app(ActivityPboExportService::class)->regenerate($this->record);
         }
         $this->approvedPboReplacementName = null;
         $this->record->loadMissing('activityType');
@@ -2397,7 +2392,7 @@ class EditActivity extends EditRecord
                             }),
 
                         Action::make('downloadAddonsHtml')
-                            ->label('Descargar HTML')
+                            ->label('Descargar preset para otros clanes')
                             ->action(function (Get $get) {
                                 $addonIds = collect($get('addon_ids') ?? [])
                                     ->map(fn ($addonId): int => (int) $addonId)
@@ -2448,7 +2443,6 @@ class EditActivity extends EditRecord
                         'addons' => ['addon_ids' => $addonIds],
                     ])->save();
 
-                    app(ActivityPboExportService::class)->regenerate($this->record);
                 }),
 
 

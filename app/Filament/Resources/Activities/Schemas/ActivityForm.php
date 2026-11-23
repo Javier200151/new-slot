@@ -668,20 +668,16 @@ class ActivityForm
                                         ->whereKeyNot($record->id)->whereNotNull('pbo_path')->get()
                                     : collect();
                                 $others = $shared->map(fn ($a) => e((string) $a->name))->implode(', ');
-                                $origin = $export?->activity?->name;
-                                $difference = $shared->contains(fn ($a) => ($a->addons ?? []) !== ($record->addons ?? []));
                                 $sharing = $others !== '' ? '<div><strong>Lo usan también:</strong> ' . $others . '</div>' : '';
-                                $htmlInfo = $origin ? '<div><strong>HTML generado desde:</strong> ' . e((string) $origin) . '</div>' : '';
-                                if ($difference) {
-                                    $htmlInfo .= '<div class="text-amber-600">Atención: las actividades tienen addons diferentes. Revisad el HTML compartido.</div>';
-                                }
+                                $addonsInfo = $shared->contains(fn ($a) => ($a->addons ?? []) !== ($record->addons ?? []))
+                                    ? '<div class="text-amber-600">Las actividades tienen addons diferentes. Cada evento cargará los suyos desde la web.</div>' : '';
                                 return new HtmlString('<div class="rounded-lg border border-gray-700 p-4 text-sm">' 
                                     . '<div><strong>Archivo:</strong> <span class="break-all">' . $name . '</span></div>'
                                     . '<div><strong>Fecha de subida:</strong> ' . e($date) . '</div>'
                                     . '<div><strong>Subido por:</strong> ' . $uploader . '</div>'
                                     . '<div><strong>Tamaño:</strong> ' . e($size) . '</div>'
                                     . '<div><strong>Windows:</strong> ' . e($syncStatus) . '</div>'
-                                    . $sharing . $htmlInfo
+                                    . $sharing . $addonsInfo
                                     . '</div>');
                             }),
                         Actions::make([
@@ -711,26 +707,8 @@ class ActivityForm
                                             $other->forceFill(['addons' => $record->addons])->save();
                                         }
                                     }
-                                    app(ActivityPboExportService::class)->regenerate($record->fresh());
                                     Notification::make()->title('Addons de la campaña actualizados')->success()->send();
-                                }),
-                            Action::make('regeneratePboHtml')
-                                ->label('Autogenerar HTML del PBO')
-                                ->icon('heroicon-o-document-arrow-down')
-                                ->visible(fn (?Activity $record): bool => filled($record?->pbo_path)
-                                    && ActivityPbo::isOwnStoredPath((string) $record->pbo_path))
-                                ->action(function (?Activity $record): void {
-                                    if (! $record) { return; }
-                                    try {
-                                        app(ActivityPboExportService::class)->regenerate($record->fresh());
-                                        Notification::make()->title('HTML de addons actualizado')
-                                            ->body('Se ha generado con los addons actuales de la actividad.')
-                                            ->success()->send();
-                                    } catch (\Throwable $exception) {
-                                        Notification::make()->title('No se pudo generar el HTML')
-                                            ->body($exception->getMessage())->danger()->send();
-                                    }
-                                }),
+                                })
                         ])->visible(fn (?Activity $record): bool => filled($record?->pbo_path)
                             && ActivityPbo::isOwnStoredPath((string) $record->pbo_path)),
                     ]),
