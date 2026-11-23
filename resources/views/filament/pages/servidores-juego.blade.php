@@ -2,8 +2,8 @@
     @if ($configuraciones)
         @include('filament.pages.servidores-juego-configuraciones')
     @else
-    <div class="sqa-server-panel" x-data="sqaMissionControl()" x-cloak wire:ignore>
-        <div class="sqa-server-panel__intro">
+    <div class="sqa-server-panel" x-data="sqaMissionControl()" x-cloak wire:ignore.self>
+        <div class="sqa-server-panel__intro" wire:ignore>
             <div>
                 <h1>Servidores de juego</h1>
                 <p>Estado en directo · se actualiza cada 5 s <span x-show="checkedAt">· última lectura <span x-text="checkedAt"></span></span></p>
@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <div class="sqa-server-panel__banners" aria-live="polite">
+        <div class="sqa-server-panel__banners" aria-live="polite" wire:ignore>
             <div class="sqa-server-panel__banner sqa-server-panel__banner--error" x-show="ready && !connected">
                 <strong>Sin conexión con Mission Control</strong>
                 <span x-text="(error || 'No se ha podido obtener el estado.') + ' Se reintentará cada 5 segundos. Los datos pueden estar desactualizados. ' + lastReading() + '.'"></span>
@@ -30,9 +30,9 @@
                 <strong>No se pudo actualizar la lista de eventos</strong><span x-text="catalogError"></span>
             </div>
         </div>
-        <div class="sqa-server-panel__layout" :class="{'sqa-server-panel__layout--stale':stale}">
+        <div class="sqa-server-panel__layout" :class="{'sqa-server-panel__layout--stale':stale}" wire:ignore.self>
             {{-- Columna de academias --}}
-            <section class="sqa-server-panel__academies" aria-labelledby="sqa-academies-title">
+            <section class="sqa-server-panel__academies" aria-labelledby="sqa-academies-title" wire:ignore>
                 <div class="sqa-server-panel__section-title">
                     <h2 id="sqa-academies-title">Academias</h2>
                     <span>Servidores de entrenamiento</span>
@@ -83,7 +83,7 @@
                     <h2 id="sqa-operations-title">Operativos</h2>
                     <span>Un evento a la vez · Arma 3 Operativos · puerto 2302</span>
                 </div>
-                <article class="sqa-server-panel__card sqa-server-panel__operations-card">
+                <article class="sqa-server-panel__card sqa-server-panel__operations-card" wire:ignore>
                     <div class="sqa-server-panel__operations-status">
                         <div class="sqa-server-panel__card-head">
                             <span class="sqa-server-panel__status" :class="statusClass(operation.state)"><i></i><span x-text="statusLabel(operation.state)"></span></span>
@@ -248,10 +248,11 @@
                         </button>
                     </div>
                 </article>
+                @include('filament.pages.servidores-juego-arranque-automatico')
             </section>
         </div>
 
-        <section class="sqa-server-panel__register" aria-labelledby="sqa-log-title">
+        <section class="sqa-server-panel__register" aria-labelledby="sqa-log-title" wire:ignore>
             <div class="sqa-server-panel__section-title"><h2 id="sqa-log-title">Registro</h2><span>Acciones enviadas desde la web</span></div>
             <div class="sqa-server-panel__card sqa-server-panel__log">
                 <template x-for="(entry, index) in log" :key="index">
@@ -260,13 +261,13 @@
             </div>
         </section>
 
-        <div class="sqa-server-panel__footer-meta" x-show="connected">
+        <div class="sqa-server-panel__footer-meta" x-show="connected" wire:ignore>
             SQA Mission Control <span x-show="version" x-text="'· versión ' + version"></span>
             <span x-show="mode" x-text="'· modo ' + mode"></span>
             <span x-show="readOnly">· solo lectura</span>
         </div>
 
-        <div class="sqa-server-panel__toasts" aria-live="polite">
+        <div class="sqa-server-panel__toasts" aria-live="polite" wire:ignore>
             <template x-for="toast in toasts" :key="toast.id">
                 <button type="button" class="sqa-server-panel__toast" :class="'sqa-server-panel__toast--' + toast.type" :role="toast.type === 'error' ? 'alert' : 'status'" @click="dismissNotice(toast.id)" :title="'Clic para cerrar'">
                     <span x-text="toast.message"></span><span aria-hidden="true">×</span>
@@ -274,7 +275,7 @@
             </template>
         </div>
 
-        <dialog class="sqa-server-panel__modal" x-ref="serverConfirm" aria-labelledby="sqa-confirm-title" aria-describedby="sqa-confirm-description" @cancel.prevent="closeConfirm()">
+        <dialog wire:ignore class="sqa-server-panel__modal" x-ref="serverConfirm" aria-labelledby="sqa-confirm-title" aria-describedby="sqa-confirm-description" @cancel.prevent="closeConfirm()">
             <div class="sqa-server-panel__modal-body">
                 <h3 id="sqa-confirm-title" x-text="confirmation?.title || ''"></h3>
                 <p id="sqa-confirm-description" x-text="confirmation?.message || ''"></p>

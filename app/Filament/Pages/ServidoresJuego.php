@@ -66,8 +66,9 @@ class ServidoresJuego extends Page
                 MissionControlTelegramTemplates::defaults(),
                 (array) ($setting->telegram_server_templates ?? []),
             );
-            $this->readAutoSettings();
         }
+        // Automatic launch is loaded lazily on the main dashboard via wire:init.
+        // Telegram settings no longer request Windows configuration when opened.
     }
 
     public function canConfigureServers(): bool
