@@ -328,13 +328,10 @@ class PublicEventController extends Controller
             && $recruitmentEligibility->hasPendingReserveRetutoring(auth()->user());
 
         $currentUserCanReserve = auth()->check()
-            && ($event->activity?->activityType?->allowsParticipationStatus(auth()->user()->status_id) ?? true)
             && ! $hasPendingReserveRetutoring
-            && in_array(
-                strtoupper(trim((string) auth()->user()->status?->name)),
-                ['ACTIVO', 'RESERVA', 'RECLUTA'],
-                true,
-            );
+            && ($event->activity?->activityType?->allowsReservationStatus(
+                auth()->user()->status_id, auth()->user()->status?->name
+            ) ?? in_array(strtoupper(trim((string) auth()->user()->status?->name)), ['ACTIVO', 'RESERVA', 'RECLUTA'], true));
         $reservedUserIds = $eventReservations
             ->pluck('user_id')
             ->filter()
@@ -981,8 +978,8 @@ class PublicEventController extends Controller
 
         $statusName = strtoupper(trim((string) $user->status?->name));
         $event->loadMissing('activity.activityType');
-        if (! in_array($statusName, ['ACTIVO', 'RESERVA', 'RECLUTA'], true)
-            || ! ($event->activity?->activityType?->allowsParticipationStatus($user->status_id) ?? true)) {
+        if (! ($event->activity?->activityType?->allowsReservationStatus($user->status_id, $statusName)
+            ?? in_array($statusName, ['ACTIVO', 'RESERVA', 'RECLUTA'], true))) {
             throw ValidationException::withMessages([
                 'reservation' => 'Tu estado actual no permite entrar en la cola de reservas.',
             ]);
