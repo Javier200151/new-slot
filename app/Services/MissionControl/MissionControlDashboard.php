@@ -7,6 +7,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\GameServerActionLog;
 use App\Support\ActivityPbo;
+use App\Support\ActivityAddons;
 use App\Support\PublicActivityPbo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -51,11 +52,11 @@ final class MissionControlDashboard
             }
             try {
                 if ($refreshCatalog) {
-                    Cache::forget('mission-control.catalog.v1');
-                    Cache::forget('mission-control.picker.v94');
+                    Cache::forget('mission-control.catalog.v1-pbo-only-v102');
+                    Cache::forget('mission-control.picker.v94-pbo-only-v102');
                 }
-                $result['activities'] = Cache::remember('mission-control.picker.v94', now()->addSeconds(30), function (): array {
-                    $catalog = Cache::remember('mission-control.catalog.v1', now()->addSeconds(30), fn (): array => [
+                $result['activities'] = Cache::remember('mission-control.picker.v94-pbo-only-v102', now()->addSeconds(30), function (): array {
+                    $catalog = Cache::remember('mission-control.catalog.v1-pbo-only-v102', now()->addSeconds(30), fn (): array => [
                         'misiones' => $this->client->missions(),
                         'campanas' => $this->client->campaigns(),
                         'mods' => $this->client->mods(),
@@ -173,9 +174,9 @@ final class MissionControlDashboard
             $output[] = [
                 'id' => 'file:'.hash('sha256', $filename), 'group' => 'folder', 'name' => $filename,
                 'whenLabel' => '', 'event' => 'Archivo de Windows sin actividad asociada',
-                'fileLabel' => $filename, 'pbo' => $filename, 'html' => null,
+                'fileLabel' => $filename, 'pbo' => $filename,
                 'map' => '—', 'slots' => '—', 'profile' => '—', 'addons' => 0,
-                'sync' => 'partial', 'pboReady' => true, 'htmlReady' => false,
+                'sync' => 'partial', 'pboReady' => true,
                 'launchable' => false, 'reason' => 'Asocia este PBO a una actividad con addons para poder lanzarlo.',
                 'mode' => 'Archivo de Windows', 'webLink' => null, 'serverMods' => [],
                 'addonNames' => [], 'missingAddons' => [],
@@ -212,17 +213,17 @@ final class MissionControlDashboard
         $isCampaign = $activity->campaign_id !== null;
         $hasPbo = $filename && isset($missionNames[mb_strtolower($filename)]);
         $pboReady = $hasPbo && $public['pbo_sincronizado_windows'];
-        $htmlReady = (bool) $public['html_sincronizado_windows'];
-        $addonIds = collect($activity->addons['addon_ids'] ?? [])->map(fn ($v) => (int) $v)->filter()->unique()->all();
-        $addonNames = $addonIds ? \App\Models\Addon::query()->whereIn('id', $addonIds)->pluck('name')->all() : [];
+        $addonIds = ActivityAddons::ids($activity);
+        $addonNames = ActivityAddons::names($activity);
+        $deletedIds = ActivityAddons::missingIds($activity);
         $missing = array_values(array_filter($addonNames, fn ($name) => ! isset($installedMods[mb_strtolower($name)])));
-        $campaignReady = $campaign && ! empty($campaign['pbo_existe']) && ! empty($campaign['progreso'])
-            && empty($campaign['faltan']) && empty($campaign['aviso']);
+        $campaignReady = $campaign && ! empty($campaign['pbo_existe']) && ! empty($campaign['progreso']);
+        $addonsReady = $addonIds !== [] && $deletedIds === [] && $missing === [];
         $reason = $isCampaign
-            ? ($campaignReady ? null : ((string) ($campaign['aviso'] ?? 'Campaña no preparada en SQA Mission Control.')))
+            ? (! $campaignReady ? 'Campaña sin PBO o progreso guardado en Mission Control.'
+                : (! $addonsReady ? 'Revisa los addons de esta actividad: falta una selección válida o hay addons sin instalar.' : null))
             : (! $pboReady ? 'El PBO todavía no está confirmado en Windows.'
-                : (! $addonIds ? 'La actividad necesita addons seleccionados en Filament.'
-                    : ($missing ? 'Faltan addons instalados: '.implode(', ', array_slice($missing, 0, 3)) : null)));
+                : (! $addonsReady ? 'Revisa los addons de esta actividad: falta una selección válida o hay addons sin instalar.' : null));
         $dateLabel = $event?->date?->copy()->locale('es')->translatedFormat('D d/m H:i') ?? '';
 
         return [
@@ -234,23 +235,17 @@ final class MissionControlDashboard
             'eventId' => $event?->id,
             'fileLabel' => $filename ?: ((string) $activity->pbo ?: 'Sin PBO'),
             'pbo' => $isCampaign ? ($campaign['pbo'] ?? $filename) : $filename,
-            'html' => $public['html_nombre'],
             'map' => $activity->map?->name ?: 'Sin mapa',
             'slots' => count(collect($event?->orbat['groups'] ?? $activity->orbat['groups'] ?? [])->flatMap(fn ($g) => $g['slots'] ?? [])),
             'profile' => ($isCampaign ? 'Campaña' : ($event?->multiclans ? 'Multiclán' : 'Estándar')).' · 3 HC',
-            'addons' => $isCampaign ? count($campaign['addons'] ?? []) : count($addonNames),
-            'addonNames' => $isCampaign
-                ? array_values(array_filter($campaign['addons'] ?? [], 'is_string'))
-                : $addonNames,
-            'missingAddons' => $isCampaign
-                ? array_values(array_filter($campaign['faltan'] ?? [], 'is_string'))
-                : $missing,
+            'addons' => count($addonNames),
+            'addonNames' => $addonNames,
+            'missingAddons' => $missing,
             'serverMods' => array_values(array_filter($campaign['server_mods'] ?? [], 'is_string')),
             'mode' => $isCampaign ? 'Campaña' : 'OPERACIÓN',
-            'sync' => $isCampaign ? ($campaignReady ? 'ok' : 'missing') : ($pboReady && $htmlReady ? 'ok' : (($pboReady || $htmlReady) ? 'partial' : 'missing')),
+            'sync' => $isCampaign ? ($campaignReady && $addonsReady ? 'ok' : 'missing') : ($pboReady && $addonsReady ? 'ok' : ($pboReady ? 'partial' : 'missing')),
             'pboReady' => (bool) ($isCampaign ? ($campaign['pbo_existe'] ?? false) : $pboReady),
-            'htmlReady' => (bool) ($isCampaign ? ! empty($campaign['progreso']) : $htmlReady),
-            'launchable' => $this->isOperation($activity) && ($isCampaign ? (bool) $campaignReady : ($pboReady && $addonIds && ! $missing)),
+            'launchable' => $this->isOperation($activity) && $addonsReady && ($isCampaign ? (bool) $campaignReady : (bool) $pboReady),
             'reason' => $reason,
             'webLink' => $event ? route('events.show', ['event' => $event->id]) : null,
             'saveInfo' => $isCampaign ? $this->campaignProgressLabel($activity->campaign?->name ?? ($campaign['nombre'] ?? null), $campaign['progreso'] ?? null) : null,
@@ -321,8 +316,18 @@ final class MissionControlDashboard
         if ($event) {
             $payload['evento'] = ['id' => (int) $event->id, 'nombre' => $event->name, 'fecha' => $event->date?->toIso8601String()];
         }
+        // The server uses this activity's addon list, even when a campaign has
+        // its own persistent PBO and saved progress on Windows.
+        $addonIds = ActivityAddons::ids($activity);
+        if ($addonIds === []) {
+            throw new MissionControlException('Selecciona los addons de la actividad desde Filament.', 'faltan_addons');
+        }
+        $addonNames = ActivityAddons::names($activity);
+        if (count($addonNames) !== count($addonIds)) {
+            throw new MissionControlException('Alguno de los addons configurados ya no existe.', 'faltan_addons');
+        }
+        $payload['addons'] = $addonNames;
         if ($activity->campaign_id) {
-            // Mission Control owns the campaign's mission, addons and saved ALiVE progress.
             $payload['campana'] = ['id' => (int) $activity->campaign_id, 'nombre' => (string) $activity->campaign?->name];
             return $payload;
         }
@@ -330,18 +335,9 @@ final class MissionControlDashboard
         if (! $pbo['pbo_subido'] || ! $pbo['pbo_sincronizado_windows'] || ! $pbo['pbo_nombre']) {
             throw new MissionControlException('El PBO todavía no está sincronizado con Windows.', 'pbo_no_sincronizado');
         }
-        $addonIds = collect($activity->addons['addon_ids'] ?? [])->map(fn ($id) => (int) $id)->filter()->unique()->all();
-        if (! $addonIds) {
-            throw new MissionControlException('Selecciona los addons de la actividad desde Filament.', 'faltan_addons');
-        }
-        $addonNames = \App\Models\Addon::query()->whereIn('id', $addonIds)->orderBy('name')->pluck('name')->all();
-        if (count($addonNames) !== count($addonIds)) {
-            throw new MissionControlException('Alguno de los addons configurados ya no existe.', 'faltan_addons');
-        }
         $payload['pbo'] = ['nombre' => $pbo['pbo_nombre']];
         if ((int) $activity->pbo_size_bytes > 0) { $payload['pbo']['tamano'] = (int) $activity->pbo_size_bytes; }
         if (filled($activity->pboExport?->pbo_sha256)) { $payload['pbo']['sha256'] = $activity->pboExport->pbo_sha256; }
-        $payload['addons'] = $addonNames;
         if ($event?->multiclans) { $payload['perfil'] = 'multiclanes'; }
 
         return $payload;

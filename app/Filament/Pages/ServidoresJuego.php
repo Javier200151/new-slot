@@ -270,7 +270,7 @@ class ServidoresJuego extends Page
      * A force retry requires a short-lived token issued only after the agent's 409.
      * @return array<string,mixed>
      */
-    public function controlServer(string $server, string $action, string $selection = '', bool $stopAcademies = false, bool $force = false, string $forceToken = ''): array
+    public function controlServer(string $server, string $action, string $selection = '', bool $stopAcademies = false, bool $force = false, string $forceToken = '', string $campaignWarningToken = ''): array
     {
         abort_unless(static::canAccess(), 403);
         $isLaunch = in_array($action, ['lanzar', 'arrancar'], true);
@@ -297,6 +297,7 @@ class ServidoresJuego extends Page
         // The token is deliberately tied to the user, action, and the exact launch selection.
         $confirmationKey = 'sqa-mc-force:'.$actor['id'].':'.$server.':'.$action;
         $fingerprint = hash('sha256', $selection.'|'.($stopAcademies ? '1' : '0'));
+        $campaignWarningKey = 'sqa-mc-campaign-addon-warning:'.$actor['id'].':'.$server;
         if ($force) {
             $authorization = Cache::get($confirmationKey);
             if (! is_array($authorization) || ! is_string($authorization['token'] ?? null)
@@ -352,6 +353,24 @@ class ServidoresJuego extends Page
                     $missing = implode(', ', (array) ($preflight['addons']['faltan'] ?? []));
                     throw new MissionControlException('No se puede lanzar: '.($missing !== '' ? 'faltan addons: '.$missing : 'revisa el PBO, la campaña y el estado del servidor.'), 'comprobacion_fallida');
                 }
+                // 0.7.2: saved ALiVE progress may reference addons that the current
+                // activity no longer selects. Explicitly warn before launching.
+                $removed = array_values(array_filter((array) ($preflight['campana']['addons_quitados'] ?? []), 'is_string'));
+                if ($removed !== [] && isset($payload['campana'])) {
+                    $digest = hash('sha256', json_encode([$fingerprint, $removed], JSON_UNESCAPED_UNICODE));
+                    $authorized = Cache::get($campaignWarningKey);
+                    if (! is_array($authorized) || ! hash_equals((string) ($authorized['token'] ?? ''), $campaignWarningToken)
+                        || ! hash_equals((string) ($authorized['digest'] ?? ''), $digest)) {
+                        $token = bin2hex(random_bytes(16));
+                        Cache::put($campaignWarningKey, ['token' => $token, 'digest' => $digest], now()->addSeconds(60));
+                        return [
+                            'ok' => false, 'requiresCampaignWarning' => true, 'warningToken' => $token,
+                            'removedAddons' => $removed,
+                            'message' => 'La partida guardada puede depender de addons que ya no están seleccionados. Comprueba la lista antes de continuar.',
+                        ];
+                    }
+                }
+                Cache::forget($campaignWarningKey);
                 if ($force) { $payload['forzar'] = true; }
                 $client->launch($payload);
             } elseif ($action === 'arrancar') {

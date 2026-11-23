@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\MemberProcedureSetting;
 use App\Services\MemberProcedures\TelegramService;
 use App\Support\ActivityPbo;
+use App\Support\ActivityAddons;
 use App\Support\PublicActivityPbo;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
@@ -183,14 +184,16 @@ final class MissionControlTelegramMonitor
         if ($dueReadiness !== []) {
             $missions = null;
             $campaigns = null;
+            $installedMods = null;
             try {
                 $missions = $this->missionControl->missions();
                 $campaigns = $this->missionControl->campaigns();
+                $installedMods = $this->missionControl->mods();
             } catch (Throwable) { /* Unknown must never be reported as ready. */ }
             foreach ($dueReadiness as [$event, $start, $key, $checkpoint, $msgKey]) {
                 try {
-                    [$lines, $status] = $this->readiness($event, $missions, $campaigns);
-                    $heading = $status === 'ready' ? 'Archivos preparados' : ($status === 'unknown' ? 'No se pudo comprobar todo' : 'Faltan archivos o requisitos');
+                    [$lines, $status] = $this->readiness($event, $missions, $campaigns, $installedMods);
+                    $heading = $status === 'ready' ? 'PBO y addons preparados' : ($status === 'unknown' ? 'No se pudo comprobar todo' : 'Falta el PBO o algún addon');
                     $automaticStatus = 'sin verificar';
                     if (is_array($auto)) {
                         if (! ($auto['activo'] ?? false)) {
@@ -281,68 +284,81 @@ final class MissionControlTelegramMonitor
     }
 
     /** @return array{list<string>,string} */
-    private function readiness(Event $event, ?array $missions, ?array $campaigns): array
+    private function readiness(Event $event, ?array $missions, ?array $campaigns, ?array $installedMods): array
     {
         $activity = $event->activity;
-        if (! $activity) { return [['❌ No se encontró la actividad vinculada.'], 'missing']; }
+        if (! $activity) { return [['[FALTA] No se encontró la actividad vinculada.'], 'missing']; }
+
+        // Both automatic and manual launches use the *activity's* addon selection.
+        $addonIds = ActivityAddons::ids($activity);
+        $addonNames = ActivityAddons::names($activity);
+        $deletedIds = ActivityAddons::missingIds($activity);
+        $addonsReady = $addonIds !== [] && $deletedIds === [];
+        $addonLines = [];
+        if ($addonIds === []) {
+            $addonLines[] = '[FALTA] La actividad no tiene addons seleccionados.';
+        } elseif ($deletedIds !== []) {
+            $addonLines[] = '[FALTA] Hay '.count($deletedIds).' addon(s) eliminados del catálogo.';
+        }
+        if ($installedMods === null) {
+            $addonLines[] = '[SIN VERIFICAR] No se pudo consultar los addons instalados en Windows.';
+        } else {
+            $installed = array_fill_keys(array_map('mb_strtolower', array_filter($installedMods, 'is_string')), true);
+            $missing = array_values(array_filter($addonNames, static fn (string $name): bool => ! isset($installed[mb_strtolower($name)])));
+            if ($missing !== []) {
+                $addonsReady = false;
+                $addonLines[] = '[FALTA] Addons no instalados: '.implode(', ', array_map(fn (string $name): string => $this->safeName($name), $missing));
+            } elseif ($addonsReady) {
+                $addonLines[] = '[OK] '.count($addonNames).' addons de la actividad instalados.';
+            }
+        }
+        $addonUnknown = $installedMods === null;
+
         if ($activity->campaign_id) {
-            if ($campaigns === null) { return [['❓ No se pudo consultar la campaña en Windows.'], 'unknown']; }
+            if ($campaigns === null) {
+                return [array_merge(['[SIN VERIFICAR] No se pudo consultar la campaña en Windows.'], $addonLines), 'unknown'];
+            }
             $found = collect($campaigns)->first(fn ($c) => (int) ($c['web_id'] ?? 0) === (int) $activity->campaign_id);
-            if (! is_array($found)) { return [['❌ Campaña no configurada en Mission Control.'], 'missing']; }
+            if (! is_array($found)) {
+                return [array_merge(['[FALTA] Campaña no configurada en Mission Control.'], $addonLines), 'missing'];
+            }
             $pbo = ! empty($found['pbo_existe']);
             $progress = ! empty($found['progreso']);
-            $mods = empty($found['faltan']);
-            $issue = empty($found['aviso']);
-            return [[
-                ($pbo ? '✅' : '❌').' PBO de campaña en Windows',
-                ($progress ? '✅' : '❌').' Progreso de campaña disponible',
-                ($mods && $issue ? '✅' : '❌').' Addons y configuración de campaña',
-                ...(! $issue ? ['⚠️ '.$this->safeName($found['aviso'])] : []),
-            ], ($pbo && $progress && $mods && $issue) ? 'ready' : 'missing'];
+            $lines = array_merge([
+                ($pbo ? '[OK]' : '[FALTA]').' PBO de campaña en Windows',
+                ($progress ? '[OK]' : '[FALTA]').' Progreso de campaña disponible',
+            ], $addonLines);
+            return [$lines, ($pbo && $progress && $addonsReady) ? ($addonUnknown ? 'unknown' : 'ready') : 'missing'];
         }
 
         $meta = PublicActivityPbo::forActivity($activity);
         $pboName = $meta['pbo_nombre'];
-        $htmlName = $meta['html_nombre'];
         $export = $activity->pboExport;
-        $synced = $export && $export->status === 'synced'
-            && $meta['pbo_sincronizado_windows'] && $meta['html_sincronizado_windows'];
-        if (! $pboName || ! $htmlName || ! ActivityPbo::validFilename($pboName)) {
-            return [['❌ Falta un PBO válido en la actividad.', '❌ Falta el HTML asociado.'], 'missing'];
+        $synced = $export && $export->status === 'synced' && $meta['pbo_sincronizado_windows'];
+        if (! $pboName || ! ActivityPbo::validFilename($pboName)) {
+            return [array_merge(['[FALTA] Falta un PBO válido en la actividad.'], $addonLines), 'missing'];
         }
         if ($missions === null) {
-            return [['❓ No se pudo verificar el PBO con Mission Control.', 'PBO: '.$this->safeName($pboName)], 'unknown'];
+            return [array_merge(['[SIN VERIFICAR] No se pudo verificar el PBO con Mission Control.', 'PBO: '.$this->safeName($pboName)], $addonLines), 'unknown'];
         }
         $remote = collect($missions)->first(fn ($m) => is_array($m) && mb_strtolower((string) ($m['nombre'] ?? '')) === mb_strtolower($pboName));
         $pboListed = is_array($remote) && (int) ($remote['tamano'] ?? 0) > 0;
         $pboSize = (int) ($activity->pbo_size_bytes ?? 0);
         $sizeOk = $pboListed && ($pboSize <= 0 || (int) $remote['tamano'] === $pboSize);
         $folder = rtrim(trim((string) config('pbo_sync.destination', '/mnt/squadalpha-pbos')), '/');
-        // Filenames come from ActivityPbo::validFilename; never trust remote paths.
-        $shareMounted = $folder !== '' && is_dir($folder) && is_readable($folder);
-        if (! $shareMounted) {
-            return [[($sizeOk ? '✅' : '❌').' PBO: '.$this->safeName($pboName), '❓ HTML: no se puede leer la carpeta SMB desde PHP.'], 'unknown'];
+        if ($folder === '' || ! is_dir($folder) || ! is_readable($folder)) {
+            return [array_merge(['[SIN VERIFICAR] No se puede comprobar el PBO en la carpeta SMB.'], $addonLines), 'unknown'];
         }
+        // The filename is validated before composing a path; never accept a remote path.
         $pboPath = $folder.'/'.$pboName;
-        $htmlPath = $folder.'/'.$htmlName;
-        $htmlPresent = is_file($htmlPath) && is_readable($htmlPath) && filesize($htmlPath) > 0;
         $pboPresent = is_file($pboPath) && is_readable($pboPath) && filesize($pboPath) > 0;
-        // A name and a size are not enough: reject stale files with the same name.
         $pboHashOk = $pboPresent && is_string($export?->pbo_sha256)
             && hash_equals(strtolower($export->pbo_sha256), (string) hash_file('sha256', $pboPath));
-        $htmlHashOk = $htmlPresent && is_string($export?->html_sha256)
-            && hash_equals(strtolower($export->html_sha256), (string) hash_file('sha256', $htmlPath));
         $pboReady = $synced && $sizeOk && $pboHashOk;
-        $htmlReady = $synced && $htmlHashOk;
-        $status = $pboReady && $htmlReady ? 'ready' : 'missing';
-        $pboLine = $pboReady ? '✅ PBO correcto: ' : ($pboPresent && $pboListed ? '⚠️ PBO pendiente de confirmación: ' : '❌ PBO no disponible en Windows: ');
-        $htmlLine = $htmlReady ? '✅ HTML correcto: ' : ($htmlPresent ? '⚠️ HTML pendiente de confirmación: ' : '❌ HTML no disponible en Windows: ');
-        return [[
-            $pboLine.$this->safeName($pboName),
-            $htmlLine.$this->safeName($htmlName),
-            ...(! $synced ? ['⚠️ Falta una sincronización completa y verificada del par PBO/HTML.'] : []),
-            ...($synced && $pboListed && ! $pboReady ? ['⚠️ El PBO no coincide con la última copia confirmada.'] : []),
-        ], $status];
+        $lines = array_merge([
+            ($pboReady ? '[OK] PBO verificado: ' : '[FALTA] PBO no sincronizado o no coincide: ').$this->safeName($pboName),
+        ], $addonLines);
+        return [$lines, ($pboReady && $addonsReady) ? ($addonUnknown ? 'unknown' : 'ready') : 'missing'];
     }
 
     /** @return array{string,string} */

@@ -9,9 +9,9 @@ final class MissionControlTelegramTemplates
     public static function labels(): array
     {
         return [
-            'files_ready' => 'Archivos preparados',
-            'files_missing' => 'Falta el PBO o el HTML',
-            'files_unknown' => 'No se pueden verificar los archivos',
+            'files_ready' => 'PBO y addons preparados',
+            'files_missing' => 'Falta el PBO o algún addon',
+            'files_unknown' => 'No se pueden verificar PBO y addons',
             'launch_ready' => 'Operativo arrancado correctamente',
             'launch_manual' => 'Operativo ya arrancado manualmente',
             'launch_pending' => 'Arranque pendiente o en curso',
@@ -47,7 +47,7 @@ final class MissionControlTelegramTemplates
             'fecha' => '27/11/2026 22:00',
             'antelacion' => '120',
             'estado' => 'Archivos preparados',
-            'detalles' => "[OK] PBO: Pacific_Shield.Tanoa.pbo\n[OK] HTML: Pacific_Shield.Tanoa.html",
+            'detalles' => "[OK] PBO: Pacific_Shield.Tanoa.pbo\n[OK] Addons: 25 instalados",
             'automatico' => 'activado (15 min antes)',
             'proxima' => 'Los archivos están preparados; no es necesario repetir la comprobación.',
             'url' => 'https://www.squadalpha.es/eventos/123',
@@ -85,12 +85,12 @@ final class MissionControlTelegramTemplates
     {
         $samples = self::samples();
         if ($key === 'files_missing') {
-            $samples['estado'] = 'Falta un archivo';
-            $samples['detalles'] = "[OK] PBO: Pacific_Shield.Tanoa.pbo\n[FALTA] HTML: Pacific_Shield.Tanoa.html";
+            $samples['estado'] = 'Faltan archivos o addons';
+            $samples['detalles'] = "[OK] PBO: Pacific_Shield.Tanoa.pbo\n[FALTA] Addons: @RHSAFRF";
             $samples['proxima'] = 'Se repetirá la comprobación en 30 minutos.';
         } elseif ($key === 'files_unknown') {
             $samples['estado'] = 'No se puede verificar la preparación';
-            $samples['detalles'] = '[SIN VERIFICAR] Mission Control no responde.';
+            $samples['detalles'] = '[SIN VERIFICAR] No se puede comprobar el PBO ni los addons: Mission Control no responde.';
             $samples['automatico'] = 'sin verificar';
         } elseif ($key === 'launch_ready') {
             $samples['resultado'] = 'El servidor está en marcha con el evento correcto.';

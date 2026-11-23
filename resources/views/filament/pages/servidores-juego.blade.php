@@ -173,7 +173,7 @@
                                                         <small x-show="activity.group === 'folder'" x-text="activity.reason || 'Sin evento asociado'"></small><small x-show="activity.group === 'campaign'">Campaña · progreso guardado en Windows</small>
                                                     </span>
                                                     <span class="sqa-server-panel__picker-option-status" :class="'sqa-server-panel__picker-option-status--' + syncTone(activity.sync)" :title="syncLabel(activity.sync)">
-                                                        <i></i><span x-text="activity.mode === 'Campaña' ? (activity.sync === 'ok' ? 'Campaña lista' : 'Campaña pendiente') : (activity.sync === 'ok' ? 'PBO + HTML' : (activity.sync === 'partial' ? 'Incompleto' : 'Sin archivos'))"></span>
+                                                        <i></i><span x-text="activity.mode === 'Campaña' ? (activity.sync === 'ok' ? 'Campaña lista' : 'Campaña pendiente') : (activity.sync === 'ok' ? 'PBO + addons' : (activity.sync === 'partial' ? 'Revisar addons' : 'No preparado'))"></span>
                                                     </span>
                                                 </button>
                                             </template>
@@ -181,9 +181,9 @@
                                     </template>
                                 </div>
                                 <div class="sqa-server-panel__picker-legend">
-                                    <span><i class="sqa-server-panel__legend-dot sqa-server-panel__legend-dot--ok"></i> Ambos archivos</span>
-                                    <span><i class="sqa-server-panel__legend-dot sqa-server-panel__legend-dot--warning"></i> Solo uno</span>
-                                    <span><i class="sqa-server-panel__legend-dot sqa-server-panel__legend-dot--danger"></i> Ninguno</span>
+                                    <span><i class="sqa-server-panel__legend-dot sqa-server-panel__legend-dot--ok"></i> PBO y addons</span>
+                                    <span><i class="sqa-server-panel__legend-dot sqa-server-panel__legend-dot--warning"></i> Revisar addons</span>
+                                    <span><i class="sqa-server-panel__legend-dot sqa-server-panel__legend-dot--danger"></i> Sin preparar</span>
                                 </div>
                             </div>
                         </div>
