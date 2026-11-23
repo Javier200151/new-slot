@@ -14,6 +14,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
@@ -92,7 +93,7 @@ class MemberProcedureSettingForm
                                 ]),
 
                             Section::make('Telegram')
-                                ->description('El bot publica por ahora únicamente en = ALPHA FORCE NETWORK =. Los tres enlaces de invitación se guardan manualmente y se reutilizan en los correos automáticos. Los reclutas siguen estando únicamente en WhatsApp.')
+                                ->description('Configura los grupos donde publica el bot. Los enlaces de invitación se reutilizan en los correos automáticos.')
                                 ->schema([
                                     TextInput::make('telegram_network_chat_id')
                                         ->label('Destino de mensajes · = ALPHA FORCE NETWORK =')
@@ -121,6 +122,25 @@ class MemberProcedureSettingForm
                                         ->helperText('Enlace de invitación vigente que se incluirá en los correos automáticos.'),
                                 ])
                                 ->columns(2),
+
+                            Section::make('Telegram · servidores')
+                                ->description('Avisos operativos del bot, únicamente para el grupo SERVER [=ALPHA=].')
+                                ->schema([
+                                    Toggle::make('telegram_server_notifications_enabled')
+                                        ->label('Enviar avisos de servidores')
+                                        ->default(false)
+                                        ->helperText('No se publicará nada hasta activarlo y configurar el chat.'),
+                                    TextInput::make('telegram_server_chat_id')
+                                        ->label('Grupo · SERVER [=ALPHA=]')
+                                        ->maxLength(80)
+                                        ->placeholder('-100…')
+                                        ->helperText('ID de grupo obtenido con «Detectar chats Telegram». No uses el chat de miembros.'),
+                                    TextInput::make('telegram_server_notice_minutes')
+                                        ->label('Primera comprobación (minutos antes)')
+                                        ->numeric()->minValue(30)->maxValue(1440)->step(30)
+                                        ->default(120)->required()
+                                        ->helperText('Por defecto, 120 minutos. Si falta algún archivo, volverá a comprobarlo cada 30 minutos hasta T−30.'),
+                                ])->columns(2),
 
                             Section::make('Telegram · mensajes automáticos')
                                 ->description('Plantillas enviadas a = ALPHA FORCE NETWORK =. Admiten MarkdownV2. Los cierres aleatorios funcionan como una ruleta: si hay varios, el sistema escoge uno al realizar el envío real.')

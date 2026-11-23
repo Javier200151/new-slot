@@ -69,6 +69,18 @@ final class MissionControlClient
     }
 
     /** @return array<string,mixed> */
+    public function automaticLaunch(): array
+    {
+        return $this->request('GET', '/lanzamiento-automatico');
+    }
+
+    /** Mission Control notices are ordered oldest first. */
+    public function noticesSince(int $cursor): array
+    {
+        return $this->request('GET', '/avisos', [], ['desde' => max(0, $cursor)]);
+    }
+
+    /** @return array<string,mixed> */
     public function health(): array
     {
         return $this->request('GET', '/salud');
@@ -147,7 +159,7 @@ final class MissionControlClient
     }
 
     /** @return array<string,mixed> */
-    private function request(string $method, string $endpoint, array $payload = []): array
+    private function request(string $method, string $endpoint, array $payload = [], array $query = []): array
     {
         if ($error = $this->configError()) {
             throw new MissionControlException($error, 'sin_configurar');
@@ -180,7 +192,17 @@ final class MissionControlClient
             if ($method !== 'GET') {
                 $pending = $pending->withBody($body, 'application/json');
             }
-            $response = $pending->send($method, rtrim((string) config('mission_control.url'), '/').$endpoint);
+            // The HMAC canonical path has no query string; only the fixed notices endpoint accepts `desde`.
+            if ($query !== []) {
+                if ($method !== 'GET' || $endpoint !== '/avisos' || array_keys($query) !== ['desde'] || ! is_int($query['desde'])) {
+                    throw new MissionControlException('Consulta no autorizada.', 'ruta_no_valida');
+                }
+            }
+            $url = rtrim((string) config('mission_control.url'), '/').$endpoint;
+            if ($query !== []) {
+                $url .= '?'.http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+            }
+            $response = $pending->send($method, $url);
         } catch (Throwable) {
             $message = $method === 'GET'
                 ? 'No se puede conectar con SQA Mission Control. Revisa el certificado, la red y el servicio.'

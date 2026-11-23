@@ -1,0 +1,413 @@
+<?php
+
+namespace App\Services\MissionControl;
+
+use App\Models\Event;
+use App\Models\MemberProcedureSetting;
+use App\Services\MemberProcedures\TelegramService;
+use App\Support\ActivityPbo;
+use App\Support\PublicActivityPbo;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
+/**
+ * Server-only notifier. Does not start, stop or modify any Arma server.
+ * A successful Telegram response is recorded before advancing to another notice.
+ */
+final class MissionControlTelegramMonitor
+{
+    private const TZ = 'Europe/Madrid';
+
+    public function __construct(
+        private readonly MissionControlClient $missionControl,
+        private readonly TelegramService $telegram,
+    ) {}
+
+    /** Explicit operator-requested test; the scheduler never calls this. */
+    public function sendTest(): void
+    {
+        $setting = MemberProcedureSetting::current();
+        $chat = trim((string) $setting->telegram_server_chat_id);
+        if (! $setting->telegram_server_notifications_enabled || ! $this->telegram->isConfigured()
+            || ! preg_match('/\A-\d{5,20}\z/', $chat)
+            || $chat === trim((string) $setting->telegram_network_chat_id)) {
+            throw new \RuntimeException('Activa los avisos y configura un chat de servidores independiente del grupo general.');
+        }
+        $this->telegram->sendMessage($chat, "✅ Prueba de avisos SERVER [=ALPHA=]\nEl bot puede publicar en el grupo. No se ha ejecutado ninguna acción sobre los servidores.");
+    }
+
+    /** @return array<string,int> */
+    public function run(): array
+    {
+        $counts = ['sent' => 0, 'skipped' => 0, 'errors' => 0];
+        $setting = MemberProcedureSetting::current();
+        $chat = trim((string) $setting->telegram_server_chat_id);
+        if (! $setting->telegram_server_notifications_enabled || $chat === '' || ! $this->telegram->isConfigured()) {
+            return $counts;
+        }
+        // Never send server notices to the members' chat, even after a configuration mistake.
+        if (! preg_match('/\A-\d{5,20}\z/', $chat) || $chat === trim((string) $setting->telegram_network_chat_id)) {
+            Log::warning('Mission Control Telegram: el grupo de servidores debe tener su propio chat_id numérico.');
+            $counts['errors']++;
+            return $counts;
+        }
+        if (! $this->missionControl->isConfigured()) {
+            Log::warning('Mission Control Telegram: agente no configurado; avisos suspendidos.');
+            $counts['errors']++;
+            return $counts;
+        }
+
+        // Shared cache drivers provide a distributed lock; the durable DB unique key
+        // additionally protects deliveries if two scheduler instances overlap.
+        $lock = Cache::lock('sqa:mission-control-telegram:'.hash('sha256', $chat), 180);
+        if (! $lock->get()) {
+            $counts['skipped']++;
+            return $counts;
+        }
+        try {
+            // Production group must never receive simulated server notices.
+            // A temporary connection failure is not a simulation: scheduled checks
+            // will still report "unknown" rather than silently disappearing.
+            try {
+                if (($this->missionControl->health()['modo'] ?? null) === 'simulation') {
+                    $counts['skipped']++;
+                    return $counts;
+                }
+            } catch (Throwable) {}
+            $this->forwardNotices($chat, $counts);
+            $lead = max(30, min(1440, (int) ($setting->telegram_server_notice_minutes ?: 120)));
+            $this->checkScheduledEvents($chat, $lead, $counts);
+        } finally {
+            $lock->release();
+        }
+        return $counts;
+    }
+
+    /** @param array<string,int> $counts */
+    private function forwardNotices(string $chat, array &$counts): void
+    {
+        $cursor = DB::table('mission_control_telegram_cursors')->where('chat_id', $chat)->first();
+        try {
+            $notices = $this->missionControl->noticesSince((int) ($cursor->last_notice_id ?? 0));
+        } catch (Throwable $e) {
+            Log::warning('Mission Control Telegram: no se pudieron consultar los avisos.', ['type' => get_class($e)]);
+            $counts['errors']++;
+            return;
+        }
+        if (! $cursor) {
+            // Never replay up to 200 old operational notices when first enabled.
+            $max = 0;
+            foreach ($notices as $notice) {
+                if (is_array($notice)) { $max = max($max, (int) ($notice['id'] ?? 0)); }
+            }
+            DB::table('mission_control_telegram_cursors')->insertOrIgnore([
+                'chat_id' => $chat, 'last_notice_id' => $max,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            return;
+        }
+
+        $current = (int) $cursor->last_notice_id;
+        usort($notices, static fn ($a, $b): int => (int) ($a['id'] ?? 0) <=> (int) ($b['id'] ?? 0));
+        foreach ($notices as $notice) {
+            if (! is_array($notice)) { continue; }
+            $id = (int) ($notice['id'] ?? 0);
+            if ($id <= $current) { continue; }
+            $message = trim((string) ($notice['mensaje'] ?? ''));
+            $when = null;
+            try { $when = CarbonImmutable::parse((string) ($notice['fecha'] ?? ''), self::TZ); } catch (Throwable) {}
+            // Empty and stale notices are intentionally acknowledged without sending.
+            $stale = $when && $when->lessThan(CarbonImmutable::now(self::TZ)->subHours(12));
+            if ($message !== '' && ! $stale) {
+                try {
+                    $type = trim((string) ($notice['tipo'] ?? ''));
+                    $text = "🖥️ SERVER [=ALPHA=] · Aviso de Mission Control\n".$message;
+                    $this->deliver($chat, 'agent:'.$id, $text, null, $type ?: 'notice', $counts);
+                } catch (Throwable $e) {
+                    // Do not advance: the same notice is retried on the next tick.
+                    Log::warning('Mission Control Telegram: no pudo enviar un aviso.', ['id' => $id, 'type' => get_class($e)]);
+                    $counts['errors']++;
+                    break;
+                }
+            }
+            DB::table('mission_control_telegram_cursors')->where('chat_id', $chat)
+                ->update(['last_notice_id' => $id, 'updated_at' => now()]);
+            $current = $id;
+        }
+    }
+
+    /** @param array<string,int> $counts */
+    private function checkScheduledEvents(string $chat, int $leadMinutes, array &$counts): void
+    {
+        $now = CarbonImmutable::now(self::TZ);
+        $events = Event::query()
+            ->with(['eventStatus', 'activity.activityType', 'activity.campaign', 'activity.pboExport'])
+            ->whereBetween('date', [$now->subMinutes(32), $now->addMinutes($leadMinutes + 2)])
+            ->whereHas('eventStatus', fn ($q) => $q->where('name', 'ACTIVO'))
+            ->whereHas('activity.activityType', fn ($q) => $q->whereIn('name', ['OPERACIÓN', 'OPERACION', 'OPERACIONES', 'OPERATIVO', 'OPERATIVOS']))
+            ->orderBy('date')->limit(80)->get();
+        if ($events->isEmpty()) { return; }
+
+        // Load expensive catalogs only when at least one readiness checkpoint is due.
+        $dueReadiness = [];
+        $dueLaunch = [];
+        foreach ($events as $event) {
+            $start = CarbonImmutable::instance($event->date)->setTimezone(self::TZ);
+            $key = $this->eventKey($event, $start);
+            $checkpoint = self::checkpointAt($now, $start, $leadMinutes);
+            if ($checkpoint !== null && ! $this->hasReady($chat, $event->id, $key)) {
+                $msgKey = 'event:'.$key.':readiness:'.$checkpoint;
+                if (! $this->wasSent($chat, $msgKey)) {
+                    $dueReadiness[] = [$event, $start, $key, $checkpoint, $msgKey];
+                }
+            }
+            if ($now->greaterThanOrEqualTo($start->subMinutes(15)) && $now->lessThanOrEqualTo($start->addMinutes(30))) {
+                $dueLaunch[] = [$event, $start, $key];
+            }
+        }
+
+        $auto = null;
+        $autoError = null;
+        if ($dueLaunch !== [] || $dueReadiness !== []) {
+            try { $auto = $this->missionControl->automaticLaunch(); }
+            catch (Throwable $e) { $autoError = 'Sin conexión con el estado del arranque automático.'; }
+        }
+
+        if ($dueReadiness !== []) {
+            $missions = null;
+            $campaigns = null;
+            try {
+                $missions = $this->missionControl->missions();
+                $campaigns = $this->missionControl->campaigns();
+            } catch (Throwable) { /* Unknown must never be reported as ready. */ }
+            foreach ($dueReadiness as [$event, $start, $key, $checkpoint, $msgKey]) {
+                try {
+                    [$lines, $status] = $this->readiness($event, $missions, $campaigns);
+                    $heading = $status === 'ready' ? '✅ Archivos preparados' : ($status === 'unknown' ? '⚠️ No se pudo comprobar todo' : '❌ Faltan archivos o requisitos');
+                    if (is_array($auto)) {
+                        if (! ($auto['activo'] ?? false)) {
+                            $lines[] = '⚠️ El lanzamiento automático está desactivado en Windows.';
+                        } else {
+                            $entry = collect($auto['eventos'] ?? [])->first(fn ($e) => (int) ($e['evento_id'] ?? 0) === (int) $event->id);
+                            if (is_array($entry) && ($entry['automatico'] ?? true) === false) {
+                                $lines[] = '⚠️ Este evento está excluido del arranque automático.';
+                            }
+                        }
+                    } else {
+                        $lines[] = '⚠️ No se pudo confirmar la configuración del arranque automático.';
+                    }
+                    $text = "📦 SERVER [=ALPHA=] · Comprobación T−{$checkpoint} min\n"
+                        .$heading."\nEvento: ".$this->safeName($event->name)."\n"
+                        .'Inicio: '.$start->format('d/m/Y H:i')."\n"
+                        .implode("\n", $lines);
+                    if ($status !== 'ready' && $checkpoint > 30) {
+                        $text .= "\nVolveré a comprobarlo en 30 minutos (hasta T−30).";
+                    }
+                    if ($status !== 'ready' && $checkpoint === 30) {
+                        $text .= "\nÚltima comprobación previa. Revisad los archivos antes del arranque.";
+                    }
+                    $text .= "\n".url('/eventos/'.$event->id);
+                    $this->deliver($chat, $msgKey, $text, $event->id, $status, $counts);
+                } catch (Throwable $e) {
+                    Log::warning('Mission Control Telegram: falló la comprobación de archivos.', ['event_id' => $event->id, 'type' => get_class($e)]);
+                    $counts['errors']++;
+                }
+            }
+        }
+
+        if ($dueLaunch !== []) {
+            $servers = null;
+            try { $servers = $this->missionControl->servers(); }
+            catch (Throwable) { $autoError ??= 'No se pudo consultar el estado de Operativos.'; }
+            foreach ($dueLaunch as [$event, $start, $key]) {
+                try {
+                    $base = 'event:'.$key.':launch';
+                    $first = $base.':initial';
+                    $final = $base.':final';
+                    $hasInitial = $this->wasSent($chat, $first);
+                    $hasFinal = $this->wasSent($chat, $final);
+                    if ($hasFinal) { continue; }
+                    if ($hasInitial) {
+                        $initialResult = DB::table('mission_control_telegram_deliveries')
+                            ->where('chat_id', $chat)->where('message_key', $first)->value('result');
+                        if (in_array($initialResult, ['ready', 'failed'], true)) { continue; }
+                    }
+                    [$result, $line] = $this->launchResult($event, $auto, $servers, $autoError);
+                    if (! $hasInitial) {
+                        $text = "🚀 SERVER [=ALPHA=] · Arranque automático (T−15)\n"
+                            .$this->safeName($event->name).' · '.$start->format('d/m/Y H:i')."\n".$line
+                            ."\n".url('/eventos/'.$event->id);
+                        $this->deliver($chat, $first, $text, $event->id, $result, $counts);
+                    } elseif ($result !== 'pending' || $now->greaterThanOrEqualTo($start->addMinutes(30))) {
+                        if ($result === 'pending') {
+                            $result = 'unknown';
+                            $line = '⚠️ No se ha podido confirmar un arranque correcto. Revisad Mission Control.';
+                        }
+                        $text = "🚀 SERVER [=ALPHA=] · Resultado del arranque\n"
+                            .$this->safeName($event->name).' · '.$start->format('d/m/Y H:i')."\n".$line;
+                        $this->deliver($chat, $final, $text, $event->id, $result, $counts);
+                    }
+                } catch (Throwable $e) {
+                    Log::warning('Mission Control Telegram: falló la comprobación del arranque.', ['event_id' => $event->id, 'type' => get_class($e)]);
+                    $counts['errors']++;
+                }
+            }
+        }
+    }
+
+    /** @return array{list<string>,string} */
+    private function readiness(Event $event, ?array $missions, ?array $campaigns): array
+    {
+        $activity = $event->activity;
+        if (! $activity) { return [['❌ No se encontró la actividad vinculada.'], 'missing']; }
+        if ($activity->campaign_id) {
+            if ($campaigns === null) { return [['❓ No se pudo consultar la campaña en Windows.'], 'unknown']; }
+            $found = collect($campaigns)->first(fn ($c) => (int) ($c['web_id'] ?? 0) === (int) $activity->campaign_id);
+            if (! is_array($found)) { return [['❌ Campaña no configurada en Mission Control.'], 'missing']; }
+            $pbo = ! empty($found['pbo_existe']);
+            $progress = ! empty($found['progreso']);
+            $mods = empty($found['faltan']);
+            $issue = empty($found['aviso']);
+            return [[
+                ($pbo ? '✅' : '❌').' PBO de campaña en Windows',
+                ($progress ? '✅' : '❌').' Progreso de campaña disponible',
+                ($mods && $issue ? '✅' : '❌').' Addons y configuración de campaña',
+                ...(! $issue ? ['⚠️ '.$this->safeName($found['aviso'])] : []),
+            ], ($pbo && $progress && $mods && $issue) ? 'ready' : 'missing'];
+        }
+
+        $meta = PublicActivityPbo::forActivity($activity);
+        $pboName = $meta['pbo_nombre'];
+        $htmlName = $meta['html_nombre'];
+        $export = $activity->pboExport;
+        $synced = $export && $export->status === 'synced'
+            && $meta['pbo_sincronizado_windows'] && $meta['html_sincronizado_windows'];
+        if (! $pboName || ! $htmlName || ! ActivityPbo::validFilename($pboName)) {
+            return [['❌ Falta un PBO válido en la actividad.', '❌ Falta el HTML asociado.'], 'missing'];
+        }
+        if ($missions === null) {
+            return [['❓ No se pudo verificar el PBO con Mission Control.', 'PBO: '.$this->safeName($pboName)], 'unknown'];
+        }
+        $remote = collect($missions)->first(fn ($m) => is_array($m) && mb_strtolower((string) ($m['nombre'] ?? '')) === mb_strtolower($pboName));
+        $pboListed = is_array($remote) && (int) ($remote['tamano'] ?? 0) > 0;
+        $pboSize = (int) ($activity->pbo_size_bytes ?? 0);
+        $sizeOk = $pboListed && ($pboSize <= 0 || (int) $remote['tamano'] === $pboSize);
+        $folder = rtrim(trim((string) config('pbo_sync.destination', '/mnt/squadalpha-pbos')), '/');
+        // Filenames come from ActivityPbo::validFilename; never trust remote paths.
+        $shareMounted = $folder !== '' && is_dir($folder) && is_readable($folder);
+        if (! $shareMounted) {
+            return [[($sizeOk ? '✅' : '❌').' PBO: '.$this->safeName($pboName), '❓ HTML: no se puede leer la carpeta SMB desde PHP.'], 'unknown'];
+        }
+        $pboPath = $folder.'/'.$pboName;
+        $htmlPath = $folder.'/'.$htmlName;
+        $htmlPresent = is_file($htmlPath) && is_readable($htmlPath) && filesize($htmlPath) > 0;
+        $pboPresent = is_file($pboPath) && is_readable($pboPath) && filesize($pboPath) > 0;
+        // A name and a size are not enough: reject stale files with the same name.
+        $pboHashOk = $pboPresent && is_string($export?->pbo_sha256)
+            && hash_equals(strtolower($export->pbo_sha256), (string) hash_file('sha256', $pboPath));
+        $htmlHashOk = $htmlPresent && is_string($export?->html_sha256)
+            && hash_equals(strtolower($export->html_sha256), (string) hash_file('sha256', $htmlPath));
+        $pboReady = $synced && $sizeOk && $pboHashOk;
+        $htmlReady = $synced && $htmlHashOk;
+        $status = $pboReady && $htmlReady ? 'ready' : 'missing';
+        $pboLine = $pboReady ? '✅ PBO correcto: ' : ($pboPresent && $pboListed ? '⚠️ PBO pendiente de confirmación: ' : '❌ PBO no disponible en Windows: ');
+        $htmlLine = $htmlReady ? '✅ HTML correcto: ' : ($htmlPresent ? '⚠️ HTML pendiente de confirmación: ' : '❌ HTML no disponible en Windows: ');
+        return [[
+            $pboLine.$this->safeName($pboName),
+            $htmlLine.$this->safeName($htmlName),
+            ...(! $synced ? ['⚠️ Falta una sincronización completa y verificada del par PBO/HTML.'] : []),
+            ...($synced && $pboListed && ! $pboReady ? ['⚠️ El PBO no coincide con la última copia confirmada.'] : []),
+        ], $status];
+    }
+
+    /** @return array{string,string} */
+    private function launchResult(Event $event, ?array $auto, ?array $servers, ?string $error): array
+    {
+        if (! is_array($auto) || ! is_array($servers)) {
+            return ['pending', '⚠️ '.($error ?: 'No se ha podido consultar el resultado de Windows.')];
+        }
+        if (! ($auto['activo'] ?? false)) {
+            return ['failed', '❌ El lanzamiento automático está desactivado en Mission Control.'];
+        }
+        if (! empty($auto['error_web'])) {
+            return ['pending', '⚠️ Mission Control no ha podido leer el calendario: '.$this->safeName($auto['error_web'])];
+        }
+        $item = collect($auto['eventos'] ?? [])->first(fn ($e) => (int) ($e['evento_id'] ?? 0) === (int) $event->id);
+        if (! is_array($item)) { return ['pending', '⏳ El evento aún no aparece en el calendario automático del servidor.']; }
+        if (($item['automatico'] ?? true) === false) { return ['failed', '❌ Este evento está excluido del lanzamiento automático.']; }
+        $state = (string) ($item['estado'] ?? 'pendiente');
+        $server = collect($servers)->first(fn ($s) => ($s['id'] ?? null) === 'operativos');
+        if (! is_array($server)) { return ['pending', '⚠️ No se ha podido comprobar el estado de Operativos.']; }
+        $running = ($server['estado'] ?? '') === 'en_marcha';
+        $runningEvent = (int) ($server['mision']['evento']['id'] ?? 0);
+        if ($running && $runningEvent === (int) $event->id) {
+            if ($state === 'ya_en_marcha') { return ['ready', '✅ El operativo ya estaba iniciado manualmente.']; }
+            return ['ready', '✅ El servidor está en marcha con el evento correcto.'];
+        }
+        if (in_array($state, ['fallido', 'no_lanzado'], true)) {
+            $why = trim((string) ($item['problema'] ?? $server['ultimo_error'] ?? ''));
+            return ['failed', '❌ Mission Control informa de que el arranque ha fallado.'.($why !== '' ? ' '.$this->safeName($why) : '')];
+        }
+        if ($running && $runningEvent !== (int) $event->id) {
+            return ['pending', '⚠️ Operativos está en marcha, pero todavía no con este evento.'];
+        }
+        return ['pending', '⏳ Windows todavía no confirma el arranque (estado: '.$this->safeName($state).').'];
+    }
+
+    public static function checkpointAt(CarbonImmutable $now, CarbonImmutable $start, int $lead): ?int
+    {
+        $lead = max(30, min(1440, $lead));
+        $slots = [$lead];
+        for ($minutes = $lead - 30; $minutes > 30; $minutes -= 30) { $slots[] = $minutes; }
+        $slots[] = 30;
+        $latest = null;
+        foreach (array_unique($slots) as $minutes) {
+            if ($now->greaterThanOrEqualTo($start->subMinutes($minutes)) && $now->lessThan($start->subMinutes(15))) {
+                $latest = $minutes;
+            }
+        }
+        return $latest;
+    }
+
+    private function eventKey(Event $event, CarbonImmutable $start): string
+    {
+        return $event->id.':'.$start->utc()->format('YmdHi');
+    }
+
+    private function hasReady(string $chat, int $eventId, string $key): bool
+    {
+        return DB::table('mission_control_telegram_deliveries')
+            ->where('chat_id', $chat)->where('event_id', $eventId)
+            ->where('message_key', 'like', 'event:'.$key.':readiness:%')
+            ->where('result', 'ready')->exists();
+    }
+
+    private function wasSent(string $chat, string $key): bool
+    {
+        return DB::table('mission_control_telegram_deliveries')
+            ->where('chat_id', $chat)->where('message_key', $key)->exists();
+    }
+
+    /** @param array<string,int> $counts */
+    private function deliver(string $chat, string $key, string $text, ?int $eventId, string $result, array &$counts): void
+    {
+        if ($this->wasSent($chat, $key)) { $counts['skipped']++; return; }
+        // Telegram has no idempotency key. If the process crashes between send and
+        // DB insert a duplicate is possible; no false 'sent' entry is ever recorded.
+        $this->telegram->sendMessage($chat, mb_substr($text, 0, 4000));
+        DB::table('mission_control_telegram_deliveries')->insertOrIgnore([
+            'chat_id' => $chat, 'message_key' => $key, 'event_id' => $eventId,
+            'result' => $result, 'sent_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $counts['sent']++;
+    }
+
+    private function safeName(mixed $value): string
+    {
+        $value = trim((string) ($value ?? ''));
+        return mb_substr(preg_replace('/[\r\n\t]+/u', ' ', $value) ?? '', 0, 210);
+    }
+}
