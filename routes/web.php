@@ -48,13 +48,17 @@ use App\Http\Controllers\BbcodePreviewController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Sorteos de la comunidad. La visualización es pública; los controles
-// necesitan sesión y el permiso independiente de gestionar sorteos.
-Route::get('/sorteos', [CommunityRaffleController::class, 'index'])->name('raffles.index');
-Route::get('/sorteos/{raffle}', [CommunityRaffleController::class, 'show'])
-    ->whereNumber('raffle')->name('raffles.show');
-Route::get('/sorteos/{raffle}/estado', [CommunityRaffleController::class, 'state'])
-    ->whereNumber('raffle')->middleware('throttle:60,1')->name('raffles.state');
+// Sorteos de la comunidad: acceso solo para inscritos y gestores.
+// La autorización se vuelve a comprobar dentro del controlador para las URL directas.
+Route::middleware('auth')->group(function (): void {
+    Route::get('/media/sorteos/{filename}', \App\Http\Controllers\CommunityRaffleImageController::class)
+        ->where('filename', '[A-Za-z0-9._-]+')->name('raffles.image');
+    Route::get('/sorteos', [CommunityRaffleController::class, 'index'])->name('raffles.index');
+    Route::get('/sorteos/{raffle}', [CommunityRaffleController::class, 'show'])
+        ->whereNumber('raffle')->name('raffles.show');
+    Route::get('/sorteos/{raffle}/estado', [CommunityRaffleController::class, 'state'])
+        ->whereNumber('raffle')->middleware('throttle:60,1')->name('raffles.state');
+});
 Route::middleware(['auth', 'throttle:30,1'])->group(function (): void {
     Route::post('/sorteos/{raffle}/participantes', [CommunityRaffleController::class, 'participants'])
         ->whereNumber('raffle')->name('raffles.participants');
@@ -62,6 +66,8 @@ Route::middleware(['auth', 'throttle:30,1'])->group(function (): void {
         ->whereNumber('raffle')->name('raffles.spin');
     Route::post('/sorteos/{raffle}/repetir/{draw}', [CommunityRaffleController::class, 'reroll'])
         ->whereNumber('raffle')->whereNumber('draw')->name('raffles.reroll');
+    Route::post('/sorteos/{raffle}/cambiar-premio/{draw}', [CommunityRaffleController::class, 'changePrize'])
+        ->whereNumber('raffle')->whereNumber('draw')->name('raffles.change-prize');
     Route::post('/sorteos/{raffle}/cerrar', [CommunityRaffleController::class, 'close'])
         ->whereNumber('raffle')->name('raffles.close');
 });
@@ -319,6 +325,9 @@ Route::get(
     [PublicActivityController::class, 'index']
 )->name('activities.index');
 
+Route::get('/actividades/{activity}/addons.html', \App\Http\Controllers\PublicActivityAddonsHtmlController::class)
+    ->name('activities.addons.download');
+
 Route::get(
     '/actividades/{activity}',
     [PublicActivityController::class, 'show']
@@ -539,6 +548,16 @@ Route::get('/firmas/{nick}.html', function ($nick) {
     ->name('firmas.show');
 /*
 |--------------------------------------------------------------------------
+| Centro de estadísticas
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/estadisticas', [\App\Http\Controllers\PublicStatisticsController::class, 'index'])
+    ->middleware('throttle:60,1')
+    ->name('statistics.index');
+
+/*
+|--------------------------------------------------------------------------
 | Usuarios públicos
 |--------------------------------------------------------------------------
 */
@@ -711,6 +730,10 @@ Route::middleware('auth')->group(function (): void {
         '/area/foro/changelog',
         [ChangelogController::class, 'index']
     )->name('community.changelog.index');
+
+    Route::get('/area/foro/changelog/{changelog}', [ChangelogController::class, 'show'])
+        ->whereNumber('changelog')
+        ->name('community.changelog.show');
 
     // Compatibilidad con enlaces antiguos. Las categorías normales usan ahora
     // directamente /area/foro/{slug}; solo Diario mantiene su ruta interna.
