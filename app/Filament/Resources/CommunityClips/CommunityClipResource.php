@@ -47,7 +47,9 @@ class CommunityClipResource extends Resource
             TextInput::make('url')->label('Enlace del clip')->url()->required()->maxLength(600)->columnSpanFull(),
             TextInput::make('title')->label('Título')->maxLength(255),
             Select::make('event_id')->label('Evento')->relationship('event', 'name')->searchable()->nullable(),
-            Select::make('protagonist_user_id')->label('Protagonista')->relationship('protagonist', 'nick')->searchable()->nullable(),
+            Select::make('protagonist_user_ids')->label('Protagonistas')->multiple()->searchable()->preload()
+                ->relationship('protagonists', 'nick')->maxItems(12)
+                ->helperText('Selecciona hasta 12 protagonistas.'),
             Toggle::make('is_visible')->label('Visible')->default(true),
         ]);
     }

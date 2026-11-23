@@ -119,6 +119,34 @@ class CommunityClipService
         return $ids;
     }
 
+    /** Actualiza título, evento y protagonistas sin modificar el enlace original. */
+    public function updatePresentation(CommunityClip $clip, string $title, ?int $eventId, array $protagonistIds): void
+    {
+        $ids = array_values(array_unique(array_map('intval', $protagonistIds)));
+        if ($title === '' || mb_strlen($title) > 255) {
+            throw ValidationException::withMessages(['title' => 'Introduce un título válido (máximo 255 caracteres).']);
+        }
+        if (count($ids) > 12 || ($ids && User::query()->whereIn('id', $ids)->count() !== count($ids))) {
+            throw ValidationException::withMessages(['protagonist_user_ids' => 'Selecciona hasta 12 protagonistas válidos.']);
+        }
+        $before = $clip->protagonists()->pluck('users.id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $after = collect($ids)->sort()->values()->all();
+        $clip->update([
+            'title' => $title,
+            'event_id' => $eventId,
+            'protagonist_user_id' => $ids[0] ?? null,
+        ]);
+        if ($before !== $after) {
+            $clip->protagonists()->sync($ids);
+            app(\App\Services\AuditLogger::class)->change(
+                $clip, 'protagonistas_modificados',
+                ['protagonist_user_ids' => $before],
+                ['protagonist_user_ids' => $after],
+                ['relation' => 'community_clip_protagonists']
+            );
+        }
+    }
+
     public function supplementContext(CommunityClip $clip, ?int $eventId, array $protagonistIds): void
     {
         if ($eventId && ! $clip->event_id) {

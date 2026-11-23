@@ -10,6 +10,12 @@ class CreateCommunityClip extends CreateRecord
 {
     protected static string $resource = CommunityClipResource::class;
 
+    protected function afterCreate(): void
+    {
+        $first = $this->record->protagonists()->orderBy('users.id')->value('users.id');
+        $this->record->update(['protagonist_user_id' => $first]);
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $parsed = app(CommunityClipService::class)->parse((string) ($data['url'] ?? ''));

@@ -141,7 +141,7 @@
       const remove = document.createElement('button'); remove.type = 'button';
       remove.textContent = 'Eliminar'; remove.setAttribute('aria-label','Eliminar comentario');
       remove.addEventListener('click', async () => {
-        if (!await window.SqaDialog.confirm('¿Eliminar este comentario?')) return;
+        if (!confirm('¿Eliminar este comentario?')) return;
         try {
           const clip = clips[index];
           const data = await request(`${clip.comments_url}/${item.id}`, 'DELETE');
@@ -427,6 +427,14 @@ document.querySelectorAll('[data-clip-multi-lookup]').forEach(root => {
   const ids = new Map();
   let timer = null;
   let controller = null;
+  try {
+    const initial = JSON.parse(root.dataset.initialUsers || '[]');
+    if (Array.isArray(initial)) initial.slice(0,12).forEach(item => {
+      if (item && /^\d+$/.test(String(item.id)) && typeof item.label === 'string') {
+        ids.set(String(item.id), item.label);
+      }
+    });
+  } catch (_) { /* Un dato de presentación erróneo no bloquea el selector. */ }
   function render() {
     hidden.value = [...ids.keys()].join(',');
     selected.replaceChildren();
@@ -439,6 +447,7 @@ document.querySelectorAll('[data-clip-multi-lookup]').forEach(root => {
       selected.append(chip);
     });
   }
+  if (ids.size > 0) render();
   input.addEventListener('input', () => {
     clearTimeout(timer); controller?.abort();
     choices.replaceChildren(); choices.hidden = true;

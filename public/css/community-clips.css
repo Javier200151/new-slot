@@ -225,3 +225,12 @@ body > .sqa-clip-viewer:not([hidden]){
 .sqa-clips-pagination__ellipsis{display:inline-flex;align-items:center;justify-content:center;flex:0 0 15px;width:15px;height:36px;color:#9ca8b8;font-size:14px;}
 .sqa-clips-pagination__count{margin:9px 0 0;color:#9ca8b8;font-size:12px;line-height:1.4;}
 @media(max-width:400px){.sqa-clips-pagination{gap:4px}.sqa-clips-page .sqa-clips-pagination__link{flex-basis:33px;width:33px;height:33px;font-size:13px}}
+
+/* Clip del año: edición y sustitución del candidato durante el plazo. */
+.sqa-year-nomination-management{display:grid;gap:12px;align-content:start}
+.sqa-year-nomination-management p{margin:0}
+.sqa-year-edit{border:1px solid #685029;border-radius:10px;overflow:hidden}
+.sqa-year-edit>summary{cursor:pointer;padding:12px 14px;font-weight:700;color:#f0c47e}
+.sqa-year-edit>.sqa-clips-submit{margin:0;border:0;border-top:1px solid #685029;border-radius:0}
+.sqa-year-withdraw{background:transparent;color:#f0b1ad;border:1px solid #9a5655;border-radius:9px;padding:10px 14px;cursor:pointer;text-align:left;font:inherit}
+.sqa-year-withdraw:hover{background:#622c2c44}
