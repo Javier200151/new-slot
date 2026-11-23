@@ -68,13 +68,15 @@ class CommunityClipResource extends Resource
         ])->filters([
             TernaryFilter::make('is_visible')->label('Publicado'),
             SelectFilter::make('platform')->options(['twitch' => 'Twitch', 'youtube' => 'YouTube']),
-            TrashedFilter::make(),
+            TrashedFilter::make()->label('Clips eliminados'),
         ])->defaultSort('clip_created_at', 'desc')->recordActions([
             Action::make('toggle')->label(fn (CommunityClip $record) => $record->is_visible ? 'Ocultar' : 'Mostrar')
                 ->icon('heroicon-o-eye')->authorize('update')->action(fn (CommunityClip $record) => $record->update(['is_visible' => ! $record->is_visible])),
             EditAction::make()->visible(fn (CommunityClip $record) => ! $record->trashed()),
             DeleteAction::make()->visible(fn (CommunityClip $record) => ! $record->trashed()),
-            RestoreAction::make()->visible(fn (CommunityClip $record) => $record->trashed()),
+            RestoreAction::make()->label('Desbloquear clip')
+                ->modalDescription('El clip volverá a estar disponible en la comunidad y podrá presentarse de nuevo al Clip del año si el plazo sigue abierto.')
+                ->visible(fn (CommunityClip $record) => $record->trashed()),
         ])->toolbarActions([
             BulkActionGroup::make([
                 BulkAction::make('hide')->label('Ocultar seleccionados')->icon('heroicon-o-eye-slash')->requiresConfirmation()

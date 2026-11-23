@@ -13,20 +13,20 @@ class MissionControlManualLaunchTest extends TestCase
 {
     public function test_manual_launch_success_even_when_automatic_is_off(): void
     {
-        $this->assertSame('manual', $this->status(false, 551));
+        $this->assertSame('manual', $this->getLaunchStatus(false, 551));
     }
 
     public function test_no_false_manual_success_when_another_event_is_running(): void
     {
-        $this->assertSame('pending', $this->status(false, 552));
+        $this->assertSame('pending', $this->getLaunchStatus(false, 552));
     }
 
     public function test_automatic_launch_classified_as_ready(): void
     {
-        $this->assertSame('ready', $this->status(true, 551));
+        $this->assertSame('ready', $this->getLaunchStatus(true, 551));
     }
 
-    private function status(bool $automatic, int $runningId): string
+    private function getLaunchStatus(bool $automatic, int $runningId): string
     {
         $event = new Event();
         $event->id = 551;

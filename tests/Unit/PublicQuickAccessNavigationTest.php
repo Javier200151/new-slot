@@ -12,7 +12,8 @@ class PublicQuickAccessNavigationTest extends TestCase
     {
         $items = PublicQuickAccessNavigation::defaultItems();
         $this->assertSame('users', $items[0]['destination']);
-        $this->assertSame('scroll_top', $items[3]['type']);
+        $this->assertSame('news_summary', $items[3]['type']);
+        $this->assertSame('scroll_top', $items[4]['type']);
         $this->assertContains($items[0]['icon'], PublicQuickAccessNavigation::icons());
     }
 
