@@ -170,6 +170,16 @@ class ActivityType extends Model
         return $allowed === null || ($statusId !== null && in_array($statusId, array_map('intval', $allowed), true));
     }
 
+    /** Las reservas antiguas se limitaban a estos estados. */
+    public function allowsReservationStatus(?int $statusId, ?string $statusName): bool
+    {
+        if ($this->participation_status_ids === null) {
+            return in_array(mb_strtoupper(trim((string) $statusName)), ['ACTIVO', 'RECLUTA', 'RESERVA'], true);
+        }
+
+        return $this->allowsParticipationStatus($statusId);
+    }
+
     protected function casts(): array
     {
         return [
