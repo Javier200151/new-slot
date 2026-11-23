@@ -74,6 +74,27 @@ final class MissionControlClient
         return $this->request('GET', '/lanzamiento-automatico');
     }
 
+    /** Settings are held by Mission Control; Laravel never schedules the server start. */
+    public function setAutomaticLaunch(bool $enabled, int $minutes, array $actor): array
+    {
+        if ($minutes < 5 || $minutes > 60) {
+            throw new MissionControlException('La antelación debe estar entre 5 y 60 minutos.', 'peticion_invalida');
+        }
+        return $this->request('PUT', '/lanzamiento-automatico', [
+            'activo' => $enabled, 'minutos_antes' => $minutes, 'actor' => $actor,
+        ]);
+    }
+
+    public function setEventAutomaticLaunch(int $eventId, bool $enabled, array $actor): array
+    {
+        if ($eventId < 1) {
+            throw new MissionControlException('Evento no válido.', 'peticion_invalida');
+        }
+        return $this->request('PUT', '/lanzamiento-automatico/eventos/'.$eventId, [
+            'automatico' => $enabled, 'actor' => $actor,
+        ]);
+    }
+
     /** Mission Control notices are ordered oldest first. */
     public function noticesSince(int $cursor): array
     {

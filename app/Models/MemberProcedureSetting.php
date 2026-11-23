@@ -39,6 +39,7 @@ class MemberProcedureSetting extends Model
         'telegram_server_chat_id',
         'telegram_server_notifications_enabled',
         'telegram_server_notice_minutes',
+        'telegram_server_templates',
         'telegram_cantina_invite_url',
         'telegram_official_invite_url',
         'telegram_network_invite_url',
@@ -63,6 +64,7 @@ class MemberProcedureSetting extends Model
         return [
             'telegram_server_notifications_enabled' => 'boolean',
             'telegram_server_notice_minutes' => 'integer',
+            'telegram_server_templates' => 'array',
             'telegram_recruit_entry_endings' => 'array',
             'telegram_recruit_exit_endings' => 'array',
             'telegram_veterancy_endings' => 'array',

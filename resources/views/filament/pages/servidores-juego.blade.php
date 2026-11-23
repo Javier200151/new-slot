@@ -1,4 +1,7 @@
 <x-filament-panels::page>
+    @if ($configuraciones)
+        @include('filament.pages.servidores-juego-configuraciones')
+    @else
     <div class="sqa-server-panel" x-data="sqaMissionControl()" x-cloak wire:ignore>
         <div class="sqa-server-panel__intro">
             <div>
@@ -6,6 +9,7 @@
                 <p>Estado en directo · se actualiza cada 5 s <span x-show="checkedAt">· última lectura <span x-text="checkedAt"></span></span></p>
             </div>
             <div class="sqa-server-panel__intro-indicators">
+                <a class="sqa-server-panel__config-link" href="{{ url('/admin/servidores-juego?configuraciones=1') }}">Configuraciones</a>
                 <span class="sqa-server-panel__mode" x-show="mode" x-text="'Modo: ' + modeLabel()"></span>
                 <span class="sqa-server-panel__preview" :class="connected ? 'sqa-server-panel__preview--on' : 'sqa-server-panel__preview--off'">
                     <span class="sqa-server-panel__preview-dot"></span>
@@ -288,4 +292,5 @@
             </div>
         </dialog>
     </div>
+    @endif
 </x-filament-panels::page>
