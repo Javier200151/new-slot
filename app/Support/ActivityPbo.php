@@ -83,6 +83,7 @@ class ActivityPbo
             // Do not leave an irrelevant PBO attached after changing platform/type.
             return array_merge($data, [
                 'pbo_path' => null,
+                'pbo_key' => null,
                 'pbo' => null,
                 'pbo_size_bytes' => null,
                 'pbo_uploaded_by' => null,
@@ -106,6 +107,7 @@ class ActivityPbo
         if (blank($path)) {
             return array_merge($data, [
                 'pbo_path' => null,
+                'pbo_key' => null,
                 'pbo' => null,
                 'pbo_size_bytes' => null,
                 'pbo_uploaded_by' => null,
@@ -130,8 +132,6 @@ class ActivityPbo
 
     public static function deletePrevious(?string $previous, ?string $current): void
     {
-        if (filled($previous) && $previous !== $current && self::isOwnStoredPath($previous)) {
-            Storage::disk('local')->delete($previous);
-        }
+        \App\Services\PersistentCampaignPbo::cleanupPath($previous, $current);
     }
 }

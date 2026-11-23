@@ -46,19 +46,26 @@ use App\Support\ActivityTypeConfiguration;
 use App\Support\ActivityPbo;
 use App\Support\ActivityAddonsHtml;
 use App\Services\ActivityPboExportService;
+use App\Services\PersistentCampaignPbo;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Model;
 use App\Support\SlotQuickSelection;
 use App\Support\BriefingMarkup;
 use App\Support\BriefingSectionImages;
 use App\Support\RadioNetworkOrder;
 use App\Support\OrbatGlobalCommand;
+use App\Filament\Resources\Activities\Pages\Concerns\ConfirmsPboReplacement;
 
 class EditActivity extends EditRecord
 {
+    use ConfirmsPboReplacement;
     protected static string $resource = ActivityResource::class;
     
     protected array $auditDaysBefore = [];
 
     protected ?string $previousPboPath = null;
+    protected ?string $previousPboKey = null;
+    protected bool $inheritedCampaignPbo = false;
 
     protected array $auditEnemyFactionsBefore = [];
 
@@ -83,7 +90,19 @@ class EditActivity extends EditRecord
     ): array {
         $data = ActivityEditorSelection::resolveChoice($data);
         $data = ActivityTypeConfiguration::normalizeActivityData($data);
+        $campaignId = isset($data['campaign_id']) ? (int) $data['campaign_id'] : $this->record->campaign_id;
+        $source = PersistentCampaignPbo::source($campaignId, $this->record->id);
+        $data = app(PersistentCampaignPbo::class)->inherit($data, $this->record);
+        $this->inheritedCampaignPbo = $source && ($data['pbo_path'] ?? null) === $source->pbo_path
+            && $source->pbo_path !== $this->record->pbo_path;
         $data = ActivityPbo::prepare($data, $this->record);
+        if ($this->inheritedCampaignPbo) {
+            foreach (['pbo', 'pbo_size_bytes', 'pbo_uploaded_by', 'pbo_uploaded_at'] as $column) {
+                $data[$column] = $source->{$column};
+            }
+        }
+        $data['pbo_key'] = PersistentCampaignPbo::campaignKey($campaignId) ?: 'activity:' . $this->record->id;
+        $this->assertPboReplacementApproved($data['pbo_path'] ?? null, $this->record->pbo_path);
 
         $targetOperationTypeId =
             $data['activity_type_id'] ?? null;
@@ -174,6 +193,7 @@ class EditActivity extends EditRecord
     protected function beforeSave(): void
     {
         $this->previousPboPath = $this->record->pbo_path;
+        $this->previousPboKey = $this->record->pbo_key;
         $this->auditDaysBefore =
             $this->record
                 ->days()
@@ -191,10 +211,46 @@ class EditActivity extends EditRecord
                 ->all();
     }
 
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        return DB::transaction(function () use ($record, $data): Model {
+            $oldKey = $record->pbo_key;
+            $oldPath = $record->pbo_path;
+            $record->update($data);
+            app(PersistentCampaignPbo::class)->reconcile($record, $oldKey, $oldPath);
+            return $record;
+        });
+    }
+
     protected function afterSave(): void
     {
-        ActivityPbo::deletePrevious($this->previousPboPath, $this->record->pbo_path);
-        app(ActivityPboExportService::class)->queue($this->record);
+        if ($this->previousPboPath !== $this->record->pbo_path) {
+            if ($this->record->pbo_path && ! $this->inheritedCampaignPbo) {
+                app(ActivityPboExportService::class)->regenerate(
+                    $this->record,
+                    strcasecmp($this->approvedPboReplacementName ?? '', basename($this->record->pbo_path)) === 0,
+                    false,
+                );
+            } elseif ($this->record->pbo_path && $this->inheritedCampaignPbo) {
+                if ($this->record->pboExport?->status !== 'synced') {
+                    app(ActivityPboExportService::class)->queueKey($this->record->pbo_key);
+                }
+            } else {
+                app(ActivityPboExportService::class)->queue($this->record);
+            }
+            ActivityPbo::deletePrevious($this->previousPboPath, $this->record->pbo_path);
+        }
+        if ($this->previousPboKey && $this->previousPboKey !== $this->record->pbo_key) {
+            app(ActivityPboExportService::class)->queueKey($this->previousPboKey);
+            if ($this->record->pbo_path && $this->previousPboPath === $this->record->pbo_path) {
+                app(ActivityPboExportService::class)->queue($this->record);
+            }
+        }
+        if ($this->previousPboPath === $this->record->pbo_path
+            && $this->record->wasChanged('addons') && $this->record->pbo_path) {
+            app(ActivityPboExportService::class)->regenerate($this->record);
+        }
+        $this->approvedPboReplacementName = null;
         $this->record->loadMissing('activityType');
 
         if (! ($this->record->activityType?->usesEnemyFactions() ?? false)) {
@@ -635,26 +691,7 @@ class EditActivity extends EditRecord
                         'operation-header-action--primary',
                 ]),
 
-            Action::make('regeneratePboHtml')
-                ->label('Autogenerar HTML del PBO')
-                ->icon('heroicon-o-document-arrow-down')
-                ->visible(fn (): bool => filled($this->record->pbo_path)
-                    && ActivityPbo::isOwnStoredPath((string) $this->record->pbo_path))
-                ->extraAttributes(['class' => 'operation-header-action--secondary'])
-                ->action(function (ActivityPboExportService $sync): void {
-                    try {
-                        $sync->regenerate($this->record->refresh());
-                        Notification::make()
-                            ->title('HTML de addons generado')
-                            ->body('Se enviará a Windows junto al PBO. También puedes descargarlo desde Editar addons.')
-                            ->success()->send();
-                    } catch (\Throwable $exception) {
-                        Notification::make()
-                            ->title('No se pudo generar el HTML')
-                            ->body($exception->getMessage())
-                            ->danger()->send();
-                    }
-                }),
+            $this->approvePboReplacementAction(),
 
             $this->getCancelFormAction()
                 ->label('Cancelar')
@@ -2411,7 +2448,7 @@ class EditActivity extends EditRecord
                         'addons' => ['addon_ids' => $addonIds],
                     ])->save();
 
-                    app(ActivityPboExportService::class)->queue($this->record);
+                    app(ActivityPboExportService::class)->regenerate($this->record);
                 }),
 
 
@@ -2446,18 +2483,23 @@ class EditActivity extends EditRecord
                     );
 
                     $duplicate = $this->record->replicate();
-                    // El PBO tiene una ruta privada exclusiva por subida. No
-                    // compartirla entre actividades duplicadas: sustituir uno
-                    // podría eliminar el archivo de la otra actividad.
-                    $duplicate->pbo_path = null;
-                    $duplicate->pbo = null;
-                    $duplicate->pbo_size_bytes = null;
-                    $duplicate->pbo_uploaded_by = null;
-                    $duplicate->pbo_uploaded_at = null;
+                    if (! PersistentCampaignPbo::campaignKey($this->record->campaign_id)) {
+                        // Outside persistent campaigns, each activity retains an individual PBO.
+                        $duplicate->pbo_key = null;
+                        $duplicate->pbo_path = null;
+                        $duplicate->pbo = null;
+                        $duplicate->pbo_size_bytes = null;
+                        $duplicate->pbo_uploaded_by = null;
+                        $duplicate->pbo_uploaded_at = null;
+                    }
 
                     $duplicate->name = trim($this->record->name . ' (copia)');
                     $duplicate->orbat = static::regenerateOrbatSlotKeys($this->record->orbat ?? []);
                     $duplicate->save();
+                    // Assign individual identity after receiving the duplicate's database ID.
+                    if (! PersistentCampaignPbo::campaignKey($duplicate->campaign_id)) {
+                        $duplicate->forceFill(['pbo_key' => 'activity:' . $duplicate->id])->save();
+                    }
 
                     $enemyFactions = $this->record
                         ->enemyFactions()

@@ -21,7 +21,7 @@ class SyncActivityPbos extends Command
 
         // Include PBOs that were uploaded before this feature was installed.
         Activity::query()->whereNotNull('pbo_path')->whereDoesntHave('pboExport')
-            ->orderBy('id')->limit(100)->get()
+            ->orderBy('id')->limit(100)->get()->unique('pbo_key')
             ->each(fn (Activity $activity) => $service->queue($activity));
 
         $limit = max(1, min(200, (int) $this->option('limit')));
