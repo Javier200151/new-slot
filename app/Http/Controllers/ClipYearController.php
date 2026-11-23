@@ -34,11 +34,17 @@ class ClipYearController extends Controller
             $phase = $contest->phase();
         }
         $nominations = $contest->nominations()->where('is_approved',true)
+            ->whereHas('clip', fn ($query) => $query->where('is_visible', true))
             ->with(['user','clip.user','clip.protagonist','clip.protagonists','clip.event'])
             ->withCount('votes')->withAvg('votes','skulls')
             ->when($phase === 'results',fn ($q) => $q->orderByDesc('votes_avg_skulls')->orderByDesc('votes_count'),fn ($q) => $q->orderBy('id'))
             ->get();
-        return view('clips.year',compact('contest','phase','nominations'));
+        $myNomination = $request->user()
+            ? $contest->nominations()->with(['clip.protagonists', 'clip.protagonist', 'clip.user'])
+                ->where('user_id', $request->user()->id)->first()
+            : null;
+
+        return view('clips.year', compact('contest', 'phase', 'nominations', 'myNomination'));
     }
     public function nominate(Request $request, CommunityClipService $service): RedirectResponse
     {
@@ -47,6 +53,7 @@ class ClipYearController extends Controller
         $data = $request->validate([
             'url'=>['required','url','max:600'],
             'description'=>['nullable','string','max:900'],
+            'title'=>['nullable','string','max:255'],
             'event_id'=>['nullable','integer','exists:events,id,deleted_at,NULL'],
             'protagonist_user_ids'=>['nullable','string','max:255'],
         ]);
@@ -60,8 +67,11 @@ class ClipYearController extends Controller
             if (CommunityClip::withTrashed()->where('platform',$parsed['platform'])->where('external_id',$parsed['external_id'])->exists()) {
                 throw ValidationException::withMessages(['url'=>'Este clip fue retirado de Squad ALPHA.']);
             }
-            $clip = $service->addManual($request->user(),$data['url'],null,$data['event_id'] ?? null,$protagonistIds);
+            $clip = $service->addManual($request->user(),$data['url'],$data['title'] ?? null,$data['event_id'] ?? null,$protagonistIds);
         } else {
+            if (! $clip->is_visible) {
+                throw ValidationException::withMessages(['url' => 'Este clip no está disponible para el concurso.']);
+            }
             $service->supplementContext($clip, $data['event_id'] ?? null, $protagonistIds);
         }
         $contest->nominations()->create([
@@ -72,6 +82,47 @@ class ClipYearController extends Controller
         ]);
         return back()->with('success','Tu candidato se ha presentado.');
     }
+    /** Actualiza los datos del clip sin cambiar el vídeo ni los votos de la candidatura. */
+    public function update(Request $request, ClipYearNomination $nomination, CommunityClipService $service): RedirectResponse
+    {
+        $contest = $nomination->contest;
+        $clip = $nomination->clip;
+        abort_unless($contest && $clip && ! $clip->trashed(), 404);
+
+        $manager = $request->user()?->hasRole('admin') || $request->user()?->can('clip-contest.manage');
+        $owner = (int) $nomination->user_id === (int) $request->user()?->id
+            && (int) $clip->user_id === (int) $request->user()?->id
+            && $contest->allowsUser($request->user());
+        abort_unless($manager || ($owner && $contest->phase() === 'nominations'), 403);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:900'],
+            'event_id' => ['nullable', 'integer', 'exists:events,id,deleted_at,NULL'],
+            'protagonist_user_ids' => ['nullable', 'string', 'max:255'],
+        ]);
+        $protagonists = $service->parseProtagonistIds($data['protagonist_user_ids'] ?? null);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($nomination, $clip, $service, $data, $protagonists): void {
+            $service->updatePresentation($clip, trim($data['title']), $data['event_id'] ?? null, $protagonists);
+            $nomination->update(['description' => $data['description'] ?? null]);
+        });
+
+        return back()->with('success', 'Los datos de tu candidatura se han actualizado.');
+    }
+
+    /** La retirada libera la plaza para presentar otro clip durante las candidaturas. */
+    public function destroy(Request $request, ClipYearNomination $nomination): RedirectResponse
+    {
+        $contest = $nomination->contest;
+        abort_unless($contest && (int) $nomination->user_id === (int) $request->user()?->id
+            && $contest->phase() === 'nominations', 403);
+
+        $nomination->delete();
+
+        return back()->with('success', 'Candidatura retirada. Ya puedes presentar el mismo clip u otro.');
+    }
+
     public function vote(Request $request, ClipYearNomination $nomination): RedirectResponse|JsonResponse
     {
         $contest = ClipYearContest::current();

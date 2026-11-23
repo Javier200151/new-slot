@@ -10,6 +10,14 @@ class CommunityClip extends Model
 {
     use SoftDeletes, Auditable;
 
+    protected static function booted(): void
+    {
+        // Los clips borrados no deben dejar candidaturas sin vídeo ni ocupar una plaza.
+        static::deleted(function (self $clip): void {
+            ClipYearNomination::query()->where('community_clip_id', $clip->id)->delete();
+        });
+    }
+
     protected $fillable = [
         'user_id', 'streamer_id', 'platform', 'external_id', 'source', 'title',
         'url', 'thumbnail_url', 'broadcaster_name', 'game_id', 'duration_seconds',
