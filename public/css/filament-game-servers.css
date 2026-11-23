@@ -316,3 +316,20 @@
 @media(max-width:680px){.sqa-server-panel__settings-card{padding:16px}.sqa-server-panel__settings-grid{grid-template-columns:minmax(0,1fr)}.sqa-server-panel__settings-actions{align-items:stretch}.sqa-server-panel__settings-actions button{width:100%}}
 
 .sqa-server-panel__settings-check--event{font-size:12px;white-space:nowrap;font-weight:450}
+
+/* v99: Automatic launch belongs below Operativos in the right-hand column.
+   Only this card is Livewire-managed; the status dashboard retains Alpine's DOM. */
+.sqa-server-panel__auto-card{margin-top:20px;width:100%;min-width:0}
+.sqa-server-panel__auto-card .sqa-server-panel__settings-head{align-items:center}
+.sqa-server-panel__auto-card .sqa-server-panel__settings-events{margin-top:18px}
+.sqa-server-panel__auto-card .sqa-server-panel__settings-event{min-width:0}
+.sqa-server-panel__auto-card .sqa-server-panel__settings-event>div{flex:1 1 auto}
+@container mc-operations (max-width:720px){
+ .sqa-server-panel__auto-card{padding:18px}
+ .sqa-server-panel__auto-card .sqa-server-panel__settings-head{gap:12px}
+ .sqa-server-panel__auto-card .sqa-server-panel__settings-check--event{flex-shrink:0}
+}
+@media(max-width:480px){
+ .sqa-server-panel__auto-card .sqa-server-panel__settings-event{align-items:flex-start}
+ .sqa-server-panel__auto-card .sqa-server-panel__settings-event>div{min-width:0}
+}
