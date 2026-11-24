@@ -261,6 +261,17 @@ class RecruitmentApplicationWorkflowTest extends TestCase
 
     private function createSchema(): void
     {
+        Schema::create('recruitment_form_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->json('fields');
+            $table->timestamps();
+        });
+        DB::table('recruitment_form_settings')->insert([
+            'fields' => json_encode(\\App\\Support\\RecruitmentFormFields::defaults(), JSON_UNESCAPED_UNICODE),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         Schema::create('homepage_settings', function (Blueprint $table): void {
             $table->id();
             $table->boolean('recruitment_open')->default(false);
@@ -314,6 +325,7 @@ class RecruitmentApplicationWorkflowTest extends TestCase
             $table->string('residence', 160)->nullable();
             $table->string('phone_whatsapp', 40)->nullable();
             $table->string('discord_profile', 160)->nullable();
+            $table->json('recruitment_answers')->nullable();
             $table->text('how_heard_us')->nullable();
             $table->boolean('accepted_rules')->default(false);
             $table->boolean('is_adult')->default(false);
