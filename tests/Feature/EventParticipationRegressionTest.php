@@ -59,6 +59,31 @@ class EventParticipationRegressionTest extends TestCase
         ]);
     }
 
+    public function test_activity_type_can_block_recruit_from_slots_and_reservations(): void
+    {
+        DB::table('activity_types')->where('id', 1)->update([
+            'participation_status_ids' => json_encode([1]),
+        ]);
+        $recruit = User::query()->findOrFail(10);
+        DB::table('users')->where('id', 10)->update(['status_id' => 2]);
+        $recruit->refresh();
+
+        $this->actingAs($recruit)
+            ->from(route('events.show', 1))
+            ->post(route('events.reservations.store', 1))
+            ->assertRedirect(route('events.show', 1))
+            ->assertSessionHasErrors('reservation');
+
+        $this->actingAs($recruit)
+            ->from(route('events.show', 1))
+            ->post(route('events.slots.register', [1, 'slot-alpha-1']))
+            ->assertRedirect(route('events.show', 1))
+            ->assertSessionHasErrors('slot');
+
+        $this->assertDatabaseCount('event_reservations', 0);
+        $this->assertDatabaseCount('event_slots', 0);
+    }
+
     public function test_pending_reserve_retutoring_blocks_every_new_event_participation(): void
     {
         DB::table('recruitment_reentry_reviews')->insert([
