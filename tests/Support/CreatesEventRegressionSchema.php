@@ -40,8 +40,16 @@ trait CreatesEventRegressionSchema
             $table->string('name');
         });
 
+        Schema::create('activity_types', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->boolean('uses_reservations')->default(true);
+            $table->boolean('uses_orbat')->default(true);
+        });
+
         Schema::create('activities', function (Blueprint $table): void {
             $table->id();
+            $table->foreignId('activity_type_id')->nullable();
             $table->string('name');
             $table->timestamps();
             $table->softDeletes();
@@ -218,8 +226,11 @@ trait CreatesEventRegressionSchema
             ['id' => 2, 'name' => 'FINALIZADO'],
         ]);
 
+        DB::table('activity_types')->insert(['id' => 1, 'name' => 'Operación']);
+
         DB::table('activities')->insert([
             'id' => 1,
+            'activity_type_id' => 1,
             'name' => 'Operación Regression',
             'created_at' => now(),
             'updated_at' => now(),
