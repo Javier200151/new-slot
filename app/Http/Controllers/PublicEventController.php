@@ -561,11 +561,11 @@ class PublicEventController extends Controller
             || $canEditEvent;
 
         $visibleOrbatGroups = $groups
-            ->map(function (array $group) use ($assignments, $currentUserSlot, $factions, $isRegistrationOpen, $slotTypes, $hasPendingReserveRetutoring): array {
+            ->map(function (array $group) use ($event, $assignments, $currentUserSlot, $factions, $isRegistrationOpen, $slotTypes, $hasPendingReserveRetutoring): array {
                 $group['faction'] = $factions->get((int) ($group['faction_id'] ?? 0));
                 $group['slots'] = collect($group['slots'] ?? [])
                     ->filter(fn (array $slot): bool => (bool) ($slot['visible'] ?? true))
-                    ->map(function (array $slot) use ($assignments, $currentUserSlot, $isRegistrationOpen, $slotTypes, $hasPendingReserveRetutoring): array {
+                    ->map(function (array $slot) use ($event, $assignments, $currentUserSlot, $isRegistrationOpen, $slotTypes, $hasPendingReserveRetutoring): array {
                         $slotKey = $slot['slot_key'] ?? null;
                         $slot['slot_key'] = $slotKey;
                         $slot['slot_type'] = $slotTypes->get((int) ($slot['slot_type_id'] ?? 0));
