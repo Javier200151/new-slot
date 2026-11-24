@@ -457,6 +457,8 @@ class PublicEventsPageTest extends TestCase
             $table->timestamp('last_viewed_at');
             $table->unsignedInteger('visible_slot_count')->default(0);
             $table->unsignedInteger('occupied_slot_count')->default(0);
+            $table->json('orbat_slot_snapshot')->nullable();
+            $table->json('event_news_structure')->nullable();
             $table->primary(['user_id', 'event_id']);
         });
 
