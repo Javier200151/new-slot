@@ -56,6 +56,7 @@ class ExampleTest extends TestCase
             $table->timestamp('published_at')->nullable();
             $table->unsignedSmallInteger('sort_order')->default(100);
             $table->timestamps();
+            $table->softDeletes();
         });
 
         $this->mock(HomepageVodService::class)
