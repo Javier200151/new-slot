@@ -65,24 +65,21 @@ class EventOrbatApiRegressionTest extends TestCase
 
         $response = $this->getJson('/api/eventos/1/orbat');
 
+        // La API pública devuelve únicamente grupos visibles y datos públicos.
         $response
             ->assertOk()
-            ->assertJsonPath('data.event.id', 1)
-            ->assertJsonPath('data.event.reservations_enabled', true)
-            ->assertJsonPath('data.orbat.groups.0.name', 'Alpha')
-            ->assertJsonPath('data.orbat.groups.0.slots.0.slot_key', 'slot-alpha-1')
-            ->assertJsonPath('data.orbat.groups.0.slots.0.occupant.type', 'user')
-            ->assertJsonPath('data.orbat.groups.0.slots.0.occupant.user.nick', 'Assigned User')
-            ->assertJsonPath('data.reservations.0.position', 1)
-            ->assertJsonPath('data.reservations.0.user.nick', 'Reserved User')
-            ->assertJsonPath('data.counts.slots', 1)
-            ->assertJsonPath('data.counts.occupied_in_orbat', 1)
-            ->assertJsonPath('data.counts.assigned_total', 2)
-            ->assertJsonPath('data.counts.unmatched_assignments', 1)
-            ->assertJsonPath('data.counts.reservations', 1)
-            ->assertJsonPath('data.orbat.unmatched_assignments.0.occupant.type', 'ally')
-            ->assertJsonPath('data.orbat.unmatched_assignments.0.occupant.ally.name', 'Clan aliado');
+            ->assertJsonPath('data.evento_id', 1)
+            ->assertJsonPath('data.grupos_visibles.0.nombre', 'Alpha')
+            ->assertJsonPath('data.grupos_visibles.0.slots.0.nombre', 'Fusilero 1')
+            ->assertJsonPath('data.grupos_visibles.0.slots.0.ocupado', true)
+            ->assertJsonPath('data.grupos_visibles.0.slots.0.ocupante.nick', 'Assigned User')
+            ->assertJsonPath('data.resumen.grupos', 1)
+            ->assertJsonPath('data.resumen.slots', 1)
+            ->assertJsonPath('data.resumen.ocupados', 1);
 
+        // Los metadatos internos de reservas, identificadores y aliados no se publican.
+        $response->assertJsonMissingPath('data.reservations')
+            ->assertJsonMissingPath('data.orbat.unmatched_assignments');
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
@@ -98,7 +95,9 @@ class EventOrbatApiRegressionTest extends TestCase
 
         $this->getJson('/api/eventos/1/orbat')
             ->assertOk()
-            ->assertJsonPath('data.orbat.groups.0.visible', false)
-            ->assertJsonPath('data.orbat.groups.0.slots.0.visible', false);
+            ->assertJsonPath('data.evento_id', 1)
+            ->assertJsonCount(0, 'data.grupos_visibles')
+            ->assertJsonPath('data.resumen.slots', 0)
+            ->assertJsonPath('data.resumen.ocupados', 0);
     }
 }
