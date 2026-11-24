@@ -1695,7 +1695,9 @@
                                                                 <span class="event-orbat__unavailable">
                                                                     {{ $hasPendingReserveRetutoring
                                                                         ? 'Retutoría pendiente'
-                                                                        : 'No disponible para reclutas'
+                                                                        : (! ($event->activity?->activityType?->allowsParticipationStatus(auth()->user()->status_id) ?? true)
+                                                                            ? 'Tu estado no puede apuntarse a este tipo de actividad'
+                                                                            : 'Tu estado no permite ocupar este slot')
                                                                     }}
                                                                 </span>
                                                             @endguest

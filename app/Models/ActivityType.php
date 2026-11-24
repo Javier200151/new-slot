@@ -51,6 +51,7 @@ class ActivityType extends Model
         'uses_event_briefing',
         'uses_event_end_date',
         'required_orbat_slot_type_id',
+        'participation_status_ids',
     ];
 
     protected static function booted(): void
@@ -161,9 +162,28 @@ class ActivityType extends Model
     public function usesEventBriefing(): bool { return $this->getAttribute('uses_event_briefing') === null ? true : (bool) $this->uses_event_briefing; }
     public function usesEventEndDate(): bool { return $this->getAttribute('uses_event_end_date') === null ? true : (bool) $this->uses_event_end_date; }
 
+    /** null conserva las reglas anteriores en tipos aún no configurados. */
+    public function allowsParticipationStatus(?int $statusId): bool
+    {
+        $allowed = $this->participation_status_ids;
+
+        return $allowed === null || ($statusId !== null && in_array($statusId, array_map('intval', $allowed), true));
+    }
+
+    /** Las reservas antiguas se limitaban a estos estados. */
+    public function allowsReservationStatus(?int $statusId, ?string $statusName): bool
+    {
+        if ($this->participation_status_ids === null) {
+            return in_array(mb_strtoupper(trim((string) $statusName)), ['ACTIVO', 'RECLUTA', 'RESERVA'], true);
+        }
+
+        return $this->allowsParticipationStatus($statusId);
+    }
+
     protected function casts(): array
     {
         return [
+            'participation_status_ids' => 'array',
             'oficial' => 'boolean',
             'uses_enemy_factions' => 'boolean',
             'uses_event_result' => 'boolean',

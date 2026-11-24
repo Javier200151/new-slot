@@ -329,11 +329,9 @@ class PublicEventController extends Controller
 
         $currentUserCanReserve = auth()->check()
             && ! $hasPendingReserveRetutoring
-            && in_array(
-                strtoupper(trim((string) auth()->user()->status?->name)),
-                ['ACTIVO', 'RESERVA', 'RECLUTA'],
-                true,
-            );
+            && ($event->activity?->activityType?->allowsReservationStatus(
+                auth()->user()->status_id, auth()->user()->status?->name
+            ) ?? in_array(strtoupper(trim((string) auth()->user()->status?->name)), ['ACTIVO', 'RESERVA', 'RECLUTA'], true));
         $reservedUserIds = $eventReservations
             ->pluck('user_id')
             ->filter()
@@ -580,6 +578,7 @@ class PublicEventController extends Controller
                         $slot['can_register'] = $isRegistrationOpen
                             && auth()->check()
                             && ! $hasPendingReserveRetutoring
+                            && ($event->activity?->activityType?->allowsParticipationStatus(auth()->user()->status_id) ?? true)
                             && filled($slotKey)
                             && ! $slot['is_occupied']
                             && $slot['is_allowed_for_user'];
@@ -978,7 +977,9 @@ class PublicEventController extends Controller
         $user->loadMissing('status');
 
         $statusName = strtoupper(trim((string) $user->status?->name));
-        if (! in_array($statusName, ['ACTIVO', 'RESERVA', 'RECLUTA'], true)) {
+        $event->loadMissing('activity.activityType');
+        if (! ($event->activity?->activityType?->allowsReservationStatus($user->status_id, $statusName)
+            ?? in_array($statusName, ['ACTIVO', 'RESERVA', 'RECLUTA'], true))) {
             throw ValidationException::withMessages([
                 'reservation' => 'Tu estado actual no permite entrar en la cola de reservas.',
             ]);
@@ -996,6 +997,13 @@ class PublicEventController extends Controller
             if (strtoupper(trim((string) $lockedEvent->eventStatus?->name)) !== 'ACTIVO') {
                 throw ValidationException::withMessages([
                     'reservation' => 'Este evento ya no admite reservas.',
+                ]);
+            }
+
+            $lockedEvent->loadMissing('activity.activityType');
+            if (! ($lockedEvent->activity?->activityType?->allowsParticipationStatus($user->status_id) ?? true)) {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Tu estado no puede reservar en este tipo de actividad.',
                 ]);
             }
 
@@ -1083,6 +1091,13 @@ class PublicEventController extends Controller
             if (! $lockedEvent->eventStatus()->where('name', 'ACTIVO')->exists()) {
                 throw ValidationException::withMessages([
                     'slot' => 'Este evento no admite nuevas inscripciones.',
+                ]);
+            }
+
+            $lockedEvent->loadMissing('activity.activityType');
+            if (! ($lockedEvent->activity?->activityType?->allowsParticipationStatus($user->status_id) ?? true)) {
+                throw ValidationException::withMessages([
+                    'slot' => 'Tu estado no puede apuntarse a este tipo de actividad.',
                 ]);
             }
 
