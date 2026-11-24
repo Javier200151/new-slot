@@ -449,6 +449,42 @@ class PublicEventsPageTest extends TestCase
             $table->timestamps();
         });
 
+        // Tablas consultadas por el encabezado y la ficha de eventos.
+        // Estas estructuras existen en producción; el test usa SQLite :memory:.
+        Schema::create('event_view_receipts', function (Blueprint $table): void {
+            $table->foreignId('user_id');
+            $table->foreignId('event_id');
+            $table->timestamp('last_viewed_at');
+            $table->unsignedInteger('visible_slot_count')->default(0);
+            $table->unsignedInteger('occupied_slot_count')->default(0);
+            $table->primary(['user_id', 'event_id']);
+        });
+
+        Schema::create('clip_year_contests', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedSmallInteger('year')->unique();
+            $table->boolean('enabled')->default(false);
+            $table->dateTime('nomination_starts_at');
+            $table->dateTime('nomination_ends_at');
+            $table->dateTime('voting_starts_at');
+            $table->dateTime('voting_ends_at');
+            $table->timestamps();
+        });
+
+        Schema::create('community_clips', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id')->nullable();
+            $table->foreignId('event_id')->nullable();
+            $table->string('platform')->nullable();
+            $table->string('external_id')->nullable();
+            $table->string('url')->nullable();
+            $table->string('title')->nullable();
+            $table->boolean('is_visible')->default(true);
+            $table->timestamp('clip_created_at')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
         Schema::create('notifications', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('type');
