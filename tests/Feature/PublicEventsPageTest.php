@@ -1024,7 +1024,7 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('Editar comentario')
             ->assertSee('storage/users/comentarista.png', escape: false)
             ->assertSee('class="event-comment__signature"', escape: false)
-            ->assertSee('src="/firmas/comentarista.html"', escape: false)
+            ->assertSee('src="/firmas/comentarista.html?fit=1"', escape: false)
             ->assertSee('data-signature-frame', escape: false)
             ->assertSee('js/events.js', escape: false)
             ->assertDontSee('style="height:', escape: false)
@@ -1315,7 +1315,10 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('Desapuntarme')
             ->assertSee(route('events.slots.unregister', [1, 'slot-medic']), escape: false);
 
-        $this->delete('/eventos/1/slots/slot-medic')
+        // Desapuntarse requiere un motivo, que se registra en los comentarios.
+        $this->delete('/eventos/1/slots/slot-medic', [
+            'reason' => 'No podré asistir al evento.',
+        ])
             ->assertRedirect('/eventos/1#orbat')
             ->assertSessionHas('status', 'Te has desapuntado correctamente.');
 
@@ -1333,6 +1336,11 @@ class PublicEventsPageTest extends TestCase
             'changed_by_user_id' => 11,
         ]);
         $this->assertDatabaseCount('event_slot_history', 3);
+        $this->assertDatabaseHas('event_comments', [
+            'event_id' => 1,
+            'user_id' => 11,
+            'comment' => 'Se desapuntó de Médico. Motivo: No podré asistir al evento.',
+        ]);
 
         auth()->logout();
 
