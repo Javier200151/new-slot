@@ -20,6 +20,17 @@ class PublicInfrastructureStatusTest extends TestCase
         $this->assertIsolatedTestDatabase();
 
         Cache::forget('public.infrastructure.status.v2');
+        // Spatie consulta estos permisos al comprobar acceso con un usuario simulado.
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('guard_name');
+        });
+        Schema::create('model_has_roles', function (Blueprint $table): void {
+            $table->unsignedBigInteger('role_id');
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+        });
         Schema::dropIfExists('infrastructure_settings');
 
         Schema::create('infrastructure_settings', function (Blueprint $table): void {
@@ -44,6 +55,8 @@ class PublicInfrastructureStatusTest extends TestCase
     {
         Cache::forget('public.infrastructure.status.v2');
         Schema::dropIfExists('infrastructure_settings');
+        Schema::dropIfExists('model_has_roles');
+        Schema::dropIfExists('roles');
         parent::tearDown();
     }
 
