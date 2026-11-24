@@ -45,6 +45,7 @@ trait CreatesEventRegressionSchema
             $table->string('name');
             $table->boolean('uses_reservations')->default(true);
             $table->boolean('uses_orbat')->default(true);
+            $table->json('participation_status_ids')->nullable();
         });
 
         Schema::create('activities', function (Blueprint $table): void {
