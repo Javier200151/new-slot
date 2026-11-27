@@ -1432,13 +1432,8 @@
                                         <div class="orbat-marking-back__heading">
                                             <div>
                                                 <strong>Numeraciones y colores</strong>
-                                                <span>{{ $groupName }}</span>
+                                                <span class="orbat-marking-custom-title" data-marking-display-title @if(blank($customGroupTitle)) hidden @endif>{{ $customGroupTitle }}</span>
                                             </div>
-                                            @if(filled($customGroupTitle))
-                                                <span class="orbat-marking-custom-title" data-marking-display-title>{{ $customGroupTitle }}</span>
-                                            @else
-                                                <span class="orbat-marking-custom-title" data-marking-display-title hidden></span>
-                                            @endif
                                             @if($canEditMarkings)
                                                 <button type="button" class="orbat-marking-edit-toggle" data-marking-edit aria-pressed="false" title="Editar numeraciones y colores">✎ Editar</button>
                                             @endif
