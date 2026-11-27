@@ -41,7 +41,7 @@ class EventOrbatMarkingController extends Controller
             $validated['items'],
             $validated['second_in_command'] ?? null,
             $validated['custom_title'] ?? null,
-            $validated['color_team_titles'] ?? [],
+            $validated['color_team_titles'] ?? null,
         );
 
         return response()->json([
