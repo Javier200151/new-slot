@@ -1370,6 +1370,7 @@
                                 $groupName = (string) ($group['name'] ?? 'Grupo sin nombre');
                                 $groupSetting = $savedGroupSettings[$groupName] ?? null;
                                 $secondInCommandKey = $groupSetting['second_in_command_key'] ?? null;
+                                $customGroupTitle = $groupSetting['custom_title'] ?? '';
                                 $canEditMarkings = $markingsReady && $markingService->permission($event, $viewer, $groupName);
                                 $hasSavedMarkings = $groupSetting !== null
                                     || collect($group['slots'])->contains(fn ($slot) => isset($savedMarkings[$slot['slot_key'] ?? '']));
@@ -1422,12 +1423,19 @@
 
                                 @if($showMarkingFlip)
                                     <button type="button" class="orbat-flip-corner" data-orbat-flip aria-label="Ver numeración de {{ $groupName }}" title="Girar tarjeta">↻</button>
-                                    <div class="orbat-marking-back" data-orbat-marking-back hidden data-marking-second="{{ $secondInCommandKey }}">
+                                    <div class="orbat-marking-back" data-orbat-marking-back hidden
+                                         data-marking-second="{{ $secondInCommandKey }}"
+                                         data-marking-title="{{ $customGroupTitle }}">
                                         <div class="orbat-marking-back__heading">
                                             <div>
                                                 <strong>Numeraciones y colores</strong>
                                                 <span>{{ $groupName }}</span>
                                             </div>
+                                            @if(filled($customGroupTitle))
+                                                <span class="orbat-marking-custom-title" data-marking-display-title>{{ $customGroupTitle }}</span>
+                                            @else
+                                                <span class="orbat-marking-custom-title" data-marking-display-title hidden></span>
+                                            @endif
                                             @if($canEditMarkings)
                                                 <button type="button" class="orbat-marking-edit-toggle" data-marking-edit aria-pressed="false" title="Editar numeraciones y colores">✎ Editar</button>
                                             @endif
@@ -1481,6 +1489,11 @@
                                             @endforeach
                                         </div>
                                         @if($canEditMarkings)
+                                            <div class="orbat-marking-title-editor" data-marking-editor-only hidden>
+                                                <label for="marking-title-{{ $event->id }}-{{ $loop->index }}">Título de escuadra (opcional)</label>
+                                                <input id="marking-title-{{ $event->id }}-{{ $loop->index }}" type="text" maxlength="80"
+                                                       placeholder="Asalto, Apoyo, QRF..." value="{{ $customGroupTitle }}" data-marking-input-title>
+                                            </div>
                                             <div class="orbat-marking-actions" data-marking-editor-only hidden>
                                                 <label class="orbat-marking-no-second">
                                                     <input type="radio" name="second-{{ $event->id }}-{{ $loop->index }}" value="" data-marking-second-none @checked($secondInCommandKey === null)>
@@ -1488,6 +1501,12 @@
                                                 </label>
                                                 <button type="button" data-marking-save>Guardar cambios</button>
                                                 <button type="button" class="orbat-marking-cancel" data-marking-cancel>Cancelar</button>
+                                            </div>
+                                        @endif
+                                        @if($canEditMarkings)
+                                            <div class="orbat-marking-share">
+                                                <button type="button" data-marking-copy>Copiar BBCode</button>
+                                                <button type="button" data-marking-comment>Comentar esta numeración</button>
                                             </div>
                                         @endif
                                         <p class="orbat-marking-meta" data-marking-meta>
