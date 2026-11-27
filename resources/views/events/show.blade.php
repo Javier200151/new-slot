@@ -2277,7 +2277,6 @@
                             @foreach($departureResetGroups as $resetGroup)
                                 <li>
                                     <strong>{{ $resetGroup['group'] }}</strong>
-                                    @if(filled($resetGroup['title'])) <small>({{ $resetGroup['title'] }})</small> @endif
                                     <span>· {{ $resetGroup['players'] }} integrantes</span>
                                     @if(! empty($resetGroup['details']))
                                         <ul class="orbat-departure-details">
