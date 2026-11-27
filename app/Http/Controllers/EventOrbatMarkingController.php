@@ -13,6 +13,7 @@ class EventOrbatMarkingController extends Controller
     {
         $validated = $request->validate([
             'group' => ['required', 'string', 'max:191'],
+            'second_in_command' => ['nullable', 'string', 'max:191'],
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.slot_key' => ['required', 'string', 'max:191'],
             'items.*.number' => ['nullable', 'integer', 'min:1', 'max:999'],
@@ -24,12 +25,13 @@ class EventOrbatMarkingController extends Controller
             $request->user(),
             $validated['group'],
             $validated['items'],
+            $validated['second_in_command'] ?? null,
         );
 
         return response()->json([
             'saved' => true,
             'changed' => $changed,
-            'message' => $changed ? 'Numeraciones y colores guardados.' : 'No hay cambios que guardar.',
+            'message' => $changed ? 'Organización táctica guardada.' : 'No hay cambios que guardar.',
         ])->header('Cache-Control', 'no-store');
     }
 }
