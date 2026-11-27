@@ -418,7 +418,7 @@ class EventOrbatMarkingService
             }
             ksort($newColorTitles);
             $previousTitle = trim((string) ($previousSettings?->custom_title ?? ''));
-            $newTitle = trim((string) $customTitle);
+            $newTitle = $customTitle === null ? $previousTitle : trim($customTitle);
             $secondChanged = $previousSecond !== $secondParticipantKey;
             $titleChanged = $previousTitle !== $newTitle;
             $teamsChanged = $previousColorTitles !== $newColorTitles;
