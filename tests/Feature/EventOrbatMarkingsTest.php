@@ -267,4 +267,117 @@ class EventOrbatMarkingsTest extends TestCase
         );
     }
 
+    public function test_custom_tactical_title_can_be_saved_and_removed_without_renumbering(): void
+    {
+        $actor = User::findOrFail(10);
+        $this->actingAs($actor)->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'custom_title' => 'Apoyo · QRF',
+            'items' => $this->alphaItems(),
+        ])->assertOk()->assertJsonPath('changed', true);
+
+        $this->assertDatabaseHas('event_orbat_group_settings', [
+            'event_id' => 1,
+            'group_name' => 'Alpha',
+            'custom_title' => 'Apoyo · QRF',
+            'updated_by' => 10,
+        ]);
+
+        $this->assertSame('Apoyo · QRF', app(EventOrbatMarkingService::class)
+            ->groupSettings(Event::findOrFail(1))['Alpha']['custom_title']);
+
+        $this->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'custom_title' => '',
+            'items' => $this->alphaItems(),
+        ])->assertOk()->assertJsonPath('changed', true);
+
+        $this->assertDatabaseHas('event_orbat_group_settings', [
+            'event_id' => 1, 'group_name' => 'Alpha', 'custom_title' => null,
+        ]);
+        $this->assertDatabaseCount('event_orbat_marking_notices', 2);
+    }
+
+    public function test_departing_member_leaves_numbered_white_vacancy_without_renumbering(): void
+    {
+        $service = app(EventOrbatMarkingService::class);
+        $leader = User::findOrFail(10);
+        $service->save(Event::findOrFail(1), $leader, 'Alpha', $this->alphaItems(), null, 'Apoyo');
+
+        $this->actingAs(User::findOrFail(11))
+            ->delete(route('events.slots.unregister', [1, 'slot-alpha-2']), [
+                'reason' => 'No puedo asistir.',
+                'reset_tactical_markings' => 0,
+            ])->assertRedirect();
+
+        $this->assertDatabaseMissing('event_slots', ['event_id' => 1, 'user_id' => 11]);
+        $this->assertDatabaseHas('event_orbat_markings', [
+            'event_id' => 1,
+            'participant_key' => 'vacant:slot-alpha-2',
+            'number' => 2,
+            'color' => 'white',
+        ]);
+        $marks = $service->markings(Event::findOrFail(1));
+        $this->assertSame(['number' => 1, 'color' => 'green'], $marks['slot-alpha-1']);
+        $this->assertSame(['number' => 2, 'color' => 'white'], $marks['slot-alpha-2']);
+        $this->assertSame('Apoyo', $service->groupSettings(Event::findOrFail(1))['Alpha']['custom_title']);
+    }
+
+    public function test_departing_last_editor_can_choose_to_clear_every_squad_they_last_edited(): void
+    {
+        $service = app(EventOrbatMarkingService::class);
+        $leader = User::findOrFail(10);
+        $service->save(Event::findOrFail(1), $leader, 'Alpha', $this->alphaItems(), 'slot-alpha-2', 'Asalto');
+
+        DB::table('slot_types')->where('id', 1)->update(['orbat_marking_permission' => 'all']);
+        $service->save(Event::findOrFail(1), $leader, 'Bravo', [
+            ['slot_key' => 'slot-bravo-1', 'number' => 1, 'color' => 'blue'],
+        ], null, 'QRF');
+
+        $choices = $service->departureResetChoices(Event::findOrFail(1), $leader);
+        $this->assertEqualsCanonicalizing(['Alpha', 'Bravo'], array_column($choices, 'group'));
+
+        $this->actingAs($leader)
+            ->delete(route('events.slots.unregister', [1, 'slot-alpha-1']), [
+                'reason' => 'No puedo participar.',
+                'reset_tactical_markings' => 1,
+            ])->assertRedirect();
+
+        $this->assertDatabaseCount('event_orbat_markings', 0);
+        $this->assertDatabaseCount('event_orbat_group_settings', 0);
+        $this->assertDatabaseHas('event_orbat_marking_history', [
+            'event_id' => 1, 'group_name' => 'Bravo',
+            'old_color' => 'blue', 'new_color' => 'white',
+        ]);
+        $this->assertDatabaseHas('event_orbat_group_command_history', [
+            'group_name' => 'Alpha', 'previous_title' => 'Asalto', 'new_title' => null,
+        ]);
+        $this->assertDatabaseHas('event_orbat_marking_notices', ['user_id' => 11]);
+        $this->assertDatabaseHas('event_orbat_marking_notices', ['user_id' => 12]);
+    }
+
+    public function test_departing_last_editor_can_keep_tactical_configuration(): void
+    {
+        $service = app(EventOrbatMarkingService::class);
+        $leader = User::findOrFail(10);
+        $service->save(Event::findOrFail(1), $leader, 'Alpha', $this->alphaItems(), null, 'QRF');
+
+        $this->actingAs($leader)
+            ->delete(route('events.slots.unregister', [1, 'slot-alpha-1']), [
+                'reason' => 'No puedo participar.',
+                'reset_tactical_markings' => 0,
+            ])->assertRedirect();
+
+        $this->assertDatabaseHas('event_orbat_group_settings', [
+            'group_name' => 'Alpha', 'custom_title' => 'QRF', 'updated_by' => 10,
+        ]);
+        $this->assertDatabaseHas('event_orbat_markings', [
+            'participant_key' => 'vacant:slot-alpha-1', 'number' => 1,
+            'color' => 'white',
+        ]);
+        $this->assertDatabaseHas('event_orbat_markings', [
+            'participant_key' => 'user:11', 'number' => 2, 'color' => 'yellow',
+        ]);
+    }
+
 }
