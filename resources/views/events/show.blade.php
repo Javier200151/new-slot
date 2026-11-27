@@ -1337,6 +1337,7 @@
                 $markingsReady = \Illuminate\Support\Facades\Schema::hasTable('event_orbat_markings');
                 $markingService = app(\App\Services\EventOrbatMarkingService::class);
                 $savedMarkings = $markingsReady ? $markingService->markings($event) : [];
+                $savedGroupSettings = $markingsReady ? $markingService->groupSettings($event) : [];
                 $viewer = auth()->user();
                 $hasMarkingCards = false;
                 foreach ($visibleOrbatGroups as $markingGroup) {
@@ -1366,6 +1367,8 @@
                         @foreach($visibleOrbatGroups as $group)
                             @php
                                 $groupName = (string) ($group['name'] ?? 'Grupo sin nombre');
+                                $groupSetting = $savedGroupSettings[$groupName] ?? null;
+                                $secondInCommandKey = $groupSetting['second_in_command_key'] ?? null;
                                 $canEditMarkings = $markingsReady && $markingService->permission($event, $viewer, $groupName);
                                 $hasSavedMarkings = collect($group['slots'])->contains(fn ($slot) => isset($savedMarkings[$slot['slot_key'] ?? '']));
                                 $showMarkingFlip = ($canEditMarkings || $hasSavedMarkings) && $group['slots']->isNotEmpty();
@@ -1408,13 +1411,24 @@
                                         </div>
                                     @endif
                                 </header>
+                                @if(! empty($groupSetting['updated_at']))
+                                    <div class="orbat-marking-front-meta" data-orbat-normal-face>
+                                        Última edición táctica: {{ $groupSetting['updated_by'] ?? 'Sistema' }}
+                                        · {{ \Carbon\Carbon::parse($groupSetting['updated_at'])->format('d/m H:i') }}
+                                    </div>
+                                @endif
 
                                 @if($showMarkingFlip)
-                                    <button type="button" class="orbat-flip-corner" data-orbat-flip aria-label="Girar escuadra {{ $groupName }}" title="Numeraciones y colores">↻</button>
-                                    <div class="orbat-marking-back" data-orbat-marking-back hidden>
+                                    <button type="button" class="orbat-flip-corner" data-orbat-flip aria-label="Ver numeración de {{ $groupName }}" title="Girar tarjeta">↻</button>
+                                    <div class="orbat-marking-back" data-orbat-marking-back hidden data-marking-second="{{ $secondInCommandKey }}">
                                         <div class="orbat-marking-back__heading">
-                                            <strong>Numeraciones y colores</strong>
-                                            <span>{{ $groupName }}</span>
+                                            <div>
+                                                <strong>Numeraciones y colores</strong>
+                                                <span>{{ $groupName }}</span>
+                                            </div>
+                                            @if($canEditMarkings)
+                                                <button type="button" class="orbat-marking-edit-toggle" data-marking-edit aria-pressed="false" title="Editar numeraciones y colores">✎ Editar</button>
+                                            @endif
                                         </div>
                                         <div class="orbat-marking-rows" data-marking-rows>
                                             @foreach($group['slots'] as $markingSlot)
@@ -1423,35 +1437,69 @@
                                                     $markingAssigned = $markingSlot['assignment'] ?? null;
                                                     $markingUserName = $markingAssigned?->user?->nick ?? $markingAssigned?->ally?->name ?? ($markingAssigned?->ally_nickname ?? null);
                                                     $markingData = $savedMarkings[$markingKey] ?? ['number' => null, 'color' => 'white'];
+                                                    $markingColor = $markingData['color'] ?? 'white';
+                                                    $markingColorLabel = ['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'][$markingColor] ?? 'Blanco';
                                                 @endphp
                                                 @if($markingKey !== '')
-                                                    <div class="orbat-marking-row" data-marking-row data-slot-key="{{ $markingKey }}" data-marking-number="{{ $markingData['number'] ?? '' }}" data-marking-color="{{ $markingData['color'] ?? 'white' }}">
-                                                        @if($canEditMarkings && $markingUserName)
-                                                            <input type="number" min="1" max="999" class="orbat-marking-number" data-marking-input-number
-                                                                value="{{ $markingData['number'] ?? '' }}" placeholder="Nº" aria-label="Número de {{ $markingUserName }}">
-                                                            <select class="orbat-marking-color" data-marking-input-color aria-label="Color de {{ $markingUserName }}">
-                                                                @foreach(['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'] as $markingColor => $markingLabel)
-                                                                    <option value="{{ $markingColor }}" @selected(($markingData['color'] ?? 'white') === $markingColor)>{{ $markingLabel }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        @else
+                                                    <div class="orbat-marking-row" data-marking-row data-slot-key="{{ $markingKey }}"
+                                                         data-marking-number="{{ $markingData['number'] ?? '' }}"
+                                                         data-marking-color="{{ $markingColor }}"
+                                                         data-marking-occupied="{{ $markingUserName ? '1' : '0' }}">
+                                                        <div class="orbat-marking-number-column">
                                                             <span class="orbat-marking-number-label" data-marking-display-number>{{ $markingData['number'] ?? '—' }}</span>
-                                                            <span class="orbat-marking-color-label">{{ ['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'][$markingData['color'] ?? 'white'] ?? 'Blanco' }}</span>
-                                                        @endif
-                                                        <span class="orbat-marking-player">{{ $markingUserName ?: 'Puesto libre' }}</span>
+                                                            @if($canEditMarkings && $markingUserName)
+                                                                <input type="number" min="1" max="999" class="orbat-marking-number" data-marking-input-number
+                                                                    value="{{ $markingData['number'] ?? '' }}" placeholder="Nº" aria-label="Número de {{ $markingUserName }}" hidden>
+                                                            @endif
+                                                        </div>
+                                                        <div class="orbat-marking-color-column">
+                                                            <span class="orbat-marking-color-label" data-marking-display-color>{{ $markingColorLabel }}</span>
+                                                            @if($canEditMarkings && $markingUserName)
+                                                                <select class="orbat-marking-color" data-marking-input-color aria-label="Color de {{ $markingUserName }}" hidden>
+                                                                    @foreach(['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'] as $choice => $label)
+                                                                        <option value="{{ $choice }}" @selected($markingColor === $choice)>{{ $label }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                            @endif
+                                                        </div>
+                                                        <div class="orbat-marking-player">
+                                                            <span>{{ $markingUserName ?: 'Puesto libre' }}</span>
+                                                            <span data-marking-second-badge class="orbat-marking-second-badge" @if($secondInCommandKey !== $markingKey) hidden @endif>2.º al mando</span>
+                                                        </div>
                                                         <small>{{ $markingSlot['name'] ?? 'Puesto' }}</small>
+                                                        @if($canEditMarkings && $markingUserName)
+                                                            <label class="orbat-marking-2ic-option" data-marking-editor-only hidden>
+                                                                <input type="radio" name="second-{{ $event->id }}-{{ $loop->parent->index }}" value="{{ $markingKey }}"
+                                                                    data-marking-second-input @checked($secondInCommandKey === $markingKey)>
+                                                                2.º al mando
+                                                            </label>
+                                                        @endif
                                                     </div>
                                                 @endif
                                             @endforeach
                                         </div>
                                         @if($canEditMarkings)
-                                            <div class="orbat-marking-actions">
-                                                <button type="button" data-marking-save>Guardar numeración y colores</button>
-                                                <span role="status" data-marking-status></span>
+                                            <div class="orbat-marking-actions" data-marking-editor-only hidden>
+                                                <label class="orbat-marking-no-second">
+                                                    <input type="radio" name="second-{{ $event->id }}-{{ $loop->index }}" value="" data-marking-second-none @checked($secondInCommandKey === null)>
+                                                    Sin segundo al mando
+                                                </label>
+                                                <button type="button" data-marking-save>Guardar cambios</button>
+                                                <button type="button" class="orbat-marking-cancel" data-marking-cancel>Cancelar</button>
                                             </div>
                                         @endif
+                                        <p class="orbat-marking-meta" data-marking-meta>
+                                            @if(! empty($groupSetting['updated_at']))
+                                                Última edición: <strong data-marking-last-editor>{{ $groupSetting['updated_by'] ?? 'Sistema' }}</strong>
+                                                · {{ \Carbon\Carbon::parse($groupSetting['updated_at'])->format('d/m/Y H:i') }}
+                                            @else
+                                                Todavía no hay cambios guardados.
+                                            @endif
+                                        </p>
+                                        <p role="status" data-marking-status class="orbat-marking-status"></p>
                                     </div>
                                 @endif
+
                                 @if($group['slots']->isEmpty())
                                     <p class="event-orbat__empty" data-orbat-normal-face>Este grupo no tiene slots visibles.</p>
                                 @else
