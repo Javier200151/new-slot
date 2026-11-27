@@ -173,6 +173,20 @@ trait CreatesEventRegressionSchema
             $table->timestamp('created_at');
         });
 
+        // Slot withdrawal writes the mandatory reason as an event comment.
+        // Keep this SQLite fixture aligned with PublicEventsPageTest.
+        Schema::create('event_comments', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->foreignId('user_id')->nullable();
+            $table->foreignId('parent_id')->nullable();
+            $table->text('comment');
+            $table->boolean('is_pinned')->default(false);
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
         Schema::create('event_slot_history', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('event_slot_id')->nullable();
