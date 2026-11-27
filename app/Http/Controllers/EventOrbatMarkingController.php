@@ -16,7 +16,7 @@ class EventOrbatMarkingController extends Controller
             'second_in_command' => ['nullable', 'string', 'max:191'],
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.slot_key' => ['required', 'string', 'max:191'],
-            'items.*.number' => ['nullable', 'integer', 'min:1', 'max:999'],
+            'items.*.number' => ['present', 'nullable', 'integer', 'min:1', 'max:999'],
             'items.*.color' => ['required', 'in:white,green,yellow,red,blue'],
         ]);
 
