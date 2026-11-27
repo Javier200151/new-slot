@@ -165,6 +165,7 @@ trait CreatesEventRegressionSchema
 
         Schema::create('event_orbat_marking_notices', function (Blueprint $table): void {
             $table->id();
+            $table->string('change_type', 12)->default('updated');
             $table->foreignId('event_id');
             $table->foreignId('user_id');
             $table->foreignId('actor_id')->nullable();
