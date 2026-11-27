@@ -402,3 +402,202 @@
     max-width:100%;
   }
 }
+
+/* Compact tactical ORBAT on phones. Never modify the normal/desktop slot cards. */
+.orbat-marking-mobile-team{display:none}
+@media (max-width: 768px) {
+    .event-orbat__group[data-orbat-flip-card] {
+        width:100%;
+        min-width:0;
+        box-sizing:border-box;
+    }
+    .event-orbat__group[data-orbat-flip-card]>header{
+        padding:14px 13px;
+        gap:8px;
+        align-items:center;
+    }
+    .event-orbat__group[data-orbat-flip-card]>header .event-orbat__faction{
+        gap:8px;
+        min-width:0;
+        max-width:100%;
+    }
+    .event-orbat__group[data-orbat-flip-card]>header .event-orbat__army-logo{
+        width:34px;
+        height:34px;
+        flex-basis:34px;
+    }
+    .event-orbat__group[data-orbat-flip-card]>header .event-orbat__faction-copy{
+        min-width:0;
+        overflow-wrap:anywhere;
+    }
+    .orbat-marking-back{
+        width:100%;
+        min-width:0;
+        box-sizing:border-box;
+        padding:12px 9px 14px;
+    }
+    .orbat-marking-back__heading{
+        align-items:center;
+        gap:8px;
+        margin-bottom:10px;
+    }
+    .orbat-marking-back__heading strong{font-size:.86rem}
+    .orbat-marking-edit-toggle{
+        min-height:36px;
+        padding:7px 10px;
+    }
+    /* The color and its custom name are displayed once per team, rather
+       than repeated in every player's compact preview row. */
+    .orbat-marking-teams{display:none}
+    .orbat-marking-rows{gap:6px;min-width:0}
+    .orbat-marking-mobile-team{
+        display:block;
+        padding:7px 9px 3px;
+        font-size:.78rem;
+        font-weight:800;
+        color:#e2e8f0;
+        overflow-wrap:anywhere;
+    }
+    .orbat-marking-mobile-team--red{color:#f87171}
+    .orbat-marking-mobile-team--blue{color:#60a5fa}
+    .orbat-marking-mobile-team--yellow{color:#fde047}
+    .orbat-marking-mobile-team--green{color:#4ade80}
+    .orbat-marking-mobile-team--white{color:#e2e8f0}
+    .orbat-marking-row,
+    .orbat-marking-row:has(.orbat-marking-2ic-option:not([hidden])){
+        display:grid;
+        width:100%;
+        box-sizing:border-box;
+        min-width:0;
+        min-height:61px;
+        grid-template-columns:38px minmax(0,1fr);
+        grid-template-areas:"number player" "number role";
+        align-items:center;
+        column-gap:8px;
+        row-gap:2px;
+        padding:9px 10px;
+        border-radius:8px;
+    }
+    .orbat-marking-number-column{
+        grid-area:number;
+        grid-row:1 / 3;
+        align-self:center;
+        min-width:0;
+    }
+    .orbat-marking-number-label{
+        font-size:1.2rem;
+        font-weight:800;
+        font-variant-numeric:tabular-nums;
+    }
+    .orbat-marking-player{
+        grid-area:player;
+        min-width:0;
+        font-size:.89rem;
+        gap:5px;
+        line-height:1.25;
+    }
+    .orbat-marking-role{
+        grid-area:role;
+        min-width:0;
+        font-size:.73rem;
+        line-height:1.3;
+    }
+    .orbat-marking-role .event-orbat__slot-type-icon{
+        width:14px;
+        height:14px;
+    }
+    .orbat-marking-second-badge{
+        font-size:.62rem;
+        padding:2px 5px;
+    }
+    .orbat-marking-color-column{display:none}
+    .orbat-marking-share{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:8px;
+        width:100%;
+    }
+    .orbat-marking-share button{
+        width:100%;
+        min-width:0;
+        min-height:39px;
+        padding:8px 6px;
+        text-align:center;
+        font-size:.73rem;
+    }
+    .orbat-marking-meta,.orbat-marking-status{
+        overflow-wrap:anywhere;
+    }
+    .orbat-fireteam-title{
+        grid-template-columns:12px minmax(65px,95px) minmax(0,1fr);
+        gap:6px;
+    }
+    .orbat-fireteam-title input{
+        width:100%;
+        max-width:100%;
+        box-sizing:border-box;
+    }
+    /* Edit mode: keep the member identity visible, then place numeric and
+       color controls side by side, with optional 2IC on a separate line. */
+    .is-marking-editing .orbat-marking-mobile-team{display:none}
+    .is-marking-editing .orbat-marking-row,
+    .is-marking-editing .orbat-marking-row:has(.orbat-marking-2ic-option:not([hidden])){
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        grid-template-areas:
+            "player player"
+            "role role"
+            "number color"
+            "second second";
+        gap:7px 9px;
+        align-items:start;
+        padding:11px 10px;
+    }
+    .is-marking-editing .orbat-marking-number-column{
+        grid-area:number;
+        grid-row:auto;
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        gap:4px;
+        min-width:0;
+    }
+    .is-marking-editing .orbat-marking-number-column::before{
+        content:"Número";
+        font-size:.71rem;
+        color:#aebfd4;
+    }
+    .is-marking-editing .orbat-marking-color-column{
+        grid-area:color;
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        gap:4px;
+        min-width:0;
+    }
+    .is-marking-editing .orbat-marking-color-column::before{
+        content:"Color";
+        font-size:.71rem;
+        color:#aebfd4;
+    }
+    .is-marking-editing .orbat-marking-number,
+    .is-marking-editing .orbat-marking-color{
+        min-height:38px;
+        font-size:16px;
+        box-sizing:border-box;
+    }
+    .is-marking-editing .orbat-marking-2ic-option{
+        grid-area:second;
+        grid-column:auto;
+        justify-self:start;
+        white-space:normal;
+        min-height:30px;
+    }
+    .orbat-marking-actions{gap:9px}
+    .orbat-marking-actions .orbat-marking-no-second{width:100%}
+    .orbat-marking-actions button{min-height:38px}
+}
+@media (max-width:350px){
+    .orbat-marking-back{padding-inline:7px}
+    .orbat-marking-row{padding-inline:7px}
+    .orbat-marking-share{grid-template-columns:1fr}
+}
