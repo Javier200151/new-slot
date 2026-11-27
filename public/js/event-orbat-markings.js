@@ -20,7 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .sort((a, b) => Number(a.dataset.markingNumber) - Number(b.dataset.markingNumber));
         const colorFor = color => colors[color] ? color : 'white';
         const headerColor = colorFor(rows.find(row => row.dataset.markingColor !== 'white')?.dataset.markingColor || 'white');
-        const header = group + (title ? ' (' + title.toUpperCase() + ')' : '');
+        const header = group
+            + (headerColor === 'white' ? '' : ' - ' + colors[headerColor].toUpperCase())
+            + (title ? ' (' + title.toUpperCase() + ')' : '');
         const lines = rows.map(row => {
             const number = row.dataset.markingNumber;
             const name = sanitizeBbcode(row.querySelector('.orbat-marking-player > span')?.textContent || '');
