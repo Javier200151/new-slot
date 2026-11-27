@@ -100,6 +100,8 @@
 .orbat-marking-role span{min-width:0;overflow-wrap:anywhere}
 
 
+/* Las cabeceras de cada color solo existen visualmente en móvil. */
+.orbat-marking-mobile-team{display:none}
 /* ---------------------------------------------------------
    ORBAT / móvil: filas compactas a ancho completo.
    Escritorio conserva su distribución actual.
