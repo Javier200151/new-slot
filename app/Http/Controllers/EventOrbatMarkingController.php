@@ -9,6 +9,17 @@ use Illuminate\Http\Request;
 
 class EventOrbatMarkingController extends Controller
 {
+    public function download(Event $event, \App\Services\EventOrbatPdfService $pdf, EventOrbatMarkingService $service): \Illuminate\Http\Response
+    {
+        $document = $pdf->generate($event, $service);
+        return response($document, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="squad-alpha-orbat-'.$event->id.'.pdf"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function update(Request $request, Event $event, EventOrbatMarkingService $service): JsonResponse
     {
         $validated = $request->validate([
