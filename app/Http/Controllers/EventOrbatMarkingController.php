@@ -35,7 +35,7 @@ class EventOrbatMarkingController extends Controller
             'changed' => $changed,
             'updated_by' => $changed ? $request->user()->nick : null,
             'updated_at' => $changed ? now()->format('d/m/Y H:i') : null,
-            'message' => $changed ? 'Organización táctica guardada.' : 'No hay cambios que guardar.',
+            'message' => $changed ? 'Organización guardada.' : 'No hay cambios que guardar.',
         ])->header('Cache-Control', 'no-store');
     }
 }
