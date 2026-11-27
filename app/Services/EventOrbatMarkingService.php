@@ -26,17 +26,31 @@ class EventOrbatMarkingService
             ->filter(fn (array $g): bool => ($g['visible'] ?? true))
             ->pluck('name')->map(fn ($name): string => trim((string) $name))->all();
 
+        $markings = $this->markings($event);
+
         return DB::table('event_orbat_group_settings')
             ->where('event_id', $event->id)
             ->where('updated_by', $user->id)
             ->get()
             ->filter(fn ($row): bool => in_array($row->group_name, $currentGroups, true))
-            ->map(fn ($row): array => [
-                'group' => $row->group_name,
-                'title' => (string) ($row->custom_title ?? ''),
-                'players' => EventSlot::query()->where('event_id', $event->id)
-                    ->where('slot_group', $row->group_name)->count(),
-            ])->values()->all();
+            ->map(function ($row) use ($event, $markings): array {
+                $members = EventSlot::query()->where('event_id', $event->id)
+                    ->where('slot_group', $row->group_name)->with('user')->get();
+                return [
+                    'group' => $row->group_name,
+                    'title' => (string) ($row->custom_title ?? ''),
+                    'players' => $members->count(),
+                    'details' => $members->map(function (EventSlot $slot) use ($markings): array {
+                        $marking = $markings[$slot->slot_key] ?? [];
+                        return [
+                            'name' => $slot->user?->nick ?? $slot->ally?->name ?? 'Miembro',
+                            'number' => $marking['number'] ?? null,
+                            'color' => $marking['color'] ?? 'white',
+                        ];
+                    })->filter(fn (array $member): bool => $member['number'] !== null
+                        || $member['color'] !== 'white')->values()->all(),
+                ];
+            })->values()->all();
     }
 
     /**
