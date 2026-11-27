@@ -59,9 +59,6 @@ class EventOrbatPdfService
             $this->requireHeight(92);
             $this->heading(mb_strtoupper($name));
             $setting = $settings[$name] ?? [];
-            if (filled($setting['custom_title'] ?? null)) {
-                $this->line('Mision: '.$setting['custom_title'], 10, true, [0.28, 0.34, 0.42]);
-            }
             $entries = $slots->map(function (array $slot) use ($occupants, $markings): array {
                 $key = (string) $slot['slot_key'];
                 $occupant = $occupants->get($key);
@@ -91,7 +88,7 @@ class EventOrbatPdfService
                 if ($count < 1) continue;
                 $teamTitle = trim((string) ($titles[$color] ?? ''));
                 $this->requireHeight(19);
-                $this->line($label.' ('.$count.')'.($teamTitle !== '' ? ' - '.$teamTitle : ''), 9, true, self::PALETTE[$color]);
+                $this->line($label.' ('.$count.')'.($teamTitle !== '' ? ': '.$teamTitle : ''), 9, true, self::PALETTE[$color]);
             }
 
             $this->y -= 5;
