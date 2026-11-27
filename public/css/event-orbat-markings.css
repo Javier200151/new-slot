@@ -68,3 +68,28 @@
 .orbat-departure-details li{padding:2px 0}
 .orbat-departure-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .orbat-departure-actions button{font-size:.8rem;white-space:normal}
+
+/* Color fireteams: names belong to the colors already assigned to members. */
+.orbat-download-pdf{display:inline-flex;align-items:center;justify-content:center;padding:5px 10px;border:1px solid #56677f;border-radius:7px;color:#d8e4f2;text-decoration:none;font-size:.75rem;font-weight:650}
+.orbat-download-pdf:hover,.orbat-download-pdf:focus-visible{border-color:#d6a658;color:#ffd18c}
+.orbat-marking-teams{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 13px}
+.orbat-marking-teams[hidden]{display:none!important}
+.orbat-fireteam-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid currentColor;border-radius:7px;font-size:.75rem;font-weight:600;color:#e3e9f2}
+.orbat-fireteam-chip--white{color:#d6dee9}
+.orbat-fireteam-chip--green{color:#4ade80}
+.orbat-fireteam-chip--yellow{color:#fde047}
+.orbat-fireteam-chip--red{color:#f87171}
+.orbat-fireteam-chip--blue{color:#60a5fa}
+.orbat-fireteam-titles{display:grid;gap:9px;margin:14px 0;color:#d7e3f2}
+.orbat-fireteam-titles>strong{font-size:.83rem}
+.orbat-fireteam-titles>p{margin:0;color:#a6b5c8;font-size:.74rem}
+.orbat-fireteam-title{display:grid;grid-template-columns:14px minmax(88px,115px) minmax(120px,1fr) auto;align-items:center;gap:8px;font-size:.78rem}
+.orbat-fireteam-title[hidden]{display:none!important}
+.orbat-fireteam-title input{min-width:0;width:100%;box-sizing:border-box;border:1px solid #50627a;border-radius:6px;background:#101924;padding:7px;color:#f1f6fc;font:inherit}
+.orbat-fireteam-dot{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid #8290a1}
+.orbat-fireteam-dot--white{background:#f8fafc}
+.orbat-fireteam-dot--green{background:#4ade80}
+.orbat-fireteam-dot--yellow{background:#fde047}
+.orbat-fireteam-dot--red{background:#f87171}
+.orbat-fireteam-dot--blue{background:#60a5fa}
+@media(max-width:580px){.orbat-fireteam-title{grid-template-columns:14px minmax(65px,95px) minmax(0,1fr)}}
