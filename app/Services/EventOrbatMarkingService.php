@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\EventSlot;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class EventOrbatMarkingService
@@ -73,13 +74,33 @@ class EventOrbatMarkingService
         return $result;
     }
 
+    /** @return array<string, array{second_in_command_key:?string, updated_by:?string, updated_at:?string}> */
+    public function groupSettings(Event $event): array
+    {
+        if (! Schema::hasTable('event_orbat_group_settings')) {
+            return [];
+        }
+
+        return DB::table('event_orbat_group_settings as g')
+            ->leftJoin('users as editor', 'editor.id', '=', 'g.updated_by')
+            ->where('g.event_id', $event->id)
+            ->select('g.group_name', 'g.second_in_command_key', 'g.updated_at', 'editor.nick as updated_by')
+            ->get()->mapWithKeys(fn ($row): array => [
+                $row->group_name => [
+                    'second_in_command_key' => $row->second_in_command_key,
+                    'updated_by' => $row->updated_by,
+                    'updated_at' => $row->updated_at,
+                ],
+            ])->all();
+    }
+
     /**
      * @param array<int, array{slot_key:string, number:?int, color:string}> $items
      * @return bool true only if something actually changed
      */
-    public function save(Event $event, User $actor, string $group, array $items): bool
+    public function save(Event $event, User $actor, string $group, array $items, ?string $secondInCommandKey = null): bool
     {
-        return DB::transaction(function () use ($event, $actor, $group, $items): bool {
+        return DB::transaction(function () use ($event, $actor, $group, $items, $secondInCommandKey): bool {
             $event = Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
             $event->load('eventStatus');
             $visible = $this->visibleSlots($event);
@@ -98,6 +119,14 @@ class EventOrbatMarkingService
 
             $occupied = EventSlot::query()->where('event_id', $event->id)
                 ->whereIn('slot_key', $groupKeys)->lockForUpdate()->get()->keyBy('slot_key');
+            if ($secondInCommandKey !== null
+                && (! in_array($secondInCommandKey, $groupKeys, true)
+                    || ! $occupied->has($secondInCommandKey))) {
+                throw ValidationException::withMessages([
+                    'second_in_command' => 'El segundo al mando debe estar apuntado en esta escuadra.',
+                ]);
+            }
+
             $numbers = [];
             foreach ($items as $item) {
                 if (! in_array($item['color'], self::COLORS, true)) {
@@ -148,6 +177,37 @@ class EventOrbatMarkingService
                 ]);
                 $changed = true;
             }
+            // Persist squad leadership independently of the slot so it is optional,
+            // and update editor metadata only after a real change.
+            $previousSettings = DB::table('event_orbat_group_settings')
+                ->where('event_id', $event->id)
+                ->where('group_name', $group)
+                ->first();
+            $previousSecond = $previousSettings?->second_in_command_key;
+            $secondChanged = $previousSecond !== $secondInCommandKey;
+            if ($secondChanged) {
+                DB::table('event_orbat_group_command_history')->insert([
+                    'event_id' => $event->id,
+                    'group_name' => $group,
+                    'previous_second_key' => $previousSecond,
+                    'new_second_key' => $secondInCommandKey,
+                    'actor_id' => $actor->id,
+                    'created_at' => now(),
+                ]);
+                $changed = true;
+            }
+            if ($changed) {
+                DB::table('event_orbat_group_settings')->updateOrInsert(
+                    ['event_id' => $event->id, 'group_name' => $group],
+                    [
+                        'second_in_command_key' => $secondInCommandKey,
+                        'updated_by' => $actor->id,
+                        'updated_at' => now(),
+                        'created_at' => $previousSettings?->created_at ?? now(),
+                    ],
+                );
+            }
+
             if ($changed) {
                 // Recipients are snapshotted on save; visiting the event must not erase the notice.
                 $recipients = $occupied->filter(fn (EventSlot $slot) =>
