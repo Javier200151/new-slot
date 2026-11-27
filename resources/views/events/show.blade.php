@@ -1474,7 +1474,15 @@
                                                             <span>{{ $markingUserName ?: 'Puesto libre' }}</span>
                                                             <span data-marking-second-badge class="orbat-marking-second-badge" @if($secondInCommandKey !== $markingKey) hidden @endif>2.º al mando</span>
                                                         </div>
-                                                        <small>{{ $markingSlot['name'] ?? 'Puesto' }}</small>
+                                                        <small class="orbat-marking-role">
+                                                            @if(($markingSlot['slot_type'] ?? null)?->image)
+                                                                <img src="{{ asset('storage/' . $markingSlot['slot_type']->image) }}"
+                                                                     alt="{{ $markingSlot['slot_type']->name ?? 'Tipo de slot' }}"
+                                                                     class="event-orbat__slot-type-icon"
+                                                                     loading="lazy">
+                                                            @endif
+                                                            <span>{{ $markingSlot['name'] ?? 'Puesto' }}</span>
+                                                        </small>
                                                         @if($canEditMarkings && $markingUserName)
                                                             <label class="orbat-marking-2ic-option" data-marking-editor-only hidden>
                                                                 <input type="radio" name="second-{{ $event->id }}-{{ $loop->parent->index }}" value="{{ $markingKey }}"
