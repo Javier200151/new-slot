@@ -126,6 +126,20 @@ trait CreatesEventRegressionSchema
             $table->unique(['event_id', 'participant_key']);
         });
 
+        Schema::create('event_orbat_marking_history', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->foreignId('actor_id')->nullable();
+            $table->string('group_name');
+            $table->string('participant_key');
+            $table->string('slot_key');
+            $table->unsignedSmallInteger('old_number')->nullable();
+            $table->unsignedSmallInteger('new_number')->nullable();
+            $table->string('old_color');
+            $table->string('new_color');
+            $table->timestamp('created_at');
+        });
+
         Schema::create('event_orbat_marking_notices', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('event_id');
