@@ -286,7 +286,7 @@ class EventOrbatMarkingsTest extends TestCase
         );
     }
 
-    public function test_custom_tactical_title_can_be_saved_and_removed_without_renumbering(): void
+    public function test_legacy_tactical_title_is_preserved_when_new_editor_omits_it(): void
     {
         $actor = User::findOrFail(10);
         $this->actingAs($actor)->putJson(route('events.orbat.markings.update', 1), [
