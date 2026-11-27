@@ -68,14 +68,52 @@ class EventOrbatMarkingService
         foreach ($groupNames as $group) {
             $groupSlots = EventSlot::query()->where('event_id', $event->id)
                 ->where('slot_group', $group)->get();
-            $keys = $groupSlots->map(fn (EventSlot $slot): ?string => $this->participantKey($slot))
+            $participantKeys = $groupSlots->map(fn (EventSlot $slot): ?string => $this->participantKey($slot))
                 ->filter()->values()->all();
-            $slotKeys = $groupSlots->pluck('slot_key')->all();
-            DB::table('event_orbat_markings')->where('event_id', $event->id)
-                ->where(fn ($q) => $q->whereIn('participant_key', $keys)
-                    ->orWhereIn('slot_key', $slotKeys))->delete();
-            DB::table('event_orbat_group_settings')
-                ->where('event_id', $event->id)->where('group_name', $group)->delete();
+            $slotKeys = collect($this->visibleSlots($event))
+                ->filter(fn (array $slot): bool => $slot['group'] === $group)
+                ->keys()->all();
+
+            $markings = DB::table('event_orbat_markings')
+                ->where('event_id', $event->id)
+                ->where(fn ($query) => $query->whereIn('participant_key', $participantKeys)
+                    ->orWhereIn('slot_key', $slotKeys))
+                ->get();
+
+            foreach ($markings as $marking) {
+                DB::table('event_orbat_marking_history')->insert([
+                    'event_id' => $event->id,
+                    'actor_id' => $user->id,
+                    'group_name' => $group,
+                    'participant_key' => $marking->participant_key,
+                    'slot_key' => $marking->slot_key,
+                    'old_number' => $marking->number,
+                    'new_number' => null,
+                    'old_color' => $marking->color,
+                    'new_color' => 'white',
+                    'created_at' => now(),
+                ]);
+            }
+            if ($markings->isNotEmpty()) {
+                DB::table('event_orbat_markings')->whereIn('id', $markings->pluck('id')->all())->delete();
+            }
+
+            $oldSettings = DB::table('event_orbat_group_settings')
+                ->where('event_id', $event->id)->where('group_name', $group)->first();
+
+            if ($oldSettings) {
+                DB::table('event_orbat_group_command_history')->insert([
+                    'event_id' => $event->id,
+                    'group_name' => $group,
+                    'previous_title' => $oldSettings->custom_title,
+                    'new_title' => null,
+                    'previous_second_key' => $oldSettings->second_in_command_key,
+                    'new_second_key' => null,
+                    'actor_id' => $user->id,
+                    'created_at' => now(),
+                ]);
+                DB::table('event_orbat_group_settings')->where('id', $oldSettings->id)->delete();
+            }
 
             foreach ($groupSlots->pluck('user_id')->filter()->unique() as $recipient) {
                 if ((int) $recipient === (int) $user->id) continue;
