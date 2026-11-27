@@ -31,8 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return '[color=' + colorFor(row.dataset.markingColor) + ']' +
                 number + '.- ' + playerName + second + '[/color]';
         });
-        return '[center][b][color=' + headerColor + ']' + header + '[/color][/b]' +
-            (lines.length ? '\n\n' + lines.join('\n') : '') + '[/center]';
+        return '[b][color=' + headerColor + ']' + header + '[/color][/b]' +
+            (lines.length ? '\n\n' + lines.join('\n') : '');
     }
 
     function appendToComment(text) {
