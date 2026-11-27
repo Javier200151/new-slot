@@ -129,7 +129,17 @@ class EventNewsService
             ->whereIn('event_id', $events->pluck('id')->all())
             ->get()->keyBy('event_id');
 
-        return $events->map(function (Event $event) use ($receipts, $user, $cutoff): ?array {
+        $markingNotices = \Illuminate\Support\Facades\Schema::hasTable('event_orbat_marking_notices')
+            ? DB::table('event_orbat_marking_notices')
+                ->leftJoin('users as marking_actors', 'marking_actors.id', '=', 'event_orbat_marking_notices.actor_id')
+                ->where('event_orbat_marking_notices.user_id', $user->id)
+                ->whereIn('event_orbat_marking_notices.event_id', $events->pluck('id')->all())
+                ->where('event_orbat_marking_notices.created_at', '>=', $cutoff)
+                ->select('event_orbat_marking_notices.*', 'marking_actors.nick as actor_nick')
+                ->get()->groupBy('event_id')
+            : collect();
+
+        return $events->map(function (Event $event) use ($receipts, $markingNotices, $user, $cutoff): ?array {
             $receipt = $receipts->get($event->id);
             $since = $receipt?->last_viewed_at;
             $messages = [];
@@ -171,6 +181,21 @@ class EventNewsService
                     'at' => $item['at'],
                 ];
                 $latest = max($latest, $item['at']);
+            }
+
+            // Cambios de numeración: avisos dirigidos a los miembros de la escuadra
+            // que ocupaban un puesto en el momento del guardado.
+            foreach ($markingNotices->get($event->id, collect()) as $notice) {
+                if (! $wasBeforeClose($notice->created_at)) continue;
+                $at = (string) $notice->created_at;
+                $actor = $notice->actor_nick ?: 'Un responsable del ORBAT';
+                $messages[] = [
+                    'text' => $actor . ' ha actualizado la numeración y los colores de tu escuadra «' . $notice->group_name . '».',
+                    'key' => 'markings:' . $notice->id,
+                    'read' => $since !== null && $at <= $since,
+                    'at' => $at,
+                ];
+                $latest = max($latest, $at);
             }
 
             $comments = EventComment::query()
