@@ -1374,7 +1374,6 @@
                                 $groupName = (string) ($group['name'] ?? 'Grupo sin nombre');
                                 $groupSetting = $savedGroupSettings[$groupName] ?? null;
                                 $secondInCommandKey = $groupSetting['second_in_command_key'] ?? null;
-                                $customGroupTitle = $groupSetting['custom_title'] ?? '';
                                 $canEditMarkings = $markingsReady && $markingService->permission($event, $viewer, $groupName);
                                 $hasSavedMarkings = $groupSetting !== null
                                     || collect($group['slots'])->contains(fn ($slot) => isset($savedMarkings[$slot['slot_key'] ?? '']));
@@ -1429,12 +1428,10 @@
                                     <button type="button" class="orbat-flip-corner" data-orbat-flip aria-label="Ver numeración de {{ $groupName }}" title="Girar tarjeta">↻</button>
                                     <div class="orbat-marking-back" data-orbat-marking-back hidden
                                          data-marking-second="{{ $secondInCommandKey }}"
-                                         data-marking-title="{{ $customGroupTitle }}"
                                          data-marking-team-titles='@json($groupSetting['color_team_titles'] ?? [])'>
                                         <div class="orbat-marking-back__heading">
                                             <div>
                                                 <strong>Numeraciones y colores</strong>
-                                                <span class="orbat-marking-custom-title" data-marking-display-title @if(blank($customGroupTitle)) hidden @endif>{{ $customGroupTitle }}</span>
                                             </div>
                                             @if($canEditMarkings)
                                                 <button type="button" class="orbat-marking-edit-toggle" data-marking-edit aria-pressed="false" title="Editar numeraciones y colores">✎ Editar</button>
@@ -1490,11 +1487,6 @@
                                             @endforeach
                                         </div>
                                         @if($canEditMarkings)
-                                            <div class="orbat-marking-title-editor" data-marking-editor-only hidden>
-                                                <label for="marking-title-{{ $event->id }}-{{ $loop->index }}">Título de escuadra (opcional)</label>
-                                                <input id="marking-title-{{ $event->id }}-{{ $loop->index }}" type="text" maxlength="80"
-                                                       placeholder="Asalto, Apoyo, QRF..." value="{{ $customGroupTitle }}" data-marking-input-title>
-                                            </div>
                                             <div class="orbat-fireteam-titles" data-marking-editor-only hidden>
                                                 <strong>Títulos por equipo de color (opcionales)</strong>
                                                 <p>Se muestran los colores que tienen al menos un integrante.</p>
