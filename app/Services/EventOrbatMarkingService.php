@@ -79,6 +79,9 @@ class EventOrbatMarkingService
      */
     public function save(Event $event, User $actor, string $group, array $items): bool
     {
+        return DB::transaction(function () use ($event, $actor, $group, $items): bool {
+        $event = Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+        $event->load('eventStatus');
         $visible = $this->visibleSlots($event);
         if (! $this->permission($event, $actor, $group)) {
             throw ValidationException::withMessages(['markings' => 'No tienes permiso para editar esta escuadra.']);
@@ -94,7 +97,7 @@ class EventOrbatMarkingService
         }
 
         $occupied = EventSlot::query()->where('event_id', $event->id)
-            ->whereIn('slot_key', $groupKeys)->get()->keyBy('slot_key');
+            ->whereIn('slot_key', $groupKeys)->lockForUpdate()->get()->keyBy('slot_key');
         $numbers = [];
         foreach ($items as $item) {
             if (! in_array($item['color'], self::COLORS, true)) {
@@ -111,11 +114,6 @@ class EventOrbatMarkingService
             }
         }
 
-        return DB::transaction(function () use ($event, $actor, $group, $items, $occupied): bool {
-            Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
-            if (! $this->permission($event->fresh('eventStatus'), $actor, $group)) {
-                throw ValidationException::withMessages(['markings' => 'Tu permiso ha cambiado.']);
-            }
             $existing = DB::table('event_orbat_markings')
                 ->where('event_id', $event->id)->get()->keyBy('participant_key');
             $changed = false;
