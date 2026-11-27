@@ -1,0 +1,95 @@
+/* ORBAT tactical numbering reverse face; scoped to the event details. */
+.event-orbat__titlebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.orbat-flip-all{margin-left:auto;border:1px solid #d78e15;background:transparent;color:#f4b444;border-radius:7px;padding:5px 9px;font:inherit;font-size:.75rem;cursor:pointer}
+.event-orbat__group[data-orbat-flip-card]{position:relative;transition:transform .23s ease}
+.orbat-flip-corner{position:absolute;right:8px;top:8px;z-index:2;display:grid;place-items:center;width:27px;height:27px;border:1px solid rgba(154,173,200,.2);border-radius:9px;background:rgba(26,34,45,.74);color:#afbdd1;font-size:1rem;cursor:pointer;opacity:.7;transition:opacity .2s,color .2s,background .2s,transform .2s}
+.orbat-flip-corner:hover,.orbat-flip-corner:focus-visible{opacity:1;color:#f3bf6d;background:#26354a;transform:rotate(38deg)}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  .event-orbat__group[data-orbat-flip-card]:hover:not(.is-flipping):not(.is-marking-face){transform:perspective(1000px) rotateY(-3deg) translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,.15)}
+  .event-orbat__group[data-orbat-flip-card]:hover .orbat-flip-corner{opacity:1}
+}
+@keyframes sqa-orbat-flip{0%{transform:perspective(900px) rotateY(0deg)}50%{transform:perspective(900px) rotateY(90deg)}100%{transform:perspective(900px) rotateY(0deg)}}
+.event-orbat__group.is-flipping{animation:sqa-orbat-flip .32s ease-in-out both}
+.event-orbat__group.is-marking-face>[data-orbat-normal-face]{display:none!important}
+.orbat-marking-back[hidden]{display:none!important}
+.orbat-marking-back{padding:15px;min-height:125px}
+.orbat-marking-back__heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;color:#ffc66d;font-size:.8rem;letter-spacing:.02em;margin-bottom:14px}
+.orbat-marking-back__heading span{color:#afbcd1}
+.orbat-marking-rows{display:grid;gap:8px}
+.orbat-marking-row{display:grid;grid-template-columns:minmax(46px,65px) minmax(80px,105px) minmax(100px,1fr) minmax(80px,1fr);align-items:center;gap:9px;min-height:42px;padding:6px 9px;border-radius:7px;background:#111820;border:1px solid #263340;border-left:4px solid var(--marking-accent,#f8fafc);color:var(--marking-accent,#f8fafc)}
+.orbat-marking-row[data-marking-color="white"]{--marking-accent:#f8fafc}
+.orbat-marking-row[data-marking-color="green"]{--marking-accent:#4ade80}
+.orbat-marking-row[data-marking-color="yellow"]{--marking-accent:#fde047}
+.orbat-marking-row[data-marking-color="red"]{--marking-accent:#f87171}
+.orbat-marking-row[data-marking-color="blue"]{--marking-accent:#60a5fa}
+.orbat-marking-row input,.orbat-marking-row select{max-width:100%;width:100%;min-width:0;padding:5px;background:#0c1018;border:1px solid #506070;color:#f8fafc;border-radius:5px;font:inherit;font-size:.85rem}
+.orbat-marking-number-label{font-weight:800;font-size:1.1rem}
+.orbat-marking-color-label{font-size:.75rem}
+.orbat-marking-player{font-size:.86rem;font-weight:700;overflow-wrap:anywhere}
+.orbat-marking-row small{font-size:.72rem;color:#a1adc0;overflow-wrap:anywhere}
+.orbat-marking-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:15px}
+.orbat-marking-actions button{border:0;border-radius:6px;background:#e9a325;color:#10151c;padding:8px 12px;font-weight:700;cursor:pointer}
+.orbat-marking-actions button:disabled{opacity:.55;cursor:wait}
+.orbat-marking-actions [role="status"]{color:#d5dfef;font-size:.8rem}
+@media(max-width:740px){.orbat-marking-row{grid-template-columns:50px minmax(80px,1fr);gap:5px}.orbat-marking-row small{grid-column:2}.orbat-marking-player{grid-column:2}}
+@media(prefers-reduced-motion:reduce){.event-orbat__group.is-flipping{animation:none}}
+
+/* Preview is identical for everyone; editor fields appear only after clicking ✎. */
+.orbat-marking-row [hidden],.orbat-marking-back [hidden]{display:none!important}
+.orbat-marking-back__heading>div{display:flex;flex-direction:column;gap:3px}
+.orbat-marking-edit-toggle{align-self:center;border:1px solid #50637a;border-radius:7px;background:#1d2b3a;color:#e8edf6;font:inherit;font-size:.8rem;padding:6px 11px;cursor:pointer}
+.orbat-marking-edit-toggle:hover{background:#2a3d50}
+.orbat-marking-edit-toggle:disabled{opacity:.55;cursor:default}
+.orbat-marking-number-column,.orbat-marking-color-column{display:flex;align-items:center;gap:6px}
+.orbat-marking-player{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.orbat-marking-second-badge{font-size:.66rem;padding:3px 6px;border:1px solid #d6a750;border-radius:5px;background:rgba(214,167,80,.12);color:#f4cd78;white-space:nowrap;font-weight:700}
+.orbat-marking-2ic-option{display:flex;align-items:center;gap:5px;font-size:.75rem;color:#dee5f0;cursor:pointer;white-space:nowrap}
+.orbat-marking-2ic-option input,.orbat-marking-no-second input{width:auto;min-width:0;accent-color:#f5b44b}
+.orbat-marking-no-second{display:flex;align-items:center;gap:7px;color:#ced9ea;font-size:.8rem}
+.orbat-marking-meta,.orbat-marking-front-meta{font-size:.72rem;color:#95a9c1;margin:10px 0 0}
+.orbat-marking-front-meta{padding:4px 16px 7px;margin:0}
+.orbat-marking-status{font-size:.77rem;color:#dfb868;margin:8px 0 0}
+.orbat-marking-actions .orbat-marking-cancel{background:transparent;color:#e1e8f3;border:1px solid #607083;font-weight:500}
+.orbat-marking-row{grid-template-columns:minmax(40px,65px) minmax(70px,105px) minmax(105px,1fr) minmax(80px,1fr);position:relative}
+.orbat-marking-row:has(.orbat-marking-2ic-option:not([hidden])){grid-template-columns:minmax(40px,60px) minmax(70px,100px) minmax(105px,1fr) minmax(70px,1fr) auto}
+@media(max-width:850px){.orbat-marking-row,.orbat-marking-row:has(.orbat-marking-2ic-option:not([hidden])){grid-template-columns:55px minmax(85px,1fr)}.orbat-marking-row small,.orbat-marking-2ic-option{grid-column:2}}
+@media(prefers-reduced-motion:reduce){.event-orbat__group[data-orbat-flip-card]:hover{transform:none!important}}
+
+.orbat-marking-custom-title{font-size:.84rem;font-weight:750;color:#e9c17c;max-width:100%;overflow-wrap:anywhere}
+.orbat-marking-title-editor{display:flex;flex-direction:column;gap:6px;margin:12px 0;color:#d3dded;font-size:.78rem}
+.orbat-marking-title-editor input{max-width:100%;width:100%;box-sizing:border-box;border:1px solid #51657c;border-radius:7px;background:#101924;color:#f0f4fc;padding:9px;font:inherit}
+.orbat-marking-share{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.orbat-marking-share button{border:1px solid #42566d;background:rgba(56,73,91,.3);color:#cbd8ed;padding:6px 10px;border-radius:7px;font:inherit;font-size:.75rem;cursor:pointer}
+.orbat-marking-share button:hover,.orbat-marking-share button:focus-visible{border-color:#bd965d;color:#f7d49a}
+.orbat-departure-groups{display:grid;gap:8px;margin:12px 0;padding-left:18px}
+.orbat-departure-groups>li{padding:5px 0;color:#e7e9ef}
+.orbat-departure-groups small,.orbat-departure-groups span{font-size:.8rem;color:#b0bed1}
+.orbat-departure-details{padding:6px 0 3px 17px;font-size:.8rem;color:#c1cede}
+.orbat-departure-details li{padding:2px 0}
+.orbat-departure-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.orbat-departure-actions button{font-size:.8rem;white-space:normal}
+
+/* Color fireteams: names belong to the colors already assigned to members. */
+.orbat-download-pdf{display:inline-flex;align-items:center;justify-content:center;padding:5px 10px;border:1px solid #56677f;border-radius:7px;color:#d8e4f2;text-decoration:none;font-size:.75rem;font-weight:650}
+.orbat-download-pdf:hover,.orbat-download-pdf:focus-visible{border-color:#d6a658;color:#ffd18c}
+.orbat-marking-teams{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 13px}
+.orbat-marking-teams[hidden]{display:none!important}
+.orbat-fireteam-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid currentColor;border-radius:7px;font-size:.75rem;font-weight:600;color:#e3e9f2}
+.orbat-fireteam-chip--white{color:#d6dee9}
+.orbat-fireteam-chip--green{color:#4ade80}
+.orbat-fireteam-chip--yellow{color:#fde047}
+.orbat-fireteam-chip--red{color:#f87171}
+.orbat-fireteam-chip--blue{color:#60a5fa}
+.orbat-fireteam-titles{display:grid;gap:9px;margin:14px 0;color:#d7e3f2}
+.orbat-fireteam-titles>strong{font-size:.83rem}
+.orbat-fireteam-titles>p{margin:0;color:#a6b5c8;font-size:.74rem}
+.orbat-fireteam-title{display:grid;grid-template-columns:14px minmax(88px,115px) minmax(120px,1fr) auto;align-items:center;gap:8px;font-size:.78rem}
+.orbat-fireteam-title[hidden]{display:none!important}
+.orbat-fireteam-title input{min-width:0;width:100%;box-sizing:border-box;border:1px solid #50627a;border-radius:6px;background:#101924;padding:7px;color:#f1f6fc;font:inherit}
+.orbat-fireteam-dot{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid #8290a1}
+.orbat-fireteam-dot--white{background:#f8fafc}
+.orbat-fireteam-dot--green{background:#4ade80}
+.orbat-fireteam-dot--yellow{background:#fde047}
+.orbat-fireteam-dot--red{background:#f87171}
+.orbat-fireteam-dot--blue{background:#60a5fa}
+@media(max-width:580px){.orbat-fireteam-title{grid-template-columns:14px minmax(65px,95px) minmax(0,1fr)}}

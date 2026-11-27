@@ -2548,7 +2548,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const slotLabel = dialog.querySelector('[data-event-unregister-slot]');
     const confirmButton = dialog.querySelector('[data-event-unregister-confirm]');
     const cancelButtons = dialog.querySelectorAll('[data-event-unregister-cancel]');
+    const markingDialog = document.querySelector('[data-event-unregister-markings-dialog]');
     let activeForm = null;
+
+    const openReasonDialog = (form, clearMarkings = false) => {
+        activeForm = form;
+        if (textarea) textarea.value = '';
+        if (slotLabel) slotLabel.textContent = form.dataset.slotName || '';
+        const resetInput = form.querySelector('[data-event-unregister-reset]');
+        if (resetInput) resetInput.value = clearMarkings ? '1' : '0';
+        textarea?.setCustomValidity('');
+        dialog.showModal();
+        window.requestAnimationFrame(() => textarea?.focus());
+    };
+
+    const resetGroups = (() => {
+        try {
+            const data = JSON.parse(markingDialog?.dataset.markingResetGroups || '[]');
+            return Array.isArray(data) ? data : [];
+        } catch (_) { return []; }
+    })();
+    markingDialog?.querySelector('[data-marking-exit-clear]')?.addEventListener('click', () => {
+        markingDialog.close();
+        if (activeForm) openReasonDialog(activeForm, true);
+    });
+    markingDialog?.querySelector('[data-marking-exit-keep]')?.addEventListener('click', () => {
+        markingDialog.close();
+        if (activeForm) openReasonDialog(activeForm, false);
+    });
+    markingDialog?.querySelectorAll('[data-marking-exit-cancel]').forEach(button => {
+        button.addEventListener('click', () => { activeForm = null; markingDialog.close(); });
+    });
+    markingDialog?.addEventListener('cancel', () => { activeForm = null; });
 
     document.querySelectorAll('[data-event-unregister-open]').forEach((button) => {
         button.addEventListener('click', () => {
@@ -2558,19 +2589,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            activeForm = form;
-
-            if (textarea) {
-                textarea.value = '';
+            if (markingDialog && resetGroups.length > 0) {
+                activeForm = form;
+                markingDialog.showModal();
+                return;
             }
-
-            if (slotLabel) {
-                slotLabel.textContent = form.dataset.slotName || '';
-            }
-
-            textarea?.setCustomValidity('');
-            dialog.showModal();
-            window.requestAnimationFrame(() => textarea?.focus());
+            openReasonDialog(form, false);
         });
     });
 

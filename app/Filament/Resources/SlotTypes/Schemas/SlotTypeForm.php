@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SlotTypes\Schemas;
 
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
 
 class SlotTypeForm
@@ -21,6 +22,17 @@ class SlotTypeForm
                     ->label('Descripción')
                     ->required()
                     ->maxLength(255),
+
+                Select::make('orbat_marking_permission')
+                    ->label('Numeraciones y colores del ORBAT')
+                    ->options([
+                        'none' => 'Sin permiso',
+                        'group' => 'Editar su escuadra',
+                        'all' => 'Editar todas las escuadras',
+                    ])
+                    ->default('none')
+                    ->required()
+                    ->helperText('Permiso del miembro que ocupa este tipo de slot en cada evento.'),
 
                 FileUpload::make('image')
                     ->label('Icono')

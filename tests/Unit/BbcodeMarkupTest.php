@@ -98,4 +98,22 @@ class BbcodeMarkupTest extends TestCase
         $this->assertStringContainsString('[h6]Seis[/h6]', $source);
     }
 
+    public function test_tactical_roster_bbcode_renders_centered_title_colors_and_vacancies(): void
+    {
+        $source = "[center][b][color=blue]ALPHA 2-3 - AZUL (APOYO)[/color][/b]\n\n"
+            . "[color=blue]1.- Rotciv[/color]\n"
+            . "[color=white]2.- —[/color]\n"
+            . "[color=green]3.- Aurelio (2.º al mando)[/color][/center]";
+
+        $html = BbcodeMarkup::render($source)->toHtml();
+
+        $this->assertStringContainsString('bbcode-rich__align--center', $html);
+        $this->assertStringContainsString('ALPHA 2-3 - AZUL (APOYO)', $html);
+        $this->assertStringContainsString('1.- Rotciv', $html);
+        $this->assertStringContainsString('2.- —', $html);
+        $this->assertStringContainsString('3.- Aurelio (2.º al mando)', $html);
+        $this->assertStringContainsString('data-color="blue"', $html);
+        $this->assertStringContainsString('data-color="green"', $html);
+    }
+
 }

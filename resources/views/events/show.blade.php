@@ -32,10 +32,12 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/events.css') }}?v={{ filemtime(public_path('css/events.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/event-jump-nav.css') }}?v={{ filemtime(public_path('css/event-jump-nav.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/event-orbat-markings.css') }}?v={{ filemtime(public_path('css/event-orbat-markings.css')) }}">
 @endpush
 
 @push('scripts')
     <script src="{{ asset('js/events.js') }}?v={{ filemtime(public_path('js/events.js')) }}" defer></script>
+    <script src="{{ asset('js/event-orbat-markings.js') }}?v={{ filemtime(public_path('js/event-orbat-markings.js')) }}" defer></script>
     <script src="{{ asset('js/event-jump-nav.js') }}?v={{ filemtime(public_path('js/event-jump-nav.js')) }}" defer></script>
 @endpush
 
@@ -1331,6 +1333,23 @@
                 </section>
             @endif
 
+            @php
+                $markingsReady = \Illuminate\Support\Facades\Schema::hasTable('event_orbat_markings');
+                $markingService = app(\App\Services\EventOrbatMarkingService::class);
+                $savedMarkings = $markingsReady ? $markingService->markings($event) : [];
+                $savedGroupSettings = $markingsReady ? $markingService->groupSettings($event) : [];
+                $viewer = auth()->user();
+                $departureResetGroups = $markingsReady && $viewer
+                    ? $markingService->departureResetChoices($event, $viewer)
+                    : [];
+                $hasMarkingCards = false;
+                foreach ($visibleOrbatGroups as $markingGroup) {
+                    $groupCanEdit = $markingsReady && $markingService->permission($event, $viewer, (string) ($markingGroup['name'] ?? ''));
+                    $groupHasSaved = isset($savedGroupSettings[(string) ($markingGroup['name'] ?? '')])
+                        || collect($markingGroup['slots'] ?? [])->contains(fn ($s) => isset($savedMarkings[$s['slot_key'] ?? '']));
+                    if (($groupCanEdit || $groupHasSaved) && collect($markingGroup['slots'] ?? [])->isNotEmpty()) { $hasMarkingCards = true; break; }
+                }
+            @endphp
             <section
                 id="orbat"
                 class="event-detail__section event-detail__orbat"
@@ -1338,14 +1357,31 @@
                 data-orbat
                 data-csrf-token="{{ csrf_token() }}"
             >
-                <header><span id="event-orbat-title">ORBAT</span></header>
+                <header class="event-orbat__titlebar">
+                    <span id="event-orbat-title">ORBAT</span>
+                    @if($hasMarkingCards)
+                        <button type="button" data-orbat-flip-all aria-pressed="false" class="orbat-flip-all">Ver todas las numeraciones y colores</button>
+                        <a href="{{ route('events.orbat.markings.pdf', $event) }}" class="orbat-download-pdf" download>Descargar PDF</a>
+                    @endif
+                </header>
 
                 @if($visibleOrbatGroups->isEmpty())
                     <div class="events-empty"><strong>ORBAT no disponible</strong><p>No hay grupos visibles para este evento.</p></div>
                 @else
                     <div class="event-orbat">
                         @foreach($visibleOrbatGroups as $group)
-                            <section class="event-orbat__group">
+                            @php
+                                $groupName = (string) ($group['name'] ?? 'Grupo sin nombre');
+                                $groupSetting = $savedGroupSettings[$groupName] ?? null;
+                                $secondInCommandKey = $groupSetting['second_in_command_key'] ?? null;
+                                $canEditMarkings = $markingsReady && $markingService->permission($event, $viewer, $groupName);
+                                $hasSavedMarkings = $groupSetting !== null
+                                    || collect($group['slots'])->contains(fn ($slot) => isset($savedMarkings[$slot['slot_key'] ?? '']));
+                                $showMarkingFlip = ($canEditMarkings || $hasSavedMarkings) && $group['slots']->isNotEmpty();
+                            @endphp
+                            <section class="event-orbat__group" data-orbat-flip-card data-marking-group="{{ $groupName }}"
+                                data-markings-endpoint="{{ route('events.orbat.markings.update', $event) }}"
+                                data-markings-editable="{{ $canEditMarkings ? '1' : '0' }}">
                                 <header>
                                     <div><span>Grupo</span><h3>{{ $group['name'] ?? 'Grupo sin nombre' }}</h3></div>
                                     @if($group['faction'])
@@ -1381,11 +1417,120 @@
                                         </div>
                                     @endif
                                 </header>
+                                @if(! empty($groupSetting['updated_at']))
+                                    <div class="orbat-marking-front-meta" data-orbat-normal-face>
+                                        Última edición táctica: {{ $groupSetting['updated_by'] ?? 'Sistema' }}
+                                        · {{ \Carbon\Carbon::parse($groupSetting['updated_at'])->format('d/m H:i') }}
+                                    </div>
+                                @endif
+
+                                @if($showMarkingFlip)
+                                    <button type="button" class="orbat-flip-corner" data-orbat-flip aria-label="Ver numeración de {{ $groupName }}" title="Girar tarjeta">↻</button>
+                                    <div class="orbat-marking-back" data-orbat-marking-back hidden
+                                         data-marking-second="{{ $secondInCommandKey }}"
+                                         data-marking-team-titles='@json($groupSetting['color_team_titles'] ?? [])'>
+                                        <div class="orbat-marking-back__heading">
+                                            <div>
+                                                <strong>Numeraciones y colores</strong>
+                                            </div>
+                                            @if($canEditMarkings)
+                                                <button type="button" class="orbat-marking-edit-toggle" data-marking-edit aria-pressed="false" title="Editar numeraciones y colores">✎ Editar</button>
+                                            @endif
+                                        </div>
+                                        <div class="orbat-marking-teams" data-marking-team-preview aria-label="Equipos de fuego"></div>
+                                        <div class="orbat-marking-rows" data-marking-rows>
+                                            @foreach($group['slots'] as $markingSlot)
+                                                @php
+                                                    $markingKey = (string) ($markingSlot['slot_key'] ?? '');
+                                                    $markingAssigned = $markingSlot['assignment'] ?? null;
+                                                    $markingUserName = $markingAssigned?->user?->nick ?? $markingAssigned?->ally?->name ?? ($markingAssigned?->ally_nickname ?? null);
+                                                    $markingData = $savedMarkings[$markingKey] ?? ['number' => null, 'color' => 'white'];
+                                                    $markingColor = $markingData['color'] ?? 'white';
+                                                    $markingColorLabel = ['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'][$markingColor] ?? 'Blanco';
+                                                @endphp
+                                                @if($markingKey !== '')
+                                                    <div class="orbat-marking-row" data-marking-row data-slot-key="{{ $markingKey }}"
+                                                         data-marking-number="{{ $markingData['number'] ?? '' }}"
+                                                         data-marking-color="{{ $markingColor }}"
+                                                         data-marking-occupied="{{ $markingUserName ? '1' : '0' }}">
+                                                        <div class="orbat-marking-number-column">
+                                                            <span class="orbat-marking-number-label" data-marking-display-number>{{ $markingData['number'] ?? '—' }}</span>
+                                                            @if($canEditMarkings && $markingUserName)
+                                                                <input type="number" min="1" max="999" class="orbat-marking-number" data-marking-input-number
+                                                                    value="{{ $markingData['number'] ?? '' }}" placeholder="Nº" aria-label="Número de {{ $markingUserName }}" hidden>
+                                                            @endif
+                                                        </div>
+                                                        <div class="orbat-marking-color-column">
+                                                            <span class="orbat-marking-color-label" data-marking-display-color>{{ $markingColorLabel }}</span>
+                                                            @if($canEditMarkings && $markingUserName)
+                                                                <select class="orbat-marking-color" data-marking-input-color aria-label="Color de {{ $markingUserName }}" hidden>
+                                                                    @foreach(['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'] as $choice => $label)
+                                                                        <option value="{{ $choice }}" @selected($markingColor === $choice)>{{ $label }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                            @endif
+                                                        </div>
+                                                        <div class="orbat-marking-player">
+                                                            <span>{{ $markingUserName ?: 'Puesto libre' }}</span>
+                                                            <span data-marking-second-badge class="orbat-marking-second-badge" @if($secondInCommandKey !== $markingKey) hidden @endif>2.º al mando</span>
+                                                        </div>
+                                                        <small>{{ $markingSlot['name'] ?? 'Puesto' }}</small>
+                                                        @if($canEditMarkings && $markingUserName)
+                                                            <label class="orbat-marking-2ic-option" data-marking-editor-only hidden>
+                                                                <input type="radio" name="second-{{ $event->id }}-{{ $loop->parent->index }}" value="{{ $markingKey }}"
+                                                                    data-marking-second-input @checked($secondInCommandKey === $markingKey)>
+                                                                2.º al mando
+                                                            </label>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                        @if($canEditMarkings)
+                                            <div class="orbat-fireteam-titles" data-marking-editor-only hidden>
+                                                <strong>Títulos por equipo de color (opcionales)</strong>
+                                                <p>Se muestran los colores que tienen al menos un integrante.</p>
+                                                @foreach(['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'] as $teamColor => $teamLabel)
+                                                    <label class="orbat-fireteam-title" data-marking-team-field="{{ $teamColor }}" hidden>
+                                                        <span class="orbat-fireteam-dot orbat-fireteam-dot--{{ $teamColor }}"></span>
+                                                        <span>Equipo {{ $teamLabel }}</span>
+                                                        <input type="text" maxlength="80" data-marking-team-input="{{ $teamColor }}"
+                                                               value="{{ ($groupSetting['color_team_titles'] ?? [])[$teamColor] ?? '' }}"
+                                                               placeholder="Nombre del equipo (opcional)">
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            <div class="orbat-marking-actions" data-marking-editor-only hidden>
+                                                <label class="orbat-marking-no-second">
+                                                    <input type="radio" name="second-{{ $event->id }}-{{ $loop->index }}" value="" data-marking-second-none @checked($secondInCommandKey === null)>
+                                                    Sin segundo al mando
+                                                </label>
+                                                <button type="button" data-marking-save>Guardar cambios</button>
+                                                <button type="button" class="orbat-marking-cancel" data-marking-cancel>Cancelar</button>
+                                            </div>
+                                        @endif
+                                        @if($canEditMarkings)
+                                            <div class="orbat-marking-share">
+                                                <button type="button" data-marking-copy>Copiar BBCode</button>
+                                                <button type="button" data-marking-comment>Comentar esta numeración</button>
+                                            </div>
+                                        @endif
+                                        <p class="orbat-marking-meta" data-marking-meta>
+                                            @if(! empty($groupSetting['updated_at']))
+                                                Última edición: <strong data-marking-last-editor>{{ $groupSetting['updated_by'] ?? 'Sistema' }}</strong>
+                                                · {{ \Carbon\Carbon::parse($groupSetting['updated_at'])->format('d/m/Y H:i') }}
+                                            @else
+                                                Todavía no hay cambios guardados.
+                                            @endif
+                                        </p>
+                                        <p role="status" data-marking-status class="orbat-marking-status"></p>
+                                    </div>
+                                @endif
 
                                 @if($group['slots']->isEmpty())
-                                    <p class="event-orbat__empty">Este grupo no tiene slots visibles.</p>
+                                    <p class="event-orbat__empty" data-orbat-normal-face>Este grupo no tiene slots visibles.</p>
                                 @else
-                                    <div class="event-orbat__slots">
+                                    <div class="event-orbat__slots" data-orbat-normal-face>
                                         @foreach($group['slots'] as $slot)
                                             @php
                                                 $assignment = $slot['assignment'];
@@ -1493,6 +1638,7 @@
                                                                         @csrf
                                                                         @method('DELETE')
                                                                         <input type="hidden" name="reason" value="" data-event-unregister-reason>
+                                                                        <input type="hidden" name="reset_tactical_markings" value="0" data-event-unregister-reset>
 
                                                                         <button
                                                                             type="button"
@@ -1634,6 +1780,7 @@
                                                                     @csrf
                                                                     @method('DELETE')
                                                                     <input type="hidden" name="reason" value="" data-event-unregister-reason>
+                                                                        <input type="hidden" name="reset_tactical_markings" value="0" data-event-unregister-reset>
 
                                                                     <button
                                                                         type="button"
@@ -2112,6 +2259,46 @@
                 </section>
             @elseif($addons->isNotEmpty())
                 @include('partials.activity-addons')
+            @endif
+
+            @if(! empty($departureResetGroups))
+                <dialog class="event-unregister-dialog" data-event-unregister-markings-dialog
+                        data-marking-reset-groups="{{ json_encode($departureResetGroups, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG) }}">
+                    <div class="event-unregister-dialog__panel">
+                        <header>
+                            <div>
+                                <span>Configuraciones tácticas guardadas</span>
+                                <small>Antes de desapuntarte</small>
+                            </div>
+                            <button type="button" class="event-unregister-dialog__close" data-marking-exit-cancel aria-label="Cancelar">×</button>
+                        </header>
+                        <p>Eres la última persona que editó la organización de estas escuadras:</p>
+                        <ul class="orbat-departure-groups">
+                            @foreach($departureResetGroups as $resetGroup)
+                                <li>
+                                    <strong>{{ $resetGroup['group'] }}</strong>
+                                    <span>· {{ $resetGroup['players'] }} integrantes</span>
+                                    @if(! empty($resetGroup['details']))
+                                        <ul class="orbat-departure-details">
+                                            @foreach($resetGroup['details'] as $detail)
+                                                <li>
+                                                    {{ $detail['number'] ?? '—' }}.- {{ $detail['name'] }}
+                                                    · {{ ['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'][$detail['color']] ?? 'Blanco' }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                        <p>¿Quieres borrarla? Si aceptas, se eliminarán los números, colores, títulos y segundos al mando de esas escuadras. Si la conservas, los demás seguirán viendo los datos.</p>
+                        <footer class="orbat-departure-actions">
+                            <button type="button" class="btn btn-outline" data-marking-exit-keep>Conservar numeraciones</button>
+                            <button type="button" class="btn" data-marking-exit-clear>Eliminar configuraciones</button>
+                            <button type="button" class="btn btn-outline" data-marking-exit-cancel>Cancelar salida</button>
+                        </footer>
+                    </div>
+                </dialog>
             @endif
 
             <dialog class="event-unregister-dialog" data-event-unregister-dialog>

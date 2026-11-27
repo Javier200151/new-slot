@@ -74,6 +74,7 @@ trait CreatesEventRegressionSchema
             $table->id();
             $table->string('name');
             $table->string('image')->nullable();
+            $table->string('orbat_marking_permission', 12)->default('none');
         });
 
         Schema::create('slot_types_status', function (Blueprint $table): void {
@@ -111,6 +112,82 @@ trait CreatesEventRegressionSchema
             $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->unique(['event_id', 'slot_key']);
+        });
+
+        Schema::create('event_orbat_markings', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->string('participant_key');
+            $table->string('slot_key');
+            $table->unsignedSmallInteger('number')->nullable();
+            $table->string('color')->default('white');
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
+            $table->unique(['event_id', 'participant_key']);
+        });
+
+        Schema::create('event_orbat_marking_history', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->foreignId('actor_id')->nullable();
+            $table->string('group_name');
+            $table->string('participant_key');
+            $table->string('slot_key');
+            $table->unsignedSmallInteger('old_number')->nullable();
+            $table->unsignedSmallInteger('new_number')->nullable();
+            $table->string('old_color');
+            $table->string('new_color');
+            $table->timestamp('created_at');
+        });
+
+        Schema::create('event_orbat_group_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->string('group_name');
+            $table->string('custom_title', 80)->nullable();
+            $table->json('color_team_titles')->nullable();
+            $table->string('second_in_command_key')->nullable();
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
+            $table->unique(['event_id', 'group_name']);
+        });
+
+        Schema::create('event_orbat_group_command_history', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->string('group_name');
+            $table->string('previous_title', 80)->nullable();
+            $table->string('new_title', 80)->nullable();
+            $table->json('previous_color_team_titles')->nullable();
+            $table->json('new_color_team_titles')->nullable();
+            $table->string('previous_second_key')->nullable();
+            $table->string('new_second_key')->nullable();
+            $table->foreignId('actor_id')->nullable();
+            $table->timestamp('created_at');
+        });
+
+        Schema::create('event_orbat_marking_notices', function (Blueprint $table): void {
+            $table->id();
+            $table->string('change_type', 12)->default('updated');
+            $table->foreignId('event_id');
+            $table->foreignId('user_id');
+            $table->foreignId('actor_id')->nullable();
+            $table->string('group_name');
+            $table->timestamp('created_at');
+        });
+
+        // Slot withdrawal writes the mandatory reason as an event comment.
+        // Keep this SQLite fixture aligned with PublicEventsPageTest.
+        Schema::create('event_comments', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->foreignId('user_id')->nullable();
+            $table->foreignId('parent_id')->nullable();
+            $table->text('comment');
+            $table->boolean('is_pinned')->default(false);
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('event_slot_history', function (Blueprint $table): void {

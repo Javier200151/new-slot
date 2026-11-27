@@ -40,7 +40,12 @@
                     @if(! empty($update['messages']))
                         <ul class="events-news-card__messages">
                             @foreach($update['messages'] as $message)
-                                <li @class(['events-news-card__message--seen' => $message['read']])>{{ $message['text'] }}</li>
+                                <li @class(['events-news-card__message--seen' => $message['read']])>
+                                    {{ $message['text'] }}
+                                    @if(str_starts_with((string) ($message['key'] ?? ''), 'markings:'))
+                                        <a href="{{ route('events.show', $event) }}#orbat-numeraciones">Ver numeraciones y colores</a>
+                                    @endif
+                                </li>
                             @endforeach
                         </ul>
                     @endif

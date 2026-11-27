@@ -19,6 +19,7 @@ class SlotType extends Model
         'image',
         'picker_column',
         'picker_order',
+        'orbat_marking_permission',
     ];
 
     protected static function booted(): void

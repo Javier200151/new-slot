@@ -76,6 +76,16 @@ final class EventUnreadActivity
             ->selectRaw('event_slot_history.event_id, MAX(event_slot_history.created_at) as latest')
             ->groupBy('event_slot_history.event_id')->pluck('latest', 'event_slot_history.event_id');
 
+        $lastMarkingNotices = \Illuminate\Support\Facades\Schema::hasTable('event_orbat_marking_notices')
+            ? DB::table('event_orbat_marking_notices')
+                ->where('user_id', $userId)
+                ->whereIn('event_id', $activeIds)
+                ->where('created_at', '>=', now()->subDays(\App\Services\EventNewsService::RETENTION_DAYS))
+                ->selectRaw('event_id, MAX(created_at) as latest')
+                ->groupBy('event_id')
+                ->pluck('latest', 'event_id')
+            : collect();
+
         $activeEvents = $events->keyBy('id');
         $unread = [];
         foreach ($activeIds as $eventId) {
@@ -83,6 +93,7 @@ final class EventUnreadActivity
             $visited = $receipt?->last_viewed_at;
             $comment = $lastComments->get($eventId);
             $assignment = $lastAssignments->get($eventId);
+            $markingNotice = $lastMarkingNotices->get($eventId);
             $event = $activeEvents->get($eventId);
             $recentOrbatChange = $event?->updated_at !== null
                 && $event->updated_at->greaterThanOrEqualTo(now()->subDays(\App\Services\EventNewsService::RETENTION_DAYS))
@@ -101,7 +112,8 @@ final class EventUnreadActivity
                     > (int) $receipt->occupied_slot_count;
             $unread[$eventId] = ($newSlotKeys || $addedSlots || $addedOccupants
                 || ($comment && (! $visited || $comment > $visited))
-                || ($assignment && (! $visited || $assignment > $visited)));
+                || ($assignment && (! $visited || $assignment > $visited))
+                || ($markingNotice && (! $visited || $markingNotice > $visited)));
         }
 
         return $unread;
