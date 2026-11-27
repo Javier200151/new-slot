@@ -191,8 +191,8 @@ class EventNewsService
                 $actor = $notice->actor_nick ?: 'Un responsable del ORBAT';
                 $messages[] = [
                     'text' => ($notice->change_type ?? 'updated') === 'cleared'
-                        ? $actor . ' ha eliminado la numeración, colores y organización táctica de tu escuadra «' . $notice->group_name . '».'
-                        : $actor . ' ha actualizado la organización táctica (numeración, colores, título o segundo al mando) de tu escuadra «' . $notice->group_name . '».',
+                        ? $actor . ' ha eliminado la organización de tu escuadra «' . $notice->group_name . '».'
+                        : $actor . ' ha actualizado la organización de tu escuadra «' . $notice->group_name . '».',
                     'key' => 'markings:' . $notice->id,
                     'read' => $since !== null && $at <= $since,
                     'at' => $at,
