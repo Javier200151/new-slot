@@ -305,16 +305,19 @@ class EventOrbatMarkingsTest extends TestCase
         $this->assertSame('Apoyo · QRF', app(EventOrbatMarkingService::class)
             ->groupSettings(Event::findOrFail(1))['Alpha']['custom_title']);
 
+        // The legacy title has no editor anymore. An empty/omitted value
+        // must leave it untouched, without a spurious notification.
         $this->putJson(route('events.orbat.markings.update', 1), [
             'group' => 'Alpha',
             'custom_title' => '',
             'items' => $this->alphaItems(),
-        ])->assertOk()->assertJsonPath('changed', true);
+        ])->assertOk()->assertJsonPath('changed', false);
 
         $this->assertDatabaseHas('event_orbat_group_settings', [
-            'event_id' => 1, 'group_name' => 'Alpha', 'custom_title' => null,
+            'event_id' => 1, 'group_name' => 'Alpha',
+            'custom_title' => 'Apoyo · QRF',
         ]);
-        $this->assertDatabaseCount('event_orbat_marking_notices', 2);
+        $this->assertDatabaseCount('event_orbat_marking_notices', 1);
     }
 
     public function test_color_team_titles_replace_visible_squad_title_without_erasing_legacy_data(): void
@@ -342,8 +345,9 @@ class EventOrbatMarkingsTest extends TestCase
         ]);
 
         $pdf = $this->get(route('events.orbat.markings.pdf', 1))->assertOk()->getContent();
-        $this->assertStringContainsString('Verde (1): Asalto', $pdf);
-        $this->assertStringContainsString('Amarillo (1): Apoyo', $pdf);
+        // Raw PDF content streams escape parentheses in text operators.
+        $this->assertStringContainsString('Verde \\(1\\): Asalto', $pdf);
+        $this->assertStringContainsString('Amarillo \\(1\\): Apoyo', $pdf);
         $this->assertStringNotContainsString('Antiguo título', $pdf);
     }
 
@@ -503,9 +507,9 @@ class EventOrbatMarkingsTest extends TestCase
         $this->assertStringContainsString('attachment;', (string) $response->headers->get('Content-Disposition'));
         $binary = $response->getContent();
         $this->assertStringStartsWith('%PDF-1.4', $binary);
-        $this->assertStringContainsString('Equipo', $binary);
-        $this->assertStringContainsString('Asalto', $binary);
-        $this->assertStringContainsString('Seguridad', $binary);
+        // The PDF uses color names and optional team titles, not "Equipo".
+        $this->assertStringContainsString('Verde \\(1\\): Asalto', $binary);
+        $this->assertStringContainsString('Amarillo \\(1\\): Seguridad', $binary);
         $this->assertStringContainsString('Lider', $binary);
         $this->assertStringContainsString('2.-', $binary);
         $this->assertStringContainsString('%%EOF', $binary);
