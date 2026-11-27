@@ -12,6 +12,90 @@ use Illuminate\Validation\ValidationException;
 class EventOrbatMarkingService
 {
     public const COLORS = ['white', 'green', 'yellow', 'red', 'blue'];
+    /**
+     * Current squads last edited by this member. Used for the opt-in departure
+     * warning, including squads where they no longer occupy a slot.
+     *
+     * @return array<int, array{group:string,title:string,players:int}>
+     */
+    public function departureResetChoices(Event $event, User $user): array
+    {
+        if (! Schema::hasTable('event_orbat_group_settings')) return [];
+
+        $currentGroups = collect($event->orbat['groups'] ?? [])
+            ->filter(fn (array $g): bool => ($g['visible'] ?? true))
+            ->pluck('name')->map(fn ($name): string => trim((string) $name))->all();
+
+        return DB::table('event_orbat_group_settings')
+            ->where('event_id', $event->id)
+            ->where('updated_by', $user->id)
+            ->get()
+            ->filter(fn ($row): bool => in_array($row->group_name, $currentGroups, true))
+            ->map(fn ($row): array => [
+                'group' => $row->group_name,
+                'title' => (string) ($row->custom_title ?? ''),
+                'players' => EventSlot::query()->where('event_id', $event->id)
+                    ->where('slot_group', $row->group_name)->count(),
+            ])->values()->all();
+    }
+
+    /**
+     * Called under the event's enrollment transaction just before deleting a
+     * user's slot. Clearing is opt-in and restricted to groups they last edited.
+     */
+    public function leaving(Event $event, EventSlot $leaving, User $user, bool $resetGroups): void
+    {
+        if (! Schema::hasTable('event_orbat_markings')) return;
+
+        $groupNames = $resetGroups
+            ? collect($this->departureResetChoices($event, $user))->pluck('group')->all()
+            : [];
+
+        foreach ($groupNames as $group) {
+            $groupSlots = EventSlot::query()->where('event_id', $event->id)
+                ->where('slot_group', $group)->get();
+            $keys = $groupSlots->map(fn (EventSlot $slot): ?string => $this->participantKey($slot))
+                ->filter()->values()->all();
+            $slotKeys = $groupSlots->pluck('slot_key')->all();
+            DB::table('event_orbat_markings')->where('event_id', $event->id)
+                ->where(fn ($q) => $q->whereIn('participant_key', $keys)
+                    ->orWhereIn('slot_key', $slotKeys))->delete();
+            DB::table('event_orbat_group_settings')
+                ->where('event_id', $event->id)->where('group_name', $group)->delete();
+
+            foreach ($groupSlots->pluck('user_id')->filter()->unique() as $recipient) {
+                if ((int) $recipient === (int) $user->id) continue;
+                DB::table('event_orbat_marking_notices')->insert([
+                    'event_id' => $event->id,
+                    'user_id' => $recipient,
+                    'actor_id' => $user->id,
+                    'group_name' => $group,
+                    'created_at' => now(),
+                ]);
+            }
+        }
+
+        if ($resetGroups && in_array($leaving->slot_group, $groupNames, true)) return;
+
+        $participantKey = $this->participantKey($leaving);
+        $marking = DB::table('event_orbat_markings')
+            ->where('event_id', $event->id)->where('participant_key', $participantKey)->first();
+        if ($marking) {
+            DB::table('event_orbat_markings')->where('id', $marking->id)->update([
+                'participant_key' => 'vacant:' . $leaving->slot_key,
+                'color' => 'white',
+                'updated_by' => $user->id,
+                'updated_at' => now(),
+            ]);
+        }
+        // A departing 2IC clears the designation, but leaves all other
+        // members' numbering untouched.
+        DB::table('event_orbat_group_settings')
+            ->where('event_id', $event->id)
+            ->where('second_in_command_key', $participantKey)
+            ->update(['second_in_command_key' => null, 'updated_at' => now()]);
+    }
+
 
     /** @return array<string, array{group:string, name:string}> */
     public function visibleSlots(Event $event): array
@@ -71,6 +155,20 @@ class EventOrbatMarkingService
                 ];
             }
         }
+        // A departing member leaves a numbered vacancy (white, unnamed).
+        // Numbers are not compacted and do not automatically transfer to a replacement.
+        $vacancies = DB::table('event_orbat_markings')
+            ->where('event_id', $event->id)
+            ->where('participant_key', 'like', 'vacant:%')
+            ->get();
+        foreach ($vacancies as $vacancy) {
+            if (! isset($result[$vacancy->slot_key])) {
+                $result[$vacancy->slot_key] = [
+                    'number' => $vacancy->number !== null ? (int) $vacancy->number : null,
+                    'color' => 'white',
+                ];
+            }
+        }
         return $result;
     }
 
@@ -88,12 +186,13 @@ class EventOrbatMarkingService
         return DB::table('event_orbat_group_settings as g')
             ->leftJoin('users as editor', 'editor.id', '=', 'g.updated_by')
             ->where('g.event_id', $event->id)
-            ->select('g.group_name', 'g.second_in_command_key', 'g.updated_at', 'editor.nick as updated_by')
+            ->select('g.group_name', 'g.custom_title', 'g.second_in_command_key', 'g.updated_at', 'editor.nick as updated_by')
             ->get()->mapWithKeys(function ($row) use ($participantSlots): array {
                 $second = $row->second_in_command_key
                     ? $participantSlots->get($row->second_in_command_key)
                     : null;
                 return [$row->group_name => [
+                    'custom_title' => $row->custom_title,
                     'second_in_command_key' => $second && $second->slot_group === $row->group_name
                         ? (string) $second->slot_key : null,
                     'updated_by' => $row->updated_by,
@@ -106,9 +205,9 @@ class EventOrbatMarkingService
      * @param array<int, array{slot_key:string, number:?int, color:string}> $items
      * @return bool true only if something actually changed
      */
-    public function save(Event $event, User $actor, string $group, array $items, ?string $secondInCommandKey = null): bool
+    public function save(Event $event, User $actor, string $group, array $items, ?string $secondInCommandKey = null, ?string $customTitle = null): bool
     {
-        return DB::transaction(function () use ($event, $actor, $group, $items, $secondInCommandKey): bool {
+        return DB::transaction(function () use ($event, $actor, $group, $items, $secondInCommandKey, $customTitle): bool {
             $event = Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
             $event->load('eventStatus');
             $visible = $this->visibleSlots($event);
@@ -196,11 +295,16 @@ class EventOrbatMarkingService
                 ->where('group_name', $group)
                 ->first();
             $previousSecond = $previousSettings?->second_in_command_key;
+            $previousTitle = trim((string) ($previousSettings?->custom_title ?? ''));
+            $newTitle = trim((string) $customTitle);
             $secondChanged = $previousSecond !== $secondParticipantKey;
-            if ($secondChanged) {
+            $titleChanged = $previousTitle !== $newTitle;
+            if ($secondChanged || $titleChanged) {
                 DB::table('event_orbat_group_command_history')->insert([
                     'event_id' => $event->id,
                     'group_name' => $group,
+                    'previous_title' => $previousTitle ?: null,
+                    'new_title' => $newTitle ?: null,
                     'previous_second_key' => $previousSecond,
                     'new_second_key' => $secondParticipantKey,
                     'actor_id' => $actor->id,
@@ -212,6 +316,7 @@ class EventOrbatMarkingService
                 DB::table('event_orbat_group_settings')->updateOrInsert(
                     ['event_id' => $event->id, 'group_name' => $group],
                     [
+                        'custom_title' => $newTitle ?: null,
                         'second_in_command_key' => $secondParticipantKey,
                         'updated_by' => $actor->id,
                         'updated_at' => now(),
