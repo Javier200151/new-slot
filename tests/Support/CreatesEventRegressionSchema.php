@@ -74,6 +74,7 @@ trait CreatesEventRegressionSchema
             $table->id();
             $table->string('name');
             $table->string('image')->nullable();
+            $table->string('orbat_marking_permission', 12)->default('none');
         });
 
         Schema::create('slot_types_status', function (Blueprint $table): void {
@@ -111,6 +112,27 @@ trait CreatesEventRegressionSchema
             $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->unique(['event_id', 'slot_key']);
+        });
+
+        Schema::create('event_orbat_markings', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->string('participant_key');
+            $table->string('slot_key');
+            $table->unsignedSmallInteger('number')->nullable();
+            $table->string('color')->default('white');
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
+            $table->unique(['event_id', 'participant_key']);
+        });
+
+        Schema::create('event_orbat_marking_notices', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->foreignId('user_id');
+            $table->foreignId('actor_id')->nullable();
+            $table->string('group_name');
+            $table->timestamp('created_at');
         });
 
         Schema::create('event_slot_history', function (Blueprint $table): void {
