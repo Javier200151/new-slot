@@ -106,6 +106,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const numberOf = row => row.querySelector('[data-marking-input-number]')?.value ?? row.dataset.markingNumber ?? '';
     const colorOf = row => row.querySelector('[data-marking-input-color]')?.value ?? row.dataset.markingColor ?? 'white';
 
+    // Small-screen roster: group consecutive rows by their saved fireteam
+    // color. These headings are purely presentational and never affect
+    // numeration, payloads, BBCode, PDF, or the desktop layout.
+    function renderMobileTeamHeadings(card) {
+        const container = card.querySelector('[data-marking-rows]');
+        if (!container) return;
+        container.querySelectorAll('[data-marking-mobile-team]').forEach(heading => heading.remove());
+
+        const totals = activeTeams(card, false);
+        const titles = savedTeamTitles(card);
+        let previousColor = null;
+
+        rowsOf(card).forEach(row => {
+            const color = colors[row.dataset.markingColor] ? row.dataset.markingColor : 'white';
+            if (color === previousColor) return;
+
+            const heading = document.createElement('div');
+            heading.className = 'orbat-marking-mobile-team orbat-marking-mobile-team--' + color;
+            heading.dataset.markingMobileTeam = '';
+            heading.textContent = colors[color]
+                + (totals[color] ? ' (' + totals[color] + ')' : '')
+                + (titles[color] ? ': ' + titles[color] : '');
+            container.insertBefore(heading, row);
+            previousColor = color;
+        });
+    }
+
     function sortRows(card) {
         const container = card.querySelector('[data-marking-rows]');
         if (!container) return;
@@ -119,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 || toNumber(a) - toNumber(b)
                 || String(a.dataset.slotKey).localeCompare(String(b.dataset.slotKey));
         }).forEach(row => container.append(row));
+        renderMobileTeamHeadings(card);
     }
 
     function setEditor(card, enabled) {
@@ -306,6 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 backOf(card).dataset.markingSecond = second || '';
                 backOf(card).dataset.markingTeamTitles = JSON.stringify(teamTitles);
                 renderTeamPreview(card);
+                renderMobileTeamHeadings(card);
                 if (data.changed && data.updated_by) {
                     const text = 'Última edición: ' + data.updated_by + ' · ' + data.updated_at;
                     const meta = card.querySelector('[data-marking-meta]');
