@@ -56,6 +56,56 @@ class ExampleTest extends TestCase
             $table->timestamp('published_at')->nullable();
             $table->unsignedSmallInteger('sort_order')->default(100);
             $table->timestamps();
+            $table->softDeletes();
+        });
+
+        // Tablas leídas por la portada y su cabecera; todas son SQLite :memory:.
+        Schema::create('community_clips', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id')->nullable();
+            $table->foreignId('event_id')->nullable();
+            $table->string('platform')->nullable();
+            $table->string('external_id')->nullable();
+            $table->string('title')->nullable();
+            $table->string('url')->nullable();
+            $table->boolean('is_visible')->default(true);
+            $table->timestamp('clip_created_at')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+        Schema::create('community_clip_likes', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('community_clip_id');
+            $table->foreignId('user_id');
+        });
+        Schema::create('community_clip_comments', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('community_clip_id');
+            $table->foreignId('user_id');
+            $table->text('body');
+        });
+        Schema::create('clip_year_contests', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedSmallInteger('year')->unique();
+            $table->boolean('enabled')->default(false);
+            $table->dateTime('nomination_starts_at');
+            $table->dateTime('nomination_ends_at');
+            $table->dateTime('voting_starts_at');
+            $table->dateTime('voting_ends_at');
+            $table->timestamps();
+        });
+        Schema::create('clip_year_nominations', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('contest_id');
+            $table->foreignId('community_clip_id');
+            $table->foreignId('user_id');
+            $table->boolean('is_approved')->default(true);
+        });
+        Schema::create('clip_year_votes', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('nomination_id');
+            $table->foreignId('user_id');
+            $table->unsignedTinyInteger('skulls');
         });
 
         $this->mock(HomepageVodService::class)

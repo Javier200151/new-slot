@@ -26,6 +26,29 @@ class PublicStreamerController extends Controller
         return response()->json($payload);
     }
 
+    /** Aviso privado: el resultado no permite consultar emisiones de otros usuarios. */
+    public function myUnpublishedLive(Request $request, \App\Services\AutomaticLiveStreamService $automatic): JsonResponse
+    {
+        $streamer = $request->user()?->streamer;
+        if (! $streamer || ! $streamer->enable) {
+            return response()->json(['notice' => null])->header('Cache-Control', 'no-store');
+        }
+
+        $notice = $automatic->unpublishedFor($streamer);
+        if ($notice && Stream::query()
+            ->where('streamer_id', $streamer->id)
+            ->where('platform', $notice['platform'])
+            ->where('enabled', true)
+            ->whereHas('event', fn ($events) => $events
+                ->whereHas('eventStatus', fn ($statuses) => $statuses->where('name', 'ACTIVO'))
+                ->whereBetween('date', [now()->subHours(12), now()->addDays(30)]))
+            ->exists()) {
+            $notice = null; // La emisión ya fue publicada manualmente.
+        }
+
+        return response()->json(['notice' => $notice])->header('Cache-Control', 'no-store');
+    }
+
     public function index(
         Request $request,
         PublicLiveStreamService $liveStreams,

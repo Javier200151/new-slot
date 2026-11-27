@@ -523,6 +523,7 @@
     ])
 
     @include('partials.auth-modals')
+    @include('partials.streamer-auto-notice')
 
     <script
         src="{{ asset('js/landing.js') }}"

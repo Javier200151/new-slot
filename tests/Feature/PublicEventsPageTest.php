@@ -449,6 +449,44 @@ class PublicEventsPageTest extends TestCase
             $table->timestamps();
         });
 
+        // Tablas consultadas por el encabezado y la ficha de eventos.
+        // Estas estructuras existen en producción; el test usa SQLite :memory:.
+        Schema::create('event_view_receipts', function (Blueprint $table): void {
+            $table->foreignId('user_id');
+            $table->foreignId('event_id');
+            $table->timestamp('last_viewed_at');
+            $table->unsignedInteger('visible_slot_count')->default(0);
+            $table->unsignedInteger('occupied_slot_count')->default(0);
+            $table->json('orbat_slot_snapshot')->nullable();
+            $table->json('event_news_structure')->nullable();
+            $table->primary(['user_id', 'event_id']);
+        });
+
+        Schema::create('clip_year_contests', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedSmallInteger('year')->unique();
+            $table->boolean('enabled')->default(false);
+            $table->dateTime('nomination_starts_at');
+            $table->dateTime('nomination_ends_at');
+            $table->dateTime('voting_starts_at');
+            $table->dateTime('voting_ends_at');
+            $table->timestamps();
+        });
+
+        Schema::create('community_clips', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id')->nullable();
+            $table->foreignId('event_id')->nullable();
+            $table->string('platform')->nullable();
+            $table->string('external_id')->nullable();
+            $table->string('url')->nullable();
+            $table->string('title')->nullable();
+            $table->boolean('is_visible')->default(true);
+            $table->timestamp('clip_created_at')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
         Schema::create('notifications', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('type');
@@ -986,7 +1024,7 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('Editar comentario')
             ->assertSee('storage/users/comentarista.png', escape: false)
             ->assertSee('class="event-comment__signature"', escape: false)
-            ->assertSee('src="/firmas/comentarista.html"', escape: false)
+            ->assertSee('src="/firmas/comentarista.html?fit=1"', escape: false)
             ->assertSee('data-signature-frame', escape: false)
             ->assertSee('js/events.js', escape: false)
             ->assertDontSee('style="height:', escape: false)
@@ -1277,7 +1315,10 @@ class PublicEventsPageTest extends TestCase
             ->assertSee('Desapuntarme')
             ->assertSee(route('events.slots.unregister', [1, 'slot-medic']), escape: false);
 
-        $this->delete('/eventos/1/slots/slot-medic')
+        // Desapuntarse requiere un motivo, que se registra en los comentarios.
+        $this->delete('/eventos/1/slots/slot-medic', [
+            'reason' => 'No podré asistir al evento.',
+        ])
             ->assertRedirect('/eventos/1#orbat')
             ->assertSessionHas('status', 'Te has desapuntado correctamente.');
 
@@ -1295,6 +1336,11 @@ class PublicEventsPageTest extends TestCase
             'changed_by_user_id' => 11,
         ]);
         $this->assertDatabaseCount('event_slot_history', 3);
+        $this->assertDatabaseHas('event_comments', [
+            'event_id' => 1,
+            'user_id' => 11,
+            'comment' => 'Se desapuntó de Médico. Motivo: No podré asistir al evento.',
+        ]);
 
         auth()->logout();
 

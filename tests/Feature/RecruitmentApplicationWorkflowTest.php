@@ -78,20 +78,22 @@ class RecruitmentApplicationWorkflowTest extends TestCase
             'email' => 'aspirante@example.test',
             'message' => 'Quiero entrar en Squad ALPHA.',
             'is_recruitment' => '1',
-            'full_name' => 'Aspirante Prueba',
-            'birth_date' => now()->subYears(25)->toDateString(),
-            'residence' => 'Madrid',
-            'phone_whatsapp' => '+34 600 000 000',
-            'discord_profile' => 'aspirante.discord',
-            'how_heard_us' => 'Por un amigo.',
-            'accepted_rules' => '1',
-            'is_adult' => '1',
-            'accepts_contributions' => '1',
-            'has_required_game_content' => '1',
-            'tuesday_available' => '1',
-            'friday_available' => '1',
-            'has_previous_experience' => '0',
-            'experience_summary' => 'Sin experiencia previa.',
+            'recruitment_answers' => [
+                'full_name' => 'Aspirante Prueba',
+                'birth_date' => now()->subYears(25)->toDateString(),
+                'residence' => 'Madrid',
+                'phone_whatsapp' => '+34 600 000 000',
+                'discord_profile' => 'aspirante.discord',
+                'how_heard_us' => 'Por un amigo.',
+                'accepted_rules' => '1',
+                'is_adult' => '1',
+                'accepts_contributions' => '1',
+                'has_required_game_content' => '1',
+                'tuesday_available' => '1',
+                'friday_available' => '1',
+                'has_previous_experience' => '0',
+                'experience_summary' => 'Sin experiencia previa.',
+            ],
             'accepted_privacy' => '1',
             'accepted_contact' => '1',
             'website' => '',
@@ -261,6 +263,17 @@ class RecruitmentApplicationWorkflowTest extends TestCase
 
     private function createSchema(): void
     {
+        Schema::create('recruitment_form_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->json('fields');
+            $table->timestamps();
+        });
+        DB::table('recruitment_form_settings')->insert([
+            'fields' => json_encode(\App\Support\RecruitmentFormFields::defaults(), JSON_UNESCAPED_UNICODE),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         Schema::create('homepage_settings', function (Blueprint $table): void {
             $table->id();
             $table->boolean('recruitment_open')->default(false);
@@ -314,6 +327,7 @@ class RecruitmentApplicationWorkflowTest extends TestCase
             $table->string('residence', 160)->nullable();
             $table->string('phone_whatsapp', 40)->nullable();
             $table->string('discord_profile', 160)->nullable();
+            $table->json('recruitment_answers')->nullable();
             $table->text('how_heard_us')->nullable();
             $table->boolean('accepted_rules')->default(false);
             $table->boolean('is_adult')->default(false);

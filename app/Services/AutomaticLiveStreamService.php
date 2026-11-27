@@ -48,7 +48,7 @@ class AutomaticLiveStreamService
         ));
 
         $allowedCategoryFingerprint = app(TwitchArmaCategoryService::class)->fingerprint();
-        $cacheKey = 'streams.automatic-live.filters-v4.' . $allowedCategoryFingerprint . '.' . $fingerprint;
+        $cacheKey = 'streams.automatic-live.filters-v5.' . $allowedCategoryFingerprint . '.' . $fingerprint;
 
         if ($force) {
             Cache::forget($cacheKey);
@@ -87,6 +87,21 @@ class AutomaticLiveStreamService
 
                 return $stream;
             });
+    }
+
+    /** Aviso privado para el propietario del canal; nunca se incluye en la API pública. */
+    public function unpublishedFor(Streamer $streamer): ?array
+    {
+        if (! $this->enabled() || ! $streamer->enable) {
+            return null;
+        }
+
+        // Comparte la detección cacheada con /directos; evita consultar Twitch
+        // desde cada página en cada carga.
+        $this->discover(collect([$streamer]));
+
+        $notice = Cache::get('streams.unpublished-live.' . $streamer->id);
+        return is_array($notice) ? $notice : null;
     }
 
     /**
@@ -187,15 +202,36 @@ class AutomaticLiveStreamService
             $categoryFilter = app(TwitchArmaCategoryService::class);
             $library = app(TwitchVodLibraryService::class);
 
-            return collect($response->json('data', []))
-                ->filter(fn ($item): bool => is_array($item) && $categoryFilter->allowsLive($item))
-                ->map(function (array $item) use ($byUserId, $library): ?array {
+            $liveItems = collect($response->json('data', []))
+                ->filter(fn ($item): bool => is_array($item));
+            $onlineUserIds = $liveItems->pluck('user_id')->map(fn ($id): string => (string) $id)->all();
+            foreach ($byUserId as $userId => $streamer) {
+                if (! in_array((string) $userId, $onlineUserIds, true)) {
+                    Cache::forget('streams.unpublished-live.' . $streamer->id);
+                }
+            }
+
+            return $liveItems
+                ->filter(fn ($item): bool => is_array($item))
+                ->map(function (array $item) use ($byUserId, $library, $categoryFilter): ?array {
                     $userId = (string) ($item['user_id'] ?? '');
                     $streamer = $byUserId[$userId] ?? null;
 
                     if (! $streamer) {
                         return null;
                     }
+
+                    $noticeKey = 'streams.unpublished-live.' . $streamer->id;
+                    $decision = $categoryFilter->liveDecision($item, $streamer);
+                    if (! $decision['allowed']) {
+                        Cache::put($noticeKey, [
+                            'id' => (string) ($item['id'] ?? $userId),
+                            'platform' => 'twitch',
+                            'reason' => $decision['reason'],
+                        ], now()->addMinutes(2));
+                        return null;
+                    }
+                    Cache::forget($noticeKey);
 
                     // Guardamos el directo aprobado para reconocer su VOD después.
                     $library->rememberLive($streamer, $item);

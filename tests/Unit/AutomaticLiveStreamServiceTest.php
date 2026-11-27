@@ -30,6 +30,7 @@ class AutomaticLiveStreamServiceTest extends TestCase
                     'id' => 'stream-99',
                     'user_id' => 'twitch-user-1',
                     'user_login' => 'alphalive',
+                    'game_name' => 'Arma 3',
                     'title' => 'Operativo en directo',
                     'started_at' => '2026-09-30T19:30:00Z',
                 ]],

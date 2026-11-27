@@ -59,6 +59,78 @@ class EventParticipationRegressionTest extends TestCase
         ]);
     }
 
+    public function test_twitch_activity_time_requires_streamer_to_be_assigned_to_active_event(): void
+    {
+        \Illuminate\Support\Facades\Cache::forget('sqa.twitch.calendar-windows.v1');
+        DB::table('events')->where('id', 1)->update([
+            'date' => now()->subMinutes(20),
+            'end_date' => now()->addMinutes(100),
+        ]);
+        $streamer = new \App\Models\Streamer();
+        $streamer->forceFill(['id' => 9, 'enable' => true, 'user_id' => 10]);
+        $filter = app(\App\Services\TwitchArmaCategoryService::class);
+        $unrelated = ['game_name' => 'Just Chatting', 'title' => 'Charlando con amigos'];
+
+        // Un evento en horario sin inscripción NO basta para autorizar Twitch.
+        $this->assertSame(
+            ['allowed' => false, 'reason' => 'not_registered'],
+            $filter->liveDecision($unrelated, $streamer),
+        );
+
+        DB::table('event_slots')->insert([
+            'event_id' => 1, 'slot_key' => 'slot-alpha-1', 'user_id' => 10,
+            'name' => 'Fusilero 1', 'slot_type_id' => 1, 'slot_group' => 'Alpha',
+            'faction_id' => 1, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->assertSame(
+            ['allowed' => true, 'reason' => null],
+            $filter->liveDecision($unrelated, $streamer),
+        );
+
+        // Un evento ya finalizado no habilita la excepción de horario.
+        DB::table('events')->where('id', 1)->update(['event_status_id' => 2]);
+        $this->assertSame(
+            ['allowed' => false, 'reason' => 'not_eligible'],
+            $filter->liveDecision($unrelated, $streamer),
+        );
+    }
+
+    public function test_twitch_arma_category_is_still_allowed_without_orbat_assignment(): void
+    {
+        $filter = app(\App\Services\TwitchArmaCategoryService::class);
+        $streamer = new \App\Models\Streamer();
+        $streamer->forceFill(['id' => 9, 'enable' => true, 'user_id' => 10]);
+        $this->assertSame(
+            ['allowed' => true, 'reason' => null],
+            $filter->liveDecision(['game_name' => 'Arma 3', 'title' => 'Gameplay'], $streamer),
+        );
+    }
+
+    public function test_activity_type_can_block_recruit_from_slots_and_reservations(): void
+    {
+        DB::table('activity_types')->where('id', 1)->update([
+            'participation_status_ids' => json_encode([1]),
+        ]);
+        $recruit = User::query()->findOrFail(10);
+        DB::table('users')->where('id', 10)->update(['status_id' => 2]);
+        $recruit->refresh();
+
+        $this->actingAs($recruit)
+            ->from(route('events.show', 1))
+            ->post(route('events.reservations.store', 1))
+            ->assertRedirect(route('events.show', 1))
+            ->assertSessionHasErrors('reservation');
+
+        $this->actingAs($recruit)
+            ->from(route('events.show', 1))
+            ->post(route('events.slots.register', [1, 'slot-alpha-1']))
+            ->assertRedirect(route('events.show', 1))
+            ->assertSessionHasErrors('slot');
+
+        $this->assertDatabaseCount('event_reservations', 0);
+        $this->assertDatabaseCount('event_slots', 0);
+    }
+
     public function test_pending_reserve_retutoring_blocks_every_new_event_participation(): void
     {
         DB::table('recruitment_reentry_reviews')->insert([

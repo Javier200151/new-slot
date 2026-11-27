@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\TwitchCategorySetting;
 use App\Models\Event;
+use App\Models\Streamer;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
@@ -56,6 +57,39 @@ class TwitchArmaCategoryService
             return $this->overlapsCalendarEvent($started, now());
         } catch (\Throwable) {
             return false;
+        }
+    }
+
+    /**
+     * El horario autoriza un directo SOLO si el streamer ocupa un slot del
+     * evento coincidente. Categoría y palabras clave siguen siendo criterios
+     * independientes que no requieren inscripción.
+     *
+     * @return array{allowed:bool,reason:?string}
+     */
+    public function liveDecision(array $stream, Streamer $streamer): array
+    {
+        if ($this->categoryMatches($stream) || $this->titleMatches((string) ($stream['title'] ?? ''))) {
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        try {
+            // Se evalúa el horario actual, no todo el intervalo desde que
+            // comenzó el directo (que podría pertenecer a otro juego).
+            $started = now();
+            $end = $started->copy();
+
+            if ($streamer->user_id && $this->matchingCalendarEvent($started, $end, (int) $streamer->user_id, true)) {
+                return ['allowed' => true, 'reason' => null];
+            }
+
+            return [
+                'allowed' => false,
+                'reason' => $this->matchingCalendarEvent($started, $end, null, true)
+                    ? 'not_registered' : 'not_eligible',
+            ];
+        } catch (Throwable) {
+            return ['allowed' => false, 'reason' => 'not_eligible'];
         }
     }
 
@@ -125,7 +159,7 @@ class TwitchArmaCategoryService
      * No exige que el directo se haya iniciado en ella: basta con que
      * cualquier parte del directo coincida con el intervalo.
      */
-    public function matchingCalendarEvent(CarbonInterface $started, CarbonInterface $ended): ?Event
+    public function matchingCalendarEvent(CarbonInterface $started, CarbonInterface $ended, ?int $participantUserId = null, bool $activeOnly = false): ?Event
     {
         if ($ended->lessThan($started)) {
             return null;
@@ -159,7 +193,15 @@ class TwitchArmaCategoryService
 
             if ($begin->copy()->subMinutes(30)->lessThanOrEqualTo($ended)
                 && $end->copy()->addMinutes(30)->greaterThanOrEqualTo($started)) {
-                return Event::query()->find($window['id']);
+                $match = Event::query()
+                    ->whereKey($window['id'])
+                    ->when($activeOnly, fn ($query) => $query->whereHas('eventStatus', fn ($statuses) => $statuses->where('name', 'ACTIVO')))
+                    ->when($participantUserId !== null, fn ($query) => $query
+                        ->whereHas('slots', fn ($slots) => $slots->where('user_id', $participantUserId)))
+                    ->first();
+                if ($match) {
+                    return $match;
+                }
             }
         }
 

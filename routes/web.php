@@ -593,6 +593,10 @@ Route::middleware([
     'verified',
 ])->group(function (): void {
 
+    Route::get('/directos/mi-aviso-automatico', [PublicStreamerController::class, 'myUnpublishedLive'])
+        ->middleware('throttle:20,1')
+        ->name('streams.mine.unpublished');
+
     Route::put(
         '/directos/mi-emision',
         [StreamerBroadcastController::class, 'update']
