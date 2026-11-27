@@ -3,7 +3,8 @@
 .orbat-flip-all{margin-left:auto;border:1px solid #d78e15;background:transparent;color:#f4b444;border-radius:7px;padding:5px 9px;font:inherit;font-size:.75rem;cursor:pointer}
 .event-orbat__group[data-orbat-flip-card]{position:relative;transition:transform .23s ease}
 .orbat-flip-corner{position:absolute;right:1px;top:1px;z-index:2;color:#f7b74e;background:#18212c;border:1px solid #e69a21;border-radius:0 9px 0 9px;width:32px;height:30px;font-size:1.1rem;cursor:pointer}
-.event-orbat__group.is-marking-face{transform:rotateY(0deg)}
+@keyframes sqa-orbat-flip{0%{transform:perspective(900px) rotateY(0deg)}50%{transform:perspective(900px) rotateY(90deg)}100%{transform:perspective(900px) rotateY(0deg)}}
+.event-orbat__group.is-flipping{animation:sqa-orbat-flip .32s ease-in-out both}
 .event-orbat__group.is-marking-face>[data-orbat-normal-face]{display:none!important}
 .orbat-marking-back[hidden]{display:none!important}
 .orbat-marking-back{padding:15px;min-height:125px}
@@ -26,4 +27,4 @@
 .orbat-marking-actions button:disabled{opacity:.55;cursor:wait}
 .orbat-marking-actions [role="status"]{color:#d5dfef;font-size:.8rem}
 @media(max-width:740px){.orbat-marking-row{grid-template-columns:50px minmax(80px,1fr);gap:5px}.orbat-marking-row small{grid-column:2}.orbat-marking-player{grid-column:2}}
-@media(prefers-reduced-motion:reduce){.event-orbat__group[data-orbat-flip-card]{transition:none}}
+@media(prefers-reduced-motion:reduce){.event-orbat__group.is-flipping{animation:none}}
