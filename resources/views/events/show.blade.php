@@ -2269,7 +2269,7 @@
                             </div>
                             <button type="button" class="event-unregister-dialog__close" data-marking-exit-cancel aria-label="Cancelar">×</button>
                         </header>
-                        <p>Eres la última persona que editó la organización táctica de estas escuadras:</p>
+                        <p>Eres la última persona que editó la organización de estas escuadras:</p>
                         <ul class="orbat-departure-groups">
                             @foreach($departureResetGroups as $resetGroup)
                                 <li>
