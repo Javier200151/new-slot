@@ -111,6 +111,7 @@ class EventOrbatMarkingsTest extends TestCase
         $user = User::findOrFail(10);
         $duplicate = $this->alphaItems();
         $duplicate[1]['number'] = 1;
+        $duplicate[1]['color'] = 'green';
         $this->actingAs($user)->putJson(route('events.orbat.markings.update', 1), [
             'group' => 'Alpha', 'items' => $duplicate,
         ])->assertUnprocessable();
@@ -127,6 +128,24 @@ class EventOrbatMarkingsTest extends TestCase
             'group' => 'Alpha', 'items' => $vacant,
         ])->assertUnprocessable();
         $this->assertDatabaseCount('event_orbat_markings', 0);
+    }
+
+    public function test_same_number_is_allowed_for_players_of_different_colors(): void
+    {
+        $items = $this->alphaItems();
+        $items[1]['number'] = 1; // Same number, but yellow instead of green.
+
+        $this->actingAs(User::findOrFail(10))
+            ->putJson(route('events.orbat.markings.update', 1), [
+                'group' => 'Alpha', 'items' => $items,
+            ])->assertOk()->assertJsonPath('changed', true);
+
+        $this->assertDatabaseHas('event_orbat_markings', [
+            'participant_key' => 'user:10', 'color' => 'green', 'number' => 1,
+        ]);
+        $this->assertDatabaseHas('event_orbat_markings', [
+            'participant_key' => 'user:11', 'color' => 'yellow', 'number' => 1,
+        ]);
     }
 
     public function test_number_and_color_follow_member_when_they_change_slot(): void
