@@ -49,6 +49,7 @@ return Application::configure(
                 fn (Request $request): bool =>
                     $request->is('api/*')
                     || $request->is('area/bbcode/vista-previa')
+                    || $request->expectsJson()
             );
 
             $exceptions->report(
