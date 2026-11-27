@@ -119,6 +119,7 @@ class EventOrbatMarkingService
                 if ((int) $recipient === (int) $user->id) continue;
                 DB::table('event_orbat_marking_notices')->insert([
                     'event_id' => $event->id,
+                    'change_type' => 'cleared',
                     'user_id' => $recipient,
                     'actor_id' => $user->id,
                     'group_name' => $group,
