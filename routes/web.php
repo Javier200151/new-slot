@@ -457,6 +457,11 @@ Route::middleware([
         [PublicEventController::class, 'unregisterSlot']
     )->name('events.slots.unregister');
 
+    Route::put(
+        '/eventos/{event}/orbat/numeraciones',
+        [\App\Http\Controllers\EventOrbatMarkingController::class, 'update']
+    )->name('events.orbat.markings.update');
+
     Route::patch(
         '/eventos/{event}/slots/{slotKey}/manage',
         [PublicEventController::class, 'manageSlot']
