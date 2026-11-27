@@ -79,13 +79,13 @@ class TwitchArmaCategoryService
             $started = now();
             $end = $started->copy();
 
-            if ($streamer->user_id && $this->matchingCalendarEvent($started, $end, (int) $streamer->user_id)) {
+            if ($streamer->user_id && $this->matchingCalendarEvent($started, $end, (int) $streamer->user_id, true)) {
                 return ['allowed' => true, 'reason' => null];
             }
 
             return [
                 'allowed' => false,
-                'reason' => $this->matchingCalendarEvent($started, $end)
+                'reason' => $this->matchingCalendarEvent($started, $end, null, true)
                     ? 'not_registered' : 'not_eligible',
             ];
         } catch (Throwable) {
@@ -159,7 +159,7 @@ class TwitchArmaCategoryService
      * No exige que el directo se haya iniciado en ella: basta con que
      * cualquier parte del directo coincida con el intervalo.
      */
-    public function matchingCalendarEvent(CarbonInterface $started, CarbonInterface $ended, ?int $participantUserId = null): ?Event
+    public function matchingCalendarEvent(CarbonInterface $started, CarbonInterface $ended, ?int $participantUserId = null, bool $activeOnly = false): ?Event
     {
         if ($ended->lessThan($started)) {
             return null;
@@ -195,6 +195,7 @@ class TwitchArmaCategoryService
                 && $end->copy()->addMinutes(30)->greaterThanOrEqualTo($started)) {
                 $match = Event::query()
                     ->whereKey($window['id'])
+                    ->when($activeOnly, fn ($query) => $query->whereHas('eventStatus', fn ($statuses) => $statuses->where('name', 'ACTIVO')))
                     ->when($participantUserId !== null, fn ($query) => $query
                         ->whereHas('slots', fn ($slots) => $slots->where('user_id', $participantUserId)))
                     ->first();
