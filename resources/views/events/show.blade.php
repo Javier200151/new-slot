@@ -1520,7 +1520,7 @@
                                         @if($canEditMarkings)
                                             <div class="orbat-marking-share">
                                                 <button type="button" data-marking-copy>Copiar BBCode</button>
-                                                <button type="button" data-marking-comment>Comentar esta numeración</button>
+                                                <button type="button" data-marking-comment aria-label="Comentar esta numeración"><span class="orbat-comment-desktop">Comentar esta numeración</span><span class="orbat-comment-mobile" aria-hidden="true">Comentar</span></button>
                                             </div>
                                         @endif
                                         <p class="orbat-marking-meta" data-marking-meta>
