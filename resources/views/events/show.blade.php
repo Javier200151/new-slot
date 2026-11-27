@@ -32,10 +32,12 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/events.css') }}?v={{ filemtime(public_path('css/events.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/event-jump-nav.css') }}?v={{ filemtime(public_path('css/event-jump-nav.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/event-orbat-markings.css') }}?v={{ filemtime(public_path('css/event-orbat-markings.css')) }}">
 @endpush
 
 @push('scripts')
     <script src="{{ asset('js/events.js') }}?v={{ filemtime(public_path('js/events.js')) }}" defer></script>
+    <script src="{{ asset('js/event-orbat-markings.js') }}?v={{ filemtime(public_path('js/event-orbat-markings.js')) }}" defer></script>
     <script src="{{ asset('js/event-jump-nav.js') }}?v={{ filemtime(public_path('js/event-jump-nav.js')) }}" defer></script>
 @endpush
 
