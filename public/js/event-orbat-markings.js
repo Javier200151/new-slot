@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cards.length) return;
 
     const colors = {white: 'Blanco', green: 'Verde', yellow: 'Amarillo', red: 'Rojo', blue: 'Azul'};
+    const colorOrder = ['red', 'blue', 'yellow', 'green', 'white'];
     const sanitizeBbcode = text => String(text ?? '').replace(/[\[\]\r\n]/g, '').trim();
     function savedTeamTitles(card) {
         try {
@@ -63,7 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const group = sanitizeBbcode(card.dataset.markingGroup).toUpperCase();
         const rows = rowsOf(card)
             .filter(row => row.dataset.markingNumber !== '' && row.dataset.markingNumber != null)
-            .sort((a, b) => Number(a.dataset.markingNumber) - Number(b.dataset.markingNumber));
+            .sort((a, b) => colorOrder.indexOf(a.dataset.markingColor) - colorOrder.indexOf(b.dataset.markingColor)
+                || Number(a.dataset.markingNumber) - Number(b.dataset.markingNumber));
         const colorFor = color => colors[color] ? color : 'white';
         const headerColor = colorFor(rows.find(row => row.dataset.markingColor !== 'white')?.dataset.markingColor || 'white');
         const header = group
@@ -112,11 +114,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = card.querySelector('[data-marking-rows]');
         if (!container) return;
         rowsOf(card).sort((a, b) => {
+            const color = row => editing(card) ? colorOf(row) : row.dataset.markingColor;
             const toNumber = row => {
                 const n = editing(card) ? numberOf(row) : row.dataset.markingNumber;
                 return n === '' || n == null ? Number.MAX_SAFE_INTEGER : Number(n);
             };
-            return toNumber(a) - toNumber(b)
+            return colorOrder.indexOf(color(a)) - colorOrder.indexOf(color(b))
+                || toNumber(a) - toNumber(b)
                 || String(a.dataset.slotKey).localeCompare(String(b.dataset.slotKey));
         }).forEach(row => container.append(row));
     }
@@ -266,9 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 status.textContent = 'Introduce números válidos del 1 al 999.';
                 return;
             }
-            const assignedNumbers = items.filter(item => item.number !== null).map(item => item.number);
+            const assignedNumbers = items.filter(item => item.number !== null)
+                .map(item => item.color + ':' + item.number);
             if (new Set(assignedNumbers).size !== assignedNumbers.length) {
-                status.textContent = 'No se pueden repetir números en una misma escuadra.';
+                status.textContent = 'No se puede repetir un número dentro del mismo color.';
                 return;
             }
             save.disabled = true;
