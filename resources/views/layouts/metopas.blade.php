@@ -32,6 +32,8 @@
             : 'Volver al inicio',
     ])
 
+    @include('partials.streamer-auto-notice')
+
     <script src="{{ asset('js/landing.js') }}" defer></script>
     <script src="{{ asset('js/bbcode-editor.js') }}?v={{ filemtime(public_path('js/bbcode-editor.js')) }}" defer></script>
     @stack('scripts')
