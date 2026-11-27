@@ -345,10 +345,11 @@ class EventOrbatMarkingService
                     }
                 }
                 if ($item['number'] !== null) {
-                    if (in_array($item['number'], $numbers, true)) {
-                        throw ValidationException::withMessages(['markings' => 'No se puede repetir un número en la misma escuadra.']);
+                    $numberKey = $item['color'] . ':' . $item['number'];
+                    if (isset($numbers[$numberKey])) {
+                        throw ValidationException::withMessages(['markings' => 'No se puede repetir un número dentro del mismo color.']);
                     }
-                    $numbers[] = $item['number'];
+                    $numbers[$numberKey] = true;
                 }
             }
 
