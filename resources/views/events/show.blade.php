@@ -1331,6 +1331,18 @@
                 </section>
             @endif
 
+            @php
+                $markingsReady = \Illuminate\Support\Facades\Schema::hasTable('event_orbat_markings');
+                $markingService = app(\App\Services\EventOrbatMarkingService::class);
+                $savedMarkings = $markingsReady ? $markingService->markings($event) : [];
+                $viewer = auth()->user();
+                $hasMarkingCards = false;
+                foreach ($visibleOrbatGroups as $markingGroup) {
+                    $groupCanEdit = $markingsReady && $markingService->permission($event, $viewer, (string) ($markingGroup['name'] ?? ''));
+                    $groupHasSaved = collect($markingGroup['slots'] ?? [])->contains(fn ($s) => isset($savedMarkings[$s['slot_key'] ?? '']));
+                    if ($groupCanEdit || $groupHasSaved) { $hasMarkingCards = true; break; }
+                }
+            @endphp
             <section
                 id="orbat"
                 class="event-detail__section event-detail__orbat"
@@ -1338,14 +1350,27 @@
                 data-orbat
                 data-csrf-token="{{ csrf_token() }}"
             >
-                <header><span id="event-orbat-title">ORBAT</span></header>
+                <header class="event-orbat__titlebar">
+                    <span id="event-orbat-title">ORBAT</span>
+                    @if($hasMarkingCards)
+                        <button type="button" data-orbat-flip-all aria-pressed="false" class="orbat-flip-all">Ver todas las numeraciones y colores</button>
+                    @endif
+                </header>
 
                 @if($visibleOrbatGroups->isEmpty())
                     <div class="events-empty"><strong>ORBAT no disponible</strong><p>No hay grupos visibles para este evento.</p></div>
                 @else
                     <div class="event-orbat">
                         @foreach($visibleOrbatGroups as $group)
-                            <section class="event-orbat__group">
+                            @php
+                                $groupName = (string) ($group['name'] ?? 'Grupo sin nombre');
+                                $canEditMarkings = $markingsReady && $markingService->permission($event, $viewer, $groupName);
+                                $hasSavedMarkings = collect($group['slots'])->contains(fn ($slot) => isset($savedMarkings[$slot['slot_key'] ?? '']));
+                                $showMarkingFlip = $canEditMarkings || $hasSavedMarkings;
+                            @endphp
+                            <section class="event-orbat__group" data-orbat-flip-card data-marking-group="{{ $groupName }}"
+                                data-markings-endpoint="{{ route('events.orbat.markings.update', $event) }}"
+                                data-markings-editable="{{ $canEditMarkings ? '1' : '0' }}">
                                 <header>
                                     <div><span>Grupo</span><h3>{{ $group['name'] ?? 'Grupo sin nombre' }}</h3></div>
                                     @if($group['faction'])
@@ -1382,10 +1407,53 @@
                                     @endif
                                 </header>
 
+                                @if($showMarkingFlip)
+                                    <button type="button" class="orbat-flip-corner" data-orbat-flip aria-label="Girar escuadra {{ $groupName }}" title="Numeraciones y colores">↻</button>
+                                    <div class="orbat-marking-back" data-orbat-marking-back hidden>
+                                        <div class="orbat-marking-back__heading">
+                                            <strong>Numeraciones y colores</strong>
+                                            <span>{{ $groupName }}</span>
+                                        </div>
+                                        <div class="orbat-marking-rows" data-marking-rows>
+                                            @foreach($group['slots'] as $markingSlot)
+                                                @php
+                                                    $markingKey = (string) ($markingSlot['slot_key'] ?? '');
+                                                    $markingAssigned = $markingSlot['assignment'] ?? null;
+                                                    $markingUserName = $markingAssigned?->user?->nick ?? $markingAssigned?->ally?->name ?? ($markingAssigned?->ally_nickname ?? null);
+                                                    $markingData = $savedMarkings[$markingKey] ?? ['number' => null, 'color' => 'white'];
+                                                @endphp
+                                                @if($markingKey !== '')
+                                                    <div class="orbat-marking-row" data-marking-row data-slot-key="{{ $markingKey }}" data-marking-number="{{ $markingData['number'] ?? '' }}" data-marking-color="{{ $markingData['color'] ?? 'white' }}">
+                                                        @if($canEditMarkings && $markingUserName)
+                                                            <input type="number" min="1" max="999" class="orbat-marking-number" data-marking-input-number
+                                                                value="{{ $markingData['number'] ?? '' }}" placeholder="Nº" aria-label="Número de {{ $markingUserName }}">
+                                                            <select class="orbat-marking-color" data-marking-input-color aria-label="Color de {{ $markingUserName }}">
+                                                                @foreach(['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'] as $markingColor => $markingLabel)
+                                                                    <option value="{{ $markingColor }}" @selected(($markingData['color'] ?? 'white') === $markingColor)>{{ $markingLabel }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        @else
+                                                            <span class="orbat-marking-number-label" data-marking-display-number>{{ $markingData['number'] ?? '—' }}</span>
+                                                            <span class="orbat-marking-color-label">{{ ['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'][$markingData['color'] ?? 'white'] ?? 'Blanco' }}</span>
+                                                        @endif
+                                                        <span class="orbat-marking-player">{{ $markingUserName ?: 'Puesto libre' }}</span>
+                                                        <small>{{ $markingSlot['name'] ?? 'Puesto' }}</small>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                        @if($canEditMarkings)
+                                            <div class="orbat-marking-actions">
+                                                <button type="button" data-marking-save>Guardar numeración y colores</button>
+                                                <span role="status" data-marking-status></span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
                                 @if($group['slots']->isEmpty())
-                                    <p class="event-orbat__empty">Este grupo no tiene slots visibles.</p>
+                                    <p class="event-orbat__empty" data-orbat-normal-face>Este grupo no tiene slots visibles.</p>
                                 @else
-                                    <div class="event-orbat__slots">
+                                    <div class="event-orbat__slots" data-orbat-normal-face>
                                         @foreach($group['slots'] as $slot)
                                             @php
                                                 $assignment = $slot['assignment'];
