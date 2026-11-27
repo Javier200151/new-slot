@@ -317,6 +317,36 @@ class EventOrbatMarkingsTest extends TestCase
         $this->assertDatabaseCount('event_orbat_marking_notices', 2);
     }
 
+    public function test_color_team_titles_replace_visible_squad_title_without_erasing_legacy_data(): void
+    {
+        $actor = User::findOrFail(10);
+        $this->actingAs($actor)->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'custom_title' => 'Antiguo título',
+            'items' => $this->alphaItems(),
+        ])->assertOk();
+
+        $this->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'items' => $this->alphaItems(),
+            'color_team_titles' => [
+                'green' => 'Asalto',
+                'yellow' => 'Apoyo',
+            ],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('event_orbat_group_settings', [
+            'event_id' => 1,
+            'group_name' => 'Alpha',
+            'custom_title' => 'Antiguo título',
+        ]);
+
+        $pdf = $this->get(route('events.orbat.markings.pdf', 1))->assertOk()->getContent();
+        $this->assertStringContainsString('Verde (1): Asalto', $pdf);
+        $this->assertStringContainsString('Amarillo (1): Apoyo', $pdf);
+        $this->assertStringNotContainsString('Antiguo título', $pdf);
+    }
+
     public function test_departing_member_leaves_numbered_white_vacancy_without_renumbering(): void
     {
         $service = app(EventOrbatMarkingService::class);
