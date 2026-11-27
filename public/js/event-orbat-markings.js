@@ -8,6 +8,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const colors = {white: 'Blanco', green: 'Verde', yellow: 'Amarillo', red: 'Rojo', blue: 'Azul'};
     const sanitizeBbcode = text => String(text ?? '').replace(/[\[\]\r\n]/g, '').trim();
+    function savedTeamTitles(card) {
+        try {
+            const parsed = JSON.parse(backOf(card)?.dataset.markingTeamTitles || '{}');
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch (_) { return {}; }
+    }
+
+    function activeTeams(card, draft = editing(card)) {
+        const teams = {};
+        rowsOf(card).forEach(row => {
+            if (row.dataset.markingOccupied !== '1') return;
+            const color = draft ? colorOf(row) : row.dataset.markingColor;
+            if (!colors[color]) return;
+            teams[color] = (teams[color] || 0) + 1;
+        });
+        return teams;
+    }
+
+    function refreshTeamFields(card) {
+        const active = activeTeams(card, true);
+        card.querySelectorAll('[data-marking-team-field]').forEach(field => {
+            const color = field.dataset.markingTeamField;
+            field.hidden = !editing(card) || !active[color];
+            const count = field.querySelector('[data-marking-team-count]');
+            if (count) count.textContent = '(' + (active[color] || 0) + ')';
+        });
+    }
+
+    function renderTeamPreview(card) {
+        const target = card.querySelector('[data-marking-team-preview]');
+        if (!target) return;
+        target.replaceChildren();
+        const titles = savedTeamTitles(card);
+        const active = activeTeams(card, false);
+        const teamEntries = Object.keys(colors).filter(color => active[color]);
+        // An unnamed single-color squad does not need a redundant team legend.
+        target.hidden = teamEntries.length <= 1 && !teamEntries.some(color => titles[color]);
+        for (const color of teamEntries) {
+            const label = document.createElement('span');
+            label.className = 'orbat-fireteam-chip orbat-fireteam-chip--' + color;
+            label.textContent = colors[color] + ' (' + active[color] + ')'
+                + (titles[color] ? ' · ' + titles[color] : '');
+            target.append(label);
+        }
+    }
+
 
     // Uses the existing safe [color] and [center] tags supported by BbcodeMarkup.
     // Read-only numbers/colors are the source of truth, not unsaved editor values.
@@ -31,7 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return '[color=' + colorFor(row.dataset.markingColor) + ']' +
                 number + '.- ' + playerName + second + '[/color]';
         });
+        const teams = activeTeams(card, false);
+        const titles = savedTeamTitles(card);
+        const teamNames = Object.keys(colors).filter(color => teams[color] && titles[color])
+            .map(color => '[b][color=' + color + ']Equipo ' + colors[color]
+                + ': ' + sanitizeBbcode(titles[color]) + '[/color][/b]');
         return '[b][color=' + headerColor + ']' + header + '[/color][/b]' +
+            (teamNames.length ? '\n' + teamNames.join('\n') : '') +
             (lines.length ? '\n\n' + lines.join('\n') : '');
     }
 
@@ -94,6 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 'hidden', enabled || card.querySelector('[data-orbat-marking-back]')?.dataset.markingSecond !== row.dataset.slotKey
             );
         });
+        refreshTeamFields(card);
+        renderTeamPreview(card);
         sortRows(card);
     }
 
@@ -103,6 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const color = row.querySelector('[data-marking-input-color]');
             if (number) number.value = row.dataset.markingNumber ?? '';
             if (color) color.value = row.dataset.markingColor ?? 'white';
+        });
+        const titles = savedTeamTitles(card);
+        card.querySelectorAll('[data-marking-team-input]').forEach(input => {
+            input.value = titles[input.dataset.markingTeamInput] || '';
         });
         const titleInput = card.querySelector('[data-marking-input-title]');
         if (titleInput) titleInput.value = backOf(card)?.dataset.markingTitle ?? '';
@@ -134,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (frontMeta) frontMeta.hidden = false;
             }
             sortRows(card);
+            renderTeamPreview(card);
             const trigger = card.querySelector('[data-orbat-flip]');
             if (trigger) {
                 trigger.setAttribute('aria-label', show ? 'Volver al ORBAT normal' : 'Ver numeraciones y colores');
@@ -157,6 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         card.querySelector('[data-marking-edit]')?.addEventListener('click', () => setEditor(card, true));
         card.querySelector('[data-marking-cancel]')?.addEventListener('click', () => restoreEditor(card));
+        card.querySelectorAll('[data-marking-input-color]').forEach(select => {
+            select.addEventListener('change', () => refreshTeamFields(card));
+        });
+        renderTeamPreview(card);
         const showShareStatus = text => {
             const status = card.querySelector('[data-marking-status]');
             if (status) status.textContent = text;
@@ -187,6 +250,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     color: colorOf(row),
                 };
             });
+            const teamTitles = {};
+            const active = activeTeams(card, true);
+            card.querySelectorAll('[data-marking-team-input]').forEach(input => {
+                if (active[input.dataset.markingTeamInput]) {
+                    const value = input.value.trim();
+                    if (value) teamTitles[input.dataset.markingTeamInput] = value;
+                }
+            });
             const selectedSecond = card.querySelector('[data-marking-second-input]:checked')?.value ?? null;
             const second = card.querySelector('[data-marking-second-none]:checked') ? null : selectedSecond;
 
@@ -216,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         items,
                         second_in_command: second,
                         custom_title: card.querySelector('[data-marking-input-title]')?.value.trim() ?? '',
+                        color_team_titles: teamTitles,
                     }),
                 });
                 const data = await response.json();
@@ -236,6 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (shownColor) shownColor.textContent = colors[item.color] || 'Blanco';
                 });
                 backOf(card).dataset.markingSecond = second || '';
+                backOf(card).dataset.markingTeamTitles = JSON.stringify(teamTitles);
+                renderTeamPreview(card);
                 const titleValue = card.querySelector('[data-marking-input-title]')?.value.trim() ?? '';
                 backOf(card).dataset.markingTitle = titleValue;
                 const shownTitle = card.querySelector('[data-marking-display-title]');
