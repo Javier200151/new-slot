@@ -311,6 +311,10 @@ Route::get('/eventos/novedades', [PublicEventController::class, 'news'])
 Route::get('/eventos/{event}/ruleta-estado', [PublicEventController::class, 'rouletteLockState'])
     ->name('events.roulette-lock-state');
 
+Route::get('/eventos/{event}/orbat/numeraciones.pdf',
+    [\App\Http\Controllers\EventOrbatMarkingController::class, 'download'])
+    ->name('events.orbat.markings.pdf');
+
 Route::get('/eventos/{event}', [PublicEventController::class, 'show'])
     ->name('events.show');
 
