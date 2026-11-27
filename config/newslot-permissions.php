@@ -158,6 +158,13 @@ return [
                     ],
                 ],
 
+                'orbat-markings' => [
+                    'label' => 'Numeraciones y colores del ORBAT',
+                    'actions' => [
+                        'edit' => 'Editar numeraciones y colores',
+                    ],
+                ],
+
                 'event-orbat' => [
                     'label' => 'ORBAT',
                     'scope' => 'activity_type',
