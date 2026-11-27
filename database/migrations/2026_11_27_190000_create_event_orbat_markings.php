@@ -15,12 +15,13 @@ return new class extends Migration
         Schema::create('event_orbat_markings', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
+            $table->string('participant_key', 191);
             $table->string('slot_key', 191);
             $table->unsignedSmallInteger('number')->nullable();
             $table->string('color', 10)->default('white');
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
-            $table->unique(['event_id', 'slot_key']);
+            $table->unique(['event_id', 'participant_key']);
         });
 
         Schema::create('event_orbat_marking_notices', function (Blueprint $table): void {
