@@ -107,6 +107,8 @@ class EventOrbatMarkingService
                     'group_name' => $group,
                     'previous_title' => $oldSettings->custom_title,
                     'new_title' => null,
+                    'previous_color_team_titles' => $oldSettings->color_team_titles,
+                    'new_color_team_titles' => '{}',
                     'previous_second_key' => $oldSettings->second_in_command_key,
                     'new_second_key' => null,
                     'actor_id' => $user->id,
@@ -167,6 +169,8 @@ class EventOrbatMarkingService
                 'group_name' => $settings->group_name,
                 'previous_title' => $settings->custom_title,
                 'new_title' => $settings->custom_title,
+                'previous_color_team_titles' => $settings->color_team_titles,
+                'new_color_team_titles' => $settings->color_team_titles,
                 'previous_second_key' => $participantKey,
                 'new_second_key' => null,
                 'actor_id' => $user->id,
@@ -268,13 +272,14 @@ class EventOrbatMarkingService
         return DB::table('event_orbat_group_settings as g')
             ->leftJoin('users as editor', 'editor.id', '=', 'g.updated_by')
             ->where('g.event_id', $event->id)
-            ->select('g.group_name', 'g.custom_title', 'g.second_in_command_key', 'g.updated_at', 'editor.nick as updated_by')
+            ->select('g.group_name', 'g.custom_title', 'g.color_team_titles', 'g.second_in_command_key', 'g.updated_at', 'editor.nick as updated_by')
             ->get()->mapWithKeys(function ($row) use ($participantSlots): array {
                 $second = $row->second_in_command_key
                     ? $participantSlots->get($row->second_in_command_key)
                     : null;
                 return [$row->group_name => [
                     'custom_title' => $row->custom_title,
+                    'color_team_titles' => json_decode((string) ($row->color_team_titles ?? '{}'), true) ?: [],
                     'second_in_command_key' => $second && $second->slot_group === $row->group_name
                         ? (string) $second->slot_key : null,
                     'updated_by' => $row->updated_by,
@@ -287,9 +292,9 @@ class EventOrbatMarkingService
      * @param array<int, array{slot_key:string, number:?int, color:string}> $items
      * @return bool true only if something actually changed
      */
-    public function save(Event $event, User $actor, string $group, array $items, ?string $secondInCommandKey = null, ?string $customTitle = null): bool
+    public function save(Event $event, User $actor, string $group, array $items, ?string $secondInCommandKey = null, ?string $customTitle = null, array $colorTeamTitles = []): bool
     {
-        return DB::transaction(function () use ($event, $actor, $group, $items, $secondInCommandKey, $customTitle): bool {
+        return DB::transaction(function () use ($event, $actor, $group, $items, $secondInCommandKey, $customTitle, $colorTeamTitles): bool {
             $event = Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
             $event->load('eventStatus');
             $visible = $this->visibleSlots($event);
@@ -388,15 +393,41 @@ class EventOrbatMarkingService
                 ->where('group_name', $group)
                 ->first();
             $previousSecond = $previousSettings?->second_in_command_key;
+            $previousColorTitles = json_decode((string) ($previousSettings?->color_team_titles ?? '{}'), true) ?: [];
+            ksort($previousColorTitles);
+            // A single occupied member of a color is enough to constitute a
+            // fireteam. Vacant slots do not count toward active team colors.
+            $activeColors = collect($items)->filter(
+                fn (array $item): bool => $occupied->has($item['slot_key'])
+            )->pluck('color')->unique()->values()->all();
+            $newColorTitles = [];
+            foreach ($colorTeamTitles as $color => $title) {
+                if (! in_array($color, self::COLORS, true) || ! in_array($color, $activeColors, true)) {
+                    throw ValidationException::withMessages([
+                        'color_team_titles' => 'Solo puedes nombrar equipos de colores presentes en tu escuadra.',
+                    ]);
+                }
+                if (! is_string($title) || mb_strlen(trim($title)) > 80) {
+                    throw ValidationException::withMessages([
+                        'color_team_titles' => 'Cada título debe tener como máximo 80 caracteres.',
+                    ]);
+                }
+                $value = trim($title);
+                if ($value !== '') $newColorTitles[$color] = $value;
+            }
+            ksort($newColorTitles);
             $previousTitle = trim((string) ($previousSettings?->custom_title ?? ''));
             $newTitle = trim((string) $customTitle);
             $secondChanged = $previousSecond !== $secondParticipantKey;
             $titleChanged = $previousTitle !== $newTitle;
-            if ($secondChanged || $titleChanged) {
+            $teamsChanged = $previousColorTitles !== $newColorTitles;
+            if ($secondChanged || $titleChanged || $teamsChanged) {
                 DB::table('event_orbat_group_command_history')->insert([
                     'event_id' => $event->id,
                     'group_name' => $group,
                     'previous_title' => $previousTitle ?: null,
+                    'previous_color_team_titles' => json_encode($previousColorTitles, JSON_UNESCAPED_UNICODE),
+                    'new_color_team_titles' => json_encode($newColorTitles, JSON_UNESCAPED_UNICODE),
                     'new_title' => $newTitle ?: null,
                     'previous_second_key' => $previousSecond,
                     'new_second_key' => $secondParticipantKey,
@@ -410,6 +441,7 @@ class EventOrbatMarkingService
                     ['event_id' => $event->id, 'group_name' => $group],
                     [
                         'custom_title' => $newTitle ?: null,
+                        'color_team_titles' => json_encode($newColorTitles, JSON_UNESCAPED_UNICODE),
                         'second_in_command_key' => $secondParticipantKey,
                         'updated_by' => $actor->id,
                         'updated_at' => now(),
