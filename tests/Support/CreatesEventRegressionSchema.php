@@ -140,6 +140,26 @@ trait CreatesEventRegressionSchema
             $table->timestamp('created_at');
         });
 
+        Schema::create('event_orbat_group_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->string('group_name');
+            $table->string('second_in_command_key')->nullable();
+            $table->foreignId('updated_by')->nullable();
+            $table->timestamps();
+            $table->unique(['event_id', 'group_name']);
+        });
+
+        Schema::create('event_orbat_group_command_history', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('event_id');
+            $table->string('group_name');
+            $table->string('previous_second_key')->nullable();
+            $table->string('new_second_key')->nullable();
+            $table->foreignId('actor_id')->nullable();
+            $table->timestamp('created_at');
+        });
+
         Schema::create('event_orbat_marking_notices', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('event_id');
