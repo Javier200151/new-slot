@@ -81,17 +81,25 @@ class EventOrbatMarkingService
             return [];
         }
 
+        $participantSlots = EventSlot::query()->where('event_id', $event->id)->get()
+            ->filter(fn (EventSlot $slot): bool => $this->participantKey($slot) !== null)
+            ->keyBy(fn (EventSlot $slot): string => $this->participantKey($slot));
+
         return DB::table('event_orbat_group_settings as g')
             ->leftJoin('users as editor', 'editor.id', '=', 'g.updated_by')
             ->where('g.event_id', $event->id)
             ->select('g.group_name', 'g.second_in_command_key', 'g.updated_at', 'editor.nick as updated_by')
-            ->get()->mapWithKeys(fn ($row): array => [
-                $row->group_name => [
-                    'second_in_command_key' => $row->second_in_command_key,
+            ->get()->mapWithKeys(function ($row) use ($participantSlots): array {
+                $second = $row->second_in_command_key
+                    ? $participantSlots->get($row->second_in_command_key)
+                    : null;
+                return [$row->group_name => [
+                    'second_in_command_key' => $second && $second->slot_group === $row->group_name
+                        ? (string) $second->slot_key : null,
                     'updated_by' => $row->updated_by,
                     'updated_at' => $row->updated_at,
-                ],
-            ])->all();
+                ]];
+            })->all();
     }
 
     /**
@@ -126,6 +134,10 @@ class EventOrbatMarkingService
                     'second_in_command' => 'El segundo al mando debe estar apuntado en esta escuadra.',
                 ]);
             }
+
+            $secondParticipantKey = $secondInCommandKey !== null
+                ? $this->participantKey($occupied->get($secondInCommandKey))
+                : null;
 
             $numbers = [];
             foreach ($items as $item) {
@@ -184,13 +196,13 @@ class EventOrbatMarkingService
                 ->where('group_name', $group)
                 ->first();
             $previousSecond = $previousSettings?->second_in_command_key;
-            $secondChanged = $previousSecond !== $secondInCommandKey;
+            $secondChanged = $previousSecond !== $secondParticipantKey;
             if ($secondChanged) {
                 DB::table('event_orbat_group_command_history')->insert([
                     'event_id' => $event->id,
                     'group_name' => $group,
                     'previous_second_key' => $previousSecond,
-                    'new_second_key' => $secondInCommandKey,
+                    'new_second_key' => $secondParticipantKey,
                     'actor_id' => $actor->id,
                     'created_at' => now(),
                 ]);
@@ -200,7 +212,7 @@ class EventOrbatMarkingService
                 DB::table('event_orbat_group_settings')->updateOrInsert(
                     ['event_id' => $event->id, 'group_name' => $group],
                     [
-                        'second_in_command_key' => $secondInCommandKey,
+                        'second_in_command_key' => $secondParticipantKey,
                         'updated_by' => $actor->id,
                         'updated_at' => now(),
                         'created_at' => $previousSettings?->created_at ?? now(),
