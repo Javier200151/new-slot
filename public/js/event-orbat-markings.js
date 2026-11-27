@@ -29,17 +29,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function flip(card, show) {
         const back = card.querySelector('[data-orbat-marking-back]');
-        if (!back) return;
-        if (show) sortRows(card);
-        // Keep the normal ORBAT entirely untouched until the user asks for the reverse face.
-        back.hidden = !show;
-        card.classList.toggle('is-marking-face', show);
-        const trigger = card.querySelector('[data-orbat-flip]');
-        if (trigger) {
-            trigger.setAttribute('aria-label', show ? 'Volver al ORBAT normal' : 'Ver numeraciones y colores');
-            trigger.setAttribute('aria-expanded', String(show));
+        if (!back || card.classList.contains('is-flipping')) return;
+        const finish = () => {
+            if (show) sortRows(card);
+            back.hidden = !show;
+            card.classList.toggle('is-marking-face', show);
+            const trigger = card.querySelector('[data-orbat-flip]');
+            if (trigger) {
+                trigger.setAttribute('aria-label', show ? 'Volver al ORBAT normal' : 'Ver numeraciones y colores');
+                trigger.setAttribute('aria-expanded', String(show));
+            }
+            updateAllButton();
+        };
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            finish();
+            return;
         }
-        updateAllButton();
+        card.classList.add('is-flipping');
+        window.setTimeout(finish, 160);
+        window.setTimeout(() => card.classList.remove('is-flipping'), 330);
     }
 
     cards.forEach(card => {
