@@ -12,6 +12,10 @@ return new class extends Migration
             $table->string('custom_title', 80)->nullable()->after('group_name');
         });
 
+        Schema::table('event_orbat_marking_notices', function (Blueprint $table): void {
+            $table->string('change_type', 12)->default('updated');
+        });
+
         Schema::table('event_orbat_group_command_history', function (Blueprint $table): void {
             $table->string('previous_title', 80)->nullable();
             $table->string('new_title', 80)->nullable();
@@ -20,6 +24,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        Schema::table('event_orbat_marking_notices', function (Blueprint $table): void {
+            $table->dropColumn('change_type');
+        });
+
         Schema::table('event_orbat_group_command_history', function (Blueprint $table): void {
             $table->dropColumn(['previous_title', 'new_title']);
         });
