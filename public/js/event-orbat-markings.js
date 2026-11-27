@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const root = document.querySelector('[data-orbat]');
     if (!root) return;
-    const cards = [...root.querySelectorAll('[data-orbat-flip-card]')];
+    const cards = [...root.querySelectorAll('[data-orbat-flip-card]')].filter(card => card.querySelector('[data-orbat-flip]'));
     const allButton = root.querySelector('[data-orbat-flip-all]');
     if (!cards.length) return;
 
