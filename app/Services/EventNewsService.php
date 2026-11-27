@@ -190,7 +190,7 @@ class EventNewsService
                 $at = (string) $notice->created_at;
                 $actor = $notice->actor_nick ?: 'Un responsable del ORBAT';
                 $messages[] = [
-                    'text' => $actor . ' ha actualizado la numeración y los colores de tu escuadra «' . $notice->group_name . '».',
+                    'text' => $actor . ' ha actualizado la organización táctica (numeración, colores o segundo al mando) de tu escuadra «' . $notice->group_name . '».',
                     'key' => 'markings:' . $notice->id,
                     'read' => $since !== null && $at <= $since,
                     'at' => $at,
