@@ -74,12 +74,10 @@ class TwitchArmaCategoryService
         }
 
         try {
-            $started = filled($stream['started_at'] ?? null)
-                ? Carbon::parse($stream['started_at']) : now();
-            $end = now();
-            if ($started->greaterThan($end)) {
-                $started = $end->copy();
-            }
+            // Se evalúa el horario actual, no todo el intervalo desde que
+            // comenzó el directo (que podría pertenecer a otro juego).
+            $started = now();
+            $end = $started->copy();
 
             if ($streamer->user_id && $this->matchingCalendarEvent($started, $end, (int) $streamer->user_id)) {
                 return ['allowed' => true, 'reason' => null];
