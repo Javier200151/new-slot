@@ -321,6 +321,17 @@ class EventOrbatMarkingsTest extends TestCase
         $this->assertSame(['number' => 1, 'color' => 'green'], $marks['slot-alpha-1']);
         $this->assertSame(['number' => 2, 'color' => 'white'], $marks['slot-alpha-2']);
         $this->assertSame('Apoyo', $service->groupSettings(Event::findOrFail(1))['Alpha']['custom_title']);
+
+        // The leader can still save the squad without renumbering the vacancy.
+        $this->actingAs($leader)->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'custom_title' => 'Apoyo',
+            'items' => [
+                ['slot_key' => 'slot-alpha-1', 'number' => 1, 'color' => 'green'],
+                ['slot_key' => 'slot-alpha-2', 'number' => 2, 'color' => 'white'],
+                ['slot_key' => 'slot-alpha-3', 'number' => null, 'color' => 'white'],
+            ],
+        ])->assertOk()->assertJsonPath('changed', false);
     }
 
     public function test_departing_last_editor_can_choose_to_clear_every_squad_they_last_edited(): void
