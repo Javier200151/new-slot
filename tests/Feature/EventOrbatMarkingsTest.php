@@ -227,6 +227,31 @@ class EventOrbatMarkingsTest extends TestCase
         $this->assertDatabaseCount('event_orbat_marking_notices', 0);
     }
 
+    public function test_second_in_command_only_change_is_published_even_without_colors_or_numbers(): void
+    {
+        $items = [
+            ['slot_key' => 'slot-alpha-1', 'number' => null, 'color' => 'white'],
+            ['slot_key' => 'slot-alpha-2', 'number' => null, 'color' => 'white'],
+            ['slot_key' => 'slot-alpha-3', 'number' => null, 'color' => 'white'],
+        ];
+        $this->actingAs(User::findOrFail(10))
+            ->putJson(route('events.orbat.markings.update', 1), [
+                'group' => 'Alpha',
+                'items' => $items,
+                'second_in_command' => 'slot-alpha-2',
+            ])->assertOk()->assertJsonPath('changed', true);
+
+        $this->assertDatabaseCount('event_orbat_markings', 0);
+        $this->assertDatabaseHas('event_orbat_group_settings', [
+            'event_id' => 1,
+            'group_name' => 'Alpha',
+            'second_in_command_key' => 'user:11',
+            'updated_by' => 10,
+        ]);
+        $this->assertDatabaseHas('event_orbat_marking_notices', ['user_id' => 11]);
+        $this->assertDatabaseCount('event_orbat_group_command_history', 1);
+    }
+
     public function test_second_in_command_follows_member_after_moving_within_the_same_squad(): void
     {
         $service = app(EventOrbatMarkingService::class);
