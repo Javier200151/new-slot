@@ -202,7 +202,16 @@ class AutomaticLiveStreamService
             $categoryFilter = app(TwitchArmaCategoryService::class);
             $library = app(TwitchVodLibraryService::class);
 
-            return collect($response->json('data', []))
+            $liveItems = collect($response->json('data', []))
+                ->filter(fn ($item): bool => is_array($item));
+            $onlineUserIds = $liveItems->pluck('user_id')->map(fn ($id): string => (string) $id)->all();
+            foreach ($byUserId as $userId => $streamer) {
+                if (! in_array((string) $userId, $onlineUserIds, true)) {
+                    Cache::forget('streams.unpublished-live.' . $streamer->id);
+                }
+            }
+
+            return $liveItems
                 ->filter(fn ($item): bool => is_array($item))
                 ->map(function (array $item) use ($byUserId, $library, $categoryFilter): ?array {
                     $userId = (string) ($item['user_id'] ?? '');
