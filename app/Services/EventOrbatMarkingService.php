@@ -163,8 +163,9 @@ class EventOrbatMarkingService
             ->where('event_id', $event->id)
             ->where('participant_key', 'like', 'vacant:%')
             ->get();
+        $occupiedKeys = EventSlot::query()->where('event_id', $event->id)->pluck('slot_key')->all();
         foreach ($vacancies as $vacancy) {
-            if (! isset($result[$vacancy->slot_key])) {
+            if (! in_array($vacancy->slot_key, $occupiedKeys, true) && ! isset($result[$vacancy->slot_key])) {
                 $result[$vacancy->slot_key] = [
                     'number' => $vacancy->number !== null ? (int) $vacancy->number : null,
                     'color' => 'white',
@@ -240,13 +241,24 @@ class EventOrbatMarkingService
                 ? $this->participantKey($occupied->get($secondInCommandKey))
                 : null;
 
+            $vacantMarkings = DB::table('event_orbat_markings')
+                ->where('event_id', $event->id)
+                ->where('participant_key', 'like', 'vacant:%')
+                ->get()->keyBy('slot_key');
+
             $numbers = [];
             foreach ($items as $item) {
                 if (! in_array($item['color'], self::COLORS, true)) {
                     throw ValidationException::withMessages(['markings' => 'Color no permitido.']);
                 }
-                if (! $occupied->has($item['slot_key']) && ($item['number'] !== null || $item['color'] !== 'white')) {
-                    throw ValidationException::withMessages(['markings' => 'Los puestos vacíos no se pueden numerar.']);
+                if (! $occupied->has($item['slot_key'])) {
+                    $vacancy = $vacantMarkings->get($item['slot_key']);
+                    $expectedNumber = $vacancy?->number !== null ? (int) $vacancy->number : null;
+                    if ($item['number'] !== $expectedNumber || $item['color'] !== 'white') {
+                        throw ValidationException::withMessages([
+                            'markings' => 'Los puestos vacíos conservan su número, pero no se pueden editar.',
+                        ]);
+                    }
                 }
                 if ($item['number'] !== null) {
                     if (in_array($item['number'], $numbers, true)) {
