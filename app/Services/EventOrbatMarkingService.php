@@ -80,39 +80,39 @@ class EventOrbatMarkingService
     public function save(Event $event, User $actor, string $group, array $items): bool
     {
         return DB::transaction(function () use ($event, $actor, $group, $items): bool {
-        $event = Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
-        $event->load('eventStatus');
-        $visible = $this->visibleSlots($event);
-        if (! $this->permission($event, $actor, $group)) {
-            throw ValidationException::withMessages(['markings' => 'No tienes permiso para editar esta escuadra.']);
-        }
-
-        $groupKeys = collect($visible)->filter(fn (array $slot) => $slot['group'] === $group)->keys()->all();
-        $receivedKeys = array_column($items, 'slot_key');
-        if (count($groupKeys) !== count($receivedKeys)
-            || count(array_unique($receivedKeys)) !== count($receivedKeys)
-            || array_diff($groupKeys, $receivedKeys)
-            || array_diff($receivedKeys, $groupKeys)) {
-            throw ValidationException::withMessages(['markings' => 'La lista de puestos no coincide con el ORBAT actual.']);
-        }
-
-        $occupied = EventSlot::query()->where('event_id', $event->id)
-            ->whereIn('slot_key', $groupKeys)->lockForUpdate()->get()->keyBy('slot_key');
-        $numbers = [];
-        foreach ($items as $item) {
-            if (! in_array($item['color'], self::COLORS, true)) {
-                throw ValidationException::withMessages(['markings' => 'Color no permitido.']);
+            $event = Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            $event->load('eventStatus');
+            $visible = $this->visibleSlots($event);
+            if (! $this->permission($event, $actor, $group)) {
+                throw ValidationException::withMessages(['markings' => 'No tienes permiso para editar esta escuadra.']);
             }
-            if (! $occupied->has($item['slot_key']) && ($item['number'] !== null || $item['color'] !== 'white')) {
-                throw ValidationException::withMessages(['markings' => 'Los puestos vacíos no se pueden numerar.']);
+
+            $groupKeys = collect($visible)->filter(fn (array $slot) => $slot['group'] === $group)->keys()->all();
+            $receivedKeys = array_column($items, 'slot_key');
+            if (count($groupKeys) !== count($receivedKeys)
+                || count(array_unique($receivedKeys)) !== count($receivedKeys)
+                || array_diff($groupKeys, $receivedKeys)
+                || array_diff($receivedKeys, $groupKeys)) {
+                throw ValidationException::withMessages(['markings' => 'La lista de puestos no coincide con el ORBAT actual.']);
             }
-            if ($item['number'] !== null) {
-                if (in_array($item['number'], $numbers, true)) {
-                    throw ValidationException::withMessages(['markings' => 'No se puede repetir un número en la misma escuadra.']);
+
+            $occupied = EventSlot::query()->where('event_id', $event->id)
+                ->whereIn('slot_key', $groupKeys)->lockForUpdate()->get()->keyBy('slot_key');
+            $numbers = [];
+            foreach ($items as $item) {
+                if (! in_array($item['color'], self::COLORS, true)) {
+                    throw ValidationException::withMessages(['markings' => 'Color no permitido.']);
                 }
-                $numbers[] = $item['number'];
+                if (! $occupied->has($item['slot_key']) && ($item['number'] !== null || $item['color'] !== 'white')) {
+                    throw ValidationException::withMessages(['markings' => 'Los puestos vacíos no se pueden numerar.']);
+                }
+                if ($item['number'] !== null) {
+                    if (in_array($item['number'], $numbers, true)) {
+                        throw ValidationException::withMessages(['markings' => 'No se puede repetir un número en la misma escuadra.']);
+                    }
+                    $numbers[] = $item['number'];
+                }
             }
-        }
 
             $existing = DB::table('event_orbat_markings')
                 ->where('event_id', $event->id)->get()->keyBy('participant_key');
