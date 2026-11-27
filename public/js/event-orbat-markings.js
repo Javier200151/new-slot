@@ -44,23 +44,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const titles = savedTeamTitles(card);
         const active = activeTeams(card, false);
         const teamEntries = colorOrder.filter(color => active[color]);
-        // An unnamed single-color squad does not need a redundant team legend.
-        target.hidden = teamEntries.length <= 1 && !teamEntries.some(color => titles[color]);
+        target.hidden = teamEntries.length === 0;
         for (const color of teamEntries) {
             const label = document.createElement('span');
             label.className = 'orbat-fireteam-chip orbat-fireteam-chip--' + color;
             label.textContent = colors[color] + ' (' + active[color] + ')'
-                + (titles[color] ? ' · ' + titles[color] : '');
+                + (titles[color] ? ': ' + titles[color] : '');
             target.append(label);
         }
     }
 
 
-    // Uses the existing safe [color] and [center] tags supported by BbcodeMarkup.
+    // Uses the existing safe [color] tags supported by BbcodeMarkup.
     // Read-only numbers/colors are the source of truth, not unsaved editor values.
     function shareBbcode(card) {
         const back = backOf(card);
-        const title = sanitizeBbcode(back?.dataset.markingTitle);
         const group = sanitizeBbcode(card.dataset.markingGroup).toUpperCase();
         const rows = rowsOf(card)
             .filter(row => row.dataset.markingNumber !== '' && row.dataset.markingNumber != null)
@@ -68,9 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 || Number(a.dataset.markingNumber) - Number(b.dataset.markingNumber));
         const colorFor = color => colors[color] ? color : 'white';
         const headerColor = colorFor(rows.find(row => row.dataset.markingColor !== 'white')?.dataset.markingColor || 'white');
-        const header = group
-            + (headerColor === 'white' ? '' : ' - ' + colors[headerColor].toUpperCase())
-            + (title ? ' (' + title.toUpperCase() + ')' : '');
+        const header = group;
         const lines = rows.map(row => {
             const number = row.dataset.markingNumber;
             const name = sanitizeBbcode(row.querySelector('.orbat-marking-player > span')?.textContent || '');
@@ -128,8 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function setEditor(card, enabled) {
         if (card.dataset.markingsEditable !== '1') return;
         card.classList.toggle('is-marking-editing', enabled);
-        const title = backOf(card)?.querySelector('[data-marking-display-title]');
-        if (title) title.hidden = enabled || !backOf(card)?.dataset.markingTitle;
         card.querySelector('[data-marking-edit]')?.setAttribute('aria-pressed', String(enabled));
         const button = card.querySelector('[data-marking-edit]');
         if (button) {
@@ -166,8 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         card.querySelectorAll('[data-marking-team-input]').forEach(input => {
             input.value = titles[input.dataset.markingTeamInput] || '';
         });
-        const titleInput = card.querySelector('[data-marking-input-title]');
-        if (titleInput) titleInput.value = backOf(card)?.dataset.markingTitle ?? '';
         const selected = backOf(card)?.dataset.markingSecond ?? '';
         card.querySelectorAll('[data-marking-second-input]').forEach(el => {
             el.checked = el.value === selected;
@@ -291,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         group: card.dataset.markingGroup,
                         items,
                         second_in_command: second,
-                        custom_title: card.querySelector('[data-marking-input-title]')?.value.trim() ?? '',
                         color_team_titles: teamTitles,
                     }),
                 });
@@ -315,13 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 backOf(card).dataset.markingSecond = second || '';
                 backOf(card).dataset.markingTeamTitles = JSON.stringify(teamTitles);
                 renderTeamPreview(card);
-                const titleValue = card.querySelector('[data-marking-input-title]')?.value.trim() ?? '';
-                backOf(card).dataset.markingTitle = titleValue;
-                const shownTitle = card.querySelector('[data-marking-display-title]');
-                if (shownTitle) {
-                    shownTitle.textContent = titleValue;
-                    shownTitle.hidden = !titleValue;
-                }
                 if (data.changed && data.updated_by) {
                     const text = 'Última edición: ' + data.updated_by + ' · ' + data.updated_at;
                     const meta = card.querySelector('[data-marking-meta]');
