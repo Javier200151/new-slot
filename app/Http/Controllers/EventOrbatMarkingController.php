@@ -14,6 +14,7 @@ class EventOrbatMarkingController extends Controller
         $validated = $request->validate([
             'group' => ['required', 'string', 'max:191'],
             'second_in_command' => ['nullable', 'string', 'max:191'],
+            'custom_title' => ['nullable', 'string', 'max:80'],
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.slot_key' => ['required', 'string', 'max:191'],
             'items.*.number' => ['present', 'nullable', 'integer', 'min:1', 'max:999'],
@@ -26,6 +27,7 @@ class EventOrbatMarkingController extends Controller
             $validated['group'],
             $validated['items'],
             $validated['second_in_command'] ?? null,
+            $validated['custom_title'] ?? null,
         );
 
         return response()->json([
