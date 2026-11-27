@@ -7,6 +7,47 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cards.length) return;
 
     const colors = {white: 'Blanco', green: 'Verde', yellow: 'Amarillo', red: 'Rojo', blue: 'Azul'};
+    const sanitizeBbcode = text => String(text ?? '').replace(/[\[\]\r\n]/g, '').trim();
+
+    // Uses the existing safe [color] and [center] tags supported by BbcodeMarkup.
+    // Read-only numbers/colors are the source of truth, not unsaved editor values.
+    function shareBbcode(card) {
+        const back = backOf(card);
+        const title = sanitizeBbcode(back?.dataset.markingTitle);
+        const group = sanitizeBbcode(card.dataset.markingGroup).toUpperCase();
+        const rows = rowsOf(card)
+            .filter(row => row.dataset.markingNumber !== '' && row.dataset.markingNumber != null)
+            .sort((a, b) => Number(a.dataset.markingNumber) - Number(b.dataset.markingNumber));
+        const colorFor = color => colors[color] ? color : 'white';
+        const headerColor = colorFor(rows.find(row => row.dataset.markingColor !== 'white')?.dataset.markingColor || 'white');
+        const header = group + (title ? ' (' + title.toUpperCase() + ')' : '');
+        const lines = rows.map(row => {
+            const number = row.dataset.markingNumber;
+            const name = sanitizeBbcode(row.querySelector('.orbat-marking-player > span')?.textContent || '');
+            const playerName = row.dataset.markingOccupied === '1' ? name : '—';
+            const second = back?.dataset.markingSecond === row.dataset.slotKey ? ' (2.º al mando)' : '';
+            return '[color=' + colorFor(row.dataset.markingColor) + ']' +
+                number + '.- ' + playerName + second + '[/color]';
+        });
+        return '[center][b][color=' + headerColor + ']' + header + '[/color][/b]' +
+            (lines.length ? '\n\n' + lines.join('\n') : '') + '[/center]';
+    }
+
+    function appendToComment(text) {
+        const textarea = document.getElementById('event-comment-new');
+        if (!textarea) return false;
+        if (textarea.value.length + text.length + 2 > (Number(textarea.maxLength) || 5000)) {
+            return false;
+        }
+        const separator = textarea.value.trim() ? '\n\n' : '';
+        textarea.value += separator + text;
+        textarea.dispatchEvent(new Event('input', {bubbles: true}));
+        document.getElementById('comentarios')?.scrollIntoView({behavior: 'smooth', block: 'start'});
+        textarea.focus({preventScroll: true});
+        return true;
+    }
+
+
     const editing = card => card.classList.contains('is-marking-editing');
     const rowsOf = card => [...card.querySelectorAll('[data-marking-row]')];
     const backOf = card => card.querySelector('[data-orbat-marking-back]');
@@ -29,6 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function setEditor(card, enabled) {
         if (card.dataset.markingsEditable !== '1') return;
         card.classList.toggle('is-marking-editing', enabled);
+        const title = backOf(card)?.querySelector('[data-marking-display-title]');
+        if (title) title.hidden = enabled || !backOf(card)?.dataset.markingTitle;
         card.querySelector('[data-marking-edit]')?.setAttribute('aria-pressed', String(enabled));
         const button = card.querySelector('[data-marking-edit]');
         if (button) {
@@ -59,6 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (number) number.value = row.dataset.markingNumber ?? '';
             if (color) color.value = row.dataset.markingColor ?? 'white';
         });
+        const titleInput = card.querySelector('[data-marking-input-title]');
+        if (titleInput) titleInput.value = backOf(card)?.dataset.markingTitle ?? '';
         const selected = backOf(card)?.dataset.markingSecond ?? '';
         card.querySelectorAll('[data-marking-second-input]').forEach(el => {
             el.checked = el.value === selected;
@@ -110,6 +155,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         card.querySelector('[data-marking-edit]')?.addEventListener('click', () => setEditor(card, true));
         card.querySelector('[data-marking-cancel]')?.addEventListener('click', () => restoreEditor(card));
+        const showShareStatus = text => {
+            const status = card.querySelector('[data-marking-status]');
+            if (status) status.textContent = text;
+        };
+        card.querySelector('[data-marking-copy]')?.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(shareBbcode(card));
+                showShareStatus('BBCode copiado al portapapeles.');
+            } catch (_) {
+                showShareStatus('No se pudo copiar. Revisa los permisos del navegador.');
+            }
+        });
+        card.querySelector('[data-marking-comment]')?.addEventListener('click', () => {
+            showShareStatus(appendToComment(shareBbcode(card))
+                ? 'Numeración insertada en el comentario. Puedes añadir tu mensaje antes de publicar.'
+                : 'No se pudo insertar el texto: comprueba que estás conectado y que el comentario no supera el límite.');
+        });
+
 
         const save = card.querySelector('[data-marking-save]');
         const status = card.querySelector('[data-marking-status]');
@@ -150,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         group: card.dataset.markingGroup,
                         items,
                         second_in_command: second,
+                        custom_title: card.querySelector('[data-marking-input-title]')?.value.trim() ?? '',
                     }),
                 });
                 const data = await response.json();
@@ -170,6 +234,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (shownColor) shownColor.textContent = colors[item.color] || 'Blanco';
                 });
                 backOf(card).dataset.markingSecond = second || '';
+                const titleValue = card.querySelector('[data-marking-input-title]')?.value.trim() ?? '';
+                backOf(card).dataset.markingTitle = titleValue;
+                const shownTitle = card.querySelector('[data-marking-display-title]');
+                if (shownTitle) {
+                    shownTitle.textContent = titleValue;
+                    shownTitle.hidden = !titleValue;
+                }
                 if (data.changed && data.updated_by) {
                     const text = 'Última edición: ' + data.updated_by + ' · ' + data.updated_at;
                     const meta = card.querySelector('[data-marking-meta]');
