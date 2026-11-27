@@ -128,6 +128,18 @@ class EventOrbatMarkingService
                 $oldNumber = $old?->number !== null ? (int) $old->number : null;
                 $oldColor = $old?->color ?? 'white';
                 if ($oldNumber === $item['number'] && $oldColor === $item['color']) continue;
+                DB::table('event_orbat_marking_history')->insert([
+                    'event_id' => $event->id,
+                    'actor_id' => $actor->id,
+                    'group_name' => $group,
+                    'participant_key' => $participantKey,
+                    'slot_key' => $item['slot_key'],
+                    'old_number' => $oldNumber,
+                    'new_number' => $item['number'],
+                    'old_color' => $oldColor,
+                    'new_color' => $item['color'],
+                    'created_at' => now(),
+                ]);
                 DB::table('event_orbat_markings')->updateOrInsert([
                     'event_id' => $event->id, 'participant_key' => $participantKey,
                 ], [
