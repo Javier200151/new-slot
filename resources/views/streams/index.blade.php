@@ -472,7 +472,7 @@
                 && $myStreamer->enable
             )
 
-                <section class="my-stream">
+                <section class="my-stream" id="panel-streamer">
 
                     <header class="my-stream__header">
 
