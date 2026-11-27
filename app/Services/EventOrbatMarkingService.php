@@ -47,15 +47,30 @@ class EventOrbatMarkingService
             && mb_strtolower(trim((string) $slot->slot_group)) === mb_strtolower(trim($group)));
     }
 
-    /** @return array<int, array<string,mixed>> */
+    private function participantKey(EventSlot $slot): ?string
+    {
+        if ($slot->user_id !== null) return 'user:' . $slot->user_id;
+        if ($slot->ally_id !== null) return 'ally-slot:' . $slot->id;
+        return null;
+    }
+
+    /** @return array<string, array{number:?int,color:string}> Current slot key => player marking */
     public function markings(Event $event): array
     {
-        return DB::table('event_orbat_markings')
-            ->where('event_id', $event->id)
-            ->get()->keyBy('slot_key')->map(fn ($row): array => [
-                'number' => $row->number !== null ? (int) $row->number : null,
-                'color' => $row->color,
-            ])->all();
+        $byPlayer = DB::table('event_orbat_markings')
+            ->where('event_id', $event->id)->get()->keyBy('participant_key');
+        $result = [];
+        foreach (EventSlot::query()->where('event_id', $event->id)->get() as $slot) {
+            $key = $this->participantKey($slot);
+            $marking = $key ? $byPlayer->get($key) : null;
+            if ($marking) {
+                $result[$slot->slot_key] = [
+                    'number' => $marking->number !== null ? (int) $marking->number : null,
+                    'color' => $marking->color,
+                ];
+            }
+        }
+        return $result;
     }
 
     /**
@@ -101,17 +116,22 @@ class EventOrbatMarkingService
             if (! $this->permission($event->fresh('eventStatus'), $actor, $group)) {
                 throw ValidationException::withMessages(['markings' => 'Tu permiso ha cambiado.']);
             }
-            $existing = DB::table('event_orbat_markings')->where('event_id', $event->id)
-                ->whereIn('slot_key', array_column($items, 'slot_key'))->get()->keyBy('slot_key');
+            $existing = DB::table('event_orbat_markings')
+                ->where('event_id', $event->id)->get()->keyBy('participant_key');
             $changed = false;
             foreach ($items as $item) {
-                $old = $existing->get($item['slot_key']);
+                $slot = $occupied->get($item['slot_key']);
+                if (! $slot) continue;
+                $participantKey = $this->participantKey($slot);
+                if (! $participantKey) continue;
+                $old = $existing->get($participantKey);
                 $oldNumber = $old?->number !== null ? (int) $old->number : null;
                 $oldColor = $old?->color ?? 'white';
                 if ($oldNumber === $item['number'] && $oldColor === $item['color']) continue;
                 DB::table('event_orbat_markings')->updateOrInsert([
-                    'event_id' => $event->id, 'slot_key' => $item['slot_key'],
+                    'event_id' => $event->id, 'participant_key' => $participantKey,
                 ], [
+                    'slot_key' => $item['slot_key'],
                     'number' => $item['number'], 'color' => $item['color'],
                     'updated_by' => $actor->id, 'updated_at' => now(),
                     'created_at' => $old?->created_at ?? now(),
