@@ -133,6 +133,18 @@ class EventOrbatMarkingService
         $marking = DB::table('event_orbat_markings')
             ->where('event_id', $event->id)->where('participant_key', $participantKey)->first();
         if ($marking) {
+            DB::table('event_orbat_marking_history')->insert([
+                'event_id' => $event->id,
+                'actor_id' => $user->id,
+                'group_name' => $leaving->slot_group,
+                'participant_key' => $participantKey,
+                'slot_key' => $leaving->slot_key,
+                'old_number' => $marking->number,
+                'new_number' => $marking->number,
+                'old_color' => $marking->color,
+                'new_color' => 'white',
+                'created_at' => now(),
+            ]);
             DB::table('event_orbat_markings')->where('event_id', $event->id)
                 ->where('participant_key', 'vacant:' . $leaving->slot_key)->delete();
             DB::table('event_orbat_markings')->where('id', $marking->id)->update([
