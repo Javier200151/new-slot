@@ -11,6 +11,8 @@ use App\Models\EventSlot;
  */
 class EventOrbatPdfService
 {
+    private const ORDER = ['red', 'blue', 'yellow', 'green', 'white'];
+
     private const PALETTE = [
         'white' => [0.40, 0.45, 0.52],
         'green' => [0.10, 0.53, 0.31],
@@ -76,11 +78,14 @@ class EventOrbatPdfService
                     'occupied' => $occupant !== null,
                 ];
             })->sort(function (array $a, array $b): int {
-                return ($a['number'] ?? PHP_INT_MAX) <=> ($b['number'] ?? PHP_INT_MAX);
+                $colorOrder = array_flip(self::ORDER);
+                return ($colorOrder[$a['color']] ?? 99) <=> ($colorOrder[$b['color']] ?? 99)
+                    ?: (($a['number'] ?? PHP_INT_MAX) <=> ($b['number'] ?? PHP_INT_MAX));
             })->values();
 
             $titles = $setting['color_team_titles'] ?? [];
-            foreach (self::LABELS as $color => $label) {
+            foreach (self::ORDER as $color) {
+                $label = self::LABELS[$color];
                 $count = $entries->filter(fn ($entry) =>
                     $entry['occupied'] && $entry['color'] === $color)->count();
                 if ($count < 1) continue;
