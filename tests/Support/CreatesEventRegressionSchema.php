@@ -145,6 +145,7 @@ trait CreatesEventRegressionSchema
             $table->foreignId('event_id');
             $table->string('group_name');
             $table->string('custom_title', 80)->nullable();
+            $table->json('color_team_titles')->nullable();
             $table->string('second_in_command_key')->nullable();
             $table->foreignId('updated_by')->nullable();
             $table->timestamps();
@@ -157,6 +158,8 @@ trait CreatesEventRegressionSchema
             $table->string('group_name');
             $table->string('previous_title', 80)->nullable();
             $table->string('new_title', 80)->nullable();
+            $table->json('previous_color_team_titles')->nullable();
+            $table->json('new_color_team_titles')->nullable();
             $table->string('previous_second_key')->nullable();
             $table->string('new_second_key')->nullable();
             $table->foreignId('actor_id')->nullable();
