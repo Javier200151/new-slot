@@ -93,3 +93,8 @@
 .orbat-fireteam-dot--red{background:#f87171}
 .orbat-fireteam-dot--blue{background:#60a5fa}
 @media(max-width:580px){.orbat-fireteam-title{grid-template-columns:14px minmax(65px,95px) minmax(0,1fr)}}
+
+/* Reuse the same role icon asset shown on the normal ORBAT face. */
+.orbat-marking-role{display:inline-flex;align-items:center;gap:5px;min-width:0;line-height:1.25}
+.orbat-marking-role .event-orbat__slot-type-icon{display:inline-block;flex:0 0 auto;width:15px;height:15px;object-fit:contain;vertical-align:middle}
+.orbat-marking-role span{min-width:0;overflow-wrap:anywhere}
