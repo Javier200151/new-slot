@@ -154,12 +154,26 @@ class EventOrbatMarkingService
                 'updated_at' => now(),
             ]);
         }
-        // A departing 2IC clears the designation, but leaves all other
-        // members' numbering untouched.
-        DB::table('event_orbat_group_settings')
+        // A departing 2IC clears the designation. Keep the human editor's
+        // timestamp unchanged: this is an automatic consequence of leaving.
+        $secondGroups = DB::table('event_orbat_group_settings')
             ->where('event_id', $event->id)
-            ->where('second_in_command_key', $participantKey)
-            ->update(['second_in_command_key' => null, 'updated_at' => now()]);
+            ->where('second_in_command_key', $participantKey)->get();
+
+        foreach ($secondGroups as $settings) {
+            DB::table('event_orbat_group_command_history')->insert([
+                'event_id' => $event->id,
+                'group_name' => $settings->group_name,
+                'previous_title' => $settings->custom_title,
+                'new_title' => $settings->custom_title,
+                'previous_second_key' => $participantKey,
+                'new_second_key' => null,
+                'actor_id' => $user->id,
+                'created_at' => now(),
+            ]);
+            DB::table('event_orbat_group_settings')->where('id', $settings->id)
+                ->update(['second_in_command_key' => null]);
+        }
     }
 
 
