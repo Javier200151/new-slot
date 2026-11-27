@@ -39,6 +39,9 @@ class PublicStreamerController extends Controller
             ->where('streamer_id', $streamer->id)
             ->where('platform', $notice['platform'])
             ->where('enabled', true)
+            ->whereHas('event', fn ($events) => $events
+                ->whereHas('eventStatus', fn ($statuses) => $statuses->where('name', 'ACTIVO'))
+                ->whereBetween('date', [now()->subHours(12), now()->addDays(30)]))
             ->exists()) {
             $notice = null; // La emisión ya fue publicada manualmente.
         }
