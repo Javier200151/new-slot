@@ -77,11 +77,17 @@ class EventOrbatMarkingsTest extends TestCase
         $this->assertDatabaseMissing('event_orbat_marking_notices', ['user_id' => 10]);
         $this->assertDatabaseMissing('event_orbat_marking_notices', ['user_id' => 12]);
         $this->assertDatabaseCount('event_orbat_marking_notices', 1);
+        $this->assertDatabaseHas('event_orbat_marking_history', [
+            'event_id' => 1, 'actor_id' => 10, 'participant_key' => 'user:10',
+            'old_color' => 'white', 'new_color' => 'green',
+        ]);
+        $this->assertDatabaseCount('event_orbat_marking_history', 2);
 
         $this->putJson(route('events.orbat.markings.update', 1), [
             'group' => 'Alpha', 'items' => $this->alphaItems(),
         ])->assertOk()->assertJsonPath('changed', false);
         $this->assertDatabaseCount('event_orbat_marking_notices', 1);
+        $this->assertDatabaseCount('event_orbat_marking_history', 2);
     }
 
     public function test_leader_cannot_edit_other_groups_and_non_leaders_cannot_edit(): void
