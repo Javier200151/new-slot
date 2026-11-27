@@ -1339,6 +1339,9 @@
                 $savedMarkings = $markingsReady ? $markingService->markings($event) : [];
                 $savedGroupSettings = $markingsReady ? $markingService->groupSettings($event) : [];
                 $viewer = auth()->user();
+                $departureResetGroups = $markingsReady && $viewer
+                    ? $markingService->departureResetChoices($event, $viewer)
+                    : [];
                 $hasMarkingCards = false;
                 foreach ($visibleOrbatGroups as $markingGroup) {
                     $groupCanEdit = $markingsReady && $markingService->permission($event, $viewer, (string) ($markingGroup['name'] ?? ''));
@@ -1632,6 +1635,7 @@
                                                                         @csrf
                                                                         @method('DELETE')
                                                                         <input type="hidden" name="reason" value="" data-event-unregister-reason>
+                                                                        <input type="hidden" name="reset_tactical_markings" value="0" data-event-unregister-reset>
 
                                                                         <button
                                                                             type="button"
@@ -1773,6 +1777,7 @@
                                                                     @csrf
                                                                     @method('DELETE')
                                                                     <input type="hidden" name="reason" value="" data-event-unregister-reason>
+                                                                        <input type="hidden" name="reset_tactical_markings" value="0" data-event-unregister-reset>
 
                                                                     <button
                                                                         type="button"
@@ -2251,6 +2256,37 @@
                 </section>
             @elseif($addons->isNotEmpty())
                 @include('partials.activity-addons')
+            @endif
+
+            @if(! empty($departureResetGroups))
+                <dialog class="event-unregister-dialog" data-event-unregister-markings-dialog
+                        data-marking-reset-groups="{{ json_encode($departureResetGroups, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG) }}">
+                    <div class="event-unregister-dialog__panel">
+                        <header>
+                            <div>
+                                <span>Configuraciones tácticas guardadas</span>
+                                <small>Antes de desapuntarte</small>
+                            </div>
+                            <button type="button" class="event-unregister-dialog__close" data-marking-exit-cancel aria-label="Cancelar">×</button>
+                        </header>
+                        <p>Eres la última persona que editó la organización táctica de estas escuadras:</p>
+                        <ul class="orbat-departure-groups">
+                            @foreach($departureResetGroups as $resetGroup)
+                                <li>
+                                    <strong>{{ $resetGroup['group'] }}</strong>
+                                    @if(filled($resetGroup['title'])) <small>({{ $resetGroup['title'] }})</small> @endif
+                                    <span>· {{ $resetGroup['players'] }} integrantes</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                        <p>¿Quieres borrarla? Si aceptas, se eliminarán los números, colores, títulos y segundos al mando de esas escuadras. Si la conservas, los demás seguirán viendo los datos.</p>
+                        <footer class="orbat-departure-actions">
+                            <button type="button" class="btn btn-outline" data-marking-exit-keep>Conservar numeraciones</button>
+                            <button type="button" class="btn" data-marking-exit-clear>Eliminar configuraciones</button>
+                            <button type="button" class="btn btn-outline" data-marking-exit-cancel>Cancelar salida</button>
+                        </footer>
+                    </div>
+                </dialog>
             @endif
 
             <dialog class="event-unregister-dialog" data-event-unregister-dialog>
