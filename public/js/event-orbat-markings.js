@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         target.replaceChildren();
         const titles = savedTeamTitles(card);
         const active = activeTeams(card, false);
-        const teamEntries = Object.keys(colors).filter(color => active[color]);
+        const teamEntries = colorOrder.filter(color => active[color]);
         // An unnamed single-color squad does not need a redundant team legend.
         target.hidden = teamEntries.length <= 1 && !teamEntries.some(color => titles[color]);
         for (const color of teamEntries) {
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const teams = activeTeams(card, false);
         const titles = savedTeamTitles(card);
-        const teamNames = Object.keys(colors).filter(color => teams[color] && titles[color])
+        const teamNames = colorOrder.filter(color => teams[color] && titles[color])
             .map(color => '[b][color=' + color + ']Equipo ' + colors[color]
                 + ': ' + sanitizeBbcode(titles[color]) + '[/color][/b]');
         return '[b][color=' + headerColor + ']' + header + '[/color][/b]' +
