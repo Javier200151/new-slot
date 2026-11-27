@@ -97,12 +97,12 @@ class EventOrbatMarkingsTest extends TestCase
                 'group' => 'Bravo', 'items' => [
                     ['slot_key' => 'slot-bravo-1', 'number' => 1, 'color' => 'red'],
                 ],
-            ])->assertUnprocessable();
+            ])->assertForbidden();
 
         DB::table('slot_types')->where('id', 1)->update(['orbat_marking_permission' => 'none']);
         $this->putJson(route('events.orbat.markings.update', 1), [
             'group' => 'Alpha', 'items' => $this->alphaItems(),
-        ])->assertUnprocessable();
+        ])->assertForbidden();
         $this->assertDatabaseCount('event_orbat_markings', 0);
     }
 
@@ -156,4 +156,90 @@ class EventOrbatMarkingsTest extends TestCase
         ]);
         $this->assertDatabaseHas('event_orbat_marking_notices', ['user_id' => 12]);
     }
+    public function test_squad_leader_can_assign_and_clear_second_in_command_with_editor_metadata(): void
+    {
+        $user = User::findOrFail(10);
+        $service = app(EventOrbatMarkingService::class);
+
+        $this->actingAs($user)
+            ->putJson(route('events.orbat.markings.update', 1), [
+                'group' => 'Alpha',
+                'items' => $this->alphaItems(),
+                'second_in_command' => 'slot-alpha-2',
+            ])->assertOk()
+            ->assertJsonPath('updated_by', 'Lider');
+
+        $this->assertDatabaseHas('event_orbat_group_settings', [
+            'event_id' => 1,
+            'group_name' => 'Alpha',
+            'second_in_command_key' => 'user:11',
+            'updated_by' => 10,
+        ]);
+        $this->assertSame(
+            'slot-alpha-2',
+            $service->groupSettings(Event::findOrFail(1))['Alpha']['second_in_command_key'],
+        );
+        $this->assertDatabaseHas('event_orbat_group_command_history', [
+            'previous_second_key' => null,
+            'new_second_key' => 'user:11',
+            'actor_id' => 10,
+        ]);
+
+        $this->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'items' => $this->alphaItems(),
+            'second_in_command' => 'slot-alpha-2',
+        ])->assertOk()->assertJsonPath('changed', false);
+
+        $this->assertDatabaseCount('event_orbat_group_command_history', 1);
+        $this->assertDatabaseCount('event_orbat_marking_notices', 1);
+
+        $this->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'items' => $this->alphaItems(),
+            'second_in_command' => null,
+        ])->assertOk()->assertJsonPath('changed', true);
+
+        $this->assertDatabaseHas('event_orbat_group_settings', [
+            'event_id' => 1,
+            'group_name' => 'Alpha',
+            'second_in_command_key' => null,
+        ]);
+        $this->assertDatabaseCount('event_orbat_group_command_history', 2);
+        $this->assertDatabaseCount('event_orbat_marking_notices', 2);
+    }
+
+    public function test_second_in_command_requires_current_occupied_slot_in_the_squad(): void
+    {
+        $this->actingAs(User::findOrFail(10))->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'items' => $this->alphaItems(),
+            'second_in_command' => 'slot-alpha-3',
+        ])->assertUnprocessable()->assertJsonValidationErrors('second_in_command');
+
+        $this->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'items' => $this->alphaItems(),
+            'second_in_command' => 'slot-bravo-1',
+        ])->assertUnprocessable()->assertJsonValidationErrors('second_in_command');
+
+        $this->assertDatabaseCount('event_orbat_group_settings', 0);
+        $this->assertDatabaseCount('event_orbat_marking_notices', 0);
+    }
+
+    public function test_second_in_command_follows_member_after_moving_within_the_same_squad(): void
+    {
+        $service = app(EventOrbatMarkingService::class);
+        $actor = User::findOrFail(10);
+        $service->save(Event::findOrFail(1), $actor, 'Alpha', $this->alphaItems(), 'slot-alpha-2');
+
+        // Vacate a target slot before moving the currently designated member.
+        DB::table('event_slots')->where('slot_key', 'slot-alpha-2')->update(['slot_key' => 'slot-alpha-3']);
+
+        $this->assertSame(
+            'slot-alpha-3',
+            $service->groupSettings(Event::findOrFail(1))['Alpha']['second_in_command_key'],
+        );
+    }
+
 }
