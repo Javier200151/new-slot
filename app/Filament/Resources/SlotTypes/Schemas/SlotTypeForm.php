@@ -23,6 +23,17 @@ class SlotTypeForm
                     ->required()
                     ->maxLength(255),
 
+                Select::make('orbat_marking_permission')
+                    ->label('Numeraciones y colores del ORBAT')
+                    ->options([
+                        'none' => 'Sin permiso',
+                        'group' => 'Editar su escuadra',
+                        'all' => 'Editar todas las escuadras',
+                    ])
+                    ->default('none')
+                    ->required()
+                    ->helperText('Permiso del miembro que ocupa este tipo de slot en cada evento.'),
+
                 FileUpload::make('image')
                     ->label('Icono')
                     ->image()
