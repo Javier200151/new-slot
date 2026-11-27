@@ -61,14 +61,14 @@ class EventParticipationRegressionTest extends TestCase
 
     public function test_twitch_activity_time_requires_streamer_to_be_assigned_to_active_event(): void
     {
-        \\Illuminate\\Support\\Facades\\Cache::forget('sqa.twitch.calendar-windows.v1');
+        \Illuminate\Support\Facades\Cache::forget('sqa.twitch.calendar-windows.v1');
         DB::table('events')->where('id', 1)->update([
             'date' => now()->subMinutes(20),
             'end_date' => now()->addMinutes(100),
         ]);
-        $streamer = new \\App\\Models\\Streamer();
+        $streamer = new \App\Models\Streamer();
         $streamer->forceFill(['id' => 9, 'enable' => true, 'user_id' => 10]);
-        $filter = app(\\App\\Services\\TwitchArmaCategoryService::class);
+        $filter = app(\App\Services\TwitchArmaCategoryService::class);
         $unrelated = ['game_name' => 'Just Chatting', 'title' => 'Charlando con amigos'];
 
         // Un evento en horario sin inscripción NO basta para autorizar Twitch.
@@ -97,8 +97,8 @@ class EventParticipationRegressionTest extends TestCase
 
     public function test_twitch_arma_category_is_still_allowed_without_orbat_assignment(): void
     {
-        $filter = app(\\App\\Services\\TwitchArmaCategoryService::class);
-        $streamer = new \\App\\Models\\Streamer();
+        $filter = app(\App\Services\TwitchArmaCategoryService::class);
+        $streamer = new \App\Models\Streamer();
         $streamer->forceFill(['id' => 9, 'enable' => true, 'user_id' => 10]);
         $this->assertSame(
             ['allowed' => true, 'reason' => null],
