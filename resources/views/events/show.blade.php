@@ -2276,6 +2276,16 @@
                                     <strong>{{ $resetGroup['group'] }}</strong>
                                     @if(filled($resetGroup['title'])) <small>({{ $resetGroup['title'] }})</small> @endif
                                     <span>· {{ $resetGroup['players'] }} integrantes</span>
+                                    @if(! empty($resetGroup['details']))
+                                        <ul class="orbat-departure-details">
+                                            @foreach($resetGroup['details'] as $detail)
+                                                <li>
+                                                    {{ $detail['number'] ?? '—' }}.- {{ $detail['name'] }}
+                                                    · {{ ['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'][$detail['color']] ?? 'Blanco' }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
                                 </li>
                             @endforeach
                         </ul>
