@@ -1245,10 +1245,12 @@ class PublicEventController extends Controller
             'reason' => ['required', 'string', 'max:1000', function (string $attribute, mixed $value, \Closure $fail): void {
                 if (trim((string) $value) === '') $fail('Debes indicar un motivo para desapuntarte.');
             }],
+            'reset_tactical_markings' => ['nullable', 'boolean'],
         ]);
         $reason = trim((string) ($validated['reason'] ?? ''));
+        $resetTacticalMarkings = (bool) ($validated['reset_tactical_markings'] ?? false);
 
-        DB::transaction(function () use ($event, $slotKey, $user, $reason): void {
+        DB::transaction(function () use ($event, $slotKey, $user, $reason, $resetTacticalMarkings): void {
             $lockedEvent = Event::query()
                 ->whereKey($event->id)
                 ->lockForUpdate()
@@ -1309,6 +1311,9 @@ class PublicEventController extends Controller
                     ),
                 ]);
             }
+
+            app(\App\Services\EventOrbatMarkingService::class)
+                ->leaving($lockedEvent, $eventSlot, $user, $resetTacticalMarkings);
 
             $eventSlot->delete();
         });
