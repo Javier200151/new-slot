@@ -1342,7 +1342,7 @@
                 foreach ($visibleOrbatGroups as $markingGroup) {
                     $groupCanEdit = $markingsReady && $markingService->permission($event, $viewer, (string) ($markingGroup['name'] ?? ''));
                     $groupHasSaved = collect($markingGroup['slots'] ?? [])->contains(fn ($s) => isset($savedMarkings[$s['slot_key'] ?? '']));
-                    if ($groupCanEdit || $groupHasSaved) { $hasMarkingCards = true; break; }
+                    if (($groupCanEdit || $groupHasSaved) && collect($markingGroup['slots'] ?? [])->isNotEmpty()) { $hasMarkingCards = true; break; }
                 }
             @endphp
             <section
@@ -1368,7 +1368,7 @@
                                 $groupName = (string) ($group['name'] ?? 'Grupo sin nombre');
                                 $canEditMarkings = $markingsReady && $markingService->permission($event, $viewer, $groupName);
                                 $hasSavedMarkings = collect($group['slots'])->contains(fn ($slot) => isset($savedMarkings[$slot['slot_key'] ?? '']));
-                                $showMarkingFlip = $canEditMarkings || $hasSavedMarkings;
+                                $showMarkingFlip = ($canEditMarkings || $hasSavedMarkings) && $group['slots']->isNotEmpty();
                             @endphp
                             <section class="event-orbat__group" data-orbat-flip-card data-marking-group="{{ $groupName }}"
                                 data-markings-endpoint="{{ route('events.orbat.markings.update', $event) }}"
