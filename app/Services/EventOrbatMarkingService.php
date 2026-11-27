@@ -105,7 +105,7 @@ class EventOrbatMarkingService
             $event->load('eventStatus');
             $visible = $this->visibleSlots($event);
             if (! $this->permission($event, $actor, $group)) {
-                throw ValidationException::withMessages(['markings' => 'No tienes permiso para editar esta escuadra.']);
+                abort(403, 'No tienes permiso para editar esta escuadra.');
             }
 
             $groupKeys = collect($visible)->filter(fn (array $slot) => $slot['group'] === $group)->keys()->all();
