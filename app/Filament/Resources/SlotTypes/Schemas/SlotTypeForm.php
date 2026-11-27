@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SlotTypes\Schemas;
 
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
 
 class SlotTypeForm
