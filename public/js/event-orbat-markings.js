@@ -82,6 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const finish = () => {
             back.hidden = !show;
             card.classList.toggle('is-marking-face', show);
+            if (!show) {
+                const frontMeta = card.querySelector('.orbat-marking-front-meta');
+                if (frontMeta) frontMeta.hidden = false;
+            }
             sortRows(card);
             const trigger = card.querySelector('[data-orbat-flip]');
             if (trigger) {
