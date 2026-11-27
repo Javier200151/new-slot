@@ -292,7 +292,7 @@ class EventOrbatMarkingService
      * @param array<int, array{slot_key:string, number:?int, color:string}> $items
      * @return bool true only if something actually changed
      */
-    public function save(Event $event, User $actor, string $group, array $items, ?string $secondInCommandKey = null, ?string $customTitle = null, array $colorTeamTitles = []): bool
+    public function save(Event $event, User $actor, string $group, array $items, ?string $secondInCommandKey = null, ?string $customTitle = null, ?array $colorTeamTitles = null): bool
     {
         return DB::transaction(function () use ($event, $actor, $group, $items, $secondInCommandKey, $customTitle, $colorTeamTitles): bool {
             $event = Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
@@ -400,8 +400,8 @@ class EventOrbatMarkingService
             $activeColors = collect($items)->filter(
                 fn (array $item): bool => $occupied->has($item['slot_key'])
             )->pluck('color')->unique()->values()->all();
-            $newColorTitles = [];
-            foreach ($colorTeamTitles as $color => $title) {
+            $newColorTitles = $colorTeamTitles === null ? $previousColorTitles : [];
+            foreach ($colorTeamTitles ?? [] as $color => $title) {
                 if (! in_array($color, self::COLORS, true) || ! in_array($color, $activeColors, true)) {
                     throw ValidationException::withMessages([
                         'color_team_titles' => 'Solo puedes nombrar equipos de colores presentes en tu escuadra.',
