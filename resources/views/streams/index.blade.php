@@ -485,8 +485,8 @@
                         </h2>
 
                         <p>
-                            Tus canales configurados se detectan automáticamente.
-                            La publicación manual queda disponible como respaldo.
+                            Twitch se publica automáticamente si la categoría o el título cumplen los filtros, o si estás apuntado en el ORBAT de un evento en curso.
+                            Si tu directo no cumple estas condiciones, puedes publicarlo manualmente desde aquí. YouTube mantiene su detección automática.
                         </p>
 
                     </header>
