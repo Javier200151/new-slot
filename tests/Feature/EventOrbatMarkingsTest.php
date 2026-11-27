@@ -6,6 +6,9 @@ use App\Models\Event;
 use App\Models\User;
 use App\Services\EventOrbatMarkingService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\CreatesEventRegressionSchema;
 use Tests\TestCase;
 
@@ -58,6 +61,94 @@ class EventOrbatMarkingsTest extends TestCase
             ['slot_key' => 'slot-alpha-2', 'number' => 2, 'color' => 'yellow'],
             ['slot_key' => 'slot-alpha-3', 'number' => null, 'color' => 'white'],
         ];
+    }
+
+    /** Build only the standard Spatie tables needed to exercise real role checks. */
+    private function createOrbatPermissionTestTables(): void
+    {
+        Schema::create('permissions', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('guard_name');
+            $table->timestamps();
+            $table->unique(['name', 'guard_name']);
+        });
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('guard_name');
+            $table->timestamps();
+            $table->unique(['name', 'guard_name']);
+        });
+        Schema::create('role_has_permissions', function (Blueprint $table): void {
+            $table->unsignedBigInteger('permission_id');
+            $table->unsignedBigInteger('role_id');
+            $table->primary(['permission_id', 'role_id']);
+        });
+        Schema::create('model_has_roles', function (Blueprint $table): void {
+            $table->unsignedBigInteger('role_id');
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+            $table->primary(['role_id', 'model_id', 'model_type']);
+        });
+        Schema::create('model_has_permissions', function (Blueprint $table): void {
+            $table->unsignedBigInteger('permission_id');
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+            $table->primary(['permission_id', 'model_id', 'model_type']);
+        });
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function test_role_permission_can_edit_all_squads_without_being_registered(): void
+    {
+        $this->createOrbatPermissionTestTables();
+        $this->insertVerifiedUser(20, 'Organizador');
+
+        $permission = \App\Models\Permission::firstOrCreate([
+            'name' => 'orbat-markings.edit', 'guard_name' => 'web',
+        ]);
+        $role = \App\Models\Role::firstOrCreate([
+            'name' => 'organizador', 'guard_name' => 'web',
+        ]);
+        $role->givePermissionTo($permission);
+        $editor = User::findOrFail(20);
+        $editor->assignRole($role);
+
+        $this->assertDatabaseMissing('event_slots', ['event_id' => 1, 'user_id' => 20]);
+        $this->assertTrue(app(EventOrbatMarkingService::class)
+            ->permission(Event::findOrFail(1)->load('eventStatus'), $editor, 'Alpha'));
+        $this->assertTrue(app(EventOrbatMarkingService::class)
+            ->permission(Event::findOrFail(1)->load('eventStatus'), $editor, 'Bravo'));
+
+        $this->actingAs($editor)
+            ->putJson(route('events.orbat.markings.update', 1), [
+                'group' => 'Alpha', 'items' => $this->alphaItems(),
+            ])->assertOk()->assertJsonPath('changed', true);
+
+        $this->assertDatabaseHas('event_orbat_markings', [
+            'event_id' => 1, 'participant_key' => 'user:10', 'number' => 1,
+        ]);
+        $this->assertDatabaseHas('event_orbat_marking_notices', [
+            'event_id' => 1, 'actor_id' => 20, 'user_id' => 10,
+        ]);
+
+        $role->revokePermissionTo($permission);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $editor = User::findOrFail(20);
+        $this->actingAs($editor)
+            ->putJson(route('events.orbat.markings.update', 1), [
+                'group' => 'Bravo', 'items' => [
+                    ['slot_key' => 'slot-bravo-1', 'number' => 1, 'color' => 'blue'],
+                ],
+            ])->assertForbidden();
+    }
+
+    public function test_orbat_role_permission_exists_in_role_catalog(): void
+    {
+        $options = \App\Support\PermissionCatalog::actionOptionsFor('orbat-markings');
+        $this->assertSame('Editar numeraciones y colores', $options['edit'] ?? null);
+        $this->assertContains('orbat-markings.edit', \App\Support\PermissionCatalog::permissionNames());
     }
 
     public function test_squad_leader_can_save_numbers_and_colors_and_notify_only_squad_mates(): void

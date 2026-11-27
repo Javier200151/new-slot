@@ -205,6 +205,15 @@ class EventOrbatMarkingService
     {
         if (! $user || $event->eventStatus?->name !== 'ACTIVO') return false;
 
+        // Este permiso global de rol es independiente de cualquier slot
+        // y permite editar todas las escuadras del evento activo.
+        if (Schema::hasTable('permissions')
+            && Schema::hasTable('model_has_roles')
+            && Schema::hasTable('role_has_permissions')
+            && $user->can('orbat-markings.edit')) {
+            return true;
+        }
+
         $slots = EventSlot::query()
             ->where('event_id', $event->id)->where('user_id', $user->id)
             ->with('slotType')->get();
