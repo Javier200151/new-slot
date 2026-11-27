@@ -391,4 +391,75 @@ class EventOrbatMarkingsTest extends TestCase
         ]);
     }
 
+    public function test_single_member_color_fireteams_can_have_independent_custom_titles(): void
+    {
+        $this->actingAs(User::findOrFail(10))->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'items' => $this->alphaItems(),
+            'custom_title' => 'Apoyo',
+            'color_team_titles' => [
+                'green' => 'Equipo de asalto',
+                'yellow' => 'Equipo de seguridad',
+            ],
+        ])->assertOk()->assertJsonPath('changed', true);
+
+        $settings = app(EventOrbatMarkingService::class)->groupSettings(Event::findOrFail(1));
+        $this->assertSame('Equipo de asalto', $settings['Alpha']['color_team_titles']['green']);
+        $this->assertSame('Equipo de seguridad', $settings['Alpha']['color_team_titles']['yellow']);
+
+        $this->assertDatabaseHas('event_orbat_group_settings', [
+            'event_id' => 1,
+            'group_name' => 'Alpha',
+            'color_team_titles' => json_encode(['green' => 'Equipo de asalto', 'yellow' => 'Equipo de seguridad'], JSON_UNESCAPED_UNICODE),
+        ]);
+        $this->assertDatabaseHas('event_orbat_group_command_history', [
+            'group_name' => 'Alpha',
+            'new_color_team_titles' => json_encode(['green' => 'Equipo de asalto', 'yellow' => 'Equipo de seguridad'], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $this->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'items' => $this->alphaItems(),
+            'custom_title' => 'Apoyo',
+            'color_team_titles' => [
+                'green' => 'Equipo de asalto',
+                'yellow' => 'Equipo de seguridad',
+            ],
+        ])->assertOk()->assertJsonPath('changed', false);
+
+        $this->assertDatabaseCount('event_orbat_marking_notices', 1);
+    }
+
+    public function test_fireteam_title_for_unused_color_is_rejected(): void
+    {
+        $this->actingAs(User::findOrFail(10))->putJson(route('events.orbat.markings.update', 1), [
+            'group' => 'Alpha',
+            'items' => $this->alphaItems(),
+            'color_team_titles' => ['blue' => 'No hay jugadores azules'],
+        ])->assertUnprocessable()->assertJsonValidationErrors('color_team_titles');
+
+        $this->assertDatabaseCount('event_orbat_markings', 0);
+        $this->assertDatabaseCount('event_orbat_marking_notices', 0);
+    }
+
+    public function test_tactical_pdf_download_has_public_members_numbers_and_individual_fireteams(): void
+    {
+        $service = app(EventOrbatMarkingService::class);
+        $service->save(Event::findOrFail(1), User::findOrFail(10), 'Alpha',
+            $this->alphaItems(), 'slot-alpha-2', 'Apoyo',
+            ['green' => 'Asalto', 'yellow' => 'Seguridad']);
+
+        $response = $this->get(route('events.orbat.markings.pdf', 1))->assertOk();
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment;', (string) $response->headers->get('Content-Disposition'));
+        $binary = $response->getContent();
+        $this->assertStringStartsWith('%PDF-1.4', $binary);
+        $this->assertStringContainsString('Equipo', $binary);
+        $this->assertStringContainsString('Asalto', $binary);
+        $this->assertStringContainsString('Seguridad', $binary);
+        $this->assertStringContainsString('Lider', $binary);
+        $this->assertStringContainsString('2.-', $binary);
+        $this->assertStringContainsString('%%EOF', $binary);
+    }
+
 }
