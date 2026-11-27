@@ -81,6 +81,8 @@ class EventOrbatMarkingService
         $marking = DB::table('event_orbat_markings')
             ->where('event_id', $event->id)->where('participant_key', $participantKey)->first();
         if ($marking) {
+            DB::table('event_orbat_markings')->where('event_id', $event->id)
+                ->where('participant_key', 'vacant:' . $leaving->slot_key)->delete();
             DB::table('event_orbat_markings')->where('id', $marking->id)->update([
                 'participant_key' => 'vacant:' . $leaving->slot_key,
                 'color' => 'white',
