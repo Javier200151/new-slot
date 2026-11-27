@@ -1361,6 +1361,7 @@
                     <span id="event-orbat-title">ORBAT</span>
                     @if($hasMarkingCards)
                         <button type="button" data-orbat-flip-all aria-pressed="false" class="orbat-flip-all">Ver todas las numeraciones y colores</button>
+                        <a href="{{ route('events.orbat.markings.pdf', $event) }}" class="orbat-download-pdf" download>Descargar PDF</a>
                     @endif
                 </header>
 
@@ -1428,7 +1429,8 @@
                                     <button type="button" class="orbat-flip-corner" data-orbat-flip aria-label="Ver numeración de {{ $groupName }}" title="Girar tarjeta">↻</button>
                                     <div class="orbat-marking-back" data-orbat-marking-back hidden
                                          data-marking-second="{{ $secondInCommandKey }}"
-                                         data-marking-title="{{ $customGroupTitle }}">
+                                         data-marking-title="{{ $customGroupTitle }}"
+                                         data-marking-team-titles='@json($groupSetting['color_team_titles'] ?? [])'>
                                         <div class="orbat-marking-back__heading">
                                             <div>
                                                 <strong>Numeraciones y colores</strong>
@@ -1438,6 +1440,7 @@
                                                 <button type="button" class="orbat-marking-edit-toggle" data-marking-edit aria-pressed="false" title="Editar numeraciones y colores">✎ Editar</button>
                                             @endif
                                         </div>
+                                        <div class="orbat-marking-teams" data-marking-team-preview aria-label="Equipos de fuego"></div>
                                         <div class="orbat-marking-rows" data-marking-rows>
                                             @foreach($group['slots'] as $markingSlot)
                                                 @php
@@ -1491,6 +1494,19 @@
                                                 <label for="marking-title-{{ $event->id }}-{{ $loop->index }}">Título de escuadra (opcional)</label>
                                                 <input id="marking-title-{{ $event->id }}-{{ $loop->index }}" type="text" maxlength="80"
                                                        placeholder="Asalto, Apoyo, QRF..." value="{{ $customGroupTitle }}" data-marking-input-title>
+                                            </div>
+                                            <div class="orbat-fireteam-titles" data-marking-editor-only hidden>
+                                                <strong>Títulos por equipo de color (opcionales)</strong>
+                                                <p>Se muestran los colores que tienen al menos un integrante.</p>
+                                                @foreach(['white' => 'Blanco', 'green' => 'Verde', 'yellow' => 'Amarillo', 'red' => 'Rojo', 'blue' => 'Azul'] as $teamColor => $teamLabel)
+                                                    <label class="orbat-fireteam-title" data-marking-team-field="{{ $teamColor }}" hidden>
+                                                        <span class="orbat-fireteam-dot orbat-fireteam-dot--{{ $teamColor }}"></span>
+                                                        <span>Equipo {{ $teamLabel }}</span>
+                                                        <input type="text" maxlength="80" data-marking-team-input="{{ $teamColor }}"
+                                                               value="{{ ($groupSetting['color_team_titles'] ?? [])[$teamColor] ?? '' }}"
+                                                               placeholder="Nombre del equipo (opcional)">
+                                                    </label>
+                                                @endforeach
                                             </div>
                                             <div class="orbat-marking-actions" data-marking-editor-only hidden>
                                                 <label class="orbat-marking-no-second">
