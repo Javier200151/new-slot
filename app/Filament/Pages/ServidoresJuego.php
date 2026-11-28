@@ -261,8 +261,61 @@ class ServidoresJuego extends Page
         $result['canLaunch'] = $this->allowed('game-servers.launch');
         $result['canStop'] = $this->allowed('game-servers.stop');
         $result['canConfigure'] = $this->allowed('game-servers.stop');
+        $result['canViewLogs'] = $this->allowed('game-servers.logs');
         $result['actorName'] = $this->actor()['nombre'];
         return $result;
+    }
+
+    /** @return array<string,mixed> */
+    #[\Livewire\Attributes\Renderless]
+    public function loadLogs(string $server): array
+    {
+        abort_unless(static::canAccess() && $this->allowed('game-servers.logs'), 403);
+        if (! $this->allowLogRead()) {
+            return ['ok' => false, 'message' => 'Has alcanzado el límite de consultas de logs. Espera un minuto.'];
+        }
+
+        try {
+            return ['ok' => true, 'data' => app(MissionControlClient::class)->logs($server)];
+        } catch (MissionControlException $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            Log::warning('Error al consultar catálogo de logs de Mission Control.', [
+                'user_id' => auth()->id(), 'exception' => $e::class,
+            ]);
+            return ['ok' => false, 'message' => 'No se pudieron consultar los logs del servidor.'];
+        }
+    }
+
+    /** @return array<string,mixed> */
+    #[\Livewire\Attributes\Renderless]
+    public function readLog(string $server, string $source, string $file, ?int $from = null): array
+    {
+        abort_unless(static::canAccess() && $this->allowed('game-servers.logs'), 403);
+        if (! $this->allowLogRead()) {
+            return ['ok' => false, 'message' => 'Has alcanzado el límite de consultas de logs. Espera un minuto.'];
+        }
+
+        try {
+            return ['ok' => true, 'data' => app(MissionControlClient::class)->logChunk($server, $source, $file, $from)];
+        } catch (MissionControlException $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            Log::warning('Error al leer log de Mission Control.', [
+                'user_id' => auth()->id(), 'exception' => $e::class,
+            ]);
+            return ['ok' => false, 'message' => 'No se pudo leer el archivo seleccionado.'];
+        }
+    }
+
+    private function allowLogRead(): bool
+    {
+        $key = 'sqa-mission-control-logs:'.(int) auth()->id();
+        if (RateLimiter::tooManyAttempts($key, 60)) {
+            return false;
+        }
+        RateLimiter::hit($key, 60);
+        return true;
     }
 
     /**
