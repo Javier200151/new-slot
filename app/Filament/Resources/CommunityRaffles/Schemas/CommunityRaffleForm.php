@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\CommunityRaffles\Schemas;
 
 use App\Models\CommunityRaffle;
+use App\Models\CommunityRafflePrize;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\BaseFileUpload;
 use Illuminate\Support\Facades\Storage;
@@ -37,9 +39,9 @@ class CommunityRaffleForm
                         ->label('Premios disponibles')
                         ->schema([
                             TextInput::make('name')->label('Nombre del premio')->required()->maxLength(180)->columnSpanFull()
-                                ->disabled(fn (?CommunityRaffle $record) => $record !== null && $record->status !== 'draft'),
+                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizes($record)),
                             Textarea::make('description')->label('Descripción')->rows(2)->columnSpanFull()
-                                ->disabled(fn (?CommunityRaffle $record) => $record !== null && $record->status !== 'draft'),
+                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizes($record)),
                             FileUpload::make('image_path')->label('Imagen del premio')->image()->disk('public')
                                 ->directory('raffle-prizes')
                                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
@@ -66,16 +68,16 @@ class CommunityRaffleForm
                                     ];
                                 }),
                             TextInput::make('quantity')->label('Unidades')->required()->integer()->minValue(1)->maxValue(999)->default(1)
-                                ->disabled(fn (?CommunityRaffle $record) => $record !== null && $record->status !== 'draft'),
+                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizes($record)),
                             TextInput::make('sort_order')->label('Orden')->integer()->minValue(0)->default(100)
-                                ->disabled(fn (?CommunityRaffle $record) => $record !== null && $record->status !== 'draft'),
+                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizes($record)),
                         ])
                         ->columns(2)
                         ->defaultItems(1)
                         ->addActionLabel('Añadir otro premio')
-                        ->reorderable(fn (?CommunityRaffle $record) => $record === null || $record->status === 'draft')
-                        ->addable(fn (?CommunityRaffle $record) => $record === null || $record->status === 'draft')
-                        ->deletable(fn (?CommunityRaffle $record) => $record === null || $record->status === 'draft')
+                        ->reorderable(fn (?Model $record): bool => self::canEditPrizes($record))
+                        ->addable(fn (?Model $record): bool => self::canEditPrizes($record))
+                        ->deletable(fn (?Model $record): bool => self::canEditPrizes($record))
                         ->columnSpanFull(),
                 ]),
 
@@ -96,5 +98,29 @@ class CommunityRaffleForm
                         ->columnSpanFull(),
                 ]),
         ]);
+    }
+
+    /**
+     * Filament evaluates callbacks inside a relationship Repeater with the
+     * current prize record, not necessarily the parent raffle. Using a
+     * CommunityRaffle-only type causes a TypeError on the edit screen.
+     *
+     * A new form has no record; existing prizes inherit their parent status.
+     */
+    public static function canEditPrizes(?Model $record): bool
+    {
+        if ($record === null) {
+            return true;
+        }
+
+        if ($record instanceof CommunityRaffle) {
+            return $record->status === 'draft';
+        }
+
+        if ($record instanceof CommunityRafflePrize) {
+            return $record->raffle?->status === 'draft';
+        }
+
+        return false;
     }
 }
