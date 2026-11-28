@@ -41,7 +41,7 @@ class CommunityRaffleFormTest extends TestCase
         $this->assertFalse(CommunityRaffleForm::canEditPrizes(new class extends Model {}));
     }
 
-    public function test_all_seven_filament_repeater_callbacks_accept_the_nested_model(): void
+    public function test_all_eight_filament_repeater_callbacks_accept_the_nested_model(): void
     {
         // Prevent regressions where a closure is typed CommunityRaffle but
         // Filament passes a CommunityRafflePrize when rendering the edit form.
@@ -51,7 +51,7 @@ class CommunityRaffleFormTest extends TestCase
 
         $this->assertIsString($source);
         $this->assertSame(
-            7,
+            8,
             substr_count($source, 'fn (?Model $record): bool => '),
             'All prize field/action editability callbacks must accept Model.',
         );
