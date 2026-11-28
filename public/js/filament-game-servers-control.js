@@ -82,6 +82,164 @@
       activitySearch:'', activityPickerOpen:false, activeActivityIndex:0,
       stopAcademies:false, showAddons:false, confirmation:null, confirmationQueue:[], log:[],
       busyServer:{}, toasts:[], toastSeq:0,
+      get selectedLogFile() { return this.logFiles[this.logIndex] || null; },
+      get logDownloadUrl() {
+        const f = this.selectedLogFile;
+        if (!this.canViewLogs || !f || !this.validLogTarget(f.source,f.name)) return '';
+        return '/admin/servidores-juego/logs/' +
+          [this.logServer,f.source,f.name].map(encodeURIComponent).join('/');
+      },
+      validLogTarget(source,file) {
+        return /^[A-Za-z0-9_-]{1,64}$/.test(String(source))
+          && /^[A-Za-z0-9_.-]{1,120}\.rpt$/.test(String(file))
+          && !String(file).includes('..');
+      },
+      formatLogSize(value) {
+        if (value == null || value === '') return 'Tamaño desconocido';
+        const n = Number(value);
+        if (!Number.isFinite(n) || n < 0) return String(value);
+        return n < 1024 ? n+' B' : n < 1048576
+          ? (n/1024).toFixed(1)+' KiB' : (n/1048576).toFixed(1)+' MiB';
+      },
+      normalizeLogFiles(data) {
+        const files = [];
+        const add = (row,src,title) => {
+          if (!row || typeof row !== 'object') return;
+          const name = String(row.nombre ?? row.archivo ?? row.name ?? '');
+          const source = String(src ?? '');
+          if (!this.validLogTarget(source,name)) return;
+          const when = String(row.fecha ?? row.modificado ?? row.fecha_modificacion ?? row.modificado_en ?? '');
+          const date = when && Number.isFinite(Date.parse(when)) ? this.formatDate(when) : (when || 'Sin fecha');
+          const old = (row.ultimo ?? row.es_ultimo) === false;
+          files.push({
+            source,name,
+            label: String(title || source)+' · '+date+' · '
+              +this.formatLogSize(row.tamano ?? row.tamano_bytes ?? row.bytes ?? row.size)
+              +(old ? ' (anterior)' : ''),
+            when
+          });
+        };
+        const sources = Array.isArray(data?.fuentes) ? data.fuentes : Array.isArray(data?.sources) ? data.sources : [];
+        sources.forEach(group => {
+          if (!group || typeof group !== 'object') return;
+          const id = group.id ?? group.clave ?? group.fuente ?? group.codigo ?? '';
+          const title = group.nombre ?? group.name ?? id;
+          (Array.isArray(group.archivos) ? group.archivos : Array.isArray(group.logs) ? group.logs : [])
+            .forEach(row => add(row,id,title));
+        });
+        const flat = Array.isArray(data?.archivos) ? data.archivos :
+          Array.isArray(data?.logs) ? data.logs : Array.isArray(data) ? data : [];
+        flat.forEach(row => {
+          const origin = row?.fuente ?? row?.source ?? '';
+          const id = typeof origin === 'object' && origin ? (origin.id ?? origin.clave ?? '') : origin;
+          const title = typeof origin === 'object' && origin ? (origin.nombre ?? id) : (row?.fuente_nombre ?? id);
+          add(row,id,title);
+        });
+        const unique = [...new Map(files.map(f => [f.source+':'+f.name,f])).values()];
+        unique.sort((a,b) => (Date.parse(b.when)||0) - (Date.parse(a.when)||0));
+        return unique;
+      },
+      async openLogs(server) {
+        if (!this.canViewLogs || !['operativos',...IDS].includes(server)) return;
+        this.closeLogs();
+        this.logServer = server;
+        this.logFiles = []; this.logIndex = -1;
+        this.logText = ''; this.logOffset = null;
+        this.logFollow = true; this.logErrorsOnly = false; this.logFilter = '';
+        this.logCatalogLoading = true;
+        this.logStatus = 'Cargando archivos…';
+        const epoch = ++this.logEpoch;
+        this.$refs.logsDialog?.showModal();
+        this.renderLog();
+        try {
+          const result = await this.$wire.loadLogs(server);
+          if (epoch !== this.logEpoch) return;
+          if (!result?.ok) throw new Error(result?.message || 'No se pudo consultar el servidor.');
+          this.logFiles = this.normalizeLogFiles(result.data);
+          if (!this.logFiles.length) {
+            this.logStatus = 'Este servidor no tiene logs.';
+            return;
+          }
+          this.logStatus = '';
+          await this.selectLog(0);
+        } catch (e) {
+          if (epoch === this.logEpoch) this.logStatus = e.message || 'No se pudieron cargar los archivos.';
+        } finally {
+          if (epoch === this.logEpoch) this.logCatalogLoading = false;
+        }
+      },
+      async selectLog(index) {
+        const n = Number(index);
+        if (!Number.isInteger(n) || n < 0 || n >= this.logFiles.length) return;
+        this.logIndex = n;
+        const epoch = ++this.logEpoch;
+        this.logText = ''; this.logOffset = null; this.logBusy = false;
+        this.logStatus = 'Leyendo el final del archivo…';
+        this.renderLog(true);
+        this.startLogFollowing();
+        await this.readCurrentLog(epoch,true);
+      },
+      closeLogs() {
+        ++this.logEpoch;
+        this.stopLogFollowing();
+        this.logBusy = false;
+        if (this.$refs.logsDialog?.open) this.$refs.logsDialog.close();
+      },
+      stopLogFollowing() {
+        if (this.logTimer !== null) window.clearInterval(this.logTimer);
+        this.logTimer = null;
+      },
+      startLogFollowing() {
+        this.stopLogFollowing();
+        this.logTimer = window.setInterval(() => {
+          if (this.logFollow && !document.hidden && this.$refs.logsDialog?.open && !this.logBusy)
+            this.readCurrentLog(this.logEpoch);
+        },3000);
+      },
+      async readCurrentLog(epoch=this.logEpoch,first=false) {
+        if (this.logBusy || epoch !== this.logEpoch || !this.canViewLogs || !this.selectedLogFile) return;
+        const file = this.selectedLogFile;
+        if (!this.validLogTarget(file.source,file.name)) return;
+        this.logBusy = true;
+        try {
+          let more = false, rounds = 0;
+          do {
+            const result = await this.$wire.readLog(this.logServer,file.source,file.name,this.logOffset);
+            if (epoch !== this.logEpoch || !this.$refs.logsDialog?.open) return;
+            if (!result?.ok) throw new Error(result?.message || 'No se pudo leer el archivo.');
+            const data = result.data || {};
+            const end = Number(data.fin);
+            if (!Number.isSafeInteger(end) || end < 0 || data.fin == null)
+              throw new Error('Posición de lectura no válida.');
+            const pre = this.$refs.logOutput;
+            const atEnd = first || !pre || pre.scrollHeight-pre.scrollTop-pre.clientHeight < 70;
+            if (data.reiniciado === true) this.logText = '';
+            this.logText += String(data.texto ?? '');
+            const lines = this.logText.split('\n');
+            if (lines.length > 20000) this.logText = lines.slice(-20000).join('\n');
+            this.logOffset = end; // Byte position, never text length.
+            this.logStatus = 'Lectura actualizada.';
+            this.renderLog(atEnd);
+            more = data.mas === true && ++rounds < 4;
+          } while (more && epoch === this.logEpoch);
+        } catch (e) {
+          if (epoch === this.logEpoch) this.logStatus = e.message || 'No se pudo leer el archivo.';
+        } finally {
+          if (epoch === this.logEpoch) this.logBusy = false;
+        }
+      },
+      renderLog(toEnd=false) {
+        const pre = this.$refs.logOutput;
+        if (!pre) return;
+        const filter = this.logFilter.trim().toLocaleLowerCase('es');
+        const errors = this.logErrorsOnly;
+        const text = !filter && !errors ? this.logText : this.logText.split('\n')
+          .filter(line => (!errors || /error|exception|crash|warning/i.test(line))
+            && (!filter || line.toLocaleLowerCase('es').includes(filter))).join('\n');
+        // No HTML interpretation of chat, player names or RPT contents.
+        pre.textContent = text;
+        if (toEnd) pre.scrollTop = pre.scrollHeight;
+      },
       get academies() { return IDS.map(id => this.servers[id] || defaultServer(id)); },
       get operation() { return this.servers.operativos || defaultServer('operativos'); },
       get activeActivityName() { return this.operation.mission || ''; },
