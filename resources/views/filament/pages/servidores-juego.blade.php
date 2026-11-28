@@ -63,6 +63,10 @@
                                 <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" :disabled="!allowAction(academy,'reiniciar')" @click="command('academia', academy.id, 'reiniciar')" x-text="isBusy(academy.id) ? 'Enviando…' : 'Reiniciar'"></button>
                             </div>
 
+                            <div class="sqa-server-panel__logs-action" x-show="canViewLogs">
+                                <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" @click="openLogs(academy.id)">Logs</button>
+                            </div>
+
                             <template x-if="academy.hasDaily">
                                 <div>
                                     <div class="sqa-server-panel__restart">
@@ -108,6 +112,9 @@
                         <div class="sqa-server-panel__operations-buttons" x-show="operation.controlable && operation.state !== 'externo'">
                             <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--stop" :disabled="!allowAction(operation,'parar')" @click="command('operativos', 'operativos', 'parar')" x-text="isBusy('operativos') ? 'Enviando…' : 'Parar'"></button>
                             <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" :disabled="!allowAction(operation,'reiniciar')" @click="command('operativos', 'operativos', 'reiniciar')" x-text="isBusy('operativos') ? 'Enviando…' : 'Reiniciar'"></button>
+                        </div>
+                        <div class="sqa-server-panel__logs-action" x-show="canViewLogs">
+                            <button type="button" class="sqa-server-panel__btn sqa-server-panel__btn--neutral" @click="openLogs('operativos')">Logs</button>
                         </div>
                     </div>
 
@@ -290,6 +297,48 @@
                     <button type="button" x-ref="cancelServerConfirm" autofocus class="sqa-server-panel__btn sqa-server-panel__btn--neutral" @click="closeConfirm()">Cancelar</button>
                     <button type="button" class="sqa-server-panel__btn" :class="confirmation?.danger ? 'sqa-server-panel__btn--danger' : 'sqa-server-panel__btn--amber'" @click="acceptConfirm()" x-text="confirmation?.accept || 'Confirmar'" :disabled="!!confirmationProblem"></button>
                 </div>
+            </div>
+        </dialog>
+
+        {{-- Read-only RPT viewer. Log text never becomes a Livewire public property. --}}
+        <dialog wire:ignore class="sqa-server-panel__logs-dialog" x-ref="logsDialog"
+                aria-labelledby="sqa-server-logs-title"
+                @cancel.prevent="closeLogs()" @close="stopLogFollowing()">
+            <div class="sqa-server-panel__logs-body">
+                <header class="sqa-server-panel__logs-header">
+                    <div>
+                        <h3 id="sqa-server-logs-title">Logs del servidor</h3>
+                        <p x-text="(servers[logServer]?.name || logServer) + ' · Archivos .rpt'"></p>
+                    </div>
+                    <button type="button" class="sqa-server-panel__logs-close"
+                            @click="closeLogs()" aria-label="Cerrar visor de logs">×</button>
+                </header>
+                <div class="sqa-server-panel__logs-toolbar">
+                    <label class="sqa-server-panel__logs-file">
+                        <span>Archivo</span>
+                        <select :disabled="logCatalogLoading || !logFiles.length"
+                                :value="logIndex" @change="selectLog($event.target.value)">
+                            <option value="-1" disabled>Selecciona un archivo</option>
+                            <template x-for="(file,i) in logFiles" :key="file.source + ':' + file.name">
+                                <option :value="i" x-text="file.label"></option>
+                            </template>
+                        </select>
+                    </label>
+                    <label class="sqa-server-panel__logs-filter">
+                        <span>Filtrar</span>
+                        <input type="search" x-model.debounce.250ms="logFilter"
+                               placeholder="Buscar en las líneas cargadas…" autocomplete="off">
+                    </label>
+                    <div class="sqa-server-panel__logs-toggles">
+                        <label><input type="checkbox" x-model="logErrorsOnly"><span>Solo errores y avisos</span></label>
+                        <label><input type="checkbox" x-model="logFollow"><span>Seguir en directo</span></label>
+                    </div>
+                    <a class="sqa-server-panel__btn sqa-server-panel__btn--neutral sqa-server-panel__logs-download"
+                       x-show="!!logDownloadUrl" :href="logDownloadUrl" download>Descargar entero</a>
+                </div>
+                <p class="sqa-server-panel__logs-status" x-text="logStatus" role="status" aria-live="polite"></p>
+                <pre x-ref="logOutput" class="sqa-server-panel__logs-output"
+                     aria-label="Contenido del log (texto sin formato)" tabindex="0"></pre>
             </div>
         </dialog>
     </div>
