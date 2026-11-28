@@ -48,6 +48,18 @@ use App\Http\Controllers\BbcodePreviewController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+// Private RPT downloads: streamed by Laravel; never exposed through a public API.
+Route::middleware(['web', 'auth', 'throttle:10,1'])
+    ->get('/admin/servidores-juego/logs/{server}/{source}/{file}',
+        \App\Http\Controllers\MissionControlLogDownloadController::class)
+    ->where([
+        'server' => '(?:operativos|academia|academia_vietnam|academia_ww2)',
+        'source' => '[A-Za-z0-9_-]{1,64}',
+        'file' => '[A-Za-z0-9_.-]{1,120}\\.rpt',
+    ])
+    ->name('admin.game-servers.logs.download');
+
+
 // Sorteos de la comunidad: acceso solo para inscritos y gestores.
 // La autorización se vuelve a comprobar dentro del controlador para las URL directas.
 Route::middleware('auth')->group(function (): void {
