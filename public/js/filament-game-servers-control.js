@@ -184,6 +184,10 @@
         ++this.logEpoch;
         this.stopLogFollowing();
         this.logBusy = false;
+        this.logText = '';
+        this.logOffset = null;
+        this.logFiles = [];
+        this.logIndex = -1;
         if (this.$refs.logsDialog?.open) this.$refs.logsDialog.close();
       },
       stopLogFollowing() {
