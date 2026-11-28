@@ -56,6 +56,8 @@
     return {
       init() {
         this.$watch('activitySearch', () => { this.activeActivityIndex = 0; });
+        this.$watch('logFilter', () => this.renderLog());
+        this.$watch('logErrorsOnly', () => this.renderLog());
         this.refresh(true);
         // Server reads only; no start/stop/sync job is run by these polls.
         this.pollTimer = window.setInterval(() => this.refresh(false), 5000);
@@ -64,13 +66,17 @@
       destroy() {
         if (this.pollTimer) window.clearInterval(this.pollTimer);
         if (this.clockTimer) window.clearInterval(this.clockTimer);
+        this.closeLogs();
         this.toasts.forEach(item => window.clearTimeout(item.timer));
         this.confirmationQueue = [];
         if (this.$refs.serverConfirm?.open) this.$refs.serverConfirm.close();
       },
       pollTimer:null, clockTimer:null, nowMs:Date.now(),
       loading:false, ready:false, connected:false, readOnly:true, stale:false,
-      canLaunch:false, canStop:false, canConfigure:false,
+      canLaunch:false, canStop:false, canConfigure:false, canViewLogs:false,
+      logServer:'', logFiles:[], logIndex:-1, logFilter:'', logErrorsOnly:false,
+      logFollow:true, logText:'', logOffset:null, logBusy:false, logStatus:'',
+      logTimer:null, logEpoch:0, logCatalogLoading:false,
       mode:'', version:'', actorName:'', checkedAt:'', error:'', catalogError:'',
       servers:{}, activities:[], selectedId:'',
       activitySearch:'', activityPickerOpen:false, activeActivityIndex:0,
@@ -189,6 +195,8 @@
           this.canLaunch = !!data.canLaunch;
           this.canStop = !!data.canStop;
           this.canConfigure = !!data.canConfigure;
+          this.canViewLogs = !!data.canViewLogs;
+          if (!this.canViewLogs && this.$refs.logsDialog?.open) this.closeLogs();
           this.actorName = data.actorName || this.actorName;
           this.error = data.error || '';
           this.catalogError = data.catalogError || '';
