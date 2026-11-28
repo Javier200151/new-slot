@@ -73,6 +73,19 @@ class MissionControlLogsClientTest extends TestCase
         });
     }
 
+    public function test_first_log_read_has_no_offset_and_only_the_fixed_chunk_size(): void
+    {
+        Http::fake(['*' => Http::response(['data' => [
+            'texto' => 'Tail', 'fin' => 500, 'mas' => false,
+        ]], 200)]);
+
+        $data = app(MissionControlClient::class)->logChunk('academia', 'HC1', 'archivo.rpt');
+        $this->assertSame('Tail', $data['texto']);
+        Http::assertSent(fn (Request $request): bool =>
+            str_ends_with($request->url(), '/api/v1/servidores/academia/logs/HC1/archivo.rpt?max=204800')
+            && ! str_contains($request->url(), 'desde='));
+    }
+
     public function test_invalid_server_source_filename_and_byte_positions_do_not_make_requests(): void
     {
         Http::fake();
