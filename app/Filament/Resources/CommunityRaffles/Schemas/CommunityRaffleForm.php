@@ -32,21 +32,21 @@ class CommunityRaffleForm
                 ]),
 
             Section::make('Premios')
-                ->description('Define el nombre, la fotografía y cuántas unidades se van a sortear. Al abrir el sorteo, los premios quedan fijados; durante la ruleta podrás elegir cuál sortear.')
+                ->description('Puedes corregir el nombre, la descripción y la imagen mientras el sorteo esté abierto. Las unidades, el orden y la lista de premios se fijan al abrirlo.')
                 ->schema([
                     Repeater::make('prizes')
                         ->relationship('prizes')
                         ->label('Premios disponibles')
                         ->schema([
                             TextInput::make('name')->label('Nombre del premio')->required()->maxLength(180)->columnSpanFull()
-                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizes($record)),
+                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizeDetails($record)),
                             Textarea::make('description')->label('Descripción')->rows(2)->columnSpanFull()
-                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizes($record)),
+                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizeDetails($record)),
                             FileUpload::make('image_path')->label('Imagen del premio')->image()->disk('public')
                                 ->directory('raffle-prizes')
                                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                                 ->maxSize(4096)
-                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizes($record))
+                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizeDetails($record))
                                 ->getUploadedFileUsing(static function (BaseFileUpload $component, string $file): ?array {
                                     // Servir fotografías existentes desde Laravel evita depender del
                                     // enlace simbólico public/storage en distintos despliegues.
@@ -108,6 +108,28 @@ class CommunityRaffleForm
      *
      * A new form has no record; existing prizes inherit their parent status.
      */
+    /**
+     * Names, descriptions and images are presentation details and can be
+     * corrected after opening. Prize inventory and drawing structure cannot.
+     * A closed raffle retains its historical presentation unchanged.
+     */
+    public static function canEditPrizeDetails(?Model $record): bool
+    {
+        if ($record === null) {
+            return true;
+        }
+
+        if ($record instanceof CommunityRaffle) {
+            return in_array($record->status, ['draft', 'active'], true);
+        }
+
+        if ($record instanceof CommunityRafflePrize) {
+            return in_array($record->raffle?->status, ['draft', 'active'], true);
+        }
+
+        return false;
+    }
+
     public static function canEditPrizes(?Model $record): bool
     {
         if ($record === null) {
