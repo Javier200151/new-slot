@@ -46,6 +46,7 @@ class CommunityRaffleForm
                                 ->directory('raffle-prizes')
                                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                                 ->maxSize(4096)
+                                ->disabled(fn (?Model $record): bool => ! self::canEditPrizes($record))
                                 ->getUploadedFileUsing(static function (BaseFileUpload $component, string $file): ?array {
                                     // Servir fotografías existentes desde Laravel evita depender del
                                     // enlace simbólico public/storage en distintos despliegues.
