@@ -39,14 +39,14 @@ class MissionControlLogsClientTest extends TestCase
             $path = '/api/v1/servidores/academia/logs';
             $signature = MissionControlClient::signature(
                 str_repeat('s', 40),
-                (string) $request->header('X-SQA-Timestamp'),
-                (string) $request->header('X-SQA-Nonce'),
+                (string) ($request->header('X-SQA-Timestamp')[0] ?? ''),
+                (string) ($request->header('X-SQA-Nonce')[0] ?? ''),
                 'GET', $path, '',
             );
 
             return $request->url() === 'https://192.168.37.1:8443'.$path
                 && $request->method() === 'GET'
-                && $signature === $request->header('X-SQA-Signature');
+                && $signature === ($request->header('X-SQA-Signature')[0] ?? null);
         });
     }
 
@@ -63,13 +63,13 @@ class MissionControlLogsClientTest extends TestCase
             $path = '/api/v1/servidores/academia/logs/HC1/'.$file;
             $signature = MissionControlClient::signature(
                 str_repeat('s', 40),
-                (string) $request->header('X-SQA-Timestamp'),
-                (string) $request->header('X-SQA-Nonce'),
+                (string) ($request->header('X-SQA-Timestamp')[0] ?? ''),
+                (string) ($request->header('X-SQA-Nonce')[0] ?? ''),
                 'GET', $path, '',
             );
 
             return $request->url() === 'https://192.168.37.1:8443'.$path.'?desde=123&max=204800'
-                && $signature === $request->header('X-SQA-Signature');
+                && $signature === ($request->header('X-SQA-Signature')[0] ?? null);
         });
     }
 
@@ -152,10 +152,10 @@ class MissionControlLogsClientTest extends TestCase
         Http::assertSent(fn (Request $request): bool =>
             $request->method() === 'GET'
             && str_ends_with($request->url(), '/api/v1/servidores/academia/logs/HC1/old_2026-11-26.rpt/descargar')
-            && $request->header('X-SQA-Signature') === MissionControlClient::signature(
+            && ($request->header('X-SQA-Signature')[0] ?? null) === MissionControlClient::signature(
                 str_repeat('s', 40),
-                (string) $request->header('X-SQA-Timestamp'),
-                (string) $request->header('X-SQA-Nonce'),
+                (string) ($request->header('X-SQA-Timestamp')[0] ?? ''),
+                (string) ($request->header('X-SQA-Nonce')[0] ?? ''),
                 'GET',
                 '/api/v1/servidores/academia/logs/HC1/old_2026-11-26.rpt/descargar',
                 '',
