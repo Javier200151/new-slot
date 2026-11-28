@@ -126,6 +126,21 @@ class MissionControlLogsClientTest extends TestCase
         }
     }
 
+    public function test_oversized_chunk_is_rejected_before_livewire_transport(): void
+    {
+        Http::fake(['*' => Http::response(['data' => [
+            'texto' => str_repeat('a', 204801),
+            'fin' => 204801,
+        ]], 200)]);
+
+        try {
+            app(MissionControlClient::class)->logChunk('academia', 'HC1', 'test.rpt');
+            $this->fail('Oversized RPT chunk was accepted.');
+        } catch (MissionControlException $e) {
+            $this->assertSame('respuesta_invalida', $e->errorCode);
+        }
+    }
+
     public function test_download_uses_plain_text_stream_not_json(): void
     {
         Http::fake(['*' => Http::response("RPT log\n-password=***\n", 200, ['Content-Type' => 'text/plain'])]);
