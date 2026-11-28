@@ -333,3 +333,72 @@
  .sqa-server-panel__auto-card .sqa-server-panel__settings-event{align-items:flex-start}
  .sqa-server-panel__auto-card .sqa-server-panel__settings-event>div{min-width:0}
 }
+
+/* Private read-only Mission Control .rpt viewer. */
+.sqa-server-panel__logs-action{display:flex;justify-content:flex-end;margin:12px 0 0}
+.sqa-server-panel__logs-action .sqa-server-panel__btn{min-height:36px;padding:7px 15px;font-size:13px}
+.sqa-server-panel__logs-dialog{
+    width:min(1100px,calc(100vw - 28px));
+    max-width:none;
+    height:min(82vh,880px);
+    max-height:calc(100dvh - 28px);
+    margin:auto;
+    padding:0;
+    border:1px solid var(--mc-border-strong);
+    border-radius:14px;
+    background:var(--mc-card);
+    color:var(--mc-ink);
+    box-shadow:0 24px 72px rgba(0,0,0,.4);
+}
+.sqa-server-panel__logs-dialog::backdrop{background:rgba(0,0,0,.78)}
+.sqa-server-panel__logs-body{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
+.sqa-server-panel__logs-header{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:15px;padding:18px 20px 12px;border-bottom:1px solid var(--mc-border);
+}
+.sqa-server-panel__logs-header h3{margin:0 0 4px;font-size:19px;font-weight:700}
+.sqa-server-panel__logs-header p{margin:0;color:var(--mc-muted);font-size:13px}
+.sqa-server-panel__logs-close{
+    display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;
+    padding:0;border:1px solid var(--mc-border-strong);border-radius:9px;
+    background:var(--mc-neutral-bg);color:var(--mc-ink);font-size:25px;cursor:pointer;
+}
+.sqa-server-panel__logs-toolbar{
+    display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(190px,1.2fr) auto;
+    align-items:end;gap:12px;padding:14px 20px 9px;
+}
+.sqa-server-panel__logs-toolbar label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:650}
+.sqa-server-panel__logs-file,.sqa-server-panel__logs-filter{min-width:0}
+.sqa-server-panel__logs-file select,.sqa-server-panel__logs-filter input{
+    width:100%;min-width:0;min-height:38px;padding:7px 10px;
+    border:1px solid var(--mc-border-strong);border-radius:7px;
+    background:var(--mc-neutral-bg);color:var(--mc-ink);font-size:13px;
+}
+.sqa-server-panel__logs-toggles{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding-bottom:2px}
+.sqa-server-panel__logs-toggles label{display:flex;flex-direction:row;align-items:center;gap:7px;font-size:12px;font-weight:550;cursor:pointer}
+.sqa-server-panel__logs-toggles input{accent-color:var(--mc-accent)}
+.sqa-server-panel__logs-download{min-height:38px;white-space:nowrap;font-size:12px;text-decoration:none}
+.sqa-server-panel__logs-status{margin:0;padding:1px 20px 10px;color:var(--mc-muted);font-size:12px;min-height:20px}
+.sqa-server-panel__logs-output{
+    display:block;flex:1 1 auto;min-height:0;margin:0 20px 20px;
+    padding:13px;overflow:auto;overscroll-behavior:contain;
+    border:1px solid var(--mc-border-strong);border-radius:9px;
+    background:#070d15;color:#e3e8f1;
+    font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+    white-space:pre;tab-size:4;word-break:normal;
+}
+@media(max-width:900px){
+    .sqa-server-panel__logs-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    .sqa-server-panel__logs-toggles{padding:0}
+}
+@media(max-width:560px){
+    .sqa-server-panel__logs-dialog{
+        width:calc(100vw - 12px);height:calc(100dvh - 16px);max-height:calc(100dvh - 16px);
+        border-radius:10px;
+    }
+    .sqa-server-panel__logs-header{padding:12px}
+    .sqa-server-panel__logs-toolbar{grid-template-columns:minmax(0,1fr);padding:10px 12px;gap:9px}
+    .sqa-server-panel__logs-toggles{flex-direction:row;flex-wrap:wrap;gap:11px}
+    .sqa-server-panel__logs-status{padding-inline:12px}
+    .sqa-server-panel__logs-output{margin:0 12px 12px;font-size:11px}
+}
