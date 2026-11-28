@@ -168,7 +168,17 @@ final class MissionControlClient
         }
         $query['max'] = 204800;
 
-        return $this->request('GET', '/servidores/'.$server.'/logs/'.$source.'/'.$file, [], $query);
+        $data = $this->request('GET', '/servidores/'.$server.'/logs/'.$source.'/'.$file, [], $query);
+        // Never let a malfunctioning agent inflate a Livewire JSON response past
+        // its request-size limit. The agent should respect max=204800.
+        if (! is_string($data['texto'] ?? null)
+            || strlen($data['texto']) > 204800
+            || ! is_int($data['fin'] ?? null)
+            || $data['fin'] < 0) {
+            throw new MissionControlException('Fragmento de log no válido o demasiado grande.', 'respuesta_invalida');
+        }
+
+        return $data;
     }
 
     /** Raw stream, not JSON. Keep the entire download out of Livewire's response payload. */
