@@ -168,8 +168,8 @@ class MissionControlLogAccessTest extends TestCase
         Http::fake(['*' => Http::response(['data' => ['texto' => 'private RPT', 'fin' => 11]], 200)]);
         $this->actingAs(User::findOrFail(32));
         $component = app(ServidoresJuego::class);
-        $before = $component->all();
+        $before = get_object_vars($component);
         $this->assertTrue($component->readLog('academia', 'HC1', 'test.rpt')['ok']);
-        $this->assertSame($before, $component->all());
+        $this->assertSame($before, get_object_vars($component));
     }
 }
