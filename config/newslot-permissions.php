@@ -314,6 +314,7 @@ return [
                         'view' => 'Ver panel de servidores',
                         'launch' => 'Lanzar operativos y arrancar academias',
                         'stop' => 'Parar, reiniciar y configurar servidores',
+                        'logs' => 'Ver logs de los servidores',
                     ],
                 ],
                 'homepage-news' => [
