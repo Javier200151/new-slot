@@ -161,6 +161,7 @@
             return;
           }
           this.logStatus = '';
+          this.logCatalogLoading = false;
           await this.selectLog(0);
         } catch (e) {
           if (epoch === this.logEpoch) this.logStatus = e.message || 'No se pudieron cargar los archivos.';
